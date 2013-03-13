@@ -73,6 +73,8 @@ sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
 	sqlite3 *db;
 	char sql[1024];
 
+	ras->stmt = NULL;
+
 	rc = sqlite3_initialize();
 	if (rc != SQLITE_OK) {
 		printf("Failed to initialize sqlite: error = %d\n", rc);
@@ -125,6 +127,9 @@ printf("%s\n", sql);
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 {
 	int rc;
+
+	if (!ras->stmt)
+		return;
 
 	sqlite3_bind_text(ras->stmt,  1, ev->timestamp, -1, NULL);
 	sqlite3_bind_int (ras->stmt,  2, ev->error_count);
