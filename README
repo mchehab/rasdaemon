@@ -7,6 +7,19 @@ and Serviceability (RAS) reports made via the Kernel tracing events.
 QUICK USAGE
 ===========
 
+sqlite3 and autoconf needs to be installed. On Fedora, this is done
+by installing the following packages:
+	make
+	gcc
+	autoconf
+	automake
+	libtool
+	tar
+	sqlite-devel
+
+To install then on Fedora, run:
+	yum install -y make gcc autoconf automake libtool tar sqlite-devel
+
 Run:
 	$ autoreconf -vfi && configure
 	$ make
