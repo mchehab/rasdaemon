@@ -4,3 +4,18 @@ RAS Daemon
 Those tools provide a way to get Platform Reliability, Availability
 and Serviceability (RAS) reports made via the Kernel tracing events.
 
+QUICK USAGE
+===========
+
+Run:
+	$ autoreconf -vfi && configure
+	$ make
+
+As root:
+	# make install
+
+The daemon generally requires root permission, in order to read the
+needed debugfs trace nodes. Just run it without any parameters to start
+capturing the RAS memory errors:
+
+	# rasdaemon
