@@ -1,0 +1,5 @@
+This library is part of the trace-cmd tools, available at:
+	git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/trace-cmd.git
+
+Written by Steven Rostedt <srostedt@redhat.com>
+
