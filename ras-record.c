@@ -67,6 +67,32 @@ const char *createdb = "CREATE TABLE IF NOT EXISTS";
 const char *insertdb = "INSERT INTO";
 const char *valuesdb = " VALUES ";
 
+static int ras_mc_prepare_stmt(struct ras_events *ras)
+{
+	int i, rc;
+	char sql[1024];
+
+	strcpy(sql, insertdb);
+	strcat(sql, mc_event_db);
+	strcat(sql, mc_event_db_fields);
+	strcat(sql, valuesdb);
+
+	strcat(sql, "(NULL, ");	/* Auto-increment field */
+	for (i = 1; i < NUM_MC_EVENT_DB_VALUES; i++) {
+		if (i < NUM_MC_EVENT_DB_VALUES - 1)
+			strcat(sql, "?, ");
+		else
+			strcat(sql, "?)");
+	}
+
+	rc = sqlite3_prepare_v2(ras->db, sql, -1, &ras->stmt, NULL);
+	if (rc != SQLITE_OK)
+		printf("Failed to prepare insert db on %s: error = %s\n",
+		       SQLITE_RAS_DB, sqlite3_errmsg(ras->db));
+
+	return rc;
+}
+
 sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
 {
 	int rc, i;
@@ -92,7 +118,6 @@ sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
 	strcpy(sql, createdb);
 	strcat(sql, mc_event_db);
 	strcat(sql, mc_event_db_create_fields);
-printf("%s\n", sql);
 	rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
 	if (rc != SQLITE_OK) {
 		printf("Failed to create db on %s: error = %d\n",
@@ -101,25 +126,11 @@ printf("%s\n", sql);
 		return NULL;
 	}
 
-	strcpy(sql, insertdb);
-	strcat(sql, mc_event_db);
-	strcat(sql, mc_event_db_fields);
-	strcat(sql, valuesdb);
+	ras->db = db;
 
-	strcat(sql, "(NULL, ");	/* Auto-increment field */
-	for (i = 1; i < NUM_MC_EVENT_DB_VALUES; i++) {
-		if (i < NUM_MC_EVENT_DB_VALUES - 1)
-			strcat(sql, "?, ");
-		else
-			strcat(sql, "?)");
-	}
-printf("%s\n", sql);
-	rc = sqlite3_prepare_v2(db, sql, -1, &ras->stmt, NULL);
-	if (rc != SQLITE_OK) {
-		printf("Failed to prepare insert db on %s: error = %s\n",
-		       SQLITE_RAS_DB, sqlite3_errmsg(db));
-		return NULL;
-	}
+	rc = ras_mc_prepare_stmt(ras);
+	if (rc == SQLITE_OK)
+		printf("Recording events at %s\n", SQLITE_RAS_DB, rc);
 
 	return db;
 }
@@ -128,8 +139,9 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 {
 	int rc;
 
+	printf("store_event: %p\n", ras->stmt);
 	if (!ras->stmt)
-		return;
+		return 0;
 
 	sqlite3_bind_text(ras->stmt,  1, ev->timestamp, -1, NULL);
 	sqlite3_bind_int (ras->stmt,  2, ev->error_count);
@@ -151,6 +163,7 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		printf("Failed to do finalize insert on sqlite: error = %d\n",
 		       rc);
+	printf("register interted at db\n");
 
 	return rc;
 }

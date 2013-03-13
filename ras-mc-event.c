@@ -443,12 +443,8 @@ int handle_ras_events(int record_events)
 	ras->pevent = pevent;
 	ras->page_size = page_size;
 
-	if (record_events) {
-		ras->db = ras_mc_event_opendb(ras);
-
-		if (ras->db)
-			printf("Recording events\n");
-	}
+	if (record_events)
+		ras_mc_event_opendb(ras);
 
 	pevent_register_event_handler(pevent, -1, "ras", "mc_event",
 				      ras_mc_event_handler, ras);
