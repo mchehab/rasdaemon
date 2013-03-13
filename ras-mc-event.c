@@ -394,7 +394,7 @@ static void *handle_ras_events_cpu(void *priv)
 	return NULL;
 }
 
-int handle_ras_events(void)
+int handle_ras_events(int record_events)
 {
 	int rc, fd, size, page_size, i, cpus;
 	struct pevent *pevent;
@@ -442,7 +442,13 @@ int handle_ras_events(void)
 		goto free_pevent;
 	ras->pevent = pevent;
 	ras->page_size = page_size;
-	ras->db = ras_mc_event_opendb(ras);
+
+	if (record_events) {
+		ras->db = ras_mc_event_opendb(ras);
+
+		if (ras->db)
+			printf("Recording events\n");
+	}
 
 	pevent_register_event_handler(pevent, -1, "ras", "mc_event",
 				      ras_mc_event_handler, ras);

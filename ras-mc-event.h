@@ -38,7 +38,7 @@ struct pthread_data {
 	int			cpu;
 };
 
-int handle_ras_events(void);
+int handle_ras_events(int record_events);
 int toggle_ras_mc_event(int enable);
 
 #endif

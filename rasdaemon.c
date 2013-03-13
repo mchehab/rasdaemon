@@ -34,6 +34,7 @@ const char *argp_program_version = TOOL_NAME " " VERSION;
 const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@redhat.com>";
 
 struct arguments {
+	int record_events;
 	int enable_ras;
 };
 
@@ -48,6 +49,9 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'd':
 		args->enable_ras--;
 		break;
+	case 'r':
+		args->record_events++;
+		break;
 	default:
 		return ARGP_ERR_UNKNOWN;
 	}
@@ -61,6 +65,7 @@ int main(int argc, char *argv[])
 	const struct argp_option options[] = {
 		{"enable",  'e', 0, 0, "enable RAS events and exit", 0},
 		{"disable", 'd', 0, 0, "disable RAS events and exit", 0},
+		{"record",  'r', 0, 0, "record events via sqlite3", 0},
 
 		{ 0, 0, 0, 0, 0, 0 }
 	};
@@ -86,7 +91,7 @@ int main(int argc, char *argv[])
 		toggle_ras_mc_event(0);
 
 	if (!args.enable_ras)
-		handle_ras_events();
+		handle_ras_events(args.record_events);
 
 	return 0;
 }
