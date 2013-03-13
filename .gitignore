@@ -15,4 +15,6 @@ libtool
 ltmain.sh
 missing
 rasdaemon
-rasdaemon.o
+*.o
+*.c~
+*.h~
