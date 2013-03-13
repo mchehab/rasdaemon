@@ -298,7 +298,7 @@ static int read_ras_event(int fd,
 	};
 
 	do {
-		ready = poll(&fds, 1, 0);
+		ready = poll(&fds, 1, -1);
 		if (ready < 0) {
 			perror("poll");
 		}
