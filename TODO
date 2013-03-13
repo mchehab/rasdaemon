@@ -1,0 +1,13 @@
+- Fix RAS timestamp;
+- Make sqlite code thread safe: it currently hangs if two CPUs
+  try to record data there at the same time;
+- Make sqlite record optional;
+- Add a "supervisor" proccess that will avoid the daemon to stop;
+- Handle signals;
+- Better handle error conditions to be sure that events won't be
+  lost;
+- add a tool to handle the sqlite records, in order to detect if
+  the errors are just random noise or if they mean that memory is
+  damaged.
+- add a tool to inspect the EDAC data.
+
