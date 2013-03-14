@@ -151,14 +151,22 @@ static int ras_mc_event_handler(struct trace_seq *s,
 	tv.tv_sec = record->ts / 1000000L;
 	tv.tv_usec = record->ts % 1000000L;
 
+	/* FIXME:
+	 * Trace timestamps don't have any start reference that can be used.
+	 * This is a known issue on it, and it doesn't have any solution
+	 * so far, except for a hack: produce a fake event and associate its
+	 * timestamp with the one obtained via gettimeofday() a few times, and
+	 * use the mean time drift to adjust the offset between machine's
+	 * localtime and the tracing timestamp.
+	 */
 	tm = localtime(&tv.tv_sec);
 	if(tm) {
 		strftime(fmt, sizeof(fmt), "%Y-%m-%d %H:%M:%S.%%06u %z", tm);
 		snprintf(ev.timestamp, sizeof(ev.timestamp), fmt, tv.tv_usec);
 	}
-
-	/* Doesn't work... we need a hack here */
-trace_seq_printf(s, "%s(%lld = %ld.%ld) ", ev.timestamp, record->ts, (long)tv.tv_sec, (long)tv.tv_usec);
+	trace_seq_printf(s, "%s(%lld = %ld.%ld) ",
+			 ev.timestamp, record->ts,
+			 (long)tv.tv_sec, (long)tv.tv_usec);
 
 	if (pevent_get_field_val(s,  event, "ev.error_count", record, &val, 0) < 0)
 		return -1;
