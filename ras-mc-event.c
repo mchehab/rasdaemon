@@ -168,7 +168,7 @@ static int ras_mc_event_handler(struct trace_seq *s,
 			 ev.timestamp, record->ts,
 			 (long)tv.tv_sec, (long)tv.tv_usec);
 
-	if (pevent_get_field_val(s,  event, "ev.error_count", record, &val, 1) < 0) {
+	if (pevent_get_field_val(s,  event, "ev.error_count", record, &val, 1) < 0)
 		return -1;
 	ev.error_count = val;
 	trace_seq_printf(s, "%d ", ev.error_count);
