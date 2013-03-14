@@ -168,12 +168,12 @@ static int ras_mc_event_handler(struct trace_seq *s,
 			 ev.timestamp, record->ts,
 			 (long)tv.tv_sec, (long)tv.tv_usec);
 
-	if (pevent_get_field_val(s,  event, "ev.error_count", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "error_count", record, &val, 1) < 0)
 		return -1;
 	ev.error_count = val;
 	trace_seq_printf(s, "%d ", ev.error_count);
 
-	if (pevent_get_field_val(s, event, "ev.error_type", record, &val, 1) < 0)
+	if (pevent_get_field_val(s, event, "error_type", record, &val, 1) < 0)
 		return -1;
 	ev.error_type = mc_event_error_type(val);
 	trace_seq_puts(s, ev.error_type);
@@ -182,7 +182,7 @@ static int ras_mc_event_handler(struct trace_seq *s,
 	else
 		trace_seq_puts(s, " error:");
 
-	ev.msg = pevent_get_field_raw(s, event, "ev.msg", record, &len, 1);
+	ev.msg = pevent_get_field_raw(s, event, "msg", record, &len, 1);
 	if (!ev.msg)
 		return -1;
 	if (*ev.msg) {
@@ -190,7 +190,7 @@ static int ras_mc_event_handler(struct trace_seq *s,
 		trace_seq_puts(s, ev.msg);
 	}
 
-	ev.label = pevent_get_field_raw(s, event, "ev.label", record, &len, 1);
+	ev.label = pevent_get_field_raw(s, event, "label", record, &len, 1);
 	if (!ev.label)
 		return -1;
 	if (*ev.label) {
@@ -199,18 +199,18 @@ static int ras_mc_event_handler(struct trace_seq *s,
 	}
 
 	trace_seq_puts(s, " (");
-	if (pevent_get_field_val(s,  event, "ev.mc_index", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "mc_index", record, &val, 1) < 0)
 		return -1;
 	ev.mc_index = val;
 	trace_seq_printf(s, "mc: %d", ev.mc_index);
 
-	if (pevent_get_field_val(s,  event, "ev.top_layer", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "top_layer", record, &val, 1) < 0)
 		return -1;
 	ev.top_layer = (int) val;
-	if (pevent_get_field_val(s,  event, "ev.middle_layer", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "middle_layer", record, &val, 1) < 0)
 		return -1;
 	ev.middle_layer = (int) val;
-	if (pevent_get_field_val(s,  event, "ev.lower_layer", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "lower_layer", record, &val, 1) < 0)
 		return -1;
 	ev.lower_layer = (int) val;
 
@@ -232,25 +232,25 @@ static int ras_mc_event_handler(struct trace_seq *s,
 			trace_seq_printf(s, " location: %d", ev.top_layer);
 	}
 
-	if (pevent_get_field_val(s,  event, "ev.address", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "address", record, &val, 1) < 0)
 		return -1;
 	ev.address = val;
 	if (ev.address)
-		trace_seq_printf(s, " ev.address: 0x%08llx", ev.address);
+		trace_seq_printf(s, " address: 0x%08llx", ev.address);
 
-	if (pevent_get_field_val(s,  event, "ev.grain_bits", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "grain_bits", record, &val, 1) < 0)
 		return -1;
 	ev.grain = val;
-	trace_seq_printf(s, " ev.grain: %lld", ev.grain);
+	trace_seq_printf(s, " grain: %lld", ev.grain);
 
 
-	if (pevent_get_field_val(s,  event, "ev.syndrome", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "syndrome", record, &val, 1) < 0)
 		return -1;
 	ev.syndrome = val;
 	if (val)
-		trace_seq_printf(s, " ev.syndrome: 0x%08llx", ev.syndrome);
+		trace_seq_printf(s, " syndrome: 0x%08llx", ev.syndrome);
 
-	ev.driver_detail = pevent_get_field_raw(s, event, "ev.driver_detail", record,
+	ev.driver_detail = pevent_get_field_raw(s, event, "driver_detail", record,
 					     &len, 1);
 	if (!ev.driver_detail)
 		return -1;
