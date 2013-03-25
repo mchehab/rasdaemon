@@ -1,13 +1,21 @@
-- Fix RAS timestamp.
-- Make sqlite code thread safe: it currently hangs if two CPUs
-  try to record data there at the same time.
-- Add a "supervisor" proccess that will avoid the daemon to stop.
-- Handle signals.
-- Better handle error conditions to be sure that events won't be
-  lost.
-- add a tool to handle the sqlite records, in order to detect if
-  the errors are just random noise or if they mean that memory is
-  damaged.
-- add a tool to inspect the EDAC data.
-- add support for PCIe AER trace records.
-- add support for mce trace records.
+1) Fix RAS timestamp.
+
+2) Make sqlite code thread safe: it currently hangs if two CPUs
+   try to record data there at the same time.
+
+3) Add a "supervisor" proccess that will avoid the daemon to stop.
+
+4) Handle signals.
+
+5) Better handle error conditions to be sure that events won't be
+   lost.
+
+6) add a tool to handle the sqlite records, in order to detect if
+   the errors are just random noise or if they mean that memory is
+   damaged.
+
+7) add a tool to inspect the EDAC data.
+
+8) add support for PCIe AER trace records.
+
+9) add support for mce trace records.
