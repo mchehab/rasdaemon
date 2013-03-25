@@ -19,3 +19,6 @@
 8) add support for PCIe AER trace records.
 
 9) add support for mce trace records.
+
+10) use a separate ringbuffer for traces (requires patches for
+    kernel 3.10).
