@@ -18,9 +18,11 @@
 
 #include <argp.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ras-record.h"
+#include "ras-logger.h"
 
 /*
  * Arguments(argp) handling logic and main
@@ -36,6 +38,7 @@ const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@redhat.co
 struct arguments {
 	int record_events;
 	int enable_ras;
+	int foreground;
 };
 
 static error_t parse_opt(int k, char *arg, struct argp_state *state)
@@ -52,6 +55,9 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'r':
 		args->record_events++;
 		break;
+	case 'f':
+		args->foreground++;
+		break;
 	default:
 		return ARGP_ERR_UNKNOWN;
 	}
@@ -66,6 +72,7 @@ int main(int argc, char *argv[])
 		{"enable",  'e', 0, 0, "enable RAS events and exit", 0},
 		{"disable", 'd', 0, 0, "disable RAS events and exit", 0},
 		{"record",  'r', 0, 0, "record events via sqlite3", 0},
+		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},
 
 		{ 0, 0, 0, 0, 0, 0 }
 	};
@@ -90,8 +97,15 @@ int main(int argc, char *argv[])
 	else if (args.enable_ras < 0)
 		toggle_ras_mc_event(0);
 
-	if (!args.enable_ras)
-		handle_ras_events(args.record_events);
+	if (args.enable_ras)
+		return 0;
+
+	openlog(TOOL_NAME, 0, LOG_DAEMON);
+	if (!args.foreground)
+		if (daemon(0,0))
+			exit(EXIT_FAILURE);
+
+	handle_ras_events(args.record_events);
 
 	return 0;
 }

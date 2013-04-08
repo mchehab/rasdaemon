@@ -21,6 +21,7 @@
  */
 
 #include "ras-mc-event.h"
+#include "ras-logger.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -87,8 +88,8 @@ static int ras_mc_prepare_stmt(struct ras_events *ras)
 
 	rc = sqlite3_prepare_v2(ras->db, sql, -1, &ras->stmt, NULL);
 	if (rc != SQLITE_OK)
-		printf("Failed to prepare insert db on %s: error = %s\n",
-		       SQLITE_RAS_DB, sqlite3_errmsg(ras->db));
+		log(TERM, LOG_ERR, "Failed to prepare insert db on %s: error = %s\n",
+		       SQLITE_RAS_DB, sqlite3_errmsg(ras->db))
 
 	return rc;
 }
@@ -103,15 +104,15 @@ sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
 
 	rc = sqlite3_initialize();
 	if (rc != SQLITE_OK) {
-		printf("Failed to initialize sqlite: error = %d\n", rc);
+		log(TERM, LOG_ERR, "Failed to initialize sqlite: error = %d\n", rc)
 		return NULL;
 	}
 
 	rc = sqlite3_open_v2(SQLITE_RAS_DB, &db,
 			     SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 	if (rc != SQLITE_OK) {
-		printf("Failed to connect to %s: error = %d\n",
-		       SQLITE_RAS_DB, rc);
+		log(TERM, LOG_ERR, "Failed to connect to %s: error = %d\n",
+		       SQLITE_RAS_DB, rc)
 		return NULL;
 	}
 
@@ -120,8 +121,8 @@ sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
 	strcat(sql, mc_event_db_create_fields);
 	rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
 	if (rc != SQLITE_OK) {
-		printf("Failed to create db on %s: error = %d\n",
-		       SQLITE_RAS_DB, rc);
+		log(TERM, LOG_ERR, "Failed to create db on %s: error = %d\n",
+		       SQLITE_RAS_DB, rc)
 
 		return NULL;
 	}
@@ -130,7 +131,7 @@ sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
 
 	rc = ras_mc_prepare_stmt(ras);
 	if (rc == SQLITE_OK)
-		printf("Recording events at %s\n", SQLITE_RAS_DB, rc);
+		log(TERM, LOG_INFO, "Recording events at %s\n", SQLITE_RAS_DB, rc)
 
 	return db;
 }
@@ -139,7 +140,7 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 {
 	int rc;
 
-	printf("store_event: %p\n", ras->stmt);
+	log(TERM, LOG_INFO, "store_event: %p\n", ras->stmt)
 	if (!ras->stmt)
 		return 0;
 
@@ -158,12 +159,12 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 	sqlite3_bind_text(ras->stmt, 13, ev->driver_detail, -1, NULL);
 	rc = sqlite3_step(ras->stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		printf("Failed to do step on sqlite: error = %d\n", rc);
+		log(TERM, LOG_ERR, "Failed to do step on sqlite: error = %d\n", rc)
 	rc = sqlite3_finalize(ras->stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		printf("Failed to do finalize insert on sqlite: error = %d\n",
-		       rc);
-	printf("register interted at db\n");
+		log(TERM, LOG_ERR, "Failed to do finalize insert on sqlite: error = %d\n",
+		       rc)
+	log(TERM, LOG_INFO, "register interted at db\n")
 
 	return rc;
 }

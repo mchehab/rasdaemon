@@ -29,6 +29,7 @@
 #include "libtrace/event-parse.h"
 #include "ras-mc-event.h"
 #include "ras-record.h"
+#include "ras-logger.h"
 
 /*
  * Polling time, if read() doesn't block. Currently, trace_pipe_raw never
@@ -59,7 +60,7 @@ int toggle_ras_mc_event(int enable)
 	/* Enable RAS events */
 	fd = open(DEBUGFS "tracing/set_event", O_RDWR | O_APPEND);
 	if (fd < 0) {
-		perror("Open set_event");
+		log(ALL, LOG_WARNING, "Can't open set_event")
 		return errno;
 	}
 	if (enable)
@@ -69,20 +70,20 @@ int toggle_ras_mc_event(int enable)
 		rc = write(fd, DISABLE_RAS_MC_EVENT,
 			   sizeof(DISABLE_RAS_MC_EVENT));
 	if (rc < 0) {
-		perror("can't write to set_event");
+		log(ALL, LOG_WARNING, "Can't write to set_event")
 		close(fd);
 		return rc;
 	}
 	close(fd);
 	if (!rc) {
-		fprintf(stderr, "nothing was written on set_event\n");
+		log(ALL, LOG_WARNING, "Nothing was written on set_event\n")
 		return EIO;
 	}
 
 	if (enable)
-		printf("RAS events enabled\n");
+		log(ALL, LOG_INFO, "RAS events enabled\n")
 	else
-		printf("RAS events disabled\n");
+		log(ALL, LOG_INFO, "RAS events disabled\n")
 
 	return 0;
 }
@@ -282,6 +283,7 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 	record.missed_events = kbuffer_missed_events(kbuf);
 	record.record_size = kbuffer_curr_size(kbuf);
 
+	/* TODO - logging */
 	trace_seq_init(&s);
 	printf("cpu %02d:", pdata->cpu);
 	fflush(stdout);
@@ -308,11 +310,11 @@ static int read_ras_event(int fd,
 	do {
 		ready = poll(&fds, 1, -1);
 		if (ready < 0) {
-			perror("poll");
+			log(TERM, LOG_WARNING, "poll")
 		}
 		size = read(fd, page, pdata->ras->page_size);
 		if (size < 0) {
-			perror ("read");
+			log(TERM, LOG_WARNING, "read")
 			return -1;
 		} else if (size > 0) {
 			kbuffer_load_subbuffer(kbuf, page);
@@ -329,7 +331,7 @@ static int read_ras_event(int fd,
 			 * need to sleep for a while
 			 */
 			if (!warn_sleep) {
-				printf("Old kernel: need to sleep\n");
+				log(ALL, LOG_INFO, "Old kernel: need to sleep\n")
 				warn_sleep = 1;
 			}
 			sleep(POLLING_TIME);
@@ -367,13 +369,13 @@ static void *handle_ras_events_cpu(void *priv)
 
 	page = malloc(pdata->ras->page_size);
 	if (!page) {
-		perror("Can't allocate page");
+		log(TERM, LOG_ERR, "Can't allocate page")
 		return NULL;
 	}
 
 	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
 	if (!kbuf) {
-		perror("Can't allocate kbuf");
+		log(TERM, LOG_ERR, "Can't allocate kbuf")
 		free(page);
 		return NULL;
 	}
@@ -385,7 +387,7 @@ static void *handle_ras_events_cpu(void *priv)
 
 	fd = open(pipe_raw, O_RDONLY);
 	if (fd < 0) {
-		perror("Can't open trace_pipe_raw");
+		log(TERM, LOG_ERR, "Can't open trace_pipe_raw")
 		kbuffer_free(kbuf);
 		free(page);
 		return NULL;
@@ -415,14 +417,14 @@ int handle_ras_events(int record_events)
 
 	pevent = pevent_alloc();
 	if (!pevent) {
-		perror("Can't allocate pevent");
+		log(TERM, LOG_ERR, "Can't allocate pevent")
 		return errno;
 	}
 
 	fd = open(DEBUGFS "tracing/events/ras/mc_event/format",
 		  O_RDONLY);
 	if (fd < 0) {
-		perror("Open ras format");
+		log(TERM, LOG_ERR, "Open ras format")
 		rc = errno;
 		goto free_pevent;
 	}
@@ -431,7 +433,7 @@ int handle_ras_events(int record_events)
 
 	page = malloc(page_size);
 	if (!page) {
-		perror("Can't allocate page to read event format");
+		log(TERM, LOG_ERR, "Can't allocate page to read event format")
 		rc = errno;
 		close(fd);
 		goto free_pevent;
@@ -467,7 +469,7 @@ int handle_ras_events(int record_events)
 	if (!data)
 		goto free_ras;
 
-	printf("Opening one thread per cpu (%d threads)\n", cpus);
+	log(SYSLOG, LOG_INFO, "Opening one thread per cpu (%d threads)\n", cpus)
 	for (i = 0; i < cpus; i++) {
 		data[i].ras = ras;
 		data[i].cpu = i;
