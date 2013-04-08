@@ -21,7 +21,7 @@ To install then on Fedora, run:
 	yum install -y make gcc autoconf automake libtool tar sqlite-devel
 
 Run:
-	$ autoreconf -vfi && configure
+	$ autoreconf -vfi && ./configure
 	$ make
 
 As root:
