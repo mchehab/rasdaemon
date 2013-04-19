@@ -1,0 +1,781 @@
+#!/usr/bin/perl -w
+#******************************************************************************
+#  $Id$
+#******************************************************************************
+#  Copyright (C) 2003-2006 The Regents of the University of California.
+#  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
+#  Written by Mark Grondona <mgrondona@llnl.gov>
+#  UCRL-CODE-230739.
+#
+#  This file is part of edac-utils.
+#
+#  This is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This is distributed in the hope that it will be useful, but WITHOUT
+#  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#  for more details.
+#
+#  You should have received a copy of the GNU General Public License along
+#  with this program; if not, write to the Free Software Foundation, Inc.,
+#  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
+#****************************************************************************/
+
+use strict;
+use File::Basename;
+use File::Find;
+use Getopt::Long;
+use POSIX;
+
+my $prefix      = "/usr/local";
+my $sysconfdir  = "${prefix}/etc";
+my $dmidecode   = find_prog ("dmidecode");
+my $modprobe    = find_prog ("modprobe")  or exit (1);
+
+my %conf        = ();
+my %bus         = ();
+my %dimm_size   = ();
+my %csrow_size  = ();
+my %rank_size   = ();
+my %csrow_ranks = ();
+
+my @layers;
+my @max_pos;
+my @max_csrow;
+my $item_size;
+
+my $prog        = basename $0;
+$conf{labeldb}  = "$sysconfdir/edac/labels.db";
+$conf{labeldir} = "$sysconfdir/edac/labels.d";
+$conf{mbconfig} = "$sysconfdir/edac/mainboard";
+
+my $status      = 0;
+
+my $usage       = <<EOF;
+Usage: $prog [OPTIONS...]
+ --quiet            Quiet operation.
+ --mainboard        Print mainboard vendor and model for this hardware.
+ --status           Print status of EDAC drivers.
+ --print-labels     Print Motherboard DIMM labels to stdout.
+ --guess-labels     Print DMI labels, when bank locator is available.
+ --register-labels  Load Motherboard DIMM labels into EDAC driver.
+ --delay=N          Delay N seconds before writing DIMM labels.
+ --labeldb=DB       Load label database from file DB.
+ --layout           Display the memory layout.
+ --help             This help message.
+EOF
+
+parse_cmdline();
+
+if (  $conf{opt}{mainboard} || $conf{opt}{print_labels}
+   || $conf{opt}{register_labels} || $conf{opt}{display_memory_layout}
+   || $conf{opt}{guess_dimm_label}) {
+
+    get_mainboard_info();
+
+    if ($conf{opt}{mainboard} eq "report") {
+        print "$prog: mainboard: ",
+              "$conf{mainboard}{vendor} model $conf{mainboard}{model}\n";
+    }
+
+    if ($conf{opt}{print_labels}) {
+        print_dimm_labels ();
+
+    }
+    if ($conf{opt}{register_labels}) {
+        register_dimm_labels ();
+    }
+    if ($conf{opt}{display_memory_layout}) {
+        display_memory_layout ();
+    }
+    if ($conf{opt}{guess_dimm_label}) {
+        guess_dimm_label ();
+    }
+}
+
+if ($conf{opt}{status}) {
+    $status = print_status ();
+    exit ($status ? 0 : 1);
+}
+
+exit (0);
+
+sub parse_cmdline
+{
+    $conf{opt}{mainboard} = '';
+    $conf{opt}{print_labels} = 0;
+    $conf{opt}{register_labels} = 0;
+    $conf{opt}{status} = 0;
+    $conf{opt}{quiet} = 0;
+    $conf{opt}{delay} = 0;
+    $conf{opt}{display_memory_layout} = 0;
+    $conf{opt}{guess_dimm_label} = 0;
+
+    my $rref = \$conf{opt}{report};
+    my $mref = \$conf{opt}{mainboard};
+
+    Getopt::Long::Configure ("bundling");
+    my $rc = GetOptions ("mainboard:s" =>     sub { $$mref = $_[1]||"report" },
+                         "help" =>            sub {usage (0)},
+                         "quiet" =>           \$conf{opt}{quiet},
+                         "print-labels" =>    \$conf{opt}{print_labels},
+                         "guess-labels" =>    \$conf{opt}{guess_dimm_label},
+                         "register-labels" => \$conf{opt}{register_labels},
+                         "delay:s" =>         \$conf{opt}{delay},
+                         "labeldb=s" =>       \$conf{labeldb},
+                         "status" =>          \$conf{opt}{status},
+			 "layout" =>          \$conf{opt}{display_memory_layout});
+
+    usage(1) if !$rc;
+
+    usage (0) if !grep $conf{opt}{$_}, keys %{$conf{opt}};
+
+    if ($conf{opt}{delay} && !$conf{opt}{register_labels}) {
+        log_error ("Only use --delay with --register-labels\n");
+        exit (1);
+    }
+}
+
+sub usage
+{
+    my ($rc) = @_;
+    print "$usage\n";
+    exit ($rc);
+}
+
+sub run_cmd
+{
+    my @args = @_;
+    system ("@args");
+    return ($?>>8);
+}
+
+
+sub print_status
+{
+    my $status = 0;
+    open (MODULES, "/proc/modules")
+         or die "Unable to open /proc/modules: $!\n";
+
+    while (<MODULES>) {
+       $status = 1 if /_edac/;
+    }
+
+    print "$prog: drivers ", ($status ? "are" : "not"), " loaded.\n"
+        unless $conf{opt}{quiet};
+
+    return ($status);
+}
+
+
+sub get_mainboard_info {
+    my ($vendor, $model);
+
+    if ($conf{opt}{mainboard} && $conf{opt}{mainboard} ne "report") {
+        ($vendor, $model) = split (/[: ]/, $conf{opt}{mainboard}, 2);
+    }
+
+    if (!$vendor || !$model) {
+        ($vendor, $model) = guess_vendor_model ();
+    }
+
+    $conf{mainboard}{vendor} = $vendor;
+    $conf{mainboard}{model}  = $model;
+}
+
+sub guess_vendor_model_dmidecode {
+    my ($vendor, $model);
+    my ($system_vendor, $system_model);
+    my $line = 0;
+
+    $< == 0 || die "Must be root to run dmidecode\n";
+
+    open (DMI, "$dmidecode |") or die "failed to run $dmidecode: $!\n";
+
+    $vendor = $model = "";
+
+  LINE:
+    while (<DMI>) {
+        $line++;
+
+        /^(\s*)(board|base board|system) information/i || next LINE;
+        my $indent = $1;
+	my $type = $2;
+
+        while ( <DMI> ) {
+            /^(\s*)/;
+            $1 lt $indent && last LINE;
+            $indent = $1;
+            if ($type eq "system") {
+                /(?:manufacturer|vendor):\s*(.*\S)\s*/i && ( $system_vendor = $1 );
+                /product(?: name)?:\s*(.*\S)\s*/i       && ( $system_model  = $1 );
+            } else {
+                /(?:manufacturer|vendor):\s*(.*\S)\s*/i && ( $vendor = $1 );
+                /product(?: name)?:\s*(.*\S)\s*/i       && ( $model  = $1 );
+            }
+            last LINE if ($vendor && $model);
+        }
+    }
+
+    close (DMI);
+
+    $vendor = $system_vendor if ($vendor eq "");
+    $model = $system_model if ($model eq "");
+
+    return ($vendor, $model);
+}
+
+sub guess_vendor_model_sysfs {
+    #
+    #  Try to look up DMI information in sysfs
+    #
+    open (VENDOR, "/sys/class/dmi/id/board_vendor") or return undef;
+    open (MODEL,  "/sys/class/dmi/id/board_name")   or return undef;
+
+    my ($vendor, $model) = (<VENDOR>, <MODEL>);
+
+    close (VENDOR);
+    close (MODEL);
+
+    return undef unless ($vendor && $model);
+
+    chomp ($vendor, $model);
+
+    return ($vendor, $model);
+}
+
+sub parse_mainboard_config
+{
+    my ($file) = @_;
+    my %hash = ();
+    my $line = 0;
+
+    open (CFG, "$file") or die "Failed to read mainboard config: $file: $!\n";
+    while (<CFG>) {
+        $line++;
+        chomp;                                          # remove newline
+        s/^((?:[^'"#]*(?:(['"])[^\2]*\2)*)*)#.*/$1/;    # remove comments
+        s/^\s+//;                                       # remove leading space
+        s/\s+$//;                                       # remove trailing space
+        next unless length;                             # skip blank lines
+        if (my ($key, $val) = /^\s*([-\w]+)\s*=\s*(.*)/) {
+            $hash{$key}{val} = $val;
+            $hash{$key}{line} = $line;
+            next;
+        }
+        return undef;
+    }
+    close (CFG) or &log_error ("close $file: $!\n");
+    return \%hash;
+}
+
+sub guess_vendor_model {
+    my ($vendor, $model);
+    #
+    #  If mainboard config file exists then parse it
+    #   to get the vendor and model information.
+    #
+    if (-f $conf{mbconfig} ) {
+        my $cfg = &parse_mainboard_config ($conf{mbconfig});
+
+        #  If mainboard config file specified a script, then try to
+        #   run the specified script or executable:
+        #
+        if ($cfg->{"script"}) {
+            $cfg = &parse_mainboard_config ("$cfg->{script}{val} |");
+            die "Failed to run mainboard script\n" if (!$cfg);
+        }
+        return ($cfg->{vendor}{val}, $cfg->{model}{val});
+    }
+
+    ($vendor, $model) = &guess_vendor_model_sysfs ();
+
+    return ($vendor, $model) if ($vendor && $model);
+
+    return (&guess_vendor_model_dmidecode ());
+}
+
+sub guess_dimm_label {
+    open (DMI, "$dmidecode |") or die "failed to run $dmidecode: $!\n";
+
+  LINE:
+    while (<DMI>) {
+        /^(\s*)memory device$/i || next LINE;
+	my ($dimm_label, $dimm_addr);
+
+        while (<DMI>) {
+	    if (/^\s*(locator|bank locator)/i) {
+		my $indent = $1;
+		$indent =~ tr/A-Z/a-z/;
+
+		if ($indent eq "locator") {
+			/(?:locator):\s*(.*\S)\s*/i && ( $dimm_label = $1 );
+		}
+		if ($indent eq "bank locator") {
+			/(?:bank locator):\s*(.*\S)\s*/i && ( $dimm_addr = $1 );
+		}
+	    }
+	    if ($dimm_label && $dimm_addr) {
+		printf "memory stick '%s' is located at '%s'\n",
+			$dimm_label, $dimm_addr;
+		next LINE;
+	    }
+	    next LINE if (/^\s*\n/);
+        }
+    }
+
+    close (DMI);
+}
+
+sub parse_dimm_labels_file
+{
+    my ($lh, $file) = (@_);
+    my $line = -1;
+    my $vendor = "";
+    my @models = ();
+
+    open (LABELS, "$file")
+        or die "Unable to open label database: $file: $!\n";
+
+    while (<LABELS>) {
+        $line++;
+        next if /^#/;
+        chomp;
+        s/^\s+//;
+        s/\s+$//;
+        next unless length;
+
+        if (/vendor\s*:\s*(.*\S)\s*/i) {
+            $vendor = lc $1;
+            @models = ();
+            next;
+        }
+        if (/(model|board)\s*:\s*(.*)$/i) {
+            !$vendor && die "$file: line $line: MB model without vendor\n";
+            @models = grep { s/\s*(.*)\s*$/$1/ } split(/[,;]+/, $2);
+            next;
+        }
+
+        # Allow multiple labels to be specified on a single line,
+        #  separated by ;
+        for my $str (split /;/) {
+            $str =~ s/^\s*(.*)\s*$/$1/;
+
+            next unless (my ($label, $info) = ($str =~ /^(.*)\s*:\s*(.*)$/i));
+
+            unless ($info =~ /(\d\.\d\.\d,*)+/) {
+                log_error ("$file: $line: Invalid syntax, ignoring: \"$_\"\n");
+                next;
+            }
+
+            for my $target (split (/[, ]+/, $info)) {
+                my ($mc, $row, $chan) = ($target =~ /(\d+)\.(\d+)\.(\d+)/);
+
+                map { $lh->{$vendor}{lc $_}{$mc}{$row}{$chan} = $label }
+                         @models;
+
+            }
+        }
+    }
+
+    close (LABELS) or die "Error from label db \"$file\" : $!\n";
+
+    return $lh;
+}
+
+sub parse_dimm_labels
+{
+    my %labels = ();
+
+    #
+    #  Accrue all DIMM labels from the labels.db file, as
+    #   well as any files under the labels dir
+    #
+    for my $file ($conf{labeldb}, <$conf{labeldir}/*>) {
+    	next unless -r $file;
+    	parse_dimm_labels_file (\%labels, $file);
+    }
+
+    return \%labels;
+}
+
+sub read_dimm_label
+{
+    my ($mc, $row, $chan) = @_;
+    my $sysfs = "/sys/devices/system/edac/mc";
+
+    my $file = "$sysfs/mc$mc/csrow$row/ch${chan}_dimm_label";
+
+    return ("Missing") unless -f $file;
+
+    if (!open (LABEL, "$file")) {
+        warn "Failed to open $file: $!\n";
+        return ("Error");
+    }
+
+    chomp (my $label = <LABEL> || "");
+
+    close (LABEL);
+
+    return ($label);
+}
+
+sub print_dimm_labels
+{
+    my $fh = shift || *STDOUT;
+    my $lref = parse_dimm_labels ();
+    my $vendor = lc $conf{mainboard}{vendor};
+    my $model  = lc $conf{mainboard}{model};
+    my $format = "%-35s %-20s %-20s\n";
+
+    if (!exists $$lref{$vendor}{$model}) {
+        log_error ("No dimm labels for $conf{mainboard}{vendor} " .
+                   "model $conf{mainboard}{model}\n");
+        return;
+    }
+
+
+    printf $fh $format, "LOCATION", "CONFIGURED LABEL", "SYSFS CONTENTS";
+
+    for my $mc (sort keys %{$$lref{$vendor}{$model}}) {
+        for my $row (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
+            for my $chan (sort keys %{$$lref{$vendor}{$model}{$mc}{$row}}) {
+
+                my $label = $$lref{$vendor}{$model}{$mc}{$row}{$chan};
+                my $rlabel = read_dimm_label ($mc, $row, $chan);
+                my $loc = "mc$mc/csrow$row/ch${chan}_dimm_label";
+
+                printf $fh $format, $loc, $label, $rlabel;
+            }
+        }
+    }
+    print $fh "\n";
+
+}
+
+sub register_dimm_labels
+{
+    my $lref = parse_dimm_labels ();
+    my $vendor = lc $conf{mainboard}{vendor};
+    my $model  = lc $conf{mainboard}{model};
+    my $sysfs  = "/sys/devices/system/edac/mc";
+
+    if (!exists $$lref{$vendor}{$model}) {
+        log_error ("No dimm labels for $conf{mainboard}{vendor} " .
+                                      "model $conf{mainboard}{model}\n");
+        return 0;
+    }
+
+    select (undef, undef, undef, $conf{opt}{delay});
+
+    for my $mc (sort keys %{$$lref{$vendor}{$model}}) {
+        for my $row (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
+            for my $chan (sort keys %{$$lref{$vendor}{$model}{$mc}{$row}}) {
+
+                my $file = "$sysfs/mc$mc/csrow$row/ch${chan}_dimm_label";
+
+                # Ignore sysfs files that don't exist. Might just be
+                #  unpopulated bank.
+                next unless -f $file;
+
+                if (!open (DL, ">$file")) {
+                    warn ("Unable to open $file\n");
+                    next;
+                }
+
+                syswrite DL, $$lref{$vendor}{$model}{$mc}{$row}{$chan};
+
+                close (DL);
+
+            }
+        }
+    }
+    return 1;
+}
+
+sub parse_dimm_nodes
+{
+    my $file = $File::Find::name;
+
+    if (($file =~ /max_location$/)) {
+        open IN, $file;
+        my $location = <IN>;
+        close IN;
+        my @temp = split(/ /, $location);
+        $layers[0] = "mc";
+
+	if (m,/mc/mc(\d+),) {
+		$max_pos[0] = $1 if (!exists($max_pos[0]) || $1 > $max_pos[0]);
+	} else {
+	        $max_pos[0] = 0 if (!exists($max_pos[0]));
+	}
+        for (my $i = 0; $i < scalar(@temp); $i += 2) {
+            $layers[$i / 2 + 1] = $temp[$i];
+            $max_pos[$i / 2 + 1] = $temp[$i + 1];
+        }
+
+        return;
+    }
+    if ($file =~ /_dimm_label$/) {
+        my $mc = $file;
+        $mc =~ s,.*/mc(\d+).*,$1,;
+
+        my $csrow = $file;
+        $csrow =~ s,.*/csrow(\d+).*,$1,;
+
+        my $channel = $file;
+        $channel =~ s,.*/ch(\d+).*,$1,;
+
+        if (!@max_csrow) {
+            $max_csrow[0] = 0;
+            $max_csrow[1] = 0;
+            $max_csrow[2] = 0;
+        }
+        if ($mc > $max_csrow[0]) {
+            $max_csrow[0] = $mc;
+        }
+
+        if ($csrow > $max_csrow[1]) {
+            $max_csrow[1] = $csrow;
+        }
+
+        if ($channel > $max_csrow[2]) {
+            $max_csrow[2] = $channel;
+        }
+
+        my $str_loc = join(':', $mc, $csrow, $channel);
+        $rank_size{$str_loc} = 1;
+
+        $str_loc = join(':', $mc, $csrow);
+        $csrow_ranks{$str_loc}++;
+
+        return;
+    }
+    if ($file =~ /size_mb$/) {
+        my $mc = $file;
+        $mc =~ s,.*mc(\d+).*,$1,;
+
+        my $csrow = $file;
+        $csrow =~ s,.*csrow(\d+).*,$1,;
+
+        open IN, $file;
+        my $size = <IN>;
+        close IN;
+
+        my $str_loc = join(':', $mc, $csrow);
+        $csrow_size{$str_loc} = $size;
+
+        return;
+    }
+    if ($file =~ /location$/) {
+        my $mc = $file;
+        $mc =~ s,.*mc(\d+).*,$1,;
+
+        my $dimm = $file;
+        $dimm =~ s,.*dimm(\d+).*,$1,;
+
+        open IN, $file;
+        my $location = <IN>;
+        close IN;
+
+        my @pos;
+
+        # Get the name of the hierarchy labels
+        if (!@layers) {
+                my @temp = split(/ /, $location);
+                $max_pos[0] = 0;
+                $layers[0] = "mc";
+                for (my $i = 0; $i < scalar(@temp); $i += 2) {
+                $layers[$i / 2 + 1] = $temp[$i];
+                $max_pos[$i / 2 + 1] = 0;
+                }
+        }
+
+        my @temp = split(/ /, $location);
+        for (my $i = 1; $i < scalar(@temp); $i += 2) {
+                $pos[$i / 2] = $temp[$i];
+
+                if ($pos[$i / 2] > $max_pos[$i / 2]) {
+                $max_pos[$i / 2 + 1] = $pos[$i / 2];
+                }
+        }
+        if ($mc > $max_pos[0]) {
+                $max_pos[0] = $mc;
+        }
+
+        # Get DIMM size
+
+        $file =~ s/dimm_location/size/;
+        open IN, $file;
+        my $size = <IN>;
+        close IN;
+
+        my $str_loc = join(':', $mc, @pos);
+        $dimm_size{$str_loc} = $size;
+
+        return;
+    }
+}
+
+sub dimm_display_layer($@);
+
+sub dimm_display_layer($@)
+{
+    my $layer = shift;
+    my @pos = @_;
+
+    $layer--;
+    if ($layer < 0) {
+        my $str_loc = join(':', @pos);
+        my $size = $dimm_size{$str_loc};
+        if (!$size) {
+            $size = 0;
+        }
+        my $s = sprintf "  %4i MB  |", $size;
+        $item_size = length($s);
+        return $s;
+    }
+
+    my $s;
+    for (my $i = 0; $i <= $max_pos[$layer]; $i++) {
+        $pos[$layer] = $i;
+        $s .= dimm_display_layer($layer, @pos);
+    }
+
+    return $s;
+}
+
+sub dimm_display_layer_header($$)
+{
+    my $n_items = 1;
+    my $scale;
+    my $layer = shift;
+    my $tot_items = shift;
+
+    my $s;
+    for (my $i = 0; $i <= $layer; $i++) {
+        $n_items *= $max_pos[$i] + 1;
+    }
+    $scale = $tot_items / $n_items;
+
+    my $d = 0;
+    for (my $i = 0; $i < $n_items; $i++) {
+        my $val = sprintf("%s%d", $layers[$layer], $d);
+        $val = substr($val, 0, $scale * $item_size - 2);
+        my $fillsize =  $scale * $item_size - 1 - length($val);
+        $s .= "|";
+        $s .= " " x ($fillsize / 2);
+        $s .= $val;
+        $s .= " " x ($fillsize - floor($fillsize / 2));
+
+        $d++;
+        if ($d > $max_pos[$layer]) {
+            $d = 0;
+        }
+    }
+    $s .= "|";
+    return $s;
+}
+
+sub dimm_display_mem()
+{
+    my @pos = @max_pos;
+    my $sep = "";
+    my $tot_items = 1;
+    my $first = 1;
+
+    for (my $i = 0; $i < scalar(@pos) - 1; $i++) {
+        $pos[$i] = 0;
+        $tot_items *= $max_pos[$i] + 1;
+    }
+
+    my $is_even = $max_pos[scalar(@max_pos) - 1] % 2;
+    for (my $d = $max_pos[scalar(@max_pos) - 1]; $d >= 0; $d--) {
+        my $len;
+
+        my $s = sprintf("%s%d: |", $layers[scalar(@max_pos) - 1], $d);
+        my $p1 = length($s) - 1;
+
+        $pos[scalar(@pos) - 1] = $d;
+        $s .= dimm_display_layer(scalar(@pos) - 1, @pos);
+        $len += length($s);
+
+        $sep = "-" x $p1;
+        $sep .= "+";
+        $sep .= "-" x ($len - $p1 - 2);
+        $sep .= "+";
+
+        if ($first) {
+            my $sep1 = " " x $p1;
+            $sep1 .= "+";
+            $sep1 .= "-" x ($len - $p1 - 2);
+            $sep1 .= "+";
+            printf "$sep1\n";
+            for (my $layer = 0; $layer < scalar(@pos) - 1; $layer++) {
+                my $s = sprintf("%s%d: |", $layers[scalar(@max_pos) - 1], 0);
+                my $p1 = length($s) - 1;
+                my $msg = " " x $p1;
+                $msg .= dimm_display_layer_header($layer, $tot_items);
+                printf "$msg\n";
+            }
+            printf "$sep\n" if (!$is_even);
+            $first = 0;
+        }
+
+        if ($is_even && (($max_pos[scalar(@max_pos) - 1] - $d) % 2 == 0)) {
+            printf "$sep\n";
+        }
+
+        printf "$s\n";
+    }
+    printf "$sep\n";
+}
+
+sub fill_csrow_size()
+{
+    foreach my $str_loc (keys %rank_size) {
+        my @temp = split(/:/, $str_loc);
+        my $csrow = join(':', $temp[0], $temp[1]);
+        if ($csrow_ranks{$csrow}) {
+            $rank_size{$str_loc} = $csrow_size{$csrow} / $csrow_ranks{$csrow};
+        }
+    }
+}
+
+sub display_memory_layout
+{
+    my $sysfs_dir = "/sys/devices/system/edac/mc";
+
+    find({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
+
+    if (!scalar(%csrow_size)) {
+        log_error ("No memories found at via edac.\n");
+        exit -1;
+    } elsif (!scalar(%dimm_size)) {
+        fill_csrow_size;
+        $layers[0] = "mc";
+        $layers[1] = "csrow";
+        $layers[2] = "channel";
+        @max_pos = @max_csrow;
+        %dimm_size = %rank_size;
+    }
+    dimm_display_mem();
+}
+
+sub find_prog
+{
+    my ($file) = @_;
+    for my $dir ("/sbin", "/usr/sbin", split ':', $ENV{PATH}) {
+        return "$dir/$file" if -x "$dir/$file";
+    }
+    # log_error ("Failed to find $file in PATH\n");
+    return "";
+}
+
+sub log_msg   { print STDERR "$prog: ", @_ unless $conf{opt}{quiet}; }
+sub log_error { log_msg ("Error: @_"); }
+
+# vi: ts=4 sw=4 expandtab
