@@ -1,0 +1,81 @@
+#!/bin/bash
+
+FILE=new-$(hostname)-$(date +"%Y-%m-%d-%H-%M-%S").txt
+run() {
+	echo "# $@" >> $FILE
+	$@ 2>> $FILE >> $FILE
+	if [ "$?" != "0" ]; then
+		ERR=$?
+		echo "Error on $0# $@"
+		echo "Error $ERR" >> $FILE
+		tail -f $FILE
+		exit -1
+	fi
+}
+
+run_noerror() {
+	echo "# $@" >> $FILE
+	$@ 2>> $FILE >> $FILE
+}
+
+DRIVER=$(lsmod|grep edac_core|cut -b 33-)
+
+echo "RUNNING driver $DRIVER on kernel `uname -r`, hostname `hostname`, at `date`" >$FILE
+
+mount -t debugfs debugfs /sys/kernel/debug/
+run ./edac-ctl --layout
+run ./edac-ctl --guess-labels
+run free -l
+
+run dmidecode
+run_noerror tree /sys/devices/system/edac/
+run_noerror grep . /sys/devices/system/edac/mc/mc?/dimm*/* /sys/devices/system/edac/mc/mc?/rank*/*
+run_noerror grep . /sys/devices/system/edac/mc/mc?/csrow*/*
+run_noerror dmesg
+for i in /sys/devices/system/edac/mc/mc?/reset_counters; do
+	echo 1 >$i
+done
+
+echo "ras:*"  >/sys/kernel/debug/tracing/set_event
+echo "hw_event:*" >>/sys/kernel/debug/tracing/set_event
+
+run echo "Enabled events: "
+run cat /sys/kernel/debug/tracing/set_event
+
+MC="$(ls -d /sys/devices/system/edac/mc/mc? |sed -e s,.*/mc,,)"
+
+for i in $MC; do
+	LAYER1=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d ' ' -f 1)
+	LAYER2=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d ' ' -f 3)
+	LAYER3=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d ' ' -f 5)
+	DEBUGFS=/sys/kernel/debug/edac/mc$i/
+	MAX=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d' ' -f 2)
+	for j in `seq 0 $MAX`; do
+		MAX=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d' ' -f 4)
+		for k in `seq 0 $MAX`; do
+			MAX=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d' ' -f 6)
+			echo $j > $DEBUGFS/fake_inject_$LAYER1
+			echo $k > $DEBUGFS/fake_inject_$LAYER2
+			if [ "$MAX" == "" ]; then
+				echo "Injecting errors at mc#$i $j:$k"
+				echo "Injecting errors at mc#$i $j:$k" >> $FILE
+				echo > $DEBUGFS/fake_inject
+				dmesg |tail -3 >> $FILE
+			else
+				for l in `seq 0 $MAX`; do
+					echo "Injecting errors at mc#$i $j:$k:$l"
+					echo "Injecting errors at mc#$i $j:$k:$l" >> $FILE
+					echo $l > $DEBUGFS/fake_inject_$LAYER3
+					echo > $DEBUGFS/fake_inject
+					dmesg |tail -3 >> $FILE
+				done
+			fi
+		done
+	done
+done
+run grep . /sys/devices/system/edac/mc/mc?/*e_*
+run edac-util
+run cat /sys/kernel/debug/tracing/trace
+
+# FIXME:  need to add some logic there to check if the proper error
+# counts are incremented, without producing a very long log
