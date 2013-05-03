@@ -1,9 +1,5 @@
-1) Fix RAS timestamp.
-
 2) Make sqlite code thread safe: it currently hangs if two CPUs
    try to record data there at the same time.
-
-3) Add a "supervisor" proccess that will avoid the daemon to stop.
 
 4) Handle signals.
 
@@ -19,6 +15,3 @@
 8) add support for PCIe AER trace records.
 
 9) add support for mce trace records.
-
-10) use a separate ringbuffer for traces (requires patches for
-    kernel 3.10).
