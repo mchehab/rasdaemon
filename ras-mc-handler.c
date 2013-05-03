@@ -37,30 +37,30 @@ int ras_mc_event_handler(struct trace_seq *s,
 	int len;
 	unsigned long long val;
 	struct ras_events *ras = context;
-	struct timeval tv;
+	time_t now;
 	struct tm *tm;
 	struct ras_mc_event ev;
 	char fmt[64];
 
-	tv.tv_sec = record->ts / 1000000L;
-	tv.tv_usec = record->ts % 1000000L;
-
-	/* FIXME:
-	 * Trace timestamps don't have any start reference that can be used.
-	 * This is a known issue on it, and it doesn't have any solution
-	 * so far, except for a hack: produce a fake event and associate its
-	 * timestamp with the one obtained via gettimeofday() a few times, and
-	 * use the mean time drift to adjust the offset between machine's
-	 * localtime and the tracing timestamp.
+	/*
+	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
+	 * On previous kernels, the way to properly generate an event would
+	 * be to inject a fake one, measure its timestamp and diff it against
+	 * gettimeofday. We won't do it here. Instead, let's use uptime,
+	 * falling-back to the event report's time, if "uptime" clock is
+	 * not available (legacy kernels).
 	 */
-	tm = localtime(&tv.tv_sec);
-	if(tm) {
-		strftime(fmt, sizeof(fmt), "%Y-%m-%d %H:%M:%S.%%06u %z", tm);
-		snprintf(ev.timestamp, sizeof(ev.timestamp), fmt, tv.tv_usec);
-	}
-	trace_seq_printf(s, "%s(%lld = %ld.%ld) ",
-			 ev.timestamp, record->ts,
-			 (long)tv.tv_sec, (long)tv.tv_usec);
+
+	if (ras->use_uptime)
+		now = record->ts/1000000000L + ras->uptime_diff;
+	else
+		now = time(NULL);
+
+	tm = localtime(&now);
+	if (tm)
+		strftime(ev.timestamp, sizeof(ev.timestamp),
+			 "%Y-%m-%d %H:%M:%S %z", tm);
+	trace_seq_printf(s, "%s ", ev.timestamp);
 
 	if (pevent_get_field_val(s,  event, "error_count", record, &val, 1) < 0)
 		return -1;

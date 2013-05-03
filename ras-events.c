@@ -353,6 +353,61 @@ static void *handle_ras_events_cpu(void *priv)
 	return NULL;
 }
 
+#define UPTIME "uptime"
+
+static int select_tracing_timestamp(struct ras_events *ras)
+{
+	FILE *fp;
+	int fd, rc;
+	time_t uptime, now;
+	unsigned j1;
+	char buf[4096];
+	struct tm *p;
+
+	/* Check if uptime is supported (kernel 3.10-rc1 or upper) */
+	fd = open_trace(ras, "trace_clock", O_RDONLY);
+	if (fd < 0) {
+		log(TERM, LOG_ERR, "Can't open trace_clock\n");
+		return -1;
+	}
+	read(fd, buf, sizeof(buf));
+	close(fd);
+	if (!strstr(buf, UPTIME)) {
+		log(TERM, LOG_INFO, "Kernel doesn't support uptime clock\n");
+		return 0;
+	}
+
+	/* Select uptime tracing */
+	fd = open_trace(ras, "trace_clock", O_WRONLY);
+	if (!fd) {
+		log(TERM, LOG_ERR,
+		    "Kernel didn't allow writing to trace_clock\n");
+		return 0;
+	}
+	rc = write(fd, UPTIME, sizeof(UPTIME));
+	close(fd);
+
+	if (rc < 0) {
+		log(TERM, LOG_ERR,
+		    "Kernel didn't allow selecting uptime on trace_clock\n");
+		return 0;
+	}
+
+	/* Reference uptime with localtime */
+	fp = fopen("/proc/uptime", "r");
+	if (!fp) {
+		log(TERM, LOG_ERR,
+		    "Couldn't read from /proc/uptime\n");
+		return 0;
+	}
+	fscanf(fp, "%u.%u ", &uptime, &j1);
+	now = time(NULL);
+	fclose(fp);
+
+	ras->use_uptime = 1;
+	ras->uptime_diff = now - uptime;
+}
+
 int handle_ras_events(int record_events)
 {
 	int rc, fd, size, page_size, i, cpus;
@@ -366,6 +421,10 @@ int handle_ras_events(int record_events)
 		return errno;
 
 	rc = get_tracing_dir(ras);
+	if (rc < 0)
+		return rc;
+
+	rc = select_tracing_timestamp(ras);
 	if (rc < 0)
 		return rc;
 

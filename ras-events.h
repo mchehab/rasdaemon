@@ -19,6 +19,7 @@
 #include "ras-record.h"
 
 #include <pthread.h>
+#include <time.h>
 
 #ifndef __RAS_EVENTS_H
 #define __RAS_EVENTS_H
@@ -31,6 +32,11 @@ struct ras_events {
 	char tracing[MAX_PATH + 1];
 	struct pevent	*pevent;
 	int		page_size;
+
+	/* For timestamp */
+	unsigned	use_uptime: 1;
+
+	time_t		uptime_diff;
 
 	/* For ras-record */
 	sqlite3		*db;
