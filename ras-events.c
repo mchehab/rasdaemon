@@ -395,6 +395,9 @@ int handle_ras_events(int record_events)
 				    handle_ras_events_cpu,
 				    (void *)&data[i]);
 		if (rc) {
+			log(SYSLOG, LOG_INFO,
+			    "Failed to create thread for cpu %d. Aborting.\n",
+			    i);
 			while (--i)
 				pthread_cancel(data[i].thread);
 			goto free_threads;
@@ -404,6 +407,8 @@ int handle_ras_events(int record_events)
 	/* Wait for all threads to complete */
 	for (i = 0; i < cpus; i++)
 		pthread_join(data[i].thread, NULL);
+
+	log(SYSLOG, LOG_INFO, "Huh! something got wrong. Aborting.\n");
 
 free_threads:
 	free(data);
