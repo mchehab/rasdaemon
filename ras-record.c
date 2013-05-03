@@ -20,10 +20,11 @@
  * BuildRequires: sqlite-devel
  */
 
-#include "ras-mc-event.h"
-#include "ras-logger.h"
 #include <string.h>
 #include <stdio.h>
+#include "ras-events.h"
+#include "ras-mc-handler.h"
+#include "ras-logger.h"
 
 #define SQLITE_RAS_DB	"ras-mc_event.db"
 

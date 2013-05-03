@@ -20,9 +20,14 @@
 
 #include <pthread.h>
 
-#ifndef __RAS_MC_EVENT_H
-#define __RAS_MC_EVENT_H
+#ifndef __RAS_EVENTS_H
+#define __RAS_EVENTS_H
+
+#define MAX_PATH 1024
+#define STR(x) #x
+
 struct ras_events {
+	char debugfs[MAX_PATH + 1];
 	struct pevent	*pevent;
 	int		page_size;
 
@@ -39,6 +44,15 @@ struct pthread_data {
 };
 
 int handle_ras_events(int record_events);
-int toggle_ras_mc_event(int enable);
+
+/* Should match the code at Kernel's include/linux/edac.c */
+enum hw_event_mc_err_type {
+	HW_EVENT_ERR_CORRECTED,
+	HW_EVENT_ERR_UNCORRECTED,
+	HW_EVENT_ERR_FATAL,
+	HW_EVENT_ERR_INFO,
+};
+
+char *mc_event_error_type(unsigned long long err_type);
 
 #endif

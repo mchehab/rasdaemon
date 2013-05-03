@@ -27,7 +27,7 @@
 #include <sys/poll.h>
 #include "libtrace/kbuffer.h"
 #include "libtrace/event-parse.h"
-#include "ras-mc-event.h"
+#include "ras-mc-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 
@@ -45,20 +45,67 @@
 	#define ENDIAN KBUFFER_ENDIAN_BIG
 #endif
 
-#define DEBUGFS "/sys/kernel/debug/"
-
 #define ENABLE_RAS_MC_EVENT  "ras:mc_event"
 #define DISABLE_RAS_MC_EVENT "!" ENABLE_RAS_MC_EVENT
+
+int get_debugfs_dir(char *tracing_dir, size_t len)
+{
+	FILE *fp;
+	char line[MAX_PATH + 1 + 256];
+	char *type, *dir;
+	int rc;
+
+	fp = fopen("/proc/mounts","r");
+	if (!fp) {
+		log(ALL, LOG_INFO, "Can't open /proc/mounts");
+		return errno;
+	}
+
+	do {
+		if (!fgets(line, sizeof(line), fp))
+			break;
+
+		type = strtok(line, " \t");
+		if (!type)
+			break;
+
+		dir = strtok(NULL, " \t");
+		if (!dir)
+			break;
+
+		if (!strcmp(type, "debugfs")) {
+			fclose(fp);
+			strncpy(tracing_dir, dir, len - 1);
+			tracing_dir[len - 1] = '\0';
+			return 0;
+		}
+	} while(1);
+
+	fclose(fp);
+	log(ALL, LOG_INFO, "Can't find debugfs\n");
+	return ENOENT;
+}
+
+static int open_trace(struct ras_events *ras, char *name, int flags)
+{
+	char fname[MAX_PATH + 1];
+
+	strcpy(fname, ras->debugfs);
+	strcat(fname, "/");
+	strcat(fname, name);
+
+	return open(fname, flags);
+}
 
 /*
  * Tracing enable/disable code
  */
-int toggle_ras_mc_event(int enable)
+int toggle_ras_mc_event(struct ras_events *ras, int enable)
 {
 	int fd, rc;
 
 	/* Enable RAS events */
-	fd = open(DEBUGFS "tracing/set_event", O_RDWR | O_APPEND);
+	fd = open_trace(ras, "tracing/set_event", O_RDWR | O_APPEND);
 	if (fd < 0) {
 		log(ALL, LOG_WARNING, "Can't open set_event")
 		return errno;
@@ -92,15 +139,7 @@ int toggle_ras_mc_event(int enable)
  * Tracing read code
  */
 
-/* Should match the code at Kernel's include/linux/edac.c */
-enum hw_event_mc_err_type {
-	HW_EVENT_ERR_CORRECTED,
-	HW_EVENT_ERR_UNCORRECTED,
-	HW_EVENT_ERR_FATAL,
-	HW_EVENT_ERR_INFO,
-};
-
-static char *mc_event_error_type(unsigned long long err_type)
+char *mc_event_error_type(unsigned long long err_type)
 {
 	switch (err_type) {
 	case HW_EVENT_ERR_CORRECTED:
@@ -115,11 +154,12 @@ static char *mc_event_error_type(unsigned long long err_type)
 	}
 }
 
-static int get_pagesize(struct pevent *pevent) {
+static int get_pagesize(struct ras_events *ras, struct pevent *pevent)
+{
 	int fd, len, page_size = 4096;
 	char buf[page_size];
 
-	fd = open(DEBUGFS "tracing/events/header_page", O_RDONLY);
+	fd = open_trace(ras, "tracing/events/header_page", O_RDONLY);
 	if (fd < 0)
 		return page_size;
 
@@ -135,137 +175,6 @@ error:
 	close(fd);
 	return page_size;
 
-}
-
-static int ras_mc_event_handler(struct trace_seq *s,
-				struct pevent_record *record,
-				struct event_format *event, void *context)
-{
-	int len;
-	unsigned long long val;
-	struct ras_events *ras = context;
-	struct timeval tv;
-	struct tm *tm;
-	struct ras_mc_event ev;
-	char fmt[64];
-
-	tv.tv_sec = record->ts / 1000000L;
-	tv.tv_usec = record->ts % 1000000L;
-
-	/* FIXME:
-	 * Trace timestamps don't have any start reference that can be used.
-	 * This is a known issue on it, and it doesn't have any solution
-	 * so far, except for a hack: produce a fake event and associate its
-	 * timestamp with the one obtained via gettimeofday() a few times, and
-	 * use the mean time drift to adjust the offset between machine's
-	 * localtime and the tracing timestamp.
-	 */
-	tm = localtime(&tv.tv_sec);
-	if(tm) {
-		strftime(fmt, sizeof(fmt), "%Y-%m-%d %H:%M:%S.%%06u %z", tm);
-		snprintf(ev.timestamp, sizeof(ev.timestamp), fmt, tv.tv_usec);
-	}
-	trace_seq_printf(s, "%s(%lld = %ld.%ld) ",
-			 ev.timestamp, record->ts,
-			 (long)tv.tv_sec, (long)tv.tv_usec);
-
-	if (pevent_get_field_val(s,  event, "error_count", record, &val, 1) < 0)
-		return -1;
-	ev.error_count = val;
-	trace_seq_printf(s, "%d ", ev.error_count);
-
-	if (pevent_get_field_val(s, event, "error_type", record, &val, 1) < 0)
-		return -1;
-	ev.error_type = mc_event_error_type(val);
-	trace_seq_puts(s, ev.error_type);
-	if (ev.error_count > 1)
-		trace_seq_puts(s, " errors:");
-	else
-		trace_seq_puts(s, " error:");
-
-	ev.msg = pevent_get_field_raw(s, event, "msg", record, &len, 1);
-	if (!ev.msg)
-		return -1;
-	if (*ev.msg) {
-		trace_seq_puts(s, " ");
-		trace_seq_puts(s, ev.msg);
-	}
-
-	ev.label = pevent_get_field_raw(s, event, "label", record, &len, 1);
-	if (!ev.label)
-		return -1;
-	if (*ev.label) {
-		trace_seq_puts(s, " on ");
-		trace_seq_puts(s, ev.label);
-	}
-
-	trace_seq_puts(s, " (");
-	if (pevent_get_field_val(s,  event, "mc_index", record, &val, 1) < 0)
-		return -1;
-	ev.mc_index = val;
-	trace_seq_printf(s, "mc: %d", ev.mc_index);
-
-	if (pevent_get_field_val(s,  event, "top_layer", record, &val, 1) < 0)
-		return -1;
-	ev.top_layer = (int) val;
-	if (pevent_get_field_val(s,  event, "middle_layer", record, &val, 1) < 0)
-		return -1;
-	ev.middle_layer = (int) val;
-	if (pevent_get_field_val(s,  event, "lower_layer", record, &val, 1) < 0)
-		return -1;
-	ev.lower_layer = (int) val;
-
-	if (ev.top_layer == 255)
-		ev.top_layer = -1;
-	if (ev.middle_layer == 255)
-		ev.middle_layer = -1;
-	if (ev.lower_layer == 255)
-		ev.lower_layer = -1;
-
-	if (ev.top_layer >= 0 || ev.middle_layer >= 0 || ev.lower_layer >= 0) {
-		if (ev.lower_layer >= 0)
-			trace_seq_printf(s, " location: %d:%d:%d",
-					ev.top_layer, ev.middle_layer, ev.lower_layer);
-		else if (ev.middle_layer >= 0)
-			trace_seq_printf(s, " location: %d:%d",
-					 ev.top_layer, ev.middle_layer);
-		else
-			trace_seq_printf(s, " location: %d", ev.top_layer);
-	}
-
-	if (pevent_get_field_val(s,  event, "address", record, &val, 1) < 0)
-		return -1;
-	ev.address = val;
-	if (ev.address)
-		trace_seq_printf(s, " address: 0x%08llx", ev.address);
-
-	if (pevent_get_field_val(s,  event, "grain_bits", record, &val, 1) < 0)
-		return -1;
-	ev.grain = val;
-	trace_seq_printf(s, " grain: %lld", ev.grain);
-
-
-	if (pevent_get_field_val(s,  event, "syndrome", record, &val, 1) < 0)
-		return -1;
-	ev.syndrome = val;
-	if (val)
-		trace_seq_printf(s, " syndrome: 0x%08llx", ev.syndrome);
-
-	ev.driver_detail = pevent_get_field_raw(s, event, "driver_detail", record,
-					     &len, 1);
-	if (!ev.driver_detail)
-		return -1;
-	if (*ev.driver_detail) {
-		trace_seq_puts(s, " ");
-		trace_seq_puts(s, ev.driver_detail);
-	}
-	trace_seq_puts(s, ")");
-
-	/* Insert data into the SGBD */
-
-	ras_store_mc_event(ras, &ev);
-
-	return 0;
 }
 
 static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
@@ -339,14 +248,18 @@ static int read_ras_event(int fd,
 	} while (1);
 }
 
-static int get_num_cpus(void)
+static int get_num_cpus(struct ras_events *ras)
 {
+	char fname[MAX_PATH + 1];
 	int num_cpus = 0;
 
 	DIR		*dir;
 	struct dirent	*entry;
 
-	dir = opendir(DEBUGFS "tracing/per_cpu/");
+	strcpy(fname, ras->debugfs);
+	strcat(fname, "/");
+	strcat(fname, "tracing/per_cpu/");
+	dir = opendir(fname);
 	if (!dir)
 		return -1;
 
@@ -382,10 +295,10 @@ static void *handle_ras_events_cpu(void *priv)
 
 	/* FIXME: use select to open for all CPUs */
 	snprintf(pipe_raw, sizeof(pipe_raw),
-		 DEBUGFS "tracing/per_cpu/cpu%d/trace_pipe_raw",
+		 "tracing/per_cpu/cpu%d/trace_pipe_raw",
 		 pdata->cpu);
 
-	fd = open(pipe_raw, O_RDONLY);
+	fd = open_trace(pdata->ras, pipe_raw, O_RDONLY);
 	if (fd < 0) {
 		log(TERM, LOG_ERR, "Can't open trace_pipe_raw")
 		kbuffer_free(kbuf);
@@ -412,16 +325,23 @@ int handle_ras_events(int record_events)
 	struct ras_events *ras;
 	void *page;
 
+	ras = calloc(sizeof(*data), 1);
+	if (!ras)
+		return errno;
+
+	get_debugfs_dir(ras->debugfs, sizeof(ras->debugfs));
+
 	/* Enable RAS events */
-	rc = toggle_ras_mc_event(1);
+	rc = toggle_ras_mc_event(ras, 1);
 
 	pevent = pevent_alloc();
 	if (!pevent) {
 		log(TERM, LOG_ERR, "Can't allocate pevent")
-		return errno;
+		rc = errno;
+		goto free_ras;
 	}
 
-	fd = open(DEBUGFS "tracing/events/ras/mc_event/format",
+	fd = open_trace(ras, "tracing/events/ras/mc_event/format",
 		  O_RDONLY);
 	if (fd < 0) {
 		log(TERM, LOG_ERR, "Open ras format")
@@ -429,7 +349,7 @@ int handle_ras_events(int record_events)
 		goto free_pevent;
 	}
 
-	page_size = get_pagesize(pevent);
+	page_size = get_pagesize(ras, pevent);
 
 	page = malloc(page_size);
 	if (!page) {
@@ -447,9 +367,6 @@ int handle_ras_events(int record_events)
 		goto free_pevent;
 	}
 
-	ras = calloc(sizeof(*data), 1);
-	if (!ras)
-		goto free_pevent;
 	ras->pevent = pevent;
 	ras->page_size = page_size;
 
@@ -464,7 +381,7 @@ int handle_ras_events(int record_events)
 	if (rc)
 		goto free_ras;
 
-	cpus = get_num_cpus();
+	cpus = get_num_cpus(ras);
 	data = calloc(sizeof(*data), cpus);
 	if (!data)
 		goto free_ras;
@@ -490,10 +407,10 @@ int handle_ras_events(int record_events)
 
 free_threads:
 	free(data);
-free_ras:
-	free(ras);
 
 free_pevent:
 	pevent_free(pevent);
+free_ras:
+	free(ras);
 	return rc;
 }
