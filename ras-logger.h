@@ -33,8 +33,7 @@
 #define ALL	(SYSLOG | TERM)
 /* TODO: global logging limit mask */
 
-#define log(where, level, fmt, args...) \
-{\
+#define log(where, level, fmt, args...) do {\
 	if (where & SYSLOG)\
 		syslog(level, fmt, ##args);\
 	if (where & TERM) {\
@@ -42,7 +41,7 @@
 		fprintf(stderr, fmt, ##args);\
 		fflush(stderr);\
 	}\
-}
+} while (0)
 
 #define __RAS_LOGGER_H
 #endif

@@ -107,7 +107,7 @@ int toggle_ras_mc_event(struct ras_events *ras, int enable)
 	/* Enable RAS events */
 	fd = open_trace(ras, "tracing/set_event", O_RDWR | O_APPEND);
 	if (fd < 0) {
-		log(ALL, LOG_WARNING, "Can't open set_event")
+		log(ALL, LOG_WARNING, "Can't open set_event\n");
 		return errno;
 	}
 	if (enable)
@@ -117,20 +117,20 @@ int toggle_ras_mc_event(struct ras_events *ras, int enable)
 		rc = write(fd, DISABLE_RAS_MC_EVENT,
 			   sizeof(DISABLE_RAS_MC_EVENT));
 	if (rc < 0) {
-		log(ALL, LOG_WARNING, "Can't write to set_event")
+		log(ALL, LOG_WARNING, "Can't write to set_event\n");
 		close(fd);
 		return rc;
 	}
 	close(fd);
 	if (!rc) {
-		log(ALL, LOG_WARNING, "Nothing was written on set_event\n")
+		log(ALL, LOG_WARNING, "Nothing was written on set_event\n");
 		return EIO;
 	}
 
 	if (enable)
-		log(ALL, LOG_INFO, "RAS events enabled\n")
+		log(ALL, LOG_INFO, "RAS events enabled\n");
 	else
-		log(ALL, LOG_INFO, "RAS events disabled\n")
+		log(ALL, LOG_INFO, "RAS events disabled\n");
 
 	return 0;
 }
@@ -219,11 +219,11 @@ static int read_ras_event(int fd,
 	do {
 		ready = poll(&fds, 1, -1);
 		if (ready < 0) {
-			log(TERM, LOG_WARNING, "poll")
+			log(TERM, LOG_WARNING, "poll\n");
 		}
 		size = read(fd, page, pdata->ras->page_size);
 		if (size < 0) {
-			log(TERM, LOG_WARNING, "read")
+			log(TERM, LOG_WARNING, "read\n");
 			return -1;
 		} else if (size > 0) {
 			kbuffer_load_subbuffer(kbuf, page);
@@ -240,7 +240,7 @@ static int read_ras_event(int fd,
 			 * need to sleep for a while
 			 */
 			if (!warn_sleep) {
-				log(ALL, LOG_INFO, "Old kernel: need to sleep\n")
+				log(ALL, LOG_INFO, "Old kernel: need to sleep\n");
 				warn_sleep = 1;
 			}
 			sleep(POLLING_TIME);
@@ -282,13 +282,13 @@ static void *handle_ras_events_cpu(void *priv)
 
 	page = malloc(pdata->ras->page_size);
 	if (!page) {
-		log(TERM, LOG_ERR, "Can't allocate page")
+		log(TERM, LOG_ERR, "Can't allocate page\n");
 		return NULL;
 	}
 
 	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
 	if (!kbuf) {
-		log(TERM, LOG_ERR, "Can't allocate kbuf")
+		log(TERM, LOG_ERR, "Can't allocate kbuf");
 		free(page);
 		return NULL;
 	}
@@ -300,7 +300,7 @@ static void *handle_ras_events_cpu(void *priv)
 
 	fd = open_trace(pdata->ras, pipe_raw, O_RDONLY);
 	if (fd < 0) {
-		log(TERM, LOG_ERR, "Can't open trace_pipe_raw")
+		log(TERM, LOG_ERR, "Can't open trace_pipe_raw\n");
 		kbuffer_free(kbuf);
 		free(page);
 		return NULL;
@@ -336,7 +336,7 @@ int handle_ras_events(int record_events)
 
 	pevent = pevent_alloc();
 	if (!pevent) {
-		log(TERM, LOG_ERR, "Can't allocate pevent")
+		log(TERM, LOG_ERR, "Can't allocate pevent\n");
 		rc = errno;
 		goto free_ras;
 	}
@@ -344,7 +344,7 @@ int handle_ras_events(int record_events)
 	fd = open_trace(ras, "tracing/events/ras/mc_event/format",
 		  O_RDONLY);
 	if (fd < 0) {
-		log(TERM, LOG_ERR, "Open ras format")
+		log(TERM, LOG_ERR, "Open ras format\n");
 		rc = errno;
 		goto free_pevent;
 	}
@@ -353,7 +353,7 @@ int handle_ras_events(int record_events)
 
 	page = malloc(page_size);
 	if (!page) {
-		log(TERM, LOG_ERR, "Can't allocate page to read event format")
+		log(TERM, LOG_ERR, "Can't allocate page to read event format\n");
 		rc = errno;
 		close(fd);
 		goto free_pevent;
@@ -386,7 +386,7 @@ int handle_ras_events(int record_events)
 	if (!data)
 		goto free_ras;
 
-	log(SYSLOG, LOG_INFO, "Opening one thread per cpu (%d threads)\n", cpus)
+	log(SYSLOG, LOG_INFO, "Opening one thread per cpu (%d threads)\n", cpus);
 	for (i = 0; i < cpus; i++) {
 		data[i].ras = ras;
 		data[i].cpu = i;
