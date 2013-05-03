@@ -48,7 +48,7 @@
 #define ENABLE_RAS_MC_EVENT  "ras:mc_event"
 #define DISABLE_RAS_MC_EVENT "!" ENABLE_RAS_MC_EVENT
 
-int get_debugfs_dir(char *tracing_dir, size_t len)
+static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
 	FILE *fp;
 	char line[MAX_PATH + 1 + 256];
@@ -90,11 +90,49 @@ static int open_trace(struct ras_events *ras, char *name, int flags)
 {
 	char fname[MAX_PATH + 1];
 
-	strcpy(fname, ras->debugfs);
+	strcpy(fname, ras->tracing);
 	strcat(fname, "/");
 	strcat(fname, name);
 
 	return open(fname, flags);
+}
+
+static int get_tracing_dir(struct ras_events *ras)
+{
+	char		fname[MAX_PATH + 1];
+	int		rc, has_instances = 0;
+	DIR		*dir;
+	struct dirent	*entry;
+
+	get_debugfs_dir(ras->debugfs, sizeof(ras->debugfs));
+
+	strcpy(fname, ras->debugfs);
+	strcat(fname, "/tracing");
+	dir = opendir(fname);
+	if (!dir)
+		return -1;
+
+	for (entry = readdir(dir); entry; entry = readdir(dir)) {
+		if (strstr(entry->d_name, "instances")) {
+			has_instances = 1;
+			break;
+		}
+	}
+	closedir(dir);
+
+	strcpy(ras->tracing, ras->debugfs);
+	strcat(ras->tracing, "/tracing");
+	if (has_instances) {
+		strcat(ras->tracing, "/instances/" TOOL_NAME);
+		rc = mkdir(ras->tracing, S_IRWXU);
+		if (rc < 0 && errno != EEXIST) {
+			log(ALL, LOG_INFO,
+			    "Unable to create " TOOL_NAME " instance at %s\n",
+			    ras->tracing);
+			return -1;
+		}
+	}
+	return 0;
 }
 
 /*
@@ -105,7 +143,7 @@ int toggle_ras_mc_event(struct ras_events *ras, int enable)
 	int fd, rc;
 
 	/* Enable RAS events */
-	fd = open_trace(ras, "tracing/set_event", O_RDWR | O_APPEND);
+	fd = open_trace(ras, "set_event", O_RDWR | O_APPEND);
 	if (fd < 0) {
 		log(ALL, LOG_WARNING, "Can't open set_event\n");
 		return errno;
@@ -159,7 +197,7 @@ static int get_pagesize(struct ras_events *ras, struct pevent *pevent)
 	int fd, len, page_size = 4096;
 	char buf[page_size];
 
-	fd = open_trace(ras, "tracing/events/header_page", O_RDONLY);
+	fd = open_trace(ras, "events/header_page", O_RDONLY);
 	if (fd < 0)
 		return page_size;
 
@@ -252,13 +290,11 @@ static int get_num_cpus(struct ras_events *ras)
 {
 	char fname[MAX_PATH + 1];
 	int num_cpus = 0;
-
 	DIR		*dir;
 	struct dirent	*entry;
 
 	strcpy(fname, ras->debugfs);
-	strcat(fname, "/");
-	strcat(fname, "tracing/per_cpu/");
+	strcat(fname, "/tracing/per_cpu/");
 	dir = opendir(fname);
 	if (!dir)
 		return -1;
@@ -295,7 +331,7 @@ static void *handle_ras_events_cpu(void *priv)
 
 	/* FIXME: use select to open for all CPUs */
 	snprintf(pipe_raw, sizeof(pipe_raw),
-		 "tracing/per_cpu/cpu%d/trace_pipe_raw",
+		 "per_cpu/cpu%d/trace_pipe_raw",
 		 pdata->cpu);
 
 	fd = open_trace(pdata->ras, pipe_raw, O_RDONLY);
@@ -329,10 +365,14 @@ int handle_ras_events(int record_events)
 	if (!ras)
 		return errno;
 
-	get_debugfs_dir(ras->debugfs, sizeof(ras->debugfs));
+	rc = get_tracing_dir(ras);
+	if (rc < 0)
+		return rc;
 
 	/* Enable RAS events */
 	rc = toggle_ras_mc_event(ras, 1);
+	if (rc < 0)
+		return rc;
 
 	pevent = pevent_alloc();
 	if (!pevent) {
@@ -341,7 +381,7 @@ int handle_ras_events(int record_events)
 		goto free_ras;
 	}
 
-	fd = open_trace(ras, "tracing/events/ras/mc_event/format",
+	fd = open_trace(ras, "events/ras/mc_event/format",
 		  O_RDONLY);
 	if (fd < 0) {
 		log(TERM, LOG_ERR, "Open ras format\n");
