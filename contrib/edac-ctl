@@ -30,14 +30,15 @@ use File::Find;
 use Getopt::Long;
 use POSIX;
 
-my $prefix      = "/usr/local";
-my $sysconfdir  = "${prefix}/etc";
+my $prefix      = "/usr/";
+my $sysconfdir  = "/etc";
 my $dmidecode   = find_prog ("dmidecode");
 my $modprobe    = find_prog ("modprobe")  or exit (1);
 
 my %conf        = ();
 my %bus         = ();
 my %dimm_size   = ();
+my %dimm_node   = ();
 my %csrow_size  = ();
 my %rank_size   = ();
 my %csrow_ranks = ();
@@ -48,9 +49,9 @@ my @max_csrow;
 my $item_size;
 
 my $prog        = basename $0;
-$conf{labeldb}  = "$sysconfdir/edac/labels.db";
-$conf{labeldir} = "$sysconfdir/edac/labels.d";
-$conf{mbconfig} = "$sysconfdir/edac/mainboard";
+$conf{labeldb}  = "$sysconfdir/ras/dimm_labels.db";
+$conf{labeldir} = "$sysconfdir/ras/dimm_labels.d";
+$conf{mbconfig} = "$sysconfdir/ras/mainboard";
 
 my $status      = 0;
 
@@ -179,6 +180,7 @@ sub parse_dimm_nodes
         my $location = <IN>;
         close IN;
         my @temp = split(/ /, $location);
+
         $layers[0] = "mc";
 
         if (m,/mc/mc(\d+),) {
@@ -289,6 +291,7 @@ sub parse_dimm_nodes
 
         my $str_loc = join(':', $mc, @pos);
         $dimm_size{$str_loc} = $size;
+        $dimm_node{$str_loc} = $dimm;
 
         return;
     }
@@ -455,10 +458,11 @@ sub guess_dimm_label {
 
 sub parse_dimm_labels_file
 {
-    my ($lh, $file) = (@_);
+    my ($lh, $num_layers, $file) = (@_);
     my $line = -1;
     my $vendor = "";
     my @models = ();
+    my $num;
 
     open (LABELS, "$file")
         or die "Unable to open label database: $file: $!\n";
@@ -474,11 +478,13 @@ sub parse_dimm_labels_file
         if (/vendor\s*:\s*(.*\S)\s*/i) {
             $vendor = lc $1;
             @models = ();
+            $num = 0;
             next;
         }
         if (/(model|board)\s*:\s*(.*)$/i) {
             !$vendor && die "$file: line $line: MB model without vendor\n";
             @models = grep { s/\s*(.*)\s*$/$1/ } split(/[,;]+/, $2);
+            $num = 0;
             next;
         }
 
@@ -489,50 +495,82 @@ sub parse_dimm_labels_file
 
             next unless (my ($label, $info) = ($str =~ /^(.*)\s*:\s*(.*)$/i));
 
-            unless ($info =~ /(\d\.\d\.\d,*)+/) {
+            unless ($info =~ /\d+(?:\.\d+)*/) {
                 log_error ("$file: $line: Invalid syntax, ignoring: \"$_\"\n");
                 next;
             }
 
             for my $target (split (/[, ]+/, $info)) {
-                my ($mc, $row, $chan) = ($target =~ /(\d+)\.(\d+)\.(\d+)/);
+                my $n;
+                my ($mc, $top, $mid, $low, $extra) = ($target =~ /(\d+)(?:\.(\d+)){0,1}(?:\.(\d+)){0,1}(?:\.(\d+)){0,1}(?:\.(\d+)){0,1}/);
 
-                map { $lh->{$vendor}{lc $_}{$mc}{$row}{$chan} = $label }
-                         @models;
-
+                if (defined($extra)) {
+                        die ("Error: Only up to 3 layers are currently supported on label db \"$file\"\n");
+                        return;
+                } elsif (!defined($top)) {
+                        die ("Error: The label db \"$file\" is defining a zero-layers machine\n");
+                        return;
+                } else {
+                    $n = 3;
+                    if (!defined($low)) {
+                        $low = 0;
+                        $n--;
+                    }
+                    if (!defined($mid)) {
+                        $mid = 0;
+                        $n--;
+                    }
+                    map { $lh->{$vendor}{lc $_}{$mc}{$top}{$mid}{$low} = $label }
+                            @models;
+                        $n = 3;
+                }
+                if (!$num) {
+                        $num = $n;
+                        map { $num_layers->{$vendor}{lc $_} = $num } @models;
+                } elsif ($num != $n) {
+                        die ("Error: Inconsistent number of layers at label db \"$file\"\n");
+                }
             }
         }
     }
 
     close (LABELS) or die "Error from label db \"$file\" : $!\n";
-
-    return $lh;
 }
 
 sub parse_dimm_labels
 {
     my %labels = ();
+    my %num_layers = ();
 
     #
     #  Accrue all DIMM labels from the labels.db file, as
     #   well as any files under the labels dir
     #
     for my $file ($conf{labeldb}, <$conf{labeldir}/*>) {
-    	next unless -r $file;
-    	parse_dimm_labels_file (\%labels, $file);
+        next unless -r $file;
+        parse_dimm_labels_file (\%labels, \%num_layers, $file);
     }
 
-    return \%labels;
+    return (\%labels, \%num_layers);
 }
 
 sub read_dimm_label
 {
-    my ($mc, $row, $chan) = @_;
+    my ($mc, $top, $mid, $low) = @_;
     my $sysfs = "/sys/devices/system/edac/mc";
+    my $pos = "$mc:$top:$mid:$low";
 
-    my $file = "$sysfs/mc$mc/csrow$row/ch${chan}_dimm_label";
+    if (!defined($dimm_node{$pos})) {
+        my $label = "$pos missing";
+        $pos = "";
+        return ($label, $pos);
+    }
 
-    return ("Missing") unless -f $file;
+    my $dimm = $dimm_node{$pos};
+
+    my $file = "$sysfs/mc$mc/dimm$dimm/dimm_label";
+
+    return ("$pos missing") unless -f $file;
 
     if (!open (LABEL, "$file")) {
         warn "Failed to open $file: $!\n";
@@ -543,13 +581,29 @@ sub read_dimm_label
 
     close (LABEL);
 
-    return ($label);
+    $pos = "mc$mc " . qx(cat $sysfs/mc$mc/dimm$dimm/dimm_location);
+
+    return ($label, $pos);
 }
+
+sub get_dimm_label_node
+{
+    my ($mc, $top, $mid, $low) = @_;
+    my $sysfs = "/sys/devices/system/edac/mc";
+    my $pos = "$mc:$top:$mid:$low";
+
+    return "" if (!defined($dimm_node{$pos}));
+
+    my $dimm = $dimm_node{$pos};
+
+    return "$sysfs/mc$mc/dimm$dimm/dimm_label";
+}
+
 
 sub print_dimm_labels
 {
     my $fh = shift || *STDOUT;
-    my $lref = parse_dimm_labels ();
+    my ($lref, $num_layers) = parse_dimm_labels ();
     my $vendor = lc $conf{mainboard}{vendor};
     my $model  = lc $conf{mainboard}{model};
     my $format = "%-35s %-20s %-20s\n";
@@ -560,18 +614,21 @@ sub print_dimm_labels
         return;
     }
 
+    my $sysfs_dir = "/sys/devices/system/edac/mc";
+
+    find({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
 
     printf $fh $format, "LOCATION", "CONFIGURED LABEL", "SYSFS CONTENTS";
 
     for my $mc (sort keys %{$$lref{$vendor}{$model}}) {
-        for my $row (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
-            for my $chan (sort keys %{$$lref{$vendor}{$model}{$mc}{$row}}) {
+        for my $top (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
+            for my $mid (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}}) {
+                for my $low (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}{$mid}}) {
+                    my $label = $$lref{$vendor}{$model}{$mc}{$top}{$mid}{$low};
+                    my ($rlabel,$loc) = read_dimm_label ($mc, $top, $mid, $low);
 
-                my $label = $$lref{$vendor}{$model}{$mc}{$row}{$chan};
-                my $rlabel = read_dimm_label ($mc, $row, $chan);
-                my $loc = "mc$mc/csrow$row/ch${chan}_dimm_label";
-
-                printf $fh $format, $loc, $label, $rlabel;
+                    printf $fh $format, $loc, $label, $rlabel;
+                }
             }
         }
     }
@@ -581,7 +638,7 @@ sub print_dimm_labels
 
 sub register_dimm_labels
 {
-    my $lref = parse_dimm_labels ();
+    my ($lref, $num_layers) = parse_dimm_labels ();
     my $vendor = lc $conf{mainboard}{vendor};
     my $model  = lc $conf{mainboard}{model};
     my $sysfs  = "/sys/devices/system/edac/mc";
@@ -591,28 +648,32 @@ sub register_dimm_labels
                                       "model $conf{mainboard}{model}\n");
         return 0;
     }
+    my $sysfs_dir = "/sys/devices/system/edac/mc";
+
+    find({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
 
     select (undef, undef, undef, $conf{opt}{delay});
 
     for my $mc (sort keys %{$$lref{$vendor}{$model}}) {
-        for my $row (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
-            for my $chan (sort keys %{$$lref{$vendor}{$model}{$mc}{$row}}) {
+        for my $top (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
+            for my $mid (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}}) {
+                for my $low (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}{$mid}}) {
 
-                my $file = "$sysfs/mc$mc/csrow$row/ch${chan}_dimm_label";
+                    my $file = get_dimm_label_node($mc, $top, $mid, $low);
 
-                # Ignore sysfs files that don't exist. Might just be
-                #  unpopulated bank.
-                next unless -f $file;
+                    # Ignore sysfs files that don't exist. Might just be
+                    #  unpopulated bank.
+                    next unless -f $file;
 
-                if (!open (DL, ">$file")) {
-                    warn ("Unable to open $file\n");
-                    next;
+                    if (!open (DL, ">$file")) {
+                        warn ("Unable to open $file\n");
+                        next;
+                    }
+
+                    syswrite DL, $$lref{$vendor}{$model}{$mc}{$top}{$mid}{$low};
+
+                    close (DL);
                 }
-
-                syswrite DL, $$lref{$vendor}{$model}{$mc}{$row}{$chan};
-
-                close (DL);
-
             }
         }
     }
