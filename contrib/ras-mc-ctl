@@ -1,13 +1,18 @@
 #!/usr/bin/perl -w
+
 #******************************************************************************
-#  $Id$
-#******************************************************************************
+# Copyright (c) 2013 Mauro Carvalho Chehab <mchehab@redhat.com>
+#
+# This tool is a modification of the edac-ctl, written as part of the
+# edac-utils:
 #  Copyright (C) 2003-2006 The Regents of the University of California.
 #  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
 #  Written by Mark Grondona <mgrondona@llnl.gov>
 #  UCRL-CODE-230739.
 #
-#  This file is part of edac-utils.
+#  This version uses the new EDAC v 3.0.0 and upper API, with adds proper
+#  representation for the memory controllers found on Intel designs after
+#  2002. It requires Linux Kernel 3.5 or upper to work.
 #
 #  This is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
