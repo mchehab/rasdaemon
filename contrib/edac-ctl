@@ -170,6 +170,129 @@ sub print_status
     return ($status);
 }
 
+sub parse_dimm_nodes
+{
+    my $file = $File::Find::name;
+
+    if (($file =~ /max_location$/)) {
+        open IN, $file;
+        my $location = <IN>;
+        close IN;
+        my @temp = split(/ /, $location);
+        $layers[0] = "mc";
+
+        if (m,/mc/mc(\d+),) {
+                $max_pos[0] = $1 if (!exists($max_pos[0]) || $1 > $max_pos[0]);
+        } else {
+                $max_pos[0] = 0 if (!exists($max_pos[0]));
+        }
+        for (my $i = 0; $i < scalar(@temp); $i += 2) {
+            $layers[$i / 2 + 1] = $temp[$i];
+            $max_pos[$i / 2 + 1] = $temp[$i + 1];
+        }
+
+        return;
+    }
+    if ($file =~ /_dimm_label$/) {
+        my $mc = $file;
+        $mc =~ s,.*/mc(\d+).*,$1,;
+
+        my $csrow = $file;
+        $csrow =~ s,.*/csrow(\d+).*,$1,;
+
+        my $channel = $file;
+        $channel =~ s,.*/ch(\d+).*,$1,;
+
+        if (!@max_csrow) {
+            $max_csrow[0] = 0;
+            $max_csrow[1] = 0;
+            $max_csrow[2] = 0;
+        }
+        if ($mc > $max_csrow[0]) {
+            $max_csrow[0] = $mc;
+        }
+
+        if ($csrow > $max_csrow[1]) {
+            $max_csrow[1] = $csrow;
+        }
+
+        if ($channel > $max_csrow[2]) {
+            $max_csrow[2] = $channel;
+        }
+
+        my $str_loc = join(':', $mc, $csrow, $channel);
+        $rank_size{$str_loc} = 1;
+
+        $str_loc = join(':', $mc, $csrow);
+        $csrow_ranks{$str_loc}++;
+
+        return;
+    }
+    if ($file =~ /size_mb$/) {
+        my $mc = $file;
+        $mc =~ s,.*mc(\d+).*,$1,;
+
+        my $csrow = $file;
+        $csrow =~ s,.*csrow(\d+).*,$1,;
+
+        open IN, $file;
+        my $size = <IN>;
+        close IN;
+
+        my $str_loc = join(':', $mc, $csrow);
+        $csrow_size{$str_loc} = $size;
+
+        return;
+    }
+    if ($file =~ /location$/) {
+        my $mc = $file;
+        $mc =~ s,.*mc(\d+).*,$1,;
+
+        my $dimm = $file;
+        $dimm =~ s,.*dimm(\d+).*,$1,;
+
+        open IN, $file;
+        my $location = <IN>;
+        close IN;
+
+        my @pos;
+
+        # Get the name of the hierarchy labels
+        if (!@layers) {
+                my @temp = split(/ /, $location);
+                $max_pos[0] = 0;
+                $layers[0] = "mc";
+                for (my $i = 0; $i < scalar(@temp); $i += 2) {
+                $layers[$i / 2 + 1] = $temp[$i];
+                $max_pos[$i / 2 + 1] = 0;
+                }
+        }
+
+        my @temp = split(/ /, $location);
+        for (my $i = 1; $i < scalar(@temp); $i += 2) {
+                $pos[$i / 2] = $temp[$i];
+
+                if ($pos[$i / 2] > $max_pos[$i / 2]) {
+                $max_pos[$i / 2 + 1] = $pos[$i / 2];
+                }
+        }
+        if ($mc > $max_pos[0]) {
+                $max_pos[0] = $mc;
+        }
+
+        # Get DIMM size
+
+        $file =~ s/dimm_location/size/;
+        open IN, $file;
+        my $size = <IN>;
+        close IN;
+
+        my $str_loc = join(':', $mc, @pos);
+        $dimm_size{$str_loc} = $size;
+
+        return;
+    }
+}
 
 sub get_mainboard_info {
     my ($vendor, $model);
@@ -494,130 +617,6 @@ sub register_dimm_labels
         }
     }
     return 1;
-}
-
-sub parse_dimm_nodes
-{
-    my $file = $File::Find::name;
-
-    if (($file =~ /max_location$/)) {
-        open IN, $file;
-        my $location = <IN>;
-        close IN;
-        my @temp = split(/ /, $location);
-        $layers[0] = "mc";
-
-	if (m,/mc/mc(\d+),) {
-		$max_pos[0] = $1 if (!exists($max_pos[0]) || $1 > $max_pos[0]);
-	} else {
-	        $max_pos[0] = 0 if (!exists($max_pos[0]));
-	}
-        for (my $i = 0; $i < scalar(@temp); $i += 2) {
-            $layers[$i / 2 + 1] = $temp[$i];
-            $max_pos[$i / 2 + 1] = $temp[$i + 1];
-        }
-
-        return;
-    }
-    if ($file =~ /_dimm_label$/) {
-        my $mc = $file;
-        $mc =~ s,.*/mc(\d+).*,$1,;
-
-        my $csrow = $file;
-        $csrow =~ s,.*/csrow(\d+).*,$1,;
-
-        my $channel = $file;
-        $channel =~ s,.*/ch(\d+).*,$1,;
-
-        if (!@max_csrow) {
-            $max_csrow[0] = 0;
-            $max_csrow[1] = 0;
-            $max_csrow[2] = 0;
-        }
-        if ($mc > $max_csrow[0]) {
-            $max_csrow[0] = $mc;
-        }
-
-        if ($csrow > $max_csrow[1]) {
-            $max_csrow[1] = $csrow;
-        }
-
-        if ($channel > $max_csrow[2]) {
-            $max_csrow[2] = $channel;
-        }
-
-        my $str_loc = join(':', $mc, $csrow, $channel);
-        $rank_size{$str_loc} = 1;
-
-        $str_loc = join(':', $mc, $csrow);
-        $csrow_ranks{$str_loc}++;
-
-        return;
-    }
-    if ($file =~ /size_mb$/) {
-        my $mc = $file;
-        $mc =~ s,.*mc(\d+).*,$1,;
-
-        my $csrow = $file;
-        $csrow =~ s,.*csrow(\d+).*,$1,;
-
-        open IN, $file;
-        my $size = <IN>;
-        close IN;
-
-        my $str_loc = join(':', $mc, $csrow);
-        $csrow_size{$str_loc} = $size;
-
-        return;
-    }
-    if ($file =~ /location$/) {
-        my $mc = $file;
-        $mc =~ s,.*mc(\d+).*,$1,;
-
-        my $dimm = $file;
-        $dimm =~ s,.*dimm(\d+).*,$1,;
-
-        open IN, $file;
-        my $location = <IN>;
-        close IN;
-
-        my @pos;
-
-        # Get the name of the hierarchy labels
-        if (!@layers) {
-                my @temp = split(/ /, $location);
-                $max_pos[0] = 0;
-                $layers[0] = "mc";
-                for (my $i = 0; $i < scalar(@temp); $i += 2) {
-                $layers[$i / 2 + 1] = $temp[$i];
-                $max_pos[$i / 2 + 1] = 0;
-                }
-        }
-
-        my @temp = split(/ /, $location);
-        for (my $i = 1; $i < scalar(@temp); $i += 2) {
-                $pos[$i / 2] = $temp[$i];
-
-                if ($pos[$i / 2] > $max_pos[$i / 2]) {
-                $max_pos[$i / 2 + 1] = $pos[$i / 2];
-                }
-        }
-        if ($mc > $max_pos[0]) {
-                $max_pos[0] = $mc;
-        }
-
-        # Get DIMM size
-
-        $file =~ s/dimm_location/size/;
-        open IN, $file;
-        my $size = <IN>;
-        close IN;
-
-        my $str_loc = join(':', $mc, @pos);
-        $dimm_size{$str_loc} = $size;
-
-        return;
-    }
 }
 
 sub dimm_display_layer($@);
