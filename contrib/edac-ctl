@@ -195,41 +195,6 @@ sub parse_dimm_nodes
 
         return;
     }
-    if ($file =~ /_dimm_label$/) {
-        my $mc = $file;
-        $mc =~ s,.*/mc(\d+).*,$1,;
-
-        my $csrow = $file;
-        $csrow =~ s,.*/csrow(\d+).*,$1,;
-
-        my $channel = $file;
-        $channel =~ s,.*/ch(\d+).*,$1,;
-
-        if (!@max_csrow) {
-            $max_csrow[0] = 0;
-            $max_csrow[1] = 0;
-            $max_csrow[2] = 0;
-        }
-        if ($mc > $max_csrow[0]) {
-            $max_csrow[0] = $mc;
-        }
-
-        if ($csrow > $max_csrow[1]) {
-            $max_csrow[1] = $csrow;
-        }
-
-        if ($channel > $max_csrow[2]) {
-            $max_csrow[2] = $channel;
-        }
-
-        my $str_loc = join(':', $mc, $csrow, $channel);
-        $rank_size{$str_loc} = 1;
-
-        $str_loc = join(':', $mc, $csrow);
-        $csrow_ranks{$str_loc}++;
-
-        return;
-    }
     if ($file =~ /size_mb$/) {
         my $mc = $file;
         $mc =~ s,.*mc(\d+).*,$1,;
