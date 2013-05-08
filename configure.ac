@@ -1,4 +1,4 @@
-AC_INIT([RAS Daemon], 0.1)
+AC_INIT([RAS Daemon], 0.2.0)
 AM_SILENT_RULES([yes])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
