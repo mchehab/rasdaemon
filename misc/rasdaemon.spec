@@ -5,7 +5,7 @@ Summary:		Utility to receive RAS error tracings
 Group:			Applications/System
 License:		GPLv2
 URL:			https://git.fedorahosted.org/git/rasdaemon.git
-Source0:		%{name}-%{version}.tar.bz2
+Source0:		https://git.fedorahosted.org/cgit/rasdaemon.git/snapshot/%{name}-%{version}.tar.bz2
 BuildRoot:		%{_tmppath}/%{name}-%{version}-%{release}
 Requires:		hwdata, dmidecode
 ExclusiveArch:		%{ix86} x86_64
