@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "ras-events.h"
 #include "ras-mc-handler.h"
 #include "ras-logger.h"
@@ -69,7 +70,7 @@ const char *createdb = "CREATE TABLE IF NOT EXISTS";
 const char *insertdb = "INSERT INTO";
 const char *valuesdb = " VALUES ";
 
-static int ras_mc_prepare_stmt(struct ras_events *ras)
+static int ras_mc_prepare_stmt(struct sqlite3_priv *priv)
 {
 	int i, rc;
 	char sql[1024];
@@ -87,26 +88,32 @@ static int ras_mc_prepare_stmt(struct ras_events *ras)
 			strcat(sql, "?)");
 	}
 
-	rc = sqlite3_prepare_v2(ras->db, sql, -1, &ras->stmt, NULL);
+	rc = sqlite3_prepare_v2(priv->db, sql, -1, &priv->stmt, NULL);
 	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR, "Failed to prepare insert db on %s: error = %s\n",
-		       SQLITE_RAS_DB, sqlite3_errmsg(ras->db));
+		       SQLITE_RAS_DB, sqlite3_errmsg(priv->db));
 
 	return rc;
 }
 
-sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
+int ras_mc_event_opendb(struct ras_events *ras)
 {
 	int rc, i;
 	sqlite3 *db;
 	char sql[1024];
+	struct sqlite3_priv *priv;
 
-	ras->stmt = NULL;
+	ras->db_priv = NULL;
+
+	priv = calloc(1, sizeof(*priv));
+	if (!priv)
+		return -1;
 
 	rc = sqlite3_initialize();
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR, "Failed to initialize sqlite: error = %d\n", rc);
-		return NULL;
+		free(priv);
+		return -1;
 	}
 
 	rc = sqlite3_open_v2(SQLITE_RAS_DB, &db,
@@ -114,7 +121,8 @@ sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR, "Failed to connect to %s: error = %d\n",
 		       SQLITE_RAS_DB, rc);
-		return NULL;
+		free(priv);
+		return -1;
 	}
 
 	strcpy(sql, createdb);
@@ -124,44 +132,46 @@ sqlite3 *ras_mc_event_opendb(struct ras_events *ras)
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR, "Failed to create db on %s: error = %d\n",
 		       SQLITE_RAS_DB, rc);
-
-		return NULL;
+		free(priv);
+		return -1;
 	}
 
-	ras->db = db;
+	priv->db = db;
+	ras->db_priv = priv;
 
-	rc = ras_mc_prepare_stmt(ras);
+	rc = ras_mc_prepare_stmt(priv);
 	if (rc == SQLITE_OK)
 		log(TERM, LOG_INFO, "Recording events at %s\n", SQLITE_RAS_DB, rc);
 
-	return db;
+	return 0;
 }
 
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 {
 	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
 
-	log(TERM, LOG_INFO, "store_event: %p\n", ras->stmt);
-	if (!ras->stmt)
+	log(TERM, LOG_INFO, "store_event: %p\n", priv->stmt);
+	if (!priv->stmt)
 		return 0;
 
-	sqlite3_bind_text(ras->stmt,  1, ev->timestamp, -1, NULL);
-	sqlite3_bind_int (ras->stmt,  2, ev->error_count);
-	sqlite3_bind_text(ras->stmt,  3, ev->error_type, -1, NULL);
-	sqlite3_bind_text(ras->stmt,  4, ev->msg, -1, NULL);
-	sqlite3_bind_text(ras->stmt,  5, ev->label, -1, NULL);
-	sqlite3_bind_int (ras->stmt,  6, ev->mc_index);
-	sqlite3_bind_int (ras->stmt,  7, ev->top_layer);
-	sqlite3_bind_int (ras->stmt,  8, ev->middle_layer);
-	sqlite3_bind_int (ras->stmt,  9, ev->lower_layer);
-	sqlite3_bind_int (ras->stmt, 10, ev->address);
-	sqlite3_bind_int (ras->stmt, 11, ev->grain);
-	sqlite3_bind_int (ras->stmt, 12, ev->syndrome);
-	sqlite3_bind_text(ras->stmt, 13, ev->driver_detail, -1, NULL);
-	rc = sqlite3_step(ras->stmt);
+	sqlite3_bind_text(priv->stmt,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_int (priv->stmt,  2, ev->error_count);
+	sqlite3_bind_text(priv->stmt,  3, ev->error_type, -1, NULL);
+	sqlite3_bind_text(priv->stmt,  4, ev->msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt,  5, ev->label, -1, NULL);
+	sqlite3_bind_int (priv->stmt,  6, ev->mc_index);
+	sqlite3_bind_int (priv->stmt,  7, ev->top_layer);
+	sqlite3_bind_int (priv->stmt,  8, ev->middle_layer);
+	sqlite3_bind_int (priv->stmt,  9, ev->lower_layer);
+	sqlite3_bind_int (priv->stmt, 10, ev->address);
+	sqlite3_bind_int (priv->stmt, 11, ev->grain);
+	sqlite3_bind_int (priv->stmt, 12, ev->syndrome);
+	sqlite3_bind_text(priv->stmt, 13, ev->driver_detail, -1, NULL);
+	rc = sqlite3_step(priv->stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR, "Failed to do step on sqlite: error = %d\n", rc);
-	rc = sqlite3_finalize(ras->stmt);
+	rc = sqlite3_finalize(priv->stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR, "Failed to do finalize insert on sqlite: error = %d\n",
 		       rc);

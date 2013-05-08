@@ -39,8 +39,7 @@ struct ras_events {
 	time_t		uptime_diff;
 
 	/* For ras-record */
-	sqlite3		*db;
-	sqlite3_stmt	*stmt;
+	void		*db_priv;
 };
 
 struct pthread_data {

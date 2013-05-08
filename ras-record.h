@@ -16,10 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
-#include <sqlite3.h>
-
 #ifndef __RAS_RECORD_H
 #define __RAS_RECORD_H
+
+#include "config.h"
+
+struct ras_events *ras;
+
 struct ras_mc_event {
 	char timestamp[64];
 	int error_count;
@@ -30,8 +33,21 @@ struct ras_mc_event {
 	const char *driver_detail;
 };
 
-struct ras_events *ras;
+#ifdef HAVE_SQLITE3
 
-sqlite3 *ras_mc_event_opendb(struct ras_events *ras);
+#include <sqlite3.h>
+
+struct sqlite3_priv {
+	sqlite3		*db;
+	sqlite3_stmt	*stmt;
+};
+
+int ras_mc_event_opendb(struct ras_events *ras);
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
+
+#else
+static inline int ras_mc_event_opendb(struct ras_events *ras) { return 0; };
+static inline int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev) { return 0; };
+#endif
+
 #endif

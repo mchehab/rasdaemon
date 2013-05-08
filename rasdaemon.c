@@ -71,7 +71,9 @@ int main(int argc, char *argv[])
 	const struct argp_option options[] = {
 		{"enable",  'e', 0, 0, "enable RAS events and exit", 0},
 		{"disable", 'd', 0, 0, "disable RAS events and exit", 0},
+#ifdef HAVE_SQLITE3
 		{"record",  'r', 0, 0, "record events via sqlite3", 0},
+#endif
 		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},
 
 		{ 0, 0, 0, 0, 0, 0 }
