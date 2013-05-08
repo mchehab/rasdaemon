@@ -1,8 +1,9 @@
 AC_INIT([RAS Daemon], 0.2.0)
 AM_SILENT_RULES([yes])
+AC_CANONICAL_SYSTEM
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile libtrace/Makefile])
+AC_CONFIG_FILES([Makefile libtrace/Makefile util/Makefile util/ras-mc-ctl])
 AM_INIT_AUTOMAKE
 AC_PROG_CC
 AC_PROG_INSTALL

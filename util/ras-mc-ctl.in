@@ -35,8 +35,8 @@ use File::Find;
 use Getopt::Long;
 use POSIX;
 
-my $prefix      = "/usr/";
-my $sysconfdir  = "/etc";
+my $prefix      = "@prefix@";
+my $sysconfdir  = "@sysconfdir@";
 my $dmidecode   = find_prog ("dmidecode");
 my $modprobe    = find_prog ("modprobe")  or exit (1);
 

@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS=-I m4
-SUBDIRS = libtrace
+SUBDIRS = libtrace util
 EXTRA_DIST = misc/rasdaemon.service
 
 sbin_PROGRAMS = rasdaemon
