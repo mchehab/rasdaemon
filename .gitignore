@@ -5,7 +5,6 @@ Makefile.in
 config.h
 config.h.in
 config.h.in~
-man/ras-mc-ctl.8
 stamp-h1
 aclocal.m4
 config.guess

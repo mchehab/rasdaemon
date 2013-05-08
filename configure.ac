@@ -15,6 +15,7 @@ AC_CONFIG_FILES([
 	libtrace/Makefile
 	man/Makefile
 	man/ras-mc-ctl.8
+	man/rasdaemon.1
 	util/Makefile
 	util/ras-mc-ctl
 ])

@@ -1,0 +1,59 @@
+.\"****************************************************************************
+.\" $Id$
+.\"****************************************************************************
+.\"Copyright (c) 2013 Mauro Carvalho Chehab <mchehab@redhat.com>
+.\"
+.\" This is free software; you can redistribute it and/or modify it
+.\" under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This is distributed in the hope that it will be useful, but WITHOUT
+.\" ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+.\" FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+.\" for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License along
+.\" with this program; if not, write to the Free Software Foundation, Inc.,
+.\" 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
+.\"****************************************************************************
+
+.TH RASDAEMON 8 "@META_DATE@" "@META_ALIAS@" "RAS memory controller admin utility"
+
+.SH NAME
+rasdaemon \- RAS daemon to log the RAS events.
+
+.SH SYNOPSIS
+.B rasdaemon
+[\fIOPTION\fR]...
+
+.SH DESCRIPTION
+
+The \fBrasdaemon\fR program is a daemon with monitors the RAS trace events
+from /sys/kernel/debug/tracing, reporting them via syslog/journald.
+
+.SH OPTIONS
+.TP
+.BI "--usage"
+Display a brief usage message and exit.
+.TP
+.BI "--help"
+Display a help message and exit.
+.TP
+.BI "--disable"
+Disable RAS tracing events and exit.
+.TP
+.BI "--enable"
+Enable RAS tracing events and exit.
+.TP
+.BI "--foreground"
+Executes in foreground, printing the events at console. Useful for testing it,
+and to be used by systemd or Unix System V respan.
+If not specified, the program runs in daemon mode.
+.TP
+.BI "--version"
+Prints the program version and exit.
+
+.SH SEE ALSO
+\fBras-mc-ctl\fR(8)
+
