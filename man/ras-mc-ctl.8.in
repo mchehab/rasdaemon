@@ -1,0 +1,110 @@
+.\"****************************************************************************
+.\" $Id$
+.\"****************************************************************************
+.\" Copyright (C) 2006-2007 The Regents of the University of California.
+.\" Produced at Lawrence Livermore National Laboratory.
+.\" Written by Mark Grondona <mgrondona@llnl.gov>
+.\" UCRL-CODE-230739.
+.\"
+.\" This file is part of edac-utils.
+.\"
+.\" This is free software; you can redistribute it and/or modify it
+.\" under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This is distributed in the hope that it will be useful, but WITHOUT
+.\" ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+.\" FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+.\" for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License along
+.\" with this program; if not, write to the Free Software Foundation, Inc.,
+.\" 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
+.\"****************************************************************************
+
+.TH EDAC-CTL 8 "@META_DATE@" "@META_ALIAS@" "EDAC admin utility"
+
+.SH NAME
+edac-ctl \- EDAC admin utility
+
+.SH SYNOPSIS
+.B edac-ctl 
+[\fIOPTION\fR]...
+
+.SH DESCRIPTION
+
+The \fBedac-ctl\fR program is a \fBperl\fR(1) script which performs
+some useful administration tasks for EDAC (Error Detection and Correction)
+drivers. 
+
+.SH OPTIONS
+.TP
+.BI "--help"
+Display a brief usage message.
+.TP
+.BI "--mainboard"
+Print mainboard vendor and model for this hardware, if available.
+The method used by \fBedac-ctl\fR to obtain the mainboard vendor
+and model information for the current system is described below
+in the \fIMAINBOARD CONFIGURATION\fR section.
+.TP
+.BI "--status"
+Print the status of EDAC drivers (loaded or unloaded).
+.TP
+.BI "--register-labels"
+Register motherboard DIMM labels into EDAC driver sysfs files.
+This option uses the detected mainboard manufacturer and model
+number in combination with a "labels database" found in any
+of the files under /etc/edac/labels.d/* or in the labels.db file
+at /etc/edac/labels.db. An entry for the current hardware must
+exist in the labels database for this option to do anything.
+.TP
+.BI "--print-labels"
+Display the configured labels for the current hardware, as
+well as the current labels registered with EDAC. 
+.TP
+.BI "--labeldb="DB
+Specify an alternate location for the labels database.
+
+.SH MAINBOARD CONFIGURATION
+.PP
+The \fBedac-ctl\fR script uses the following method to determine the
+current system's mainboard vendor and model information:
+
+.IP "1." 4
+If the config file @sysconfdir@/edac/mainboard exists, then it is
+parsed by \fBedac-ctl\fR. The mainboard config file has the following
+simple syntax:
+.nf
+
+       vendor = <mainboard vendor string>
+       model =  <mainboard model string>
+       script = <script to gather mainboard information>
+
+.fi
+Where anything after a '#' character on a line is considered a comment.
+If the keyword \fBscript\fR is specified, then that script or
+executable is run by \fBedac-ctl\fR to gather the mainboard vendor
+and model information. The script should write the resulting information
+on stdout in the same format as the mainboard config file.
+
+.IP "2."
+If no mainboard config file exists, then \fBedac-ctl\fR will attempt
+to read DMI information from the sysfs files
+.nf
+
+     /sys/class/dmi/id/board_vendor
+     /sys/class/dmi/id/board_name
+
+.fi
+
+.IP "3."
+If the sysfs files above do not exist, then \fBedac-ctl\fR will fall
+back to parsing output of the \fBdmidecode\fR(8) utility. Use of this
+utility will most often require that \fBedac-ctl\fR be run as root.
+.EL
+
+.SH SEE ALSO
+\fBedac\fR(3), \fBedac-util\fR(1)
+

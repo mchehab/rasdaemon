@@ -3,11 +3,21 @@ AM_SILENT_RULES([yes])
 AC_CANONICAL_SYSTEM
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile libtrace/Makefile util/Makefile util/ras-mc-ctl])
 AM_INIT_AUTOMAKE
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
+
+X_AC_META
+
+AC_CONFIG_FILES([
+	Makefile
+	libtrace/Makefile
+	man/Makefile
+	man/ras-mc-ctl.8
+	util/Makefile
+	util/ras-mc-ctl
+])
 
 AC_ARG_ENABLE([sqlite3],
     AS_HELP_STRING([--enable-sqlite], [enable storing data at SQL lite database (currently experimental]))
@@ -21,5 +31,7 @@ AS_IF([test "x$enable_sqlite3" = "xyes"], [
 
 AM_CONDITIONAL([WITH_SQLITE3], [test x$enable_sqlite3 = xyes])
 AC_SUBST([SQLITE3_LIBS])
+
+test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 AC_OUTPUT
