@@ -33,9 +33,11 @@ struct ras_events {
 	struct pevent	*pevent;
 	int		page_size;
 
-	/* For timestamp */
+	/* Booleans */
 	unsigned	use_uptime: 1;
+        unsigned        record_events: 1;
 
+        /* For timestamp */
 	time_t		uptime_diff;
 
 	/* For ras-record */

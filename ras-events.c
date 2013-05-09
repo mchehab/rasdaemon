@@ -342,7 +342,9 @@ static void *handle_ras_events_cpu(void *priv)
 		return NULL;
 	}
 
-//	printf("Listening to events on cpu %d\n", pdata->cpu);
+	printf("Listening to events on cpu %d\n", pdata->cpu);
+        if (pdata->ras->record_events)
+                ras_mc_event_opendb(pdata->ras);
 
 	read_ras_event(fd, pdata, kbuf, page);
 
@@ -468,9 +470,7 @@ int handle_ras_events(int record_events)
 
 	ras->pevent = pevent;
 	ras->page_size = page_size;
-
-	if (record_events)
-		ras_mc_event_opendb(ras);
+        ras->record_events = record_events;
 
 	pevent_register_event_handler(pevent, -1, "ras", "mc_event",
 				      ras_mc_event_handler, ras);

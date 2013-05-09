@@ -103,6 +103,8 @@ int ras_mc_event_opendb(struct ras_events *ras)
 	char sql[1024];
 	struct sqlite3_priv *priv;
 
+        printf("Calling %s()\n", __FUNCTION__);
+
 	ras->db_priv = NULL;
 
 	priv = calloc(1, sizeof(*priv));
