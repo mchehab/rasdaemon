@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "ras-events.h"
 #include "ras-mc-handler.h"
 #include "ras-logger.h"
@@ -118,9 +119,16 @@ int ras_mc_event_opendb(struct ras_events *ras)
 		return -1;
 	}
 
-	rc = sqlite3_open_v2(SQLITE_RAS_DB, &db,
-			     SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
-	if (rc != SQLITE_OK) {
+	do {
+		rc = sqlite3_open_v2(SQLITE_RAS_DB, &db,
+				     SQLITE_OPEN_FULLMUTEX |
+				     SQLITE_OPEN_READWRITE |
+				     SQLITE_OPEN_CREATE, NULL);
+		if (rc == SQLITE_BUSY)
+			usleep(10000);
+	} while (rc == SQLITE_BUSY);
+
+        if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR, "Failed to connect to %s: error = %d\n",
 		       SQLITE_RAS_DB, rc);
 		free(priv);
