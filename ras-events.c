@@ -418,22 +418,30 @@ int handle_ras_events(int record_events)
 	struct ras_events *ras;
 	void *page;
 
-	ras = calloc(1, sizeof(*data));
-	if (!ras)
+	ras = calloc(1, sizeof(*ras));
+	if (!ras) {
+		log(TERM, LOG_ERR, "Can't allocate memory for ras struct\n");
 		return errno;
+	}
 
 	rc = get_tracing_dir(ras);
-	if (rc < 0)
+	if (rc < 0) {
+		log(TERM, LOG_ERR, "Can't locate a mounted debugfs\n");
 		goto free_ras;
+	}
 
 	rc = select_tracing_timestamp(ras);
-	if (rc < 0)
+	if (rc < 0) {
+		log(TERM, LOG_ERR, "Can't select a timestamp for tracing\n");
 		goto free_ras;
+	}
 
 	/* Enable RAS events */
 	rc = toggle_ras_mc_event(ras, 1);
-	if (rc < 0)
+	if (rc < 0) {
+		log(TERM, LOG_ERR, "Can't enable RAS tracing\n");
 		goto free_ras;
+	}
 
 	pevent = pevent_alloc();
 	if (!pevent) {
@@ -442,10 +450,10 @@ int handle_ras_events(int record_events)
 		goto free_ras;
 	}
 
-	fd = open_trace(ras, "events/ras/mc_event/format",
-		  O_RDONLY);
+	fd = open_trace(ras, "events/ras/mc_event/format", O_RDONLY);
 	if (fd < 0) {
-		log(TERM, LOG_ERR, "Open ras format\n");
+		log(TERM, LOG_ERR,
+		    "Can't get ras format. Are you sure that there's an EDAC driver loaded?\n");
 		rc = errno;
 		goto free_pevent;
 	}
@@ -463,6 +471,7 @@ int handle_ras_events(int record_events)
 	size = read(fd, page, page_size);
 	close(fd);
 	if (size < 0) {
+		log(TERM, LOG_ERR, "Can't get arch page size\n");
 		rc = size;
 		free(page);
 		goto free_pevent;
@@ -514,7 +523,9 @@ free_threads:
 
 free_pevent:
 	pevent_free(pevent);
+
 free_ras:
 	free(ras);
+
 	return rc;
 }
