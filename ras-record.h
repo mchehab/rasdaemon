@@ -42,7 +42,7 @@ struct sqlite3_priv {
 	sqlite3_stmt	*stmt;
 };
 
-int ras_mc_event_opendb(struct ras_events *ras);
+int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras);
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
 
 #else

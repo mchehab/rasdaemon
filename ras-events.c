@@ -344,7 +344,7 @@ static void *handle_ras_events_cpu(void *priv)
 
 	printf("Listening to events on cpu %d\n", pdata->cpu);
         if (pdata->ras->record_events)
-                ras_mc_event_opendb(pdata->ras);
+                ras_mc_event_opendb(pdata->cpu, pdata->ras);
 
 	read_ras_event(fd, pdata, kbuf, page);
 

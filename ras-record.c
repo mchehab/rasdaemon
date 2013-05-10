@@ -97,7 +97,7 @@ static int ras_mc_prepare_stmt(struct sqlite3_priv *priv)
 	return rc;
 }
 
-int ras_mc_event_opendb(struct ras_events *ras)
+int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 {
 	int rc, i;
 	sqlite3 *db;
@@ -114,7 +114,9 @@ int ras_mc_event_opendb(struct ras_events *ras)
 
 	rc = sqlite3_initialize();
 	if (rc != SQLITE_OK) {
-		log(TERM, LOG_ERR, "Failed to initialize sqlite: error = %d\n", rc);
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to initialize sqlite: error = %d\n",
+		    cpu, rc);
 		free(priv);
 		return -1;
 	}
@@ -129,8 +131,9 @@ int ras_mc_event_opendb(struct ras_events *ras)
 	} while (rc == SQLITE_BUSY);
 
         if (rc != SQLITE_OK) {
-		log(TERM, LOG_ERR, "Failed to connect to %s: error = %d\n",
-		       SQLITE_RAS_DB, rc);
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to connect to %s: error = %d\n",
+		    cpu, SQLITE_RAS_DB, rc);
 		free(priv);
 		return -1;
 	}
@@ -140,8 +143,9 @@ int ras_mc_event_opendb(struct ras_events *ras)
 	strcat(sql, mc_event_db_create_fields);
 	rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
 	if (rc != SQLITE_OK) {
-		log(TERM, LOG_ERR, "Failed to create db on %s: error = %d\n",
-		       SQLITE_RAS_DB, rc);
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to create db on %s: error = %d\n",
+		    cpu, SQLITE_RAS_DB, rc);
 		free(priv);
 		return -1;
 	}
@@ -151,7 +155,9 @@ int ras_mc_event_opendb(struct ras_events *ras)
 
 	rc = ras_mc_prepare_stmt(priv);
 	if (rc == SQLITE_OK)
-		log(TERM, LOG_INFO, "Recording events at %s\n", SQLITE_RAS_DB, rc);
+		log(TERM, LOG_INFO,
+		    "cpu %u: Recording events at %s\n",
+		    cpu, SQLITE_RAS_DB, rc);
 
 	return 0;
 }
