@@ -4,6 +4,68 @@ RAS Daemon
 Those tools provide a way to get Platform Reliability, Availability
 and Serviceability (RAS) reports made via the Kernel tracing events.
 
+GOALS
+=====
+
+Its initial goal is to replace the edac-tools that got bitroted after
+the addition of the HERM (Hardware Events Report Method )patches[1] at
+the EDAC Kernel drivers.
+
+[1] http://lkml.indiana.edu/hypermail/linux/kernel/1205.1/02075.html
+
+Its long term goal is to be the userspace tool that will collect all
+hardware error events reported by the Linux Kernel from several sources
+(EDAC, MCE, PCI, ...) into one common framework.
+
+It is not meant to provide tools for doing error injection, as there are
+other tools already covering it, like:
+	git://git.kernel.org/pub/scm/linux/kernel/git/gong.chen/mce-test.git
+
+Yet, a few set of testing scripts are provided under /contrib dir.
+
+When the final version of the HERM patches was merged upstream, it was
+decided to not expose the memory error counters to userspace.
+This is one of the differences from what it was provided by edac-utils, as
+EDAC 2.0.0 exports errors via a set of sysfs nodes that sums the amount of
+errors per DIMM, per memory channel and per memory controller.
+However, those counters are monotonically increased, and there's no way to
+detect if they're very sparsed in time, if the occurrence is increasing over
+time, or if they're due to some burst, perhaps due to a Solar Storm hitting
+the ionosphere.
+
+In other words, the rationale for not exposing such the information is that:
+
+	1) can be easily accounted on userspace;
+
+	2) they're not really meaningful. E. g. one system with, let's say
+10 corrected errors can be fine, while another one with the same amount
+of errors can have problems, as the error counters don't take into
+account things like system uptime, memory error bursts (that could be
+caused by a solar storm, for example), etc.
+
+So, the idea since them was to make the kernel-userspace interface
+simpler and move the policy to the userspace daemon. It is up to the
+userspace daemon to correlate the data about the RAS events and provide
+the system administrator a comprehensive report, presenting him
+a better hint if he needs to contact the hardware vendor to replace
+a component that is working degraded, or to simply discard the error.
+
+So, the approach taken here is to allow storing those errors on a SQLite
+database, in order to allow those data to be latter mining.
+
+It is currently not part of the scope to do sophiscicated data mininy
+analysis, as that would require enough statistitical data about hardware
+MTBF. In other words, an abnormal component that needs to be replaced
+shoud be statistically compared with a similar component that operates
+under a normal condition. To do such checks, the analysis tool would
+need to know the probability density function(p. d. f.) of that component,
+and its rellevant parameters (like mean and standard derivation, if the
+p. d. f. funcion is a Normal distribution).
+
+While this tool works since Kernel 3.5 (where HERM patches got added),
+in order to get the full benefit of this tool, Kernel 3.10 or upper is
+needed.
+
 QUICK USAGE
 ===========
 
@@ -46,6 +108,9 @@ To run the rasdaemon in background, just call it without any parameters:
 The output will be available via syslog. Or, to run it in foreground and see
 the logs in console, run it as:
 	# rasdaemon -f
+
+or, if you also want to record errors at the database:
+	# rasdaemon -f -r
 
 You may also start it via systemd:
 	# systemctl start rasdaemon
