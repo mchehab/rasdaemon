@@ -15,20 +15,43 @@ by installing the following packages:
 	automake
 	libtool
 	tar
-	sqlite-devel
+	sqlite-devel	(if sqlite3 will be used)
 
 To install then on Fedora, run:
+	yum install -y make gcc autoconf automake libtool tar
+
+Or, if sqlite3 database will be used to store data:
 	yum install -y make gcc autoconf automake libtool tar sqlite-devel
 
-Run:
+Run (without sqlite):
 	$ autoreconf -vfi && ./configure
+	$ make
+
+or, if sql3database will be used:
+	$ autoreconf -vfi && ./configure --enable-sqlite3
 	$ make
 
 As root:
 	# make install
 
 The daemon generally requires root permission, in order to read the
-needed debugfs trace nodes. Just run it without any parameters to start
-capturing the RAS memory errors:
+needed debugfs trace nodes, with needs to be previously mounted.
+The rasdaemon will check at /proc/mounts where the debugfs partition
+is mounted and use it while running.
+
+To run the rasdaemon in background, just call it without any parameters:
 
 	# rasdaemon
+
+The output will be available via syslog. Or, to run it in foreground and see
+the logs in console, run it as:
+	# rasdaemon -f
+
+You may also start it via systemd:
+	# systemctl start rasdaemon
+
+The rasdaemon will then output the messages to journald.
+
+A script is provided under /contrib, in order to test the daemon.
+While the daemon is running, just run:
+	# contrib/edac-fake-inject
