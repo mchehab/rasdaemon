@@ -418,22 +418,22 @@ int handle_ras_events(int record_events)
 	struct ras_events *ras;
 	void *page;
 
-	ras = calloc(sizeof(*data), 1);
+	ras = calloc(1, sizeof(*data));
 	if (!ras)
 		return errno;
 
 	rc = get_tracing_dir(ras);
 	if (rc < 0)
-		return rc;
+		goto free_ras;
 
 	rc = select_tracing_timestamp(ras);
 	if (rc < 0)
-		return rc;
+		goto free_ras;
 
 	/* Enable RAS events */
 	rc = toggle_ras_mc_event(ras, 1);
 	if (rc < 0)
-		return rc;
+		goto free_ras;
 
 	pevent = pevent_alloc();
 	if (!pevent) {
@@ -478,12 +478,12 @@ int handle_ras_events(int record_events)
 	rc = pevent_parse_event(pevent, page, size, "ras");
 	free(page);
 	if (rc)
-		goto free_ras;
+		goto free_pevent;
 
 	cpus = get_num_cpus(ras);
 	data = calloc(sizeof(*data), cpus);
 	if (!data)
-		goto free_ras;
+		goto free_pevent;
 
 	log(SYSLOG, LOG_INFO, "Opening one thread per cpu (%d threads)\n", cpus);
 	for (i = 0; i < cpus; i++) {
