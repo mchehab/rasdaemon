@@ -24,6 +24,9 @@
 #include "ras-events.h"
 #include "libtrace/event-parse.h"
 
+
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
+
 enum cputype {
 	CPU_GENERIC,
 	CPU_P6OLD,
@@ -73,5 +76,15 @@ int register_mce_handler(struct ras_events *ras);
 int ras_mce_event_handler(struct trace_seq *s,
 			  struct pevent_record *record,
 			  struct event_format *event, void *context);
+
+/* Software defined banks */
+#define MCE_EXTENDED_BANK	128
+
+/* Those functions are defined on per-cpu vendor C files */
+void dump_intel_event(struct ras_events *ras,
+		      struct trace_seq *s, struct mce_event *e);
+
+void dump_amd_k8_event(struct ras_events *ras,
+		       struct trace_seq *s, struct mce_event *e);
 
 #endif

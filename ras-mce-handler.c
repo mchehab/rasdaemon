@@ -25,6 +25,10 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 
+/*
+ * The code below were adapted from Andi Kleen/Intel/SuSe mcelog code,
+ * released under GNU Public General License, v.2
+ */
 static char *cputype_name[] = {
 	[CPU_GENERIC] = "generic CPU",
 	[CPU_P6OLD] = "Intel PPro/P2/P3/old Xeon",
@@ -194,9 +198,14 @@ int register_mce_handler(struct ras_events *ras)
 	return rc;
 }
 
+/*
+ * End of mcelog's code
+ */
+
 static void dump_mce_event(struct trace_seq *s, struct mce_event *e)
 {
-	trace_seq_printf(s, "mcgcap= %d ", e->mcgcap);
+	trace_seq_printf(s, "bank=%s ",e->bank);
+	trace_seq_printf(s, ", mcgcap= %d ", e->mcgcap);
 	trace_seq_printf(s, ", mcgstatus= %d ", e->mcgstatus);
 	trace_seq_printf(s, ", status= %d ", e->status);
 	trace_seq_printf(s, ", addr= %d ", e->addr);
@@ -209,7 +218,6 @@ static void dump_mce_event(struct trace_seq *s, struct mce_event *e)
 	trace_seq_printf(s, ", apicid= %d ", e->apicid);
 	trace_seq_printf(s, ", socketid= %d ", e->socketid);
 	trace_seq_printf(s, ", cs= %d ", e->cs);
-	trace_seq_printf(s, ", bank= %d ", e->bank);
 	trace_seq_printf(s, ", cpuvendor= %d", e->cpuvendor);
 }
 
@@ -297,15 +305,14 @@ int ras_mce_event_handler(struct trace_seq *s,
 		return -1;
 	e.cpuvendor = val;
 
-	/*
-	 * Default handler is to just output whatever is there.
-	 *
-	 * Latter patches will add parsing capabilities to the MCE events,
-	 * in order to make them understandable by the end user, falling
-	 * back to the simple dump if, for some reason, the parser is not
-	 * able to properly decode it.
-	 */
-	dump_mce_event(s, &e);
+	switch (mce->cputype) {
+	case CPU_GENERIC:
+		dump_mce_event(s, &e);
+	case CPU_K8:
+		dump_amd_k8_event(ras, s, &e);
+	default:			/* All other CPU types are Intel */
+		dump_intel_event(ras, s, &e);
+	}
 
 	return 0;
 }
