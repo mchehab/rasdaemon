@@ -498,8 +498,15 @@ int handle_ras_events(int record_events)
 	}
 
 #ifdef HAVE_MCE_HANDLER
-	pevent_register_event_handler(pevent, -1, "mce", "mce_record",
-				      ras_mce_event_handler, ras);
+	rc = register_mce_handler(ras);
+	if (rc) {
+		log(SYSLOG, LOG_INFO, "Can't register mce handler\n");
+		free(page);
+		goto free_pevent;
+	}
+	if (ras->mce)
+		pevent_register_event_handler(pevent, -1, "mce", "mce_record",
+					      ras_mce_event_handler, ras);
 #endif
 	rc = pevent_parse_event(pevent, page, size, "mce");
 	if (rc) {

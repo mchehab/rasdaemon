@@ -27,6 +27,8 @@
 #define MAX_PATH 1024
 #define STR(x) #x
 
+struct mce_priv;
+
 struct ras_events {
 	char debugfs[MAX_PATH + 1];
 	char tracing[MAX_PATH + 1];
@@ -42,6 +44,9 @@ struct ras_events {
 
 	/* For ras-record */
 	void		*db_priv;
+
+	/* For the mce handler */
+	struct mce_priv	*mce_priv;
 };
 
 struct pthread_data {

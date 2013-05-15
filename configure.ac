@@ -41,8 +41,16 @@ AS_IF([test "x$enable_aer" = "xyes"], [
   AC_DEFINE(HAVE_AER,1,"have PCIe AER events collect")
   AC_SUBST([WITH_AER])
 ])
-
 AM_CONDITIONAL([WITH_AER], [test x$enable_aer = xyes])
+
+AC_ARG_ENABLE([mce],
+    AS_HELP_STRING([--enable-mce], [enable MCE events (currently experimental)]))
+
+AS_IF([test "x$enable_mce" = "xyes"], [
+  AC_DEFINE(HAVE_MCE,1,"have PCIe MCE events collect")
+  AC_SUBST([WITH_MCE])
+])
+AM_CONDITIONAL([WITH_MCE], [test x$enable_mce = xyes])
 
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
