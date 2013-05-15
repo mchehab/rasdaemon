@@ -46,7 +46,7 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras);
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
 
 #else
-static inline int ras_mc_event_opendb(struct ras_events *ras) { return 0; };
+static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
 static inline int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev) { return 0; };
 #endif
 
