@@ -28,6 +28,7 @@
 #include "libtrace/kbuffer.h"
 #include "libtrace/event-parse.h"
 #include "ras-mc-handler.h"
+#include "ras-aer-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 
@@ -481,8 +482,14 @@ int handle_ras_events(int record_events)
 	ras->page_size = page_size;
         ras->record_events = record_events;
 
+	/* Registers the special event handlers */
 	pevent_register_event_handler(pevent, -1, "ras", "mc_event",
 				      ras_mc_event_handler, ras);
+
+#ifdef HAVE_AER
+	pevent_register_event_handler(pevent, -1, "ras", "aer_event",
+				      ras_aer_event_handler, ras);
+#endif
 
 	rc = pevent_parse_event(pevent, page, size, "ras");
 	free(page);

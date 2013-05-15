@@ -18,11 +18,11 @@
 
 #include "ras-record.h"
 
-#include <pthread.h>
-#include <time.h>
-
 #ifndef __RAS_EVENTS_H
 #define __RAS_EVENTS_H
+
+#include <pthread.h>
+#include <time.h>
 
 #define MAX_PATH 1024
 #define STR(x) #x

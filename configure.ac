@@ -21,7 +21,7 @@ AC_CONFIG_FILES([
 ])
 
 AC_ARG_ENABLE([sqlite3],
-    AS_HELP_STRING([--enable-sqlite], [enable storing data at SQL lite database (currently experimental]))
+    AS_HELP_STRING([--enable-sqlite], [enable storing data at SQL lite database (currently experimental)]))
 
 AS_IF([test "x$enable_sqlite3" = "xyes"], [
   AC_CHECK_LIB(sqlite3, sqlite3_open,[echo "found sqlite3"] , AC_MSG_ERROR([*** Unable to find sqlite3 library]), )
@@ -32,6 +32,17 @@ AS_IF([test "x$enable_sqlite3" = "xyes"], [
 
 AM_CONDITIONAL([WITH_SQLITE3], [test x$enable_sqlite3 = xyes])
 AC_SUBST([SQLITE3_LIBS])
+
+
+AC_ARG_ENABLE([aer],
+    AS_HELP_STRING([--enable-aer], [enable PCIe AER events (currently experimental)]))
+
+AS_IF([test "x$enable_aer" = "xyes"], [
+  AC_DEFINE(HAVE_AER,1,"have PCIe AER events collect")
+  AC_SUBST([WITH_AER])
+])
+
+AM_CONDITIONAL([WITH_AER], [test x$enable_aer = xyes])
 
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 

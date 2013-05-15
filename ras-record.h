@@ -33,6 +33,13 @@ struct ras_mc_event {
 	const char *driver_detail;
 };
 
+struct ras_aer_event {
+	char timestamp[64];
+	const char *error_type;
+	const char *dev_name;
+	const char *msg;
+};
+
 #ifdef HAVE_SQLITE3
 
 #include <sqlite3.h>
