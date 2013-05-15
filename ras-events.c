@@ -492,9 +492,22 @@ int handle_ras_events(int record_events)
 #endif
 
 	rc = pevent_parse_event(pevent, page, size, "ras");
-	free(page);
-	if (rc)
+	if (rc) {
+		free(page);
 		goto free_pevent;
+	}
+
+#ifdef HAVE_MCE_HANDLER
+	pevent_register_event_handler(pevent, -1, "mce", "mce_record",
+				      ras_mce_event_handler, ras);
+#endif
+	rc = pevent_parse_event(pevent, page, size, "mce");
+	if (rc) {
+		free(page);
+		goto free_pevent;
+	}
+
+	free(page);
 
 	cpus = get_num_cpus(ras);
 	data = calloc(sizeof(*data), cpus);
