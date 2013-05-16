@@ -268,9 +268,9 @@ static void report_mce_event(struct ras_events *ras,
 	else
 		trace_seq_printf(s, "bank=%x", e->bank);
 
-	trace_seq_printf(s, ", status= %d ", e->status);
+	trace_seq_printf(s, ", status= %d", e->status);
 	if (*e->error_msg)
-		trace_seq_printf(s, ", %s ", e->error_msg);
+		trace_seq_printf(s, ", %s", e->error_msg);
 
 #if 0
 	/*
@@ -278,42 +278,45 @@ static void report_mce_event(struct ras_events *ras,
 	 * decode/print it, if we already got the uptime from the
 	 * tracing event? Let's just discard it for now.
 	 */
-	trace_seq_printf(s, ", tsc= %d ", e->tsc);
-	trace_seq_printf(s, ", walltime= %d ", e->walltime);
+	trace_seq_printf(s, ", tsc= %d", e->tsc);
+	trace_seq_printf(s, ", walltime= %d", e->walltime);
 #endif
 
-	trace_seq_printf(s, "CPU: %s, ", cputype_name[mce->cputype]);
-	trace_seq_printf(s, ", cpu= %d ", e->cpu);
-	trace_seq_printf(s, ", socketid= %d ", e->socketid);
+	trace_seq_printf(s, ", CPU: %s,", cputype_name[mce->cputype]);
+	trace_seq_printf(s, ", cpu= %d", e->cpu);
+	trace_seq_printf(s, ", socketid= %d", e->socketid);
 
 #if 0
 	/*
 	 * The CPU vendor is already reported from mce->cputype
 	 */
 	trace_seq_printf(s, ", cpuvendor= %d", e->cpuvendor);
-	trace_seq_printf(s, ", cpuid= %d ", e->cpuid);
+	trace_seq_printf(s, ", cpuid= %d", e->cpuid);
 #endif
 
 	if (e->ip)
-		trace_seq_printf(s, ", ip= %d%s ",
+		trace_seq_printf(s, ", ip= %d%s",
 				 !(e->mcgstatus & MCG_STATUS_EIPV) ? " (INEXACT)" : "",
 				 e->ip);
 
 	if (e->cs)
-		trace_seq_printf(s, ", cs= %d ", e->cs);
+		trace_seq_printf(s, ", cs= %d", e->cs);
 
 	if (e->status & MCI_STATUS_MISCV)
-		trace_seq_printf(s, ", misc= %d ", e->misc);
+		trace_seq_printf(s, ", misc= %d", e->misc);
 
 	if (e->status & MCI_STATUS_ADDRV)
-		trace_seq_printf(s, ", addr= %d ", e->addr);
+		trace_seq_printf(s, ", addr= %d", e->addr);
 
-	trace_seq_printf(s, ", mcgstatus= %d ", e->mcgstatus);
+	if (e->mcgstatus_msg)
+		trace_seq_printf(s, ", %s", e->mcgstatus_msg);
+	else
+		trace_seq_printf(s, ", mcgstatus= %d", e->mcgstatus);
 
 	if (e->mcgcap)
-		trace_seq_printf(s, ", mcgcap= %d ", e->mcgcap);
+		trace_seq_printf(s, ", mcgcap= %d", e->mcgcap);
 
-	trace_seq_printf(s, ", apicid= %d ", e->apicid);
+	trace_seq_printf(s, ", apicid= %d", e->apicid);
 
 	/*
 	 * FIXME: The original mcelog userspace tool uses DMI to map from

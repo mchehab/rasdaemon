@@ -66,6 +66,7 @@ struct mce_event {
 	char		timestamp[64];
 	char		bank_name[64];
 	char		error_msg[4096];
+	char		mcgstatus_msg[256];
 };
 
 struct mce_priv {

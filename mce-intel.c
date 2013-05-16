@@ -20,11 +20,45 @@
 */
 
 #include <string.h>
+#include <stdio.h>
 
 #include "ras-mce-handler.h"
 
 #define MCE_THERMAL_BANK	(MCE_EXTENDED_BANK + 0)
 #define MCE_TIMEOUT_BANK        (MCE_EXTENDED_BANK + 90)
+
+static decode_termal_bank(struct mce_event *e)
+{
+	if (e->status & 1)
+		sprintf(e->error_msg, "Processor %d heated above trip temperature. Throttling enabled. Please check your system cooling. Performance will be impacted", e->cpu);
+	else
+		sprintf(e->error_msg, "Processor %d below trip temperature. Throttling disabled", e->cpu);
+}
+
+static void decode_mcg(struct mce_event *e)
+{
+	int n, len = sizeof(e->mcgstatus_msg);
+	uint64_t mcgstatus = e->mcgstatus;
+	char *p = e->mcgstatus_msg;
+
+	n = snprintf(p, len, "mcgstatus= %d ", e->mcgstatus);
+
+	if (mcgstatus & MCG_STATUS_RIPV) {
+		n = snprintf(p, len, " RIPV");
+		p += n;
+		len -= n;
+	}
+	if (mcgstatus & MCG_STATUS_EIPV) {
+		n = snprintf(p, len, " EIPV");
+		p += n;
+		len -= n;
+	}
+	if (mcgstatus & MCG_STATUS_MCIP) {
+		n = snprintf(p, len, " MCIP");
+		p += n;
+		len -= n;
+	}
+}
 
 static void bank_name(struct mce_event *e)
 {
@@ -45,6 +79,12 @@ static void bank_name(struct mce_event *e)
 int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 {
 	bank_name(e);
+
+	if (e->bank == MCE_THERMAL_BANK) {
+		decode_termal_bank(e);
+		return 0;
+	}
+	decode_mcg(e);
 
 	return 0;
 }
