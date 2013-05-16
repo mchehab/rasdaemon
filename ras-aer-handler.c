@@ -46,33 +46,6 @@ static const char *aer_errors[32] = {
 	[20] = "Unsupported Request",
 };
 
-char *aer_status_msg(char *buf, size_t len, unsigned int status)
-{
-	int i, n;
-	char *p = buf;
-
-	len--;
-
-	for (i = 0; i < 32; i++) {
-		if (status & (1 << i)) {
-			if (p != buf) {
-				n = snprintf(p, len, ", ");
-				len -= n;
-				p += n;
-			}
-			if (!aer_errors[i])
-				n = snprintf(p, len, "BIT(%d)", i);
-			else
-				n = snprintf(p, len, "%s", aer_errors[i]);
-			len -= n;
-			p += n;
-		}
-	}
-
-	*p = 0;
-	return buf;
-}
-
 int ras_aer_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
 			 struct event_format *event, void *context)
@@ -114,7 +87,8 @@ int ras_aer_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Fills the error buffer */
-	ev.msg = aer_status_msg(buf, sizeof(buf), val);
+	bitfield_msg(buf, sizeof(buf), aer_errors, 32, 0, 0, val);
+	ev.msg = buf;
 	trace_seq_printf(s, "%s ", ev.msg);
 
 	if (pevent_get_field_val(s, event, "severity", record, &val, 1) < 0)

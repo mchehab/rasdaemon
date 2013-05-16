@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdint.h>
 #include "libtrace/kbuffer.h"
 #include "ras-mce-handler.h"
 #include "ras-record.h"
@@ -202,39 +203,45 @@ int register_mce_handler(struct ras_events *ras)
  * End of mcelog's code
  */
 
-static void dump_mce_event(struct trace_seq *s, struct mce_event *e)
+unsigned bitfield_msg(char *buf, size_t len, char **bitarray, unsigned array_len,
+		      unsigned bit_offset, unsigned ignore_bits,
+		      uint64_t status)
 {
-	trace_seq_printf(s, "bank=%s ",e->bank);
-	trace_seq_printf(s, ", mcgcap= %d ", e->mcgcap);
-	trace_seq_printf(s, ", mcgstatus= %d ", e->mcgstatus);
-	trace_seq_printf(s, ", status= %d ", e->status);
-	trace_seq_printf(s, ", addr= %d ", e->addr);
-	trace_seq_printf(s, ", misc= %d ", e->misc);
-	trace_seq_printf(s, ", ip= %d ", e->ip);
-	trace_seq_printf(s, ", tsc= %d ", e->tsc);
-	trace_seq_printf(s, ", walltime= %d ", e->walltime);
-	trace_seq_printf(s, ", cpu= %d ", e->cpu);
-	trace_seq_printf(s, ", cpuid= %d ", e->cpuid);
-	trace_seq_printf(s, ", apicid= %d ", e->apicid);
-	trace_seq_printf(s, ", socketid= %d ", e->socketid);
-	trace_seq_printf(s, ", cs= %d ", e->cs);
-	trace_seq_printf(s, ", cpuvendor= %d", e->cpuvendor);
+	int i, n;
+	char *p = buf;
+
+	len--;
+
+	for (i = 0; i < array_len; i++) {
+		if (status & ignore_bits)
+			continue;
+		if (status & (1 <<  (i + bit_offset))) {
+			if (p != buf) {
+				n = snprintf(p, len, ", ");
+				len -= n;
+				p += n;
+			}
+			if (!bitarray[i])
+				n = snprintf(p, len, "BIT%d", i + bit_offset);
+			else
+				n = snprintf(p, len, "%s", bitarray[i]);
+			len -= n;
+			p += n;
+		}
+	}
+
+	*p = 0;
+	return p - buf;
 }
 
-
-int ras_mce_event_handler(struct trace_seq *s,
-			  struct pevent_record *record,
-			  struct event_format *event, void *context)
+static void report_mce_event(struct ras_events *ras,
+			     struct pevent_record *record,
+			     struct trace_seq *s, struct mce_event *e)
 {
-	int len;
 	unsigned long long val;
-	struct ras_events *ras = context;
 	time_t now;
 	struct tm *tm;
-	struct ras_aer_event ev;
-	char buf[1024];
 	struct mce_priv *mce = ras->mce_priv;
-	struct mce_event e;
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -252,11 +259,84 @@ int ras_mce_event_handler(struct trace_seq *s,
 
 	tm = localtime(&now);
 	if (tm)
-		strftime(ev.timestamp, sizeof(ev.timestamp),
+		strftime(e->timestamp, sizeof(e->timestamp),
 			 "%Y-%m-%d %H:%M:%S %z", tm);
-	trace_seq_printf(s, "%s ", ev.timestamp);
+	trace_seq_printf(s, "%s ", e->timestamp);
+
+	if (*e->bank_name)
+		trace_seq_printf(s, "%s", e->bank_name);
+	else
+		trace_seq_printf(s, "bank=%x", e->bank);
+
+	trace_seq_printf(s, ", status= %d ", e->status);
+	if (*e->error_msg)
+		trace_seq_printf(s, ", %s ", e->error_msg);
+
+#if 0
+	/*
+	 * While the logic for decoding tsc is there at mcelog, why to
+	 * decode/print it, if we already got the uptime from the
+	 * tracing event? Let's just discard it for now.
+	 */
+	trace_seq_printf(s, ", tsc= %d ", e->tsc);
+	trace_seq_printf(s, ", walltime= %d ", e->walltime);
+#endif
 
 	trace_seq_printf(s, "CPU: %s, ", cputype_name[mce->cputype]);
+	trace_seq_printf(s, ", cpu= %d ", e->cpu);
+	trace_seq_printf(s, ", socketid= %d ", e->socketid);
+
+#if 0
+	/*
+	 * The CPU vendor is already reported from mce->cputype
+	 */
+	trace_seq_printf(s, ", cpuvendor= %d", e->cpuvendor);
+	trace_seq_printf(s, ", cpuid= %d ", e->cpuid);
+#endif
+
+	if (e->ip)
+		trace_seq_printf(s, ", ip= %d%s ",
+				 !(e->mcgstatus & MCG_STATUS_EIPV) ? " (INEXACT)" : "",
+				 e->ip);
+
+	if (e->cs)
+		trace_seq_printf(s, ", cs= %d ", e->cs);
+
+	if (e->status & MCI_STATUS_MISCV)
+		trace_seq_printf(s, ", misc= %d ", e->misc);
+
+	if (e->status & MCI_STATUS_ADDRV)
+		trace_seq_printf(s, ", addr= %d ", e->addr);
+
+	trace_seq_printf(s, ", mcgstatus= %d ", e->mcgstatus);
+
+	if (e->mcgcap)
+		trace_seq_printf(s, ", mcgcap= %d ", e->mcgcap);
+
+	trace_seq_printf(s, ", apicid= %d ", e->apicid);
+
+	/*
+	 * FIXME: The original mcelog userspace tool uses DMI to map from
+	 * address to DIMM. From the comments there, the code there doesn't
+	 * take interleaving sets into account. Also, it is known that
+	 * BIOS is generally not reliable enough to associate DIMM labels
+	 * with addresses.
+	 * As, in thesis, we shouldn't be receiving memory error reports via
+	 * MCE, as they should go via EDAC traces, let's not do it.
+	 */
+}
+
+int ras_mce_event_handler(struct trace_seq *s,
+			  struct pevent_record *record,
+			  struct event_format *event, void *context)
+{
+	unsigned long long val;
+	struct ras_events *ras = context;
+	struct mce_priv *mce = ras->mce_priv;
+	struct mce_event e;
+	int rc;
+
+	memset(&e, 0, sizeof(e));
 
 	/* Parse the MCE error data */
 	if (pevent_get_field_val(s, event, "mcgcap", record, &val, 1) < 0)
@@ -307,12 +387,16 @@ int ras_mce_event_handler(struct trace_seq *s,
 
 	switch (mce->cputype) {
 	case CPU_GENERIC:
-		dump_mce_event(s, &e);
+		break;
 	case CPU_K8:
-		dump_amd_k8_event(ras, s, &e);
+		rc = parse_amd_k8_event(ras, &e);
+		break;
 	default:			/* All other CPU types are Intel */
-		dump_intel_event(ras, s, &e);
+		rc = parse_intel_event(ras, &e);
 	}
 
-	return 0;
+	if (rc)
+		return rc;
+
+	report_mce_event(ras, record, s, &e);
 }

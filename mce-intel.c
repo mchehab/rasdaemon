@@ -19,45 +19,33 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
-#include <stdio.h>
+#include <string.h>
 
 #include "ras-mce-handler.h"
 
 #define MCE_THERMAL_BANK	(MCE_EXTENDED_BANK + 0)
 #define MCE_TIMEOUT_BANK        (MCE_EXTENDED_BANK + 90)
 
-static char *bank_name(unsigned bank)
+static void bank_name(struct mce_event *e)
 {
-	static char buf[64];
+	char *buf = e->bank_name;
 
-	switch (bank) {
+	switch (e->bank) {
 	case MCE_THERMAL_BANK:
-		return "THERMAL EVENT";
+		strcpy(buf, "THERMAL EVENT");
+		break;
 	case MCE_TIMEOUT_BANK:
-		return "Timeout waiting for exception on other CPUs";
+		strcpy(buf, "Timeout waiting for exception on other CPUs");
+		break;
 	default:
-		sprintf(buf, "bank=%x", bank);
-		return buf;
+		break;
 	}
 }
 
-void dump_intel_event(struct ras_events *ras,
-		      struct trace_seq *s, struct mce_event *e)
+int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 {
-	trace_seq_printf(s, "%s ",bank_name(e->bank));
-	trace_seq_printf(s, ", mcgcap= %d ", e->mcgcap);
-	trace_seq_printf(s, ", mcgstatus= %d ", e->mcgstatus);
-	trace_seq_printf(s, ", status= %d ", e->status);
-	trace_seq_printf(s, ", addr= %d ", e->addr);
-	trace_seq_printf(s, ", misc= %d ", e->misc);
-	trace_seq_printf(s, ", ip= %d ", e->ip);
-	trace_seq_printf(s, ", tsc= %d ", e->tsc);
-	trace_seq_printf(s, ", walltime= %d ", e->walltime);
-	trace_seq_printf(s, ", cpu= %d ", e->cpu);
-	trace_seq_printf(s, ", cpuid= %d ", e->cpuid);
-	trace_seq_printf(s, ", apicid= %d ", e->apicid);
-	trace_seq_printf(s, ", socketid= %d ", e->socketid);
-	trace_seq_printf(s, ", cs= %d ", e->cs);
-	trace_seq_printf(s, ", cpuvendor= %d", e->cpuvendor);
+	bank_name(e);
+
+	return 0;
 }
 

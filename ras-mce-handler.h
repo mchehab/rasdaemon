@@ -45,6 +45,7 @@ enum cputype {
 };
 
 struct mce_event {
+	/* Unparsed data, obtained directly from MCE tracing */
 	uint64_t	mcgcap;
 	uint64_t	mcgstatus;
 	uint64_t	status;
@@ -60,6 +61,11 @@ struct mce_event {
 	uint8_t		cs;
 	uint8_t		bank;
 	uint8_t		cpuvendor;
+
+	/* Parsed data */
+	char		timestamp[64];
+	char		bank_name[64];
+	char		error_msg[4096];
 };
 
 struct mce_priv {
@@ -72,19 +78,40 @@ struct mce_priv {
 	char *processor_flags;
 };
 
+/* register and handling routines */
 int register_mce_handler(struct ras_events *ras);
 int ras_mce_event_handler(struct trace_seq *s,
 			  struct pevent_record *record,
 			  struct event_format *event, void *context);
 
+/* Ancillary routines */
+
+unsigned bitfield_msg(char *buf, size_t len, char **bitarray, unsigned array_len,
+		      unsigned bit_offset, unsigned ignore_bits,
+		      uint64_t status);
+
 /* Software defined banks */
 #define MCE_EXTENDED_BANK	128
 
-/* Those functions are defined on per-cpu vendor C files */
-void dump_intel_event(struct ras_events *ras,
-		      struct trace_seq *s, struct mce_event *e);
+#define MCI_THRESHOLD_OVER  (1ULL<<48)  /* threshold error count overflow */
 
-void dump_amd_k8_event(struct ras_events *ras,
-		       struct trace_seq *s, struct mce_event *e);
+#define MCI_STATUS_VAL   (1ULL<<63)  /* valid error */
+#define MCI_STATUS_OVER  (1ULL<<62)  /* previous errors lost */
+#define MCI_STATUS_UC    (1ULL<<61)  /* uncorrected error */
+#define MCI_STATUS_EN    (1ULL<<60)  /* error enabled */
+#define MCI_STATUS_MISCV (1ULL<<59)  /* misc error reg. valid */
+#define MCI_STATUS_ADDRV (1ULL<<58)  /* addr reg. valid */
+#define MCI_STATUS_PCC   (1ULL<<57)  /* processor context corrupt */
+#define MCI_STATUS_S	 (1ULL<<56)  /* signalled */
+#define MCI_STATUS_AR	 (1ULL<<55)  /* action-required */
+
+#define MCG_STATUS_RIPV  (1ULL<<0)   /* restart ip valid */
+#define MCG_STATUS_EIPV  (1ULL<<1)   /* eip points to correct instruction */
+#define MCG_STATUS_MCIP  (1ULL<<2)   /* machine check in progress */
+
+/* Those functions are defined on per-cpu vendor C files */
+int parse_intel_event(struct ras_events *ras, struct mce_event *e);
+
+int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e);
 
 #endif
