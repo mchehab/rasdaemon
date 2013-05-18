@@ -79,6 +79,19 @@ struct mce_priv {
 	char *processor_flags;
 };
 
+#define mce_snprintf(buf, fmt, arg...) do {			\
+	unsigned __n = strlen(buf);				\
+	unsigned __len = sizeof(buf) - __n;			\
+	if (!__len)						\
+		break;						\
+	if (__n) {						\
+		snprintf(buf + __n, __len, " ");		\
+		__len--;					\
+		__n++;						\
+	}							\
+	snprintf(buf + __n, __len, fmt,  ##arg);		\
+} while (0)
+
 /* register and handling routines */
 int register_mce_handler(struct ras_events *ras);
 int ras_mce_event_handler(struct trace_seq *s,

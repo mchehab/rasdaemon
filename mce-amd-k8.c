@@ -122,208 +122,115 @@ static char *highbits[32] = {
 
 #define IGNORE_HIGHBITS		((1 << 31) || (1 << 28) || (1 << 26))
 
-static void decode_k8_generic_errcode(uint64_t status, char *buf, size_t *len)
+static void decode_k8_generic_errcode(struct mce_event *e)
 {
 	char tmp_buf[4096];
-	unsigned short errcode = status & 0xffff;
+	unsigned short errcode = e->status & 0xffff;
 	int i, n;
-	char *p = buf;
 
 	/* Translate the highest bits */
-	n = bitfield_msg(tmp_buf, sizeof(*len), highbits, 32, IGNORE_HIGHBITS,
-			 32, status);
-	if (n) {
-		n = snprintf(p, *len, "%s ", tmp_buf);
-		p += n;
-		*len -= n;
-	}
+	n = bitfield_msg(tmp_buf, sizeof(tmp_buf), highbits, 32,
+			 IGNORE_HIGHBITS, 32, e->status);
+	if (n)
+		mce_snprintf(e->error_msg, "(%s) ", tmp_buf);
 
-	if ((errcode & 0xfff0) == 0x0010) {
-		n = snprintf(p, *len, "LB error '%s transaction, level %s'",
-		       transaction[(errcode >> 2) & 3],
-		       cachelevel[errcode & 3]);
-		p += n;
-		*len -= n;
-	}
-	else if ((errcode & 0xff00) == 0x0100) {
-		n = snprintf(p, *len,
+	if ((errcode & 0xfff0) == 0x0010)
+		mce_snprintf(e->error_msg,
+			     "LB error '%s transaction, level %s'",
+			     transaction[(errcode >> 2) & 3],
+			     cachelevel[errcode & 3]);
+	else if ((errcode & 0xff00) == 0x0100)
+		mce_snprintf(e->error_msg,
 			     "memory/cache error '%s mem transaction, %s transaction, level %s'",
 			     memtrans[(errcode >> 4) & 0xf],
 			     transaction[(errcode >> 2) & 3],
 			     cachelevel[errcode & 3]);
-		p += n;
-		*len -= n;
-	}
-	else if ((errcode & 0xf800) == 0x0800) {
-		n = snprintf(p, *len,
+	else if ((errcode & 0xf800) == 0x0800)
+		mce_snprintf(e->error_msg,
 			     "bus error '%s, %s: %s mem transaction, %s access, level %s'",
 			     partproc[(errcode >> 9) & 0x3],
 			     timeout[(errcode >> 8) & 1],
 			     memtrans[(errcode >> 4) & 0xf],
 			     memoryio[(errcode >> 2) & 0x3],
 			     cachelevel[(errcode & 0x3)]);
-		p += n;
-		*len -= n;
-	}
 }
 
-static void decode_k8_dc_mc(uint64_t status, char *buf, size_t *len)
+static void decode_k8_dc_mc(struct mce_event *e)
 {
-	unsigned short exterrcode = (status >> 16) & 0x0f;
-	unsigned short errcode = status & 0xffff;
-	int n;
-	char *p = buf;
+	unsigned short exterrcode = (e->status >> 16) & 0x0f;
+	unsigned short errcode = e->status & 0xffff;
 
-	if (status & (3ULL << 45)) {
-		n = snprintf(p, *len, "Data cache ECC error (syndrome %x)",
-		       (uint32_t) (status >> 47) & 0xff);
-		p += n;
-		*len -= n;
-		if(status & (1ULL << 40)) {
-			n = snprintf(p, *len, " found by scrubber");
-			p += n;
-			*len -= n;
-		}
+	if (e->status & (3ULL << 45)) {
+		mce_snprintf(e->error_msg,
+			     "Data cache ECC error (syndrome %x)",
+		              (uint32_t) (e->status >> 47) & 0xff);
+		if (e->status & (1ULL << 40))
+			mce_snprintf(e->error_msg, "found by scrubber");
 	}
 
-	if ((errcode & 0xfff0) == 0x0010) {
-		if (p != buf) {
-			n = snprintf(p, *len, " ");
-			p += n;
-			*len -= n;
-		}
-		n = snprintf(p, *len, "TLB parity error in %s array",
-		       (exterrcode == 0) ? "physical" : "virtual");
-		p += n;
-		*len -= n;
-	}
-
-	if (p != buf) {
-		n = snprintf(p, *len, " ");
-		p += n;
-		*len -= n;
-	}
-
-	decode_k8_generic_errcode(status, p, len);
+	if ((errcode & 0xfff0) == 0x0010)
+		mce_snprintf(e->error_msg,
+			     "TLB parity error in %s array",
+			     (exterrcode == 0) ? "physical" : "virtual");
 }
 
-static void decode_k8_ic_mc(uint64_t status, char *buf, size_t *len)
+static void decode_k8_ic_mc(struct mce_event *e)
 {
-	unsigned short exterrcode = (status >> 16) & 0x0f;
-	unsigned short errcode = status & 0xffff;
-	int n;
-	char *p = buf;
+	unsigned short exterrcode = (e->status >> 16) & 0x0f;
+	unsigned short errcode = e->status & 0xffff;
 
-	if (status & (3ULL << 45)) {
-		n = snprintf(p, *len, "Instruction cache ECC error");
-		p += n;
-		*len -= n;
-	}
+	if (e->status & (3ULL << 45))
+		mce_snprintf(e->error_msg, "Instruction cache ECC error");
 
-	if ((errcode & 0xfff0) == 0x0010) {
-		if (p != buf) {
-			n = snprintf(p, *len, " ");
-			p += n;
-			*len -= n;
-		}
-		n = snprintf(p, *len, "TLB parity error in %s array",
-		       (exterrcode == 0) ? "physical" : "virtual");
-		p += n;
-		*len -= n;
-	}
-	if (p != buf) {
-		n = snprintf(p, *len, " ");
-		p += n;
-		*len -= n;
-	}
-
-	decode_k8_generic_errcode(status, p, len);
+	if ((errcode & 0xfff0) == 0x0010)
+		mce_snprintf(e->error_msg, "TLB parity error in %s array",
+			    (exterrcode == 0) ? "physical" : "virtual");
 }
 
-static void decode_k8_bu_mc(uint64_t status, char *buf, size_t *len)
+static void decode_k8_bu_mc(struct mce_event *e)
 {
-	unsigned short exterrcode = (status >> 16) & 0x0f;
-	int n;
-	char *p = buf;
+	unsigned short exterrcode = (e->status >> 16) & 0x0f;
 
-	if (status & (3ULL << 45)) {
-		n = snprintf(p, *len, "L2 cache ECC error");
-		p += n;
-		*len -= n;
-	}
+	if (e->status & (3ULL << 45))
+		mce_snprintf(e->error_msg, "L2 cache ECC error");
 
-	if (p != buf) {
-		n = snprintf(p, *len, " ");
-		p += n;
-		*len -= n;
-	}
-
-	n = snprintf(p, *len, "%s array error",
+	mce_snprintf(e->error_msg, "%s array error",
 		    !exterrcode ? "Bus or cache" : "Cache tag");
-
-	if (p != buf) {
-		n = snprintf(p, *len, " ");
-		p += n;
-		*len -= n;
-	}
-
-	decode_k8_generic_errcode(status, p, len);
 }
 
-static void decode_k8_nb_mc(uint64_t status, char *buf, size_t *len,
-			    unsigned *memerr)
+static void decode_k8_nb_mc(struct mce_event *e, unsigned *memerr)
 {
-	unsigned short exterrcode = (status >> 16) & 0x0f;
-	int n;
-	char *p = buf;
+	unsigned short exterrcode = (e->status >> 16) & 0x0f;
 
-	n = snprintf(buf, *len, "Northbridge %s", nbextendederr[exterrcode]);
-	p += n;
-	*len -= n;
+	mce_snprintf(e->error_msg, "Northbridge %s", nbextendederr[exterrcode]);
 
-	n = 0;
 	switch (exterrcode) {
 	case 0:
 		*memerr = 1;
-		n = snprintf(p, *len, " ECC syndrome = %x",
-			    (uint32_t) (status >> 47) & 0xff);
+		mce_snprintf(e->error_msg, "ECC syndrome = %x",
+			    (uint32_t) (e->status >> 47) & 0xff);
 		break;
 	case 8:
 		*memerr = 1;
-		n = snprintf(p, *len, " Chipkill ECC syndrome = %x",
-			    (uint32_t) ((((status >> 24) & 0xff) << 8) | ((status >> 47) & 0xff)));
+		mce_snprintf(e->error_msg, "Chipkill ECC syndrome = %x",
+			    (uint32_t) ((((e->status >> 24) & 0xff) << 8)
+			    | ((e->status >> 47) & 0xff)));
 		break;
 	case 1:
 	case 2:
 	case 3:
 	case 4:
 	case 6:
-		n = snprintf(p, *len, " link number = %x\n",
-			     (uint32_t) (status >> 36) & 0xf);
+		mce_snprintf(e->error_msg, "link number = %x",
+			     (uint32_t) (e->status >> 36) & 0xf);
 		break;
 	}
-	p += n;
-	*len -= n;
-
-	if (p != buf) {
-		n = snprintf(p, *len, " ");
-		p += n;
-		*len -= n;
-	}
-
-	decode_k8_generic_errcode(status, p, len);
 }
 
-static void decode_k8_threashold(uint64_t misc, char *buf, size_t *len)
+static void decode_k8_threashold(struct mce_event *e)
 {
-	int n;
-	char *p = buf;
-
-	if (misc & MCI_THRESHOLD_OVER) {
-		n = snprintf(p, *len, "  Threshold error count overflow\n");
-		p += n;
-		*len -= n;
-	}
+	if (e->misc & MCI_THRESHOLD_OVER)
+		mce_snprintf(e->error_msg, "Threshold error count overflow");
 }
 
 static void bank_name(struct mce_event *e)
@@ -339,15 +246,13 @@ static void bank_name(struct mce_event *e)
 	else
 		return;		/* Use the generic parser for bank */
 
-	snprintf(buf, sizeof(buf) - 1, "%s (bank=%d)", s, e->bank);
+	snprintf(buf, sizeof(buf), "%s (bank=%d)", s, e->bank);
 }
 
 int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
 {
 	unsigned unknown_bank = 0;
 	unsigned ismemerr = 0;
-	char *buf = e->error_msg;
-	size_t len = sizeof(e->error_msg);
 
 	/* Don't handle GART errors */
 	if (e->bank == 4) {
@@ -361,25 +266,29 @@ int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
 
 	switch (e->bank) {
 	case 0:
-		decode_k8_dc_mc(e->status, buf, &len);
+		decode_k8_dc_mc(e);
+		decode_k8_generic_errcode(e);
 		break;
 	case 1:
-		decode_k8_ic_mc(e->status, buf, &len);
+		decode_k8_ic_mc(e);
+		decode_k8_generic_errcode(e);
 		break;
 	case 2:
-		decode_k8_bu_mc(e->status, buf, &len);
+		decode_k8_bu_mc(e);
+		decode_k8_generic_errcode(e);
 		break;
 	case 3:		/* LS */
-		decode_k8_generic_errcode(e->status, buf, &len);
+		decode_k8_generic_errcode(e);
 		break;
 	case 4:
-		decode_k8_nb_mc(e->status, buf, &len, &ismemerr);
+		decode_k8_nb_mc(e, &ismemerr);
+		decode_k8_generic_errcode(e);
 		break;
 	case 5:		/* FR */
-		decode_k8_generic_errcode(e->status, buf, &len);
+		decode_k8_generic_errcode(e);
 		break;
 	case K8_MCE_THRESHOLD_BASE ... K8_MCE_THRESHOLD_TOP:
-		decode_k8_threashold(e->misc, buf, &len);
+		decode_k8_threashold(e);
 		break;
 	default:
 		strcpy(e->error_msg, "Don't know how to decode this bank");
