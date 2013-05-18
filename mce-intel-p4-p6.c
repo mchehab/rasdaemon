@@ -23,8 +23,7 @@
 #include "ras-mce-handler.h"
 #include "bitfield.h"
 
-/* Decode P6 family (Core2) model specific errors.
-   The generic errors are decoded in p4.c */
+/* Decode P4 and P6 family (p6old and Core2) model specific errors */
 
 /* [19..24] */
 static char *bus_queue_req_type[] = {
@@ -106,6 +105,31 @@ static struct numfield p6old_status_numbers[] = {
 	HEXNUMBER(47, 54, "ECC syndrome"),
 	{}
 };
+
+static struct {
+	int value;
+	char *str;
+} p4_model []= {
+	{16, "FSB address parity"},
+	{17, "Response hard fail"},
+	{18, "Response parity"},
+	{19, "PIC and FSB data parity"},
+	{20, "Invalid PIC request(Signature=0xF04H)"},
+	{21, "Pad state machine"},
+	{22, "Pad strobe glitch"},
+	{23, "Pad address glitch"}
+};
+
+void p4_decode_model(struct mce_event *e)
+{
+	uint32_t model = e->status & 0xffff0000L;
+	unsigned i;
+
+	for (i = 0; i < ARRAY_SIZE(p4_model); i++) {
+		if (model & (1 << p4_model[i].value))
+			mce_snprintf(e->error_msg, p4_model[i].str);
+	}
+}
 
 void core2_decode_model(struct mce_event *e)
 {

@@ -109,6 +109,7 @@ unsigned bitfield_msg(char *buf, size_t len, char **bitarray, unsigned array_len
 		      uint64_t status);
 
 /* Per-CPU-type decoders for Intel CPUs */
+void p4_decode_model(struct mce_event *e);
 void core2_decode_model(struct mce_event *e);
 void p6old_decode_model(struct mce_event *e);
 

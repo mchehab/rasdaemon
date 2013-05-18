@@ -345,18 +345,14 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 			break;
 		case CPU_DUNNINGTON:
 		case CPU_CORE2:
-			core2_decode_model(e);
-			break;
-#if 0
-		case CPU_TULSA:
-		case CPU_P4:
-			p4_decode_model(e);
-			break;
 		case CPU_NEHALEM:
 		case CPU_XEON75XX:
 			core2_decode_model(e);
 			break;
-#endif
+		case CPU_TULSA:
+		case CPU_P4:
+			p4_decode_model(e);
+			break;
 		}
 	}
 #if 0
