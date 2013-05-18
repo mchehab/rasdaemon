@@ -368,11 +368,11 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_TULSA:
 		tulsa_decode_model(e);
 		break;
-#if 0
 	case CPU_SANDY_BRIDGE:
 	case CPU_SANDY_BRIDGE_EP:
 		snb_decode_model(ras, e);
 		break;
+#if 0
 	case CPU_IVY_BRIDGE_EPEX:
 		ivb_decode_model(ras, e);
 		break;

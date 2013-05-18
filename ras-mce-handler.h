@@ -115,6 +115,7 @@ void p6old_decode_model(struct mce_event *e);
 void nehalem_decode_model(struct mce_event *e);
 void xeon75xx_decode_model(struct mce_event *e);
 void dunnington_decode_model(struct mce_event *e);
+void snb_decode_model(struct ras_events *ras, struct mce_event *e);
 
 /* Software defined banks */
 #define MCE_EXTENDED_BANK	128
