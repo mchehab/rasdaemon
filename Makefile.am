@@ -12,7 +12,7 @@ if WITH_AER
 endif
 if WITH_MCE
    rasdaemon_SOURCES += ras-mce-handler.c mce-intel.c mce-amd-k8.c \
-			bitfield.c mce-intel-p4-p6.c
+			bitfield.c mce-intel-p4-p6.c mce-intel-nehalem.c
 endif
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) libtrace/libtrace.a
 
