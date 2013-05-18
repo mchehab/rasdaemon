@@ -11,8 +11,10 @@ if WITH_AER
    rasdaemon_SOURCES += ras-aer-handler.c
 endif
 if WITH_MCE
-   rasdaemon_SOURCES += ras-mce-handler.c mce-intel.c mce-amd-k8.c
+   rasdaemon_SOURCES += ras-mce-handler.c mce-intel.c mce-amd-k8.c \
+			bitfield.c mce-intel-core2.c
 endif
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) libtrace/libtrace.a
 
-include_HEADERS = config.h  ras-events.h  ras-logger.h  ras-mc-handler.h  ras-record.h
+include_HEADERS = config.h  ras-events.h  ras-logger.h  ras-mc-handler.h \
+		  ras-record.h bitfield.h

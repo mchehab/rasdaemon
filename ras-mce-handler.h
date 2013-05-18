@@ -108,6 +108,11 @@ unsigned bitfield_msg(char *buf, size_t len, char **bitarray, unsigned array_len
 		      unsigned bit_offset, unsigned ignore_bits,
 		      uint64_t status);
 
+/* Per-CPU-type decoders for Intel CPUs */
+void core2_decode_model(struct mce_event *e);
+void p6old_decode_model(struct mce_event *e);
+
+
 /* Software defined banks */
 #define MCE_EXTENDED_BANK	128
 

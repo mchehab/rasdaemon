@@ -23,6 +23,7 @@
 #include <stdio.h>
 
 #include "ras-mce-handler.h"
+#include "bitfield.h"
 
 #define MCE_THERMAL_BANK	(MCE_EXTENDED_BANK + 0)
 #define MCE_TIMEOUT_BANK        (MCE_EXTENDED_BANK + 90)
@@ -216,11 +217,6 @@ static char *get_RRRR_str(uint8_t rrrr)
 	__str;							\
 })
 
-static int test_prefix(int nr, uint32_t value)
-{
-	return ((value >> nr) == 1);
-}
-
 static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 {
 	uint32_t mca = e->status & 0xffffL;
@@ -330,6 +326,7 @@ static void decode_mci(struct mce_event *e, int *ismemerr)
 
 int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 {
+	struct mce_priv *mce = ras->mce_priv;
 	int ismemerr;
 
 	bank_name(e);
@@ -341,7 +338,50 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	decode_mcg(e);
 	decode_mci(e, &ismemerr);
 
-	/* FIXME: add per-CPU-type specific handlers */
+	if (test_prefix(11, (e->status & 0xffffL))) {
+		switch(mce->cputype) {
+		case CPU_P6OLD:
+			p6old_decode_model(e);
+			break;
+		case CPU_DUNNINGTON:
+		case CPU_CORE2:
+			core2_decode_model(e);
+			break;
+#if 0
+		case CPU_TULSA:
+		case CPU_P4:
+			p4_decode_model(e);
+			break;
+		case CPU_NEHALEM:
+		case CPU_XEON75XX:
+			core2_decode_model(e);
+			break;
+#endif
+		}
+	}
+#if 0
+	switch(mce->cputype) {
+	case CPU_NEHALEM:
+		nehalem_decode_model(e);
+		break;
+	case CPU_DUNNINGTON:
+		dunnington_decode_model(e);
+		break;
+	case CPU_TULSA:
+		tulsa_decode_model(e);
+		break;
+	case CPU_XEON75XX:
+		xeon75xx_decode_model(e);
+		break;
+	case CPU_SANDY_BRIDGE:
+	case CPU_SANDY_BRIDGE_EP:
+		snb_decode_model(ras, e);
+		break;
+	case CPU_IVY_BRIDGE_EPEX:
+		ivb_decode_model(ras, e);
+		break;
+	}
+#endif
 
 	return 0;
 }
