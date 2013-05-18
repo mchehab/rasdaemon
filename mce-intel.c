@@ -362,10 +362,10 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_XEON75XX:
 		xeon75xx_decode_model(e);
 		break;
-#if 0
 	case CPU_DUNNINGTON:
 		dunnington_decode_model(e);
 		break;
+#if 0
 	case CPU_TULSA:
 		tulsa_decode_model(e);
 		break;
