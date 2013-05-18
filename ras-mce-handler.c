@@ -272,6 +272,9 @@ static void report_mce_event(struct ras_events *ras,
 	if (*e->error_msg)
 		trace_seq_printf(s, ", %s", e->error_msg);
 
+	if (*e->user_action)
+		trace_seq_printf(s, " %s", e->user_action);
+
 #if 0
 	/*
 	 * While the logic for decoding tsc is there at mcelog, why to

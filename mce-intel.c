@@ -29,10 +29,12 @@
 
 static decode_termal_bank(struct mce_event *e)
 {
-	if (e->status & 1)
-		sprintf(e->error_msg, "Processor %d heated above trip temperature. Throttling enabled. Please check your system cooling. Performance will be impacted", e->cpu);
-	else
+	if (e->status & 1) {
+		mce_snprintf(e->mcgstatus_msg, "Processor %d heated above trip temperature. Throttling enabled.", e->cpu);
+		mce_snprintf(e->user_action, "Please check your system cooling. Performance will be impacted");
+	} else {
 		sprintf(e->error_msg, "Processor %d below trip temperature. Throttling disabled", e->cpu);
+	}
 }
 
 static void decode_mcg(struct mce_event *e)
@@ -41,23 +43,14 @@ static void decode_mcg(struct mce_event *e)
 	uint64_t mcgstatus = e->mcgstatus;
 	char *p = e->mcgstatus_msg;
 
-	n = snprintf(p, len, "mcgstatus= %d ", e->mcgstatus);
+	mce_snprintf(e->mcgstatus_msg, "mcgstatus= %d", e->mcgstatus);
 
-	if (mcgstatus & MCG_STATUS_RIPV) {
-		n = snprintf(p, len, " RIPV");
-		p += n;
-		len -= n;
-	}
-	if (mcgstatus & MCG_STATUS_EIPV) {
-		n = snprintf(p, len, " EIPV");
-		p += n;
-		len -= n;
-	}
-	if (mcgstatus & MCG_STATUS_MCIP) {
-		n = snprintf(p, len, " MCIP");
-		p += n;
-		len -= n;
-	}
+	if (mcgstatus & MCG_STATUS_RIPV)
+		mce_snprintf(e->mcgstatus_msg, "RIPV");
+	if (mcgstatus & MCG_STATUS_EIPV)
+		mce_snprintf(e->mcgstatus_msg, "EIPV");
+	if (mcgstatus & MCG_STATUS_MCIP)
+		mce_snprintf(e->mcgstatus_msg, "MCIP");
 }
 
 static void bank_name(struct mce_event *e)
