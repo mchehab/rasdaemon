@@ -271,6 +271,12 @@ static void report_mce_event(struct ras_events *ras,
 	trace_seq_printf(s, ", status= %d", e->status);
 	if (*e->error_msg)
 		trace_seq_printf(s, ", %s", e->error_msg);
+	if (*e->mcistatus_msg)
+		trace_seq_printf(s, ", mci=%s", e->mcistatus_msg);
+	if (*e->mcastatus_msg)
+		trace_seq_printf(s, ", mca=%s", e->mcastatus_msg);
+	if (*e->mc_channel)
+		trace_seq_printf(s, ", mc_channel=%s", e->mc_channel);
 
 	if (*e->user_action)
 		trace_seq_printf(s, " %s", e->user_action);

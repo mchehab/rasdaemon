@@ -67,7 +67,10 @@ struct mce_event {
 	char		bank_name[64];
 	char		error_msg[4096];
 	char		mcgstatus_msg[256];
+	char		mcistatus_msg[1024];
+	char		mcastatus_msg[1024];
 	char		user_action[4096];
+	char		mc_channel[256];
 };
 
 struct mce_priv {
