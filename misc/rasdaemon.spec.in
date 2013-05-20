@@ -1,5 +1,5 @@
-Name:			rasdaemon
-Version:		0.2.0
+Name:			@PACKAGE@
+Version:		@PACKAGE_VERSION@
 Release:		1%{?dist}
 Summary:		Utility to receive RAS error tracings
 Group:			Applications/System
@@ -45,6 +45,6 @@ rm %{buildroot}/usr/include/*.h
 %{_unitdir}/*.service
 
 %changelog
-* Wed May  8 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.2.0.fc19
+* Wed May  8 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.2.0-1
 - Package created
 

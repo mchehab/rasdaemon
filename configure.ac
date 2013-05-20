@@ -16,6 +16,7 @@ AC_CONFIG_FILES([
 	man/Makefile
 	man/ras-mc-ctl.8
 	man/rasdaemon.1
+	misc/rasdaemon.spec
 	util/Makefile
 	util/ras-mc-ctl
 ])
