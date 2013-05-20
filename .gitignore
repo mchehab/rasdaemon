@@ -1,5 +1,6 @@
 .deps/
 autom4te.cache/
+misc/rasdaemon.spec
 Makefile
 Makefile.in
 config.h
@@ -21,3 +22,5 @@ rasdaemon
 *.o
 *.c~
 *.h~
+rasdaemon-*.tar.bz2
+rasdaemon-*.src.rpm
