@@ -8,6 +8,7 @@ URL:			https://git.fedorahosted.org/git/rasdaemon.git
 Source0:		https://git.fedorahosted.org/cgit/rasdaemon.git/snapshot/%{name}-%{version}.tar.bz2
 BuildRoot:		%{_tmppath}/%{name}-%{version}-%{release}
 Requires:		hwdata, dmidecode
+BuildRequires:		autoconf, automake, gettext-devel libtool
 ExclusiveArch:		%{ix86} x86_64
 Requires(post):		systemd-units
 Requires(preun):	systemd-units
