@@ -30,3 +30,6 @@ dist-rpm: dist-bzip2
 
 rpmlint:
 	rpmlint misc/@PACKAGE@.spec `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm `rpm --eval %{_topdir}`/RPMS/*/@PACKAGE@-@PACKAGE_VERSION@*.rpm
+
+upload:
+	scp rasdaemon-0.3.0-1.fc18.src.rpm rasdaemon-0.3.0.tar.bz2 misc/rasdaemon.spec fedorapeople.org:public_html
