@@ -34,8 +34,8 @@ make %{?_smp_mflags}
 
 %install
 make install DESTDIR=%{buildroot}
-install -D -p -m 0644 misc/rasdaemon.service $RPM_BUILD_ROOT%{_unitdir}/rasdaemon.service
-install -D -p -m 0644 misc/ras-mc-ctl.service $RPM_BUILD_ROOT%{_unitdir}/ras-mc-ctl.service
+install -D -p -m 0644 misc/rasdaemon.service %{buildroot}/%{_unitdir}/rasdaemon.service
+install -D -p -m 0644 misc/ras-mc-ctl.service %{buildroot}%{_unitdir}/ras-mc-ctl.service
 rm INSTALL %{buildroot}/usr/include/*.h
 
 %files
