@@ -104,7 +104,7 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	char sql[1024];
 	struct sqlite3_priv *priv;
 
-        printf("Calling %s()\n", __FUNCTION__);
+	printf("Calling %s()\n", __FUNCTION__);
 
 	ras->db_priv = NULL;
 
@@ -130,7 +130,7 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 			usleep(10000);
 	} while (rc == SQLITE_BUSY);
 
-        if (rc != SQLITE_OK) {
+	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "cpu %u: Failed to connect to %s: error = %d\n",
 		    cpu, SQLITE_RAS_DB, rc);

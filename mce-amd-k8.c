@@ -49,7 +49,7 @@ static char *k8threshold[] = {
 	[K8_MCELOG_THRESHOLD_FBDIMM] = "MC4_MISC3 FBDIMM threshold",
 	[K8_MCELOG_THRESHOLD_FBDIMM + 1 ...
 	 K8_MCE_THRESHOLD_TOP - K8_MCE_THRESHOLD_BASE - 1] =
-                "Unknown threshold counter",
+		"Unknown threshold counter",
 };
 
 static char *transaction[] = {
@@ -163,7 +163,7 @@ static void decode_k8_dc_mc(struct mce_event *e)
 	if (e->status & (3ULL << 45)) {
 		mce_snprintf(e->error_msg,
 			     "Data cache ECC error (syndrome %x)",
-		              (uint32_t) (e->status >> 47) & 0xff);
+			      (uint32_t) (e->status >> 47) & 0xff);
 		if (e->status & (1ULL << 40))
 			mce_snprintf(e->error_msg, "found by scrubber");
 	}

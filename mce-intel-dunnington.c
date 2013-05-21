@@ -55,7 +55,7 @@ static char *dnt_int_error[0xf] = {
 	[0x2] = "Internal timeout error",
 	[0x3] = "Internal timeout error",
 	[0x4] = "Intel Cache Safe Technology Queue full error\n"
-	        "or disabled ways in a set overflow",
+		"or disabled ways in a set overflow",
 	[0x5] = "Quiet cycle timeout error (correctable)",
 };
 

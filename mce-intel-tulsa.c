@@ -25,13 +25,13 @@
 
 /* See IA32 SDM Vol3B Appendix E.4.1 ff */
 
-static struct numfield corr_numbers[] = { 
+static struct numfield corr_numbers[] = {
 	NUMBER(32, 39, "Corrected events"),
 	{}
 };
 
-static struct numfield ecc_numbers[] = { 
-	HEXNUMBER(44, 51, "ECC syndrome"),	
+static struct numfield ecc_numbers[] = {
+	HEXNUMBER(44, 51, "ECC syndrome"),
 	{},
 };
 
@@ -70,7 +70,7 @@ static char *tls_int_error[0xf] = {
 	[0x2] = "Internal timeout error",
 	[0x3] = "Internal timeout error",
 	[0x4] = "Intel Cache Safe Technology Queue full error\n"
-	        "or disabled ways in a set overflow",
+		"or disabled ways in a set overflow",
 };
 
 struct field tls_int_status[] = {

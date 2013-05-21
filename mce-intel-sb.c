@@ -38,7 +38,7 @@ static char *pcu_1[] = {
 	[9] = "D_Parity_Error"
 };
 
-static char *pcu_2[] = { 
+static char *pcu_2[] = {
 	[0x00] = "No Error",
 	[0x0D] = "MC_IMC_FORCE_SR_S3_TIMEOUT",
 	[0x0E] = "MC_MC_CPD_UNCPD_ST_TIMEOUT",
@@ -57,7 +57,7 @@ static char *pcu_2[] = {
 	[0x81] = "MC_RECOVERABLE_DIE_THERMAL_TOO_HOT",
 };
 
-static struct field pcu_mc4[] = { 
+static struct field pcu_mc4[] = {
 	FIELD(16, pcu_1),
 	FIELD(24, pcu_2),
 	{}

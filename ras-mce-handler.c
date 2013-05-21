@@ -94,7 +94,7 @@ enum cputype select_intel_cputype(struct ras_events *ras)
 	}
 	log(ALL, LOG_INFO,
 	    "Unknown Intel CPU type Family %x Model %x\n",
-            mce->family, mce->model);
+	    mce->family, mce->model);
 	return mce->family == 6 ? CPU_P6OLD : CPU_GENERIC;
 }
 

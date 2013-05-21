@@ -37,9 +37,9 @@ struct ras_events {
 
 	/* Booleans */
 	unsigned	use_uptime: 1;
-        unsigned        record_events: 1;
+	unsigned        record_events: 1;
 
-        /* For timestamp */
+	/* For timestamp */
 	time_t		uptime_diff;
 
 	/* For ras-record */
