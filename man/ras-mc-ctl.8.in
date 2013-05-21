@@ -76,7 +76,7 @@ It helps to fill the labels database at @sysconfdir@/ras/dimm_labels.d/.
 Specify an alternate location for the labels database.
 .TP
 .BI "--delay="time
-Specify a delay of \ftime\f seconds before registering dimm labels.
+Specify a delay of \ftime\fR seconds before registering dimm labels.
 Only meaninful if used together with --register-labels.
 .TP
 .BI "--layout
@@ -119,8 +119,6 @@ to read DMI information from the sysfs files
 If the sysfs files above do not exist, then \fBras-mc-ctl\fR will fall
 back to parsing output of the \fBdmidecode\fR(8) utility. Use of this
 utility will most often require that \fBras-mc-ctl\fR be run as root.
-.EL
 
 .SH SEE ALSO
 \f\fBrasdaemon\fR(1)
-
