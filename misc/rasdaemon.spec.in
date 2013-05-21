@@ -35,16 +35,16 @@ make %{?_smp_mflags}
 make install DESTDIR=%{buildroot}
 install -D -p -m 0644 misc/rasdaemon.service $RPM_BUILD_ROOT%{_unitdir}/rasdaemon.service
 install -D -p -m 0644 misc/ras-mc-ctl.service $RPM_BUILD_ROOT%{_unitdir}/ras-mc-ctl.service
-rm %{buildroot}/usr/include/*.h
+rm INSTALL %{buildroot}/usr/include/*.h
 
 %files
-%doc AUTHORS ChangeLog INSTALL COPYING README TODO
+%doc AUTHORS ChangeLog COPYING README TODO
 %{_sbindir}/rasdaemon
 %{_sbindir}/ras-mc-ctl
 %{_mandir}/*/*
 %{_unitdir}/*.service
 
 %changelog
-* Mon 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> @PACKAGE_VERSION@-1
+* Mon May 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> @PACKAGE_VERSION@-1
 - Package created
 
