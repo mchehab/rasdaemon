@@ -45,6 +45,6 @@ rm %{buildroot}/usr/include/*.h
 %{_unitdir}/*.service
 
 %changelog
-* Wed May  8 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.2.0-1
+* Mon 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> @PACKAGE_VERSION@-1
 - Package created
 
