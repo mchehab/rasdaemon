@@ -99,7 +99,7 @@ static int ras_mc_prepare_stmt(struct sqlite3_priv *priv)
 
 int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 {
-	int rc, i;
+	int rc;
 	sqlite3 *db;
 	char sql[1024];
 	struct sqlite3_priv *priv;
@@ -157,7 +157,7 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	if (rc == SQLITE_OK)
 		log(TERM, LOG_INFO,
 		    "cpu %u: Recording events at %s\n",
-		    cpu, SQLITE_RAS_DB, rc);
+		    cpu, SQLITE_RAS_DB);
 
 	return 0;
 }
