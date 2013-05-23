@@ -16,8 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
-#ifndef __RAS_AER_HANDLER_H
-#define __RAS_AER_HANDLER_H
+#ifndef __RAS_MCE_HANDLER_H
+#define __RAS_MCE_HANDLER_H
 
 #include <stdint.h>
 

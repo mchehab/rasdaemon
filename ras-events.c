@@ -29,6 +29,7 @@
 #include "libtrace/event-parse.h"
 #include "ras-mc-handler.h"
 #include "ras-aer-handler.h"
+#include "ras-mce-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 
@@ -194,7 +195,7 @@ int toggle_ras_mc_event(int enable)
 	rc |= __toggle_ras_mc_event(ras, "ras", "aer_event", enable);
 #endif
 
-#ifdef HAVE_MCE_HANDLER
+#ifdef HAVE_MCE
 	rc |= __toggle_ras_mc_event(ras, "mce", "mce_record", enable);
 #endif
 
@@ -547,14 +548,13 @@ int handle_ras_events(int record_events)
 		goto err;
 #endif
 
-#ifdef HAVE_MCE_HANDLER
+#ifdef HAVE_MCE
 	rc = register_mce_handler(ras);
 	if (rc) {
 		log(SYSLOG, LOG_INFO, "Can't register mce handler\n");
-		free(page);
 		goto err;
 	}
-	if (ras->mce) {
+	if (ras->mce_priv) {
 		rc = add_event_handler(ras, pevent, page_size,
 				       "mce", "mce_record",
 			               ras_mce_event_handler);

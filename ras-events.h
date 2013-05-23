@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
-#include "ras-record.h"
-
 #ifndef __RAS_EVENTS_H
 #define __RAS_EVENTS_H
+
+#include "ras-record.h"
 
 #include <pthread.h>
 #include <time.h>
