@@ -4,6 +4,12 @@ MC="$(ls -d /sys/devices/system/edac/mc/mc? |sed -e s,.*/mc,,)"
 
 SYSFS="$(cat /proc/mounts|grep debugfs|cut -d' ' -f 2)"
 
+if [ ! -e $SYSFS/edac/ ]; then
+	echo "$SYSFS/edac not found."
+	echo " It seems that your Kernel was not compiled with CONFIG_EDAC_DEBUG.";
+	exit -1;
+fi
+
 for i in $MC; do
 	LAYER1=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d ' ' -f 1)
 	LAYER2=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d ' ' -f 3)
