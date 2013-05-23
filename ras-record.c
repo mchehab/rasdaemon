@@ -167,9 +167,9 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 	int rc;
 	struct sqlite3_priv *priv = ras->db_priv;
 
-	log(TERM, LOG_INFO, "store_event: %p\n", priv->stmt);
-	if (!priv->stmt)
+	if (!priv || !priv->stmt)
 		return 0;
+	log(TERM, LOG_INFO, "store_event: %p\n", priv->stmt);
 
 	sqlite3_bind_text(priv->stmt,  1, ev->timestamp, -1, NULL);
 	sqlite3_bind_int (priv->stmt,  2, ev->error_count);
