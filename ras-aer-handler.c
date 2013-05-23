@@ -93,7 +93,20 @@ int ras_aer_event_handler(struct trace_seq *s,
 
 	if (pevent_get_field_val(s, event, "severity", record, &val, 1) < 0)
 		return -1;
-	ev.error_type = mc_event_error_type(val);
+	switch (val) {
+	case HW_EVENT_ERR_CORRECTED:
+		ev.error_type = "Corrected";
+		break;
+	case HW_EVENT_ERR_UNCORRECTED:
+		ev.error_type = "Uncorrected";
+		break;
+	case HW_EVENT_ERR_FATAL:
+		ev.error_type = "Fatal";
+		break;
+	default:
+	case HW_EVENT_ERR_INFO:
+		ev.error_type = "Info";
+	}
 	trace_seq_puts(s, ev.error_type);
 
 	/* Insert data into the SGBD */

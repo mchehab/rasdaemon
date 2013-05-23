@@ -202,21 +202,6 @@ free_ras:
  * Tracing read code
  */
 
-char *mc_event_error_type(unsigned long long err_type)
-{
-	switch (err_type) {
-	case HW_EVENT_ERR_CORRECTED:
-		return "Corrected";
-	case HW_EVENT_ERR_UNCORRECTED:
-		return "Uncorrected";
-	case HW_EVENT_ERR_FATAL:
-		return "Fatal";
-	default:
-	case HW_EVENT_ERR_INFO:
-		return "Info";
-	}
-}
-
 static int get_pagesize(struct ras_events *ras, struct pevent *pevent)
 {
 	int fd, len, page_size = 4096;

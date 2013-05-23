@@ -2688,6 +2688,8 @@ process_function(struct event_format *event, struct print_arg *arg,
 {
 	struct pevent_function_handler *func;
 
+printf("Processing function %s\n", token);
+
 	if (strcmp(token, "__print_flags") == 0) {
 		free_token(token);
 		is_flag_field = 1;

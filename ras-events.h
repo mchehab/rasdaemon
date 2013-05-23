@@ -68,6 +68,5 @@ enum hw_event_mc_err_type {
 /* Function prototypes */
 int toggle_ras_mc_event(int enable);
 int handle_ras_events(int record_events);
-char *mc_event_error_type(unsigned long long err_type);
 
 #endif
