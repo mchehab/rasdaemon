@@ -426,13 +426,68 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	return 0;
 }
 
+static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
+			     unsigned page_size, char *group, char *event,
+			     pevent_event_handler_func func)
+{
+	int fd, size, rc;
+	char *page, fname[MAX_PATH + 1];
+
+	snprintf(fname, sizeof(fname), "events/%s/%s/format", group, event);
+
+	fd = open_trace(ras, fname, O_RDONLY);
+	if (fd < 0) {
+		log(TERM, LOG_ERR,
+		    "Can't get %s:%s format. Are you sure that there's an EDAC driver loaded?\n",
+		    group, event);
+		return errno;
+	}
+
+	page = malloc(page_size);
+	if (!page) {
+		log(TERM, LOG_ERR, "Can't allocate page to read %s:%s format\n",
+		    group, event);
+		rc = errno;
+		close(fd);
+		return rc;
+	}
+
+	size = read(fd, page, page_size);
+	close(fd);
+	if (size < 0) {
+		log(TERM, LOG_ERR, "Can't get arch page size\n");
+		free(page);
+		return size;
+	}
+
+	/* Registers the special event handlers */
+	rc = pevent_register_event_handler(pevent, -1, group, event, func, ras);
+	if (rc == PEVENT_ERRNO__MEM_ALLOC_FAILED) {
+		log(TERM, LOG_ERR, "Can't register event handler for %s:%s\n",
+		    group, event);
+		free(page);
+		return EINVAL;
+	}
+
+	rc = pevent_parse_event(pevent, page, size, group);
+	if (rc) {
+		log(TERM, LOG_ERR, "Can't parse event %s:%s\n", group, event);
+		free(page);
+		return EINVAL;
+	}
+
+	log(ALL, LOG_INFO, "Registered handler for %s:%s\n", group, event);
+
+	free(page);
+	return 0;
+}
+
 int handle_ras_events(int record_events)
 {
-	int rc, fd, size, page_size, i, cpus;
-	struct pevent *pevent;
-	struct pthread_data *data;
-	struct ras_events *ras;
-	void *page;
+	int rc, page_size, i, cpus;
+	struct pevent *pevent = NULL;
+	struct pthread_data *data = NULL;
+	struct ras_events *ras = NULL;
 
 	ras = calloc(1, sizeof(*ras));
 	if (!ras) {
@@ -443,100 +498,67 @@ int handle_ras_events(int record_events)
 	rc = get_tracing_dir(ras);
 	if (rc < 0) {
 		log(TERM, LOG_ERR, "Can't locate a mounted debugfs\n");
-		goto free_ras;
+		goto err;
 	}
 
 	rc = select_tracing_timestamp(ras);
 	if (rc < 0) {
 		log(TERM, LOG_ERR, "Can't select a timestamp for tracing\n");
-		goto free_ras;
+		goto err;
 	}
 
 	/* Enable RAS events */
 	rc = __toggle_ras_mc_event(ras, 1);
 	if (rc < 0) {
 		log(TERM, LOG_ERR, "Can't enable RAS tracing\n");
-		goto free_ras;
+		goto err;
 	}
 
 	pevent = pevent_alloc();
 	if (!pevent) {
 		log(TERM, LOG_ERR, "Can't allocate pevent\n");
 		rc = errno;
-		goto free_ras;
-	}
-
-	fd = open_trace(ras, "events/ras/mc_event/format", O_RDONLY);
-	if (fd < 0) {
-		log(TERM, LOG_ERR,
-		    "Can't get ras format. Are you sure that there's an EDAC driver loaded?\n");
-		rc = errno;
-		goto free_pevent;
+		goto err;
 	}
 
 	page_size = get_pagesize(ras, pevent);
-
-	page = malloc(page_size);
-	if (!page) {
-		log(TERM, LOG_ERR, "Can't allocate page to read event format\n");
-		rc = errno;
-		close(fd);
-		goto free_pevent;
-	}
-
-	size = read(fd, page, page_size);
-	close(fd);
-	if (size < 0) {
-		log(TERM, LOG_ERR, "Can't get arch page size\n");
-		rc = size;
-		free(page);
-		goto free_pevent;
-	}
 
 	ras->pevent = pevent;
 	ras->page_size = page_size;
 	ras->record_events = record_events;
 
-	/* Registers the special event handlers */
-	pevent_register_event_handler(pevent, -1, "ras", "mc_event",
-				      ras_mc_event_handler, ras);
+	rc = add_event_handler(ras, pevent, page_size, "ras", "mc_event",
+			       ras_mc_event_handler);
+	if (rc)
+		goto err;
 
 #ifdef HAVE_AER
-	pevent_register_event_handler(pevent, -1, "ras", "aer_event",
-				      ras_aer_event_handler, ras);
+	rc = add_event_handler(ras, pevent, page_size, "ras", "aer_event",
+			       ras_aer_event_handler);
+	if (rc)
+		goto err;
 #endif
-
-	rc = pevent_parse_event(pevent, page, size, "ras");
-	if (rc) {
-		free(page);
-		goto free_pevent;
-	}
 
 #ifdef HAVE_MCE_HANDLER
 	rc = register_mce_handler(ras);
 	if (rc) {
 		log(SYSLOG, LOG_INFO, "Can't register mce handler\n");
 		free(page);
-		goto free_pevent;
+		goto err;
 	}
-	if (ras->mce)
-		pevent_register_event_handler(pevent, -1, "mce", "mce_record",
-					      ras_mce_event_handler, ras);
-
-	/* FIXME: Somehow, enabling this makes "ras" events to stop working */
-	rc = pevent_parse_event(pevent, page, size, "mce");
-	if (rc) {
-		free(page);
-		goto free_pevent;
+	if (ras->mce) {
+		rc = add_event_handler(ras, pevent, page_size,
+				       "mce", "mce_record",
+			               ras_mce_event_handler);
+		if (rc)
+			goto err;
 	}
 #endif
-
-	free(page);
 
 	cpus = get_num_cpus(ras);
 	data = calloc(sizeof(*data), cpus);
 	if (!data)
-		goto free_pevent;
+		goto err;
 
 	log(SYSLOG, LOG_INFO, "Opening one thread per cpu (%d threads)\n", cpus);
 	for (i = 0; i < cpus; i++) {
@@ -552,7 +574,7 @@ int handle_ras_events(int record_events)
 			    i);
 			while (--i)
 				pthread_cancel(data[i].thread);
-			goto free_threads;
+			goto err;
 		}
 	}
 
@@ -562,14 +584,15 @@ int handle_ras_events(int record_events)
 
 	log(SYSLOG, LOG_INFO, "Huh! something got wrong. Aborting.\n");
 
-free_threads:
-	free(data);
+err:
+	if (data)
+		free(data);
 
-free_pevent:
-	pevent_free(pevent);
+	if (pevent)
+		pevent_free(pevent);
 
-free_ras:
-	free(ras);
+	if (ras)
+		free(ras);
 
 	return rc;
 }
