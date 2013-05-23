@@ -728,11 +728,11 @@ enum filter_vals {
 	FILTER_VAL_TRUE,
 };
 
-void reparent_op_arg(struct filter_arg *parent, struct filter_arg *old_child,
+static void reparent_op_arg(struct filter_arg *parent, struct filter_arg *old_child,
 		  struct filter_arg *arg)
 {
-	struct filter_arg *other_child;
-	struct filter_arg **ptr;
+	struct filter_arg *other_child = NULL;
+	struct filter_arg **ptr = NULL;
 
 	if (parent->type != FILTER_ARG_OP &&
 	    arg->type != FILTER_ARG_OP)
@@ -771,7 +771,7 @@ void reparent_op_arg(struct filter_arg *parent, struct filter_arg *old_child,
 	free_arg(old_child);
 }
 
-enum filter_vals test_arg(struct filter_arg *parent, struct filter_arg *arg)
+static enum filter_vals test_arg(struct filter_arg *parent, struct filter_arg *arg)
 {
 	enum filter_vals lval, rval;
 
@@ -2031,7 +2031,7 @@ static char *exp_to_str(struct event_filter *filter, struct filter_arg *arg)
 {
 	char *lstr;
 	char *rstr;
-	char *op;
+	char *op = NULL;
 	char *str = NULL;
 	int len;
 

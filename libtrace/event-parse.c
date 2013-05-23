@@ -110,13 +110,13 @@ void pevent_buffer_init(const char *buf, unsigned long long size)
 	init_input_buf(buf, size);
 }
 
-void breakpoint(void)
+static void breakpoint(void)
 {
 	static int x;
 	x++;
 }
 
-struct print_arg *alloc_arg(void)
+static struct print_arg *alloc_arg(void)
 {
 	return calloc(1, sizeof(struct print_arg));
 }
@@ -3177,7 +3177,7 @@ struct event_format *
 pevent_find_event_by_name(struct pevent *pevent,
 			  const char *sys, const char *name)
 {
-	struct event_format *event;
+	struct event_format *event = NULL;
 	int i;
 
 	if (pevent->last_event &&
@@ -4020,7 +4020,7 @@ static void pretty_print(struct trace_seq *s, void *data, int size, struct event
 	char format[32];
 	int show_func;
 	int len_as_arg;
-	int len_arg;
+	int len_arg = 0;
 	int len;
 	int ls;
 
@@ -4265,8 +4265,8 @@ void pevent_data_lat_fmt(struct pevent *pevent,
 	static int migrate_disable_exists;
 	unsigned int lat_flags;
 	unsigned int pc;
-	int lock_depth;
-	int migrate_disable;
+	int lock_depth = 0;
+	int migrate_disable = 0;
 	int hardirq;
 	int softirq;
 	void *data = record->data;
@@ -4903,7 +4903,7 @@ static int find_event_handle(struct pevent *pevent, struct event_format *event)
  *
  * /sys/kernel/debug/tracing/events/.../.../format
  */
-enum pevent_errno __pevent_parse_format(struct event_format **eventp,
+static enum pevent_errno __pevent_parse_format(struct event_format **eventp,
 					struct pevent *pevent, const char *buf,
 					unsigned long size, const char *sys)
 {
@@ -5116,7 +5116,7 @@ int pevent_strerror(struct pevent *pevent, enum pevent_errno errnum,
 	return 0;
 }
 
-int get_field_val(struct trace_seq *s, struct format_field *field,
+static int get_field_val(struct trace_seq *s, struct format_field *field,
 		  const char *name, struct pevent_record *record,
 		  unsigned long long *val, int err)
 {

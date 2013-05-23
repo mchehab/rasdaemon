@@ -4,6 +4,8 @@
 #include <stdarg.h>
 #include <errno.h>
 
+#include "event-utils.h"
+
 #define __weak __attribute__((weak))
 
 void __vdie(const char *fmt, va_list ap)
