@@ -110,12 +110,6 @@ void pevent_buffer_init(const char *buf, unsigned long long size)
 	init_input_buf(buf, size);
 }
 
-static void breakpoint(void)
-{
-	static int x;
-	x++;
-}
-
 static struct print_arg *alloc_arg(void)
 {
 	return calloc(1, sizeof(struct print_arg));
