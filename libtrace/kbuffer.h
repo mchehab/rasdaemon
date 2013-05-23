@@ -63,6 +63,5 @@ int kbuffer_missed_events(struct kbuffer *kbuf);
 int kbuffer_subbuffer_size(struct kbuffer *kbuf);
 
 void kbuffer_set_old_format(struct kbuffer *kbuf);
-int kbuffer_start_of_data(struct kbuffer *kbuf);
 
 #endif /* _K_BUFFER_H */
