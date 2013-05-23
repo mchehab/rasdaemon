@@ -34,6 +34,7 @@ int ras_mc_event_handler(struct trace_seq *s,
 	time_t now;
 	struct tm *tm;
 	struct ras_mc_event ev;
+	int parsed_fields = 0;
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -56,12 +57,16 @@ int ras_mc_event_handler(struct trace_seq *s,
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
 	if (pevent_get_field_val(s,  event, "error_count", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.error_count = val;
 	trace_seq_printf(s, "%d ", ev.error_count);
 
 	if (pevent_get_field_val(s, event, "error_type", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.error_type = mc_event_error_type(val);
 	trace_seq_puts(s, ev.error_type);
 	if (ev.error_count > 1)
@@ -71,7 +76,9 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	ev.msg = pevent_get_field_raw(s, event, "msg", record, &len, 1);
 	if (!ev.msg)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	if (*ev.msg) {
 		trace_seq_puts(s, " ");
 		trace_seq_puts(s, ev.msg);
@@ -79,7 +86,9 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	ev.label = pevent_get_field_raw(s, event, "label", record, &len, 1);
 	if (!ev.label)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	if (*ev.label) {
 		trace_seq_puts(s, " on ");
 		trace_seq_puts(s, ev.label);
@@ -87,18 +96,26 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	trace_seq_puts(s, " (");
 	if (pevent_get_field_val(s,  event, "mc_index", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.mc_index = val;
 	trace_seq_printf(s, "mc: %d", ev.mc_index);
 
 	if (pevent_get_field_val(s,  event, "top_layer", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.top_layer = (int) val;
 	if (pevent_get_field_val(s,  event, "middle_layer", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.middle_layer = (int) val;
 	if (pevent_get_field_val(s,  event, "lower_layer", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.lower_layer = (int) val;
 
 	if (ev.top_layer == 255)
@@ -120,19 +137,25 @@ int ras_mc_event_handler(struct trace_seq *s,
 	}
 
 	if (pevent_get_field_val(s,  event, "address", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.address = val;
 	if (ev.address)
 		trace_seq_printf(s, " address: 0x%08llx", ev.address);
 
 	if (pevent_get_field_val(s,  event, "grain_bits", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.grain = val;
 	trace_seq_printf(s, " grain: %lld", ev.grain);
 
 
 	if (pevent_get_field_val(s,  event, "syndrome", record, &val, 1) < 0)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	ev.syndrome = val;
 	if (val)
 		trace_seq_printf(s, " syndrome: 0x%08llx", ev.syndrome);
@@ -140,7 +163,9 @@ int ras_mc_event_handler(struct trace_seq *s,
 	ev.driver_detail = pevent_get_field_raw(s, event, "driver_detail", record,
 					     &len, 1);
 	if (!ev.driver_detail)
-		return -1;
+		goto parse_error;
+	parsed_fields++;
+
 	if (*ev.driver_detail) {
 		trace_seq_puts(s, " ");
 		trace_seq_puts(s, ev.driver_detail);
@@ -150,6 +175,13 @@ int ras_mc_event_handler(struct trace_seq *s,
 	/* Insert data into the SGBD */
 
 	ras_store_mc_event(ras, &ev);
+	return 0;
+
+parse_error:
+	/* FIXME: add a logic here to also store parse errors to SDBD */
+
+	log(ALL, LOG_ERR, "MC error handler: can't parse field #%d\n",
+	    parsed_fields);
 
 	return 0;
 }
