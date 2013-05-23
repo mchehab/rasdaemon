@@ -96,13 +96,14 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (args.enable_ras > 0)
-		toggle_ras_mc_event(ras, 1);
-	else if (args.enable_ras < 0)
-		toggle_ras_mc_event(ras, 0);
+	if (args.enable_ras) {
+		int enable;
 
-	if (args.enable_ras)
+		enable = (args.enable_ras > 0) ? 1 : 0;
+		toggle_ras_mc_event(enable);
+
 		return 0;
+	}
 
 	openlog(TOOL_NAME, 0, LOG_DAEMON);
 	if (!args.foreground)

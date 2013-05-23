@@ -138,7 +138,7 @@ static int get_tracing_dir(struct ras_events *ras)
 /*
  * Tracing enable/disable code
  */
-int toggle_ras_mc_event(struct ras_events *ras, int enable)
+static int __toggle_ras_mc_event(struct ras_events *ras, int enable)
 {
 	int fd, rc;
 
@@ -172,6 +172,31 @@ int toggle_ras_mc_event(struct ras_events *ras, int enable)
 
 	return 0;
 }
+
+int toggle_ras_mc_event(int enable)
+{
+	struct ras_events *ras;
+	int rc = 0;
+
+	ras = calloc(1, sizeof(*ras));
+	if (!ras) {
+		log(TERM, LOG_ERR, "Can't allocate memory for ras struct\n");
+		return errno;
+	}
+
+	rc = get_tracing_dir(ras);
+	if (rc < 0) {
+		log(TERM, LOG_ERR, "Can't locate a mounted debugfs\n");
+		goto free_ras;
+	}
+
+	__toggle_ras_mc_event(ras, enable);
+
+free_ras:
+	free(ras);
+	return rc;
+}
+
 
 /*
  * Tracing read code
@@ -438,7 +463,7 @@ int handle_ras_events(int record_events)
 	}
 
 	/* Enable RAS events */
-	rc = toggle_ras_mc_event(ras, 1);
+	rc = __toggle_ras_mc_event(ras, 1);
 	if (rc < 0) {
 		log(TERM, LOG_ERR, "Can't enable RAS tracing\n");
 		goto free_ras;
