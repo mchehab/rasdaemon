@@ -139,7 +139,7 @@ static char *mmm_desc[] = {
 	"Reserved 7"
 };
 
-void decode_memory_controller(struct mce_event *e, uint32_t status)
+static void decode_memory_controller(struct mce_event *e, uint32_t status)
 {
 	char channel[30];
 	if ((status & 0xf) == 0xf)
@@ -153,7 +153,7 @@ void decode_memory_controller(struct mce_event *e, uint32_t status)
 		    mmm_desc[(status >> 4) & 7]);
 }
 
-static decode_termal_bank(struct mce_event *e)
+static void decode_termal_bank(struct mce_event *e)
 {
 	if (e->status & 1) {
 		mce_snprintf(e->mcgstatus_msg, "Processor %d heated above trip temperature. Throttling enabled.", e->cpu);
@@ -165,11 +165,10 @@ static decode_termal_bank(struct mce_event *e)
 
 static void decode_mcg(struct mce_event *e)
 {
-	int n, len = sizeof(e->mcgstatus_msg);
 	uint64_t mcgstatus = e->mcgstatus;
-	char *p = e->mcgstatus_msg;
 
-	mce_snprintf(e->mcgstatus_msg, "mcgstatus= %d", e->mcgstatus);
+	mce_snprintf(e->mcgstatus_msg, "mcgstatus= %lld",
+		     (long long)e->mcgstatus);
 
 	if (mcgstatus & MCG_STATUS_RIPV)
 		mce_snprintf(e->mcgstatus_msg, "RIPV");
@@ -353,6 +352,8 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 		case CPU_P4:
 			p4_decode_model(e);
 			break;
+		default:
+			break;
 		}
 	}
 	switch(mce->cputype) {
@@ -372,11 +373,11 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_SANDY_BRIDGE_EP:
 		snb_decode_model(ras, e);
 		break;
-#if 0
 	case CPU_IVY_BRIDGE_EPEX:
 		ivb_decode_model(ras, e);
 		break;
-#endif
+	default:
+		break;
 	}
 
 	return 0;

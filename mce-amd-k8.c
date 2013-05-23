@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "ras-mce-handler.h"
+#include "bitfield.h"
 
 #define K8_MCE_THRESHOLD_BASE        (MCE_EXTENDED_BANK + 1)      /* MCE_AMD */
 #define K8_MCE_THRESHOLD_TOP         (K8_MCE_THRESHOLD_BASE + 6 * 9)
@@ -32,7 +33,7 @@
 #define K8_MCELOG_THRESHOLD_L3_CACHE (4 * 9 + 2)
 #define K8_MCELOG_THRESHOLD_FBDIMM   (4 * 9 + 3)
 
-static char *k8bank[] = {
+static const char *k8bank[] = {
 	"data cache",
 	"instruction cache",
 	"bus unit",
@@ -41,7 +42,7 @@ static char *k8bank[] = {
 	"fixed-issue reoder"
 };
 
-static char *k8threshold[] = {
+static const char *k8threshold[] = {
 	[0 ... K8_MCELOG_THRESHOLD_DRAM_ECC - 1] = "Unknow threshold counter",
 	[K8_MCELOG_THRESHOLD_DRAM_ECC] = "MC4_MISC0 DRAM threshold",
 	[K8_MCELOG_THRESHOLD_LINK] = "MC4_MISC1 Link threshold",
@@ -52,29 +53,29 @@ static char *k8threshold[] = {
 		"Unknown threshold counter",
 };
 
-static char *transaction[] = {
+static const char *transaction[] = {
 	"instruction", "data", "generic", "reserved"
 };
-static char *cachelevel[] = {
+static const char *cachelevel[] = {
 	"0", "1", "2", "generic"
 };
-static char *memtrans[] = {
+static const char *memtrans[] = {
 	"generic error", "generic read", "generic write", "data read",
 	"data write", "instruction fetch", "prefetch", "evict", "snoop",
 	"?", "?", "?", "?", "?", "?", "?"
 };
-static char *partproc[] = {
+static const char *partproc[] = {
 	"local node origin", "local node response",
 	"local node observed", "generic participation"
 };
-static char *timeout[] = {
+static const char *timeout[] = {
 	"request didn't time out",
 	"request timed out"
 };
-static char *memoryio[] = {
+static const char *memoryio[] = {
 	"memory", "res.", "i/o", "generic"
 };
-static char *nbextendederr[] = {
+static const char *nbextendederr[] = {
 	"RAM ECC error",
 	"CRC error",
 	"Sync error",
@@ -95,7 +96,7 @@ static char *nbextendederr[] = {
 	"L3 Cache Tag Error",
 	"L3 Cache LRU Error"
 };
-static char *highbits[32] = {
+static const char *highbits[32] = {
 	[31] = "valid",
 	[30] = "error overflow (multiple errors)",
 	[29] = "error uncorrected",
@@ -126,7 +127,7 @@ static void decode_k8_generic_errcode(struct mce_event *e)
 {
 	char tmp_buf[4096];
 	unsigned short errcode = e->status & 0xffff;
-	int i, n;
+	int n;
 
 	/* Translate the highest bits */
 	n = bitfield_msg(tmp_buf, sizeof(tmp_buf), highbits, 32,
@@ -236,7 +237,7 @@ static void decode_k8_threashold(struct mce_event *e)
 static void bank_name(struct mce_event *e)
 {
 	char *buf = e->bank_name;
-	char *s;
+	const char *s;
 
 	if (e->bank < ARRAY_SIZE(k8bank))
 		s = k8bank[e->bank];
@@ -251,7 +252,6 @@ static void bank_name(struct mce_event *e)
 
 int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
 {
-	unsigned unknown_bank = 0;
 	unsigned ismemerr = 0;
 
 	/* Don't handle GART errors */

@@ -123,7 +123,8 @@ void tulsa_decode_model(struct mce_event *e)
 	/* MISC register not documented in the SDM. Let's just dump hex for now. */
 	if (e->status &  MCI_STATUS_MISCV)
 		mce_snprintf(e->mcistatus_msg, "MISC format %llx value %llx\n",
-			    (e->status >> 40) & 3, e->misc);
+			     (long long)(e->status >> 40) & 3,
+			     (long long)e->misc);
 
 	if ((e->status & 0xffff) == 0xe0f)
 		tulsa_decode_bus(e, e->status);

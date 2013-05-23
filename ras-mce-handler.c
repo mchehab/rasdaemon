@@ -15,6 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +48,7 @@ static char *cputype_name[] = {
 	[CPU_IVY_BRIDGE_EPEX] = "Ivy Bridge EP/EX",	/* Fill in better name */
 };
 
-enum cputype select_intel_cputype(struct ras_events *ras)
+static enum cputype select_intel_cputype(struct ras_events *ras)
 {
 	struct mce_priv *mce = ras->mce_priv;
 
@@ -98,7 +99,7 @@ enum cputype select_intel_cputype(struct ras_events *ras)
 	return mce->family == 6 ? CPU_P6OLD : CPU_GENERIC;
 }
 
-int detect_cpu(struct ras_events *ras)
+static int detect_cpu(struct ras_events *ras)
 {
 	struct mce_priv *mce = ras->mce_priv;
 	FILE *f;
@@ -126,7 +127,8 @@ int detect_cpu(struct ras_events *ras)
 	}
 
 	while (getdelim(&line, &linelen, '\n', f) > 0 && seen != ALL) {
-		if (sscanf(line, "mce->vendor_id : %63[^\n]", &mce->vendor) == 1)
+		if (sscanf(line, "mce->vendor_id : %63[^\n]",
+		    (char *)&mce->vendor) == 1)
 			seen |= VENDOR;
 		if (sscanf(line, "cpu mce->family : %d", &mce->family) == 1)
 			seen |= FAMILY;
@@ -207,7 +209,6 @@ static void report_mce_event(struct ras_events *ras,
 			     struct pevent_record *record,
 			     struct trace_seq *s, struct mce_event *e)
 {
-	unsigned long long val;
 	time_t now;
 	struct tm *tm;
 	struct mce_priv *mce = ras->mce_priv;
@@ -237,7 +238,7 @@ static void report_mce_event(struct ras_events *ras,
 	else
 		trace_seq_printf(s, "bank=%x", e->bank);
 
-	trace_seq_printf(s, ", status= %d", e->status);
+	trace_seq_printf(s, ", status= %lld", (long long)e->status);
 	if (*e->error_msg)
 		trace_seq_printf(s, ", %s", e->error_msg);
 	if (*e->mcistatus_msg)
@@ -273,26 +274,27 @@ static void report_mce_event(struct ras_events *ras,
 #endif
 
 	if (e->ip)
-		trace_seq_printf(s, ", ip= %d%s",
-				 !(e->mcgstatus & MCG_STATUS_EIPV) ? " (INEXACT)" : "",
-				 e->ip);
+		trace_seq_printf(s, ", ip= %llx%s",
+				 (long long)e->ip,
+				 !(e->mcgstatus & MCG_STATUS_EIPV) ? " (INEXACT)" : "");
 
 	if (e->cs)
-		trace_seq_printf(s, ", cs= %d", e->cs);
+		trace_seq_printf(s, ", cs= %x", e->cs);
 
 	if (e->status & MCI_STATUS_MISCV)
-		trace_seq_printf(s, ", misc= %d", e->misc);
+		trace_seq_printf(s, ", misc= %llx", (long long)e->misc);
 
 	if (e->status & MCI_STATUS_ADDRV)
-		trace_seq_printf(s, ", addr= %d", e->addr);
+		trace_seq_printf(s, ", addr= %llx", (long long)e->addr);
 
 	if (e->mcgstatus_msg)
 		trace_seq_printf(s, ", %s", e->mcgstatus_msg);
 	else
-		trace_seq_printf(s, ", mcgstatus= %d", e->mcgstatus);
+		trace_seq_printf(s, ", mcgstatus= %llx",
+				 (long long)e->mcgstatus);
 
 	if (e->mcgcap)
-		trace_seq_printf(s, ", mcgcap= %d", e->mcgcap);
+		trace_seq_printf(s, ", mcgcap= %llx", (long long)e->mcgcap);
 
 	trace_seq_printf(s, ", apicid= %d", e->apicid);
 
@@ -315,7 +317,7 @@ int ras_mce_event_handler(struct trace_seq *s,
 	struct ras_events *ras = context;
 	struct mce_priv *mce = ras->mce_priv;
 	struct mce_event e;
-	int rc;
+	int rc = 0;
 
 	memset(&e, 0, sizeof(e));
 
@@ -380,4 +382,5 @@ int ras_mce_event_handler(struct trace_seq *s,
 		return rc;
 
 	report_mce_event(ras, record, s, &e);
+	return 0;
 }
