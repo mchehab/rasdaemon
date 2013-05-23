@@ -55,4 +55,6 @@ AM_CONDITIONAL([WITH_MCE], [test x$enable_mce = xyes])
 
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
+CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
+
 AC_OUTPUT
