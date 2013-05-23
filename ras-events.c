@@ -255,20 +255,25 @@ static int read_ras_event(int fd,
 			  void *page)
 {
 	static int warn_sleep = 0;
-	int ready;
 	unsigned size;
 	unsigned long long time_stamp;
 	void *data;
+#if 0
+	/* POLL is currently broken on 3.10-rc2 */
+	int ready;
 	struct pollfd fds = {
 		.fd = fd,
 		.events = POLLIN | POLLPRI,
 	};
-
+#endif
 	do {
+#if 0
+	/* POLL is currently broken on 3.10-rc2 */
 		ready = poll(&fds, 1, -1);
 		if (ready < 0) {
 			log(TERM, LOG_WARNING, "poll\n");
 		}
+#endif
 		size = read(fd, page, pdata->ras->page_size);
 		if (size < 0) {
 			log(TERM, LOG_WARNING, "read\n");
@@ -517,12 +522,14 @@ int handle_ras_events(int record_events)
 	if (ras->mce)
 		pevent_register_event_handler(pevent, -1, "mce", "mce_record",
 					      ras_mce_event_handler, ras);
-#endif
+
+	/* FIXME: Somehow, enabling this makes "ras" events to stop working */
 	rc = pevent_parse_event(pevent, page, size, "mce");
 	if (rc) {
 		free(page);
 		goto free_pevent;
 	}
+#endif
 
 	free(page);
 
