@@ -46,9 +46,6 @@
 	#define ENDIAN KBUFFER_ENDIAN_BIG
 #endif
 
-#define ENABLE_RAS_MC_EVENT  "ras:mc_event"
-#define DISABLE_RAS_MC_EVENT "!" ENABLE_RAS_MC_EVENT
-
 static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
 	FILE *fp;
@@ -138,9 +135,15 @@ static int get_tracing_dir(struct ras_events *ras)
 /*
  * Tracing enable/disable code
  */
-static int __toggle_ras_mc_event(struct ras_events *ras, int enable)
+static int __toggle_ras_mc_event(struct ras_events *ras,
+				 char *group, char *event, int enable)
 {
 	int fd, rc;
+	char fname[MAX_PATH + 1];
+
+	snprintf(fname, sizeof(fname), "%s%s:%s\n",
+		 enable ? "" : "!",
+		 group, event);
 
 	/* Enable RAS events */
 	fd = open_trace(ras, "set_event", O_RDWR | O_APPEND);
@@ -148,12 +151,8 @@ static int __toggle_ras_mc_event(struct ras_events *ras, int enable)
 		log(ALL, LOG_WARNING, "Can't open set_event\n");
 		return errno;
 	}
-	if (enable)
-		rc = write(fd, ENABLE_RAS_MC_EVENT,
-			   sizeof(ENABLE_RAS_MC_EVENT));
-	else
-		rc = write(fd, DISABLE_RAS_MC_EVENT,
-			   sizeof(DISABLE_RAS_MC_EVENT));
+
+	rc = write(fd, fname,strlen(fname));
 	if (rc < 0) {
 		log(ALL, LOG_WARNING, "Can't write to set_event\n");
 		close(fd);
@@ -165,10 +164,9 @@ static int __toggle_ras_mc_event(struct ras_events *ras, int enable)
 		return EIO;
 	}
 
-	if (enable)
-		log(ALL, LOG_INFO, "RAS events enabled\n");
-	else
-		log(ALL, LOG_INFO, "RAS events disabled\n");
+	log(ALL, LOG_INFO, "%s:%s event %s\n",
+	    group, event,
+	    enable ? "enabled" : "disabled");
 
 	return 0;
 }
@@ -190,7 +188,15 @@ int toggle_ras_mc_event(int enable)
 		goto free_ras;
 	}
 
-	__toggle_ras_mc_event(ras, enable);
+	rc = __toggle_ras_mc_event(ras, "ras", "mc_event", enable);
+
+#ifdef HAVE_AER
+	rc |= __toggle_ras_mc_event(ras, "ras", "aer_event", enable);
+#endif
+
+#ifdef HAVE_MCE_HANDLER
+	rc |= __toggle_ras_mc_event(ras, "mce", "mce_record", enable);
+#endif
 
 free_ras:
 	free(ras);
@@ -476,7 +482,16 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 		return EINVAL;
 	}
 
-	log(ALL, LOG_INFO, "Registered handler for %s:%s\n", group, event);
+	/* Enable RAS events */
+	rc = __toggle_ras_mc_event(ras, group, event, 1);
+	if (rc < 0) {
+		log(TERM, LOG_ERR, "Can't enable %s:%s tracing\n",
+		    group, event);
+
+		return EINVAL;
+	}
+
+	log(ALL, LOG_INFO, "Enabled event %s:%s\n", group, event);
 
 	free(page);
 	return 0;
@@ -504,13 +519,6 @@ int handle_ras_events(int record_events)
 	rc = select_tracing_timestamp(ras);
 	if (rc < 0) {
 		log(TERM, LOG_ERR, "Can't select a timestamp for tracing\n");
-		goto err;
-	}
-
-	/* Enable RAS events */
-	rc = __toggle_ras_mc_event(ras, 1);
-	if (rc < 0) {
-		log(TERM, LOG_ERR, "Can't enable RAS tracing\n");
 		goto err;
 	}
 
