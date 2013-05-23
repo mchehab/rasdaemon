@@ -20,9 +20,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "ras-record.h"
 #include "ras-logger.h"
+#include "ras-events.h"
 
 /*
  * Arguments(argp) handling logic and main
@@ -95,9 +97,9 @@ int main(int argc, char *argv[])
 	}
 
 	if (args.enable_ras > 0)
-		toggle_ras_mc_event(1);
+		toggle_ras_mc_event(ras, 1);
 	else if (args.enable_ras < 0)
-		toggle_ras_mc_event(0);
+		toggle_ras_mc_event(ras, 0);
 
 	if (args.enable_ras)
 		return 0;

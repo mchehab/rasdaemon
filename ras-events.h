@@ -56,7 +56,6 @@ struct pthread_data {
 	int			cpu;
 };
 
-int handle_ras_events(int record_events);
 
 /* Should match the code at Kernel's include/linux/edac.c */
 enum hw_event_mc_err_type {
@@ -66,6 +65,9 @@ enum hw_event_mc_err_type {
 	HW_EVENT_ERR_INFO,
 };
 
+/* Function prototypes */
+int toggle_ras_mc_event(struct ras_events *ras, int enable);
+int handle_ras_events(int record_events);
 char *mc_event_error_type(unsigned long long err_type);
 
 #endif
