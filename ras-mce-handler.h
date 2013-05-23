@@ -102,12 +102,6 @@ int ras_mce_event_handler(struct trace_seq *s,
 			  struct pevent_record *record,
 			  struct event_format *event, void *context);
 
-/* Ancillary routines */
-
-unsigned bitfield_msg(char *buf, size_t len, char **bitarray, unsigned array_len,
-		      unsigned bit_offset, unsigned ignore_bits,
-		      uint64_t status);
-
 /* Per-CPU-type decoders for Intel CPUs */
 void p4_decode_model(struct mce_event *e);
 void core2_decode_model(struct mce_event *e);

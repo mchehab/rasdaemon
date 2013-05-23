@@ -25,9 +25,37 @@
 #include "ras-mce-handler.h"
 #include "bitfield.h"
 
-char *reserved_3bits[8];
-char *reserved_1bit[2];
-char *reserved_2bits[4];
+unsigned bitfield_msg(char *buf, size_t len, const char **bitarray,
+		      unsigned array_len,
+		      unsigned bit_offset, unsigned ignore_bits,
+		      uint64_t status)
+{
+	int i, n;
+	char *p = buf;
+
+	len--;
+
+	for (i = 0; i < array_len; i++) {
+		if (status & ignore_bits)
+			continue;
+		if (status & (1 <<  (i + bit_offset))) {
+			if (p != buf) {
+				n = snprintf(p, len, ", ");
+				len -= n;
+				p += n;
+			}
+			if (!bitarray[i])
+				n = snprintf(p, len, "BIT%d", i + bit_offset);
+			else
+				n = snprintf(p, len, "%s", bitarray[i]);
+			len -= n;
+			p += n;
+		}
+	}
+
+	*p = 0;
+	return p - buf;
+}
 
 static uint64_t bitmask(uint64_t i)
 {
@@ -41,7 +69,6 @@ void decode_bitfield(struct mce_event *e, uint64_t status,
 		     struct field *fields)
 {
 	struct field *f;
-	char buf[60];
 
 	for (f = fields; f->str; f++) {
 		uint64_t v = (status >> f->start_bit) & bitmask(f->stringlen - 1);
@@ -52,7 +79,7 @@ void decode_bitfield(struct mce_event *e, uint64_t status,
 			if (v == 0)
 				continue;
 			mce_snprintf(e->error_msg, "<%u:%llx>",
-				     f->start_bit, v);
+				     f->start_bit, (long long)v);
 		}
 	}
 }

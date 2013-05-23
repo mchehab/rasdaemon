@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
+#include <stdint.h>
+
 /* Generic bitfield decoder */
 
 struct field {
@@ -40,6 +42,8 @@ struct numfield {
 #define HEXNUMBER(start, end, name) { start, end, name, "%Lx", 0 }
 #define HEXNUMBERFORCE(start, end, name) { start, end, name, "%Lx", 1 }
 
+struct mce_event;
+
 void decode_bitfield(struct mce_event *e, uint64_t status,
 		     struct field *fields);
 void decode_numfield(struct mce_event *e, uint64_t status,
@@ -52,3 +56,10 @@ static inline int test_prefix(int nr, uint32_t value)
 {
 	return ((value >> nr) == 1);
 }
+
+/* Ancillary routines */
+
+unsigned bitfield_msg(char *buf, size_t len, const char **bitarray,
+		      unsigned array_len,
+		      unsigned bit_offset, unsigned ignore_bits,
+		      uint64_t status);

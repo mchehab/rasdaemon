@@ -23,6 +23,7 @@
 #include "ras-aer-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
+#include "bitfield.h"
 
 static const char *aer_errors[32] = {
 	/* Correctable errors */

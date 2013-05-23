@@ -203,37 +203,6 @@ int register_mce_handler(struct ras_events *ras)
  * End of mcelog's code
  */
 
-unsigned bitfield_msg(char *buf, size_t len, char **bitarray, unsigned array_len,
-		      unsigned bit_offset, unsigned ignore_bits,
-		      uint64_t status)
-{
-	int i, n;
-	char *p = buf;
-
-	len--;
-
-	for (i = 0; i < array_len; i++) {
-		if (status & ignore_bits)
-			continue;
-		if (status & (1 <<  (i + bit_offset))) {
-			if (p != buf) {
-				n = snprintf(p, len, ", ");
-				len -= n;
-				p += n;
-			}
-			if (!bitarray[i])
-				n = snprintf(p, len, "BIT%d", i + bit_offset);
-			else
-				n = snprintf(p, len, "%s", bitarray[i]);
-			len -= n;
-			p += n;
-		}
-	}
-
-	*p = 0;
-	return p - buf;
-}
-
 static void report_mce_event(struct ras_events *ras,
 			     struct pevent_record *record,
 			     struct trace_seq *s, struct mce_event *e)
