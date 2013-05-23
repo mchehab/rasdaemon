@@ -34,7 +34,6 @@ int ras_mc_event_handler(struct trace_seq *s,
 	time_t now;
 	struct tm *tm;
 	struct ras_mc_event ev;
-	char fmt[64];
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.

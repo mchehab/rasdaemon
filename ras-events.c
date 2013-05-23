@@ -54,7 +54,6 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 	FILE *fp;
 	char line[MAX_PATH + 1 + 256];
 	char *type, *dir;
-	int rc;
 
 	fp = fopen("/proc/mounts","r");
 	if (!fp) {
@@ -365,7 +364,6 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	time_t uptime, now;
 	unsigned j1;
 	char buf[4096];
-	struct tm *p;
 
 	/* Check if uptime is supported (kernel 3.10-rc1 or upper) */
 	fd = open_trace(ras, "trace_clock", O_RDONLY);
@@ -403,12 +401,14 @@ static int select_tracing_timestamp(struct ras_events *ras)
 		    "Couldn't read from /proc/uptime\n");
 		return 0;
 	}
-	fscanf(fp, "%u.%u ", &uptime, &j1);
+	fscanf(fp, "%zu.%u ", &uptime, &j1);
 	now = time(NULL);
 	fclose(fp);
 
 	ras->use_uptime = 1;
 	ras->uptime_diff = now - uptime;
+
+	return 0;
 }
 
 int handle_ras_events(int record_events)
