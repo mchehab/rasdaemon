@@ -2,28 +2,36 @@
 
 MC="$(ls -d /sys/devices/system/edac/mc/mc? |sed -e s,.*/mc,,)"
 
+SYSFS="$(cat /proc/mounts|grep debugfs|cut -d' ' -f 2)"
+
 for i in $MC; do
 	LAYER1=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d ' ' -f 1)
 	LAYER2=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d ' ' -f 3)
 	LAYER3=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d ' ' -f 5)
-	DEBUGFS=/sys/kernel/debug/edac/mc$i/
+	DEBUGFS=$SYSFS/edac/mc$i/
+
 	MAX=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d' ' -f 2)
 	for j in `seq 0 $MAX`; do
-		MAX=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d' ' -f 4)
-		for k in `seq 0 $MAX`; do
-			MAX=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d' ' -f 6)
-			echo $j > $DEBUGFS/fake_inject_$LAYER1
-			echo $k > $DEBUGFS/fake_inject_$LAYER2
-			if [ "$MAX" == "" ]; then
-				echo "Injecting errors at mc#$i $j:$k"
-				echo > $DEBUGFS/fake_inject
-			else
-				for l in `seq 0 $MAX`; do
-					echo "Injecting errors at mc#$i $j:$k:$l"
-					echo $l > $DEBUGFS/fake_inject_$LAYER3
+		echo $j > $DEBUGFS/fake_inject_$LAYER1
+		if [ "$LAYER2" == "" ]; then
+			echo "Injecting errors at mc#$i $j"
+			echo > $DEBUGFS/fake_inject
+		else
+			MAX=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d' ' -f 4)
+			for k in `seq 0 $MAX`; do
+				echo $k > $DEBUGFS/fake_inject_$LAYER2
+				if [ "$LAYER3" == "" ]; then
+					echo "Injecting errors at mc#$i $j:$k"
 					echo > $DEBUGFS/fake_inject
-				done
-			fi
-		done
+				else
+					MAX=$(cat /sys/devices/system/edac/mc/mc$i/max_location |cut -d' ' -f 6)
+					for l in `seq 0 $MAX`; do
+						echo $l > $DEBUGFS/fake_inject_$LAYER3
+						echo "Injecting errors at mc#$i $j:$k:$l"
+						echo > $DEBUGFS/fake_inject
+					done
+				fi
+			done
+		fi
 	done
 done
