@@ -127,12 +127,12 @@ static int detect_cpu(struct ras_events *ras)
 	}
 
 	while (getdelim(&line, &linelen, '\n', f) > 0 && seen != ALL) {
-		if (sscanf(line, "mce->vendor_id : %63[^\n]",
+		if (sscanf(line, "vendor_id : %63[^\n]",
 		    (char *)&mce->vendor) == 1)
 			seen |= VENDOR;
-		if (sscanf(line, "cpu mce->family : %d", &mce->family) == 1)
+		if (sscanf(line, "cpu family : %d", &mce->family) == 1)
 			seen |= FAMILY;
-		if (sscanf(line, "mce->model : %d", &mce->model) == 1)
+		if (sscanf(line, "model : %d", &mce->model) == 1)
 			seen |= MODEL;
 		if (sscanf(line, "cpu MHz : %lf", &mce->mhz) == 1)
 			seen |= MHZ;
