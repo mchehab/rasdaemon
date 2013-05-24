@@ -191,7 +191,7 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR, "Failed to do finalize insert on sqlite: error = %d\n",
 		       rc);
-	log(TERM, LOG_INFO, "register interted at db\n");
+	log(TERM, LOG_INFO, "register inserted at db\n");
 
 	return rc;
 }
