@@ -51,7 +51,7 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
 	FILE *fp;
 	char line[MAX_PATH + 1 + 256];
-	char *type, *dir;
+	char *p, *type, *dir;
 
 	fp = fopen("/proc/mounts","r");
 	if (!fp) {
@@ -63,12 +63,16 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 		if (!fgets(line, sizeof(line), fp))
 			break;
 
-		type = strtok(line, " \t");
-		if (!type)
+		p = strtok(line, " \t");
+		if (!p)
 			break;
 
 		dir = strtok(NULL, " \t");
 		if (!dir)
+			break;
+
+		type = strtok(NULL, " \t");
+		if (!type)
 			break;
 
 		if (!strcmp(type, "debugfs")) {
