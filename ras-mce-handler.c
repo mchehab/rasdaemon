@@ -238,15 +238,13 @@ static void report_mce_event(struct ras_events *ras,
 	else
 		trace_seq_printf(s, "bank=%x", e->bank);
 
-	trace_seq_printf(s, ", status= %lld", (long long)e->status);
+	trace_seq_printf(s, ", status= %llx", (long long)e->status);
 	if (*e->error_msg)
 		trace_seq_printf(s, ", %s", e->error_msg);
 	if (*e->mcistatus_msg)
 		trace_seq_printf(s, ", mci=%s", e->mcistatus_msg);
 	if (*e->mcastatus_msg)
 		trace_seq_printf(s, ", mca=%s", e->mcastatus_msg);
-	if (*e->mc_channel)
-		trace_seq_printf(s, ", mc_channel=%s", e->mc_channel);
 
 	if (*e->user_action)
 		trace_seq_printf(s, " %s", e->user_action);
@@ -261,7 +259,7 @@ static void report_mce_event(struct ras_events *ras,
 	trace_seq_printf(s, ", walltime= %d", e->walltime);
 #endif
 
-	trace_seq_printf(s, ", CPU: %s,", cputype_name[mce->cputype]);
+	trace_seq_printf(s, ", cpu_type= %s", cputype_name[mce->cputype]);
 	trace_seq_printf(s, ", cpu= %d", e->cpu);
 	trace_seq_printf(s, ", socketid= %d", e->socketid);
 
@@ -296,7 +294,7 @@ static void report_mce_event(struct ras_events *ras,
 	if (e->mcgcap)
 		trace_seq_printf(s, ", mcgcap= %llx", (long long)e->mcgcap);
 
-	trace_seq_printf(s, ", apicid= %d", e->apicid);
+	trace_seq_printf(s, ", apicid= %x", e->apicid);
 
 	/*
 	 * FIXME: The original mcelog userspace tool uses DMI to map from

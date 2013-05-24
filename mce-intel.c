@@ -125,7 +125,8 @@ static const char *arstate[4] = {
 };
 
 static char *mmm_mnemonic[] = {
-	"GEN", "RD", "WR", "AC", "MS", "RES5", "RES6", "RES7"
+	"GEN", "RD",   "WR",   "AC",
+	"MS",  "RES5", "RES6", "RES7"
 };
 
 static char *mmm_desc[] = {
@@ -142,14 +143,15 @@ static char *mmm_desc[] = {
 static void decode_memory_controller(struct mce_event *e, uint32_t status)
 {
 	char channel[30];
+
 	if ((status & 0xf) == 0xf)
-		mce_snprintf(e->mc_channel, "unspecified");
+		sprintf(channel, "unspecified");
 	else
-		mce_snprintf(e->mc_channel, "%u", status & 0xf);
-	mce_snprintf(e->error_msg, "MEMORY CONTROLLER %s_CHANNEL%s_ERR\n",
-		    mmm_mnemonic[(status >> 4) & 7],
-		    channel);
-	mce_snprintf(e->error_msg, "Transaction: %s\n",
+		sprintf(channel, "%u", status & 0xf);
+
+	mce_snprintf(e->error_msg, "MEMORY CONTROLLER %s_CHANNEL%s_ERR",
+		    mmm_mnemonic[(status >> 4) & 7], channel);
+	mce_snprintf(e->error_msg, "Transaction: %s",
 		    mmm_desc[(status >> 4) & 7]);
 }
 
@@ -233,10 +235,10 @@ static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 
 	if ((mca >> 2) == 3) {
 		mce_snprintf(e->mcastatus_msg,
-			     "%s Generic memory hierarchy error\n",
+			     "%s Generic memory hierarchy error",
 			     decode_attr(LL, mca & 3));
 	} else if (test_prefix(4, mca)) {
-		mce_snprintf(e->mcastatus_msg, "%s TLB %s Error\n",
+		mce_snprintf(e->mcastatus_msg, "%s TLB %s Error",
 				decode_attr(TT, (mca & TLB_TT_MASK) >> TLB_TT_SHIFT),
 				decode_attr(LL, (mca & TLB_LL_MASK) >> TLB_LL_SHIFT));
 	} else if (test_prefix(8, mca)) {
@@ -245,7 +247,7 @@ static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 		char *type = decode_attr(TT, typenum);
 		char *level = decode_attr(LL, levelnum);
 		mce_snprintf(e->mcastatus_msg,
-			     "%s CACHE %s %s Error\n", type, level,
+			     "%s CACHE %s %s Error", type, level,
 			     get_RRRR_str((mca & CACHE_RRRR_MASK) >>
 					      CACHE_RRRR_SHIFT));
 #if 0
@@ -256,13 +258,13 @@ static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 	} else if (test_prefix(10, mca)) {
 		if (mca == 0x400)
 			mce_snprintf(e->mcastatus_msg,
-				     "Internal Timer error\n");
+				     "Internal Timer error");
 		else
 			mce_snprintf(e->mcastatus_msg,
-				     "Internal unclassified error: %x\n",
+				     "Internal unclassified error: %x",
 				     mca);
 	} else if (test_prefix(11, mca)) {
-		mce_snprintf(e->mcastatus_msg, "BUS %s %s %s %s %s Error\n",
+		mce_snprintf(e->mcastatus_msg, "BUS %s %s %s %s %s Error",
 			     decode_attr(LL, (mca & BUS_LL_MASK) >> BUS_LL_SHIFT),
 			     decode_attr(PP, (mca & BUS_PP_MASK) >> BUS_PP_SHIFT),
 			     get_RRRR_str((mca & BUS_RRRR_MASK) >> BUS_RRRR_SHIFT),
@@ -272,7 +274,7 @@ static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 		decode_memory_controller(e, mca);
 		*ismemerr = 1;
 	} else
-		mce_snprintf(e->mcastatus_msg, "Unknown Error %x\n", mca);
+		mce_snprintf(e->mcastatus_msg, "Unknown Error %x", mca);
 }
 
 static void decode_tracking(struct mce_event *e, uint64_t track)
@@ -311,7 +313,7 @@ static void decode_mci(struct mce_event *e, int *ismemerr)
 		mce_snprintf(e->mcistatus_msg, "Processor_context_corrupt");
 
 	if (e->status & (MCI_STATUS_S|MCI_STATUS_AR))
-		mce_snprintf(e->mcistatus_msg, "%s\n",
+		mce_snprintf(e->mcistatus_msg, "%s",
 			     arstate[(e->status >> 55) & 3]);
 
 	if ((e->mcgcap == 0 || (e->mcgcap & MCG_TES_P)) &&
