@@ -23,8 +23,8 @@ DRIVER=$(lsmod|grep edac_core|cut -b 33-)
 echo "RUNNING driver $DRIVER on kernel `uname -r`, hostname `hostname`, at `date`" >$FILE
 
 mount -t debugfs debugfs /sys/kernel/debug/
-run ./edac-ctl --layout
-run ./edac-ctl --guess-labels
+run ras-mc-ctl --layout
+run ras-mc-ctl --guess-labels
 run free -l
 
 run dmidecode
