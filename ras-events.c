@@ -449,7 +449,7 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 	fd = open_trace(ras, fname, O_RDONLY);
 	if (fd < 0) {
 		log(TERM, LOG_ERR,
-		    "Can't get %s:%s format. Are you sure that there's an EDAC driver loaded?\n",
+		    "Can't get %s:%s traces. Perhaps this feature is not supported on your system.\n",
 		    group, event);
 		return errno;
 	}
@@ -505,6 +505,7 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 int handle_ras_events(int record_events)
 {
 	int rc, page_size, i, cpus;
+	int num_events = 0;
 	struct pevent *pevent = NULL;
 	struct pthread_data *data = NULL;
 	struct ras_events *ras = NULL;
@@ -542,30 +543,42 @@ int handle_ras_events(int record_events)
 
 	rc = add_event_handler(ras, pevent, page_size, "ras", "mc_event",
 			       ras_mc_event_handler);
-	if (rc)
-		goto err;
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "ras", "mc_event");
 
 #ifdef HAVE_AER
 	rc = add_event_handler(ras, pevent, page_size, "ras", "aer_event",
 			       ras_aer_event_handler);
-	if (rc)
-		goto err;
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "ras", "aer_event");
 #endif
 
 #ifdef HAVE_MCE
 	rc = register_mce_handler(ras);
-	if (rc) {
-		log(SYSLOG, LOG_INFO, "Can't register mce handler\n");
-		goto err;
-	}
+	if (rc)
+		log(ALL, LOG_INFO, "Can't register mce handler\n");
 	if (ras->mce_priv) {
 		rc = add_event_handler(ras, pevent, page_size,
 				       "mce", "mce_record",
 			               ras_mce_event_handler);
-		if (rc)
-			goto err;
+		if (!rc)
+			num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "mce", "mce_record");
 	}
 #endif
+	if (!num_events) {
+		log(ALL, LOG_INFO,
+		    "Failed to trace all supported RAS events. Aborting.\n");
+		return EINVAL;
+	}
 
 	cpus = get_num_cpus(ras);
 	data = calloc(sizeof(*data), cpus);
