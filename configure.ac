@@ -22,7 +22,7 @@ AC_CONFIG_FILES([
 ])
 
 AC_ARG_ENABLE([sqlite3],
-    AS_HELP_STRING([--enable-sqlite], [enable storing data at SQL lite database (currently experimental)]))
+    AS_HELP_STRING([--enable-sqlite3], [enable storing data at SQL lite database (currently experimental)]))
 
 AS_IF([test "x$enable_sqlite3" = "xyes"], [
   AC_CHECK_LIB(sqlite3, sqlite3_open,[echo "found sqlite3"] , AC_MSG_ERROR([*** Unable to find sqlite3 library]), )
