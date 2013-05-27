@@ -112,6 +112,7 @@ void nehalem_decode_model(struct mce_event *e)
 	uint64_t status = e->status;
 	uint32_t mca = status & 0xffff;
 	uint64_t misc = e->misc;
+	unsigned channel, dimm;
 
 	if ((mca >> 11) == 1) { 	/* bus and interconnect QPI */
 		decode_bitfield(e, status, qpi_status);
@@ -128,6 +129,13 @@ void nehalem_decode_model(struct mce_event *e)
 		if (status & MCI_STATUS_MISCV)
 			decode_numfield(e, misc, nhm_memory_misc_numbers);
 	}
+
+	if ((((status & 0xffff) >> 7) == 1) && (status & MCI_STATUS_MISCV)) {
+		channel = EXTRACT(e->misc, 18, 19);
+		dimm = EXTRACT(e->misc, 16, 17);
+		mce_snprintf(e->mc_location, "channel=%d, dimm=%d",
+			     channel, dimm);
+	}
 }
 
 /* Only core errors supported. Same as Nehalem */
@@ -139,18 +147,4 @@ void xeon75xx_decode_model(struct mce_event *e)
 		decode_bitfield(e, status, internal_error_status);
 		decode_numfield(e, status, internal_error_numbers);
 	}
-#if 0
-	xeon75xx_decode_dimm(m, msize);
-#endif
 }
-
-#if 0
-/* Nehalem-EP specific DIMM decoding */
-void nehalem_memerr_misc(struct mce *m, int *channel, int *dimm)
-{
-	if (m->status & MCI_STATUS_MISCV) {
-		*channel = EXTRACT(m->misc, 18, 19);
-		*dimm = EXTRACT(m->misc, 16, 17);
-	}
-}
-#endif

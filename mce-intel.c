@@ -345,6 +345,14 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	decode_mcg(e);
 	decode_mci(e, &ismemerr);
 
+	/* Check if the error is at the memory controller */
+	if (((e->status & 0xffff) >> 7) == 1) {
+		unsigned corr_err_cnt;
+
+		corr_err_cnt = EXTRACT(e->status, 38, 52);
+		mce_snprintf(e->mc_location, "n_errors=%d", corr_err_cnt);
+	}
+
 	if (test_prefix(11, (e->status & 0xffffL))) {
 		switch(mce->cputype) {
 		case CPU_P6OLD:
