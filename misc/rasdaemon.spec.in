@@ -29,7 +29,7 @@ an utility for reporting current error counts from the EDAC sysfs files.
 
 %build
 autoreconf -vfi
-%configure
+%configure --enable-mce
 make %{?_smp_mflags}
 
 %install
