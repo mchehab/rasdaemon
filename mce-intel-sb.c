@@ -81,6 +81,8 @@ static struct field memctrl_mc8[] = {
 void snb_decode_model(struct ras_events *ras, struct mce_event *e)
 {
 	struct mce_priv *mce = ras->mce_priv;
+	uint32_t mca = e->status & 0xffff;
+	unsigned rank0 = -1, rank1 = -1, chan;
 
 	switch (e->bank) {
 	case 4:
@@ -100,6 +102,47 @@ void snb_decode_model(struct ras_events *ras, struct mce_event *e)
 		decode_bitfield(e, e->status, memctrl_mc8);
 		break;
 	}
+
+	/*
+	 * Memory error specific code. Returns if the error is not a MC one
+	 */
+
+	/* Check if the error is at the memory controller */
+	if ((mca >> 7) != 1)
+		return;
+
+	/* Ignore unless this is an corrected extended error from an iMC bank */
+	if (e->bank < 8 || e->bank > 11 || (e->status & MCI_STATUS_UC) ||
+		!test_prefix(7, e->status & 0xefff))
+		return;
+
+	/*
+	 * Parse the reported channel and ranks
+	 */
+
+	chan = EXTRACT(e->status, 0, 3);
+	if (chan == 0xf)
+		return;
+
+	mce_snprintf(e->mc_location, "memory_channel=%d", chan);
+
+	if (EXTRACT(e->misc, 62, 62))
+		rank0 = EXTRACT(e->misc, 46, 50);
+
+	if (EXTRACT(e->misc, 63, 63))
+		rank1 = EXTRACT(e->misc, 51, 55);
+
+	/*
+	 * FIXME: The conversion from rank to dimm requires to parse the
+	 * DMI tables and call failrank2dimm().
+	 */
+	if (rank0 >= 0 && rank1 >= 0)
+		mce_snprintf(e->mc_location, "ranks=%d and %d",
+				     rank0, rank1);
+	else if (rank0 >= 0)
+		mce_snprintf(e->mc_location, "rank=%d", rank0);
+	else
+		mce_snprintf(e->mc_location, "rank=%d", rank1);
 }
 
 #if 0
@@ -133,31 +176,5 @@ static int failrank2dimm(unsigned failrank, int socket, int channel)
 			return 1;
 	}
 	return -1;
-}
-
-void sandy_bridge_ep_memerr_misc(struct mce *m, int *channel, int *dimm)
-{
-	u64 status = m->status;
-	unsigned	failrank, chan;
-
-	/* Ignore unless this is an corrected extended error from an iMC bank */
-	if (!imc_log || m->bank < 8 || m->bank > 11 || (status & MCI_STATUS_UC) ||
-		!test_prefix(7, status & 0xefff))
-		return;
-
-	chan = EXTRACT(status, 0, 3);
-	if (chan == 0xf)
-		return;
-
-	if (EXTRACT(m->misc, 62, 62)) {
-		failrank = EXTRACT(m->misc, 46, 50);
-		dimm[0] = failrank2dimm(failrank, m->socketid, chan);
-		channel[0] = chan;
-	}
-	if (EXTRACT(m->misc, 63, 63)) {
-		failrank = EXTRACT(m->misc, 51, 55);
-		dimm[1] = failrank2dimm(failrank, m->socketid, chan);
-		channel[1] = chan;
-	}
 }
 #endif
