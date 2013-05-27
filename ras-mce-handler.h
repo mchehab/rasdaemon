@@ -70,7 +70,7 @@ struct mce_event {
 	char		mcistatus_msg[1024];
 	char		mcastatus_msg[1024];
 	char		user_action[4096];
-	char		mc_id[256];
+	char		mc_location[256];
 };
 
 struct mce_priv {
