@@ -66,8 +66,8 @@ While this tool works since Kernel 3.5 (where HERM patches got added),
 in order to get the full benefit of this tool, Kernel 3.10 or upper is
 needed.
 
-QUICK USAGE
-===========
+COMPILING AND INSTALLING
+========================
 
 sqlite3 and autoconf needs to be installed. On Fedora, this is done
 by installing the following packages:
@@ -85,16 +85,46 @@ To install then on Fedora, run:
 Or, if sqlite3 database will be used to store data:
 	yum install -y make gcc autoconf automake libtool tar sqlite-devel
 
-Run (without sqlite):
-	$ autoreconf -vfi && ./configure
+There are currently 3 features that are enabled optionally, via
+./configure parameters:
+
+  --enable-sqlite3        enable storing data at SQL lite database (currently
+                          experimental)
+  --enable-aer            enable PCIe AER events (currently experimental)
+  --enable-mce            enable MCE events (currently experimental)
+
+In order to compile it, run:
+	$ autoreconf -vfi
+	$ ./configure [parameters]
 	$ make
 
-or, if sql3database will be used:
-	$ autoreconf -vfi && ./configure --enable-sqlite3
-	$ make
+So, for example, to enable everything but sqlite3:
 
-As root:
+	$ autoreconf -vfi && ./configure --enable-aer --enable-mce && make
+
+After compiling, run, as root:
 	# make install
+
+COMPILING AND INSTALLING
+========================
+
+If the distribution is rpm-based, an alternative method would be to do:
+	$ autoreconf -vfi && ./configure
+
+The above procedure will generate a file at misc/rasdaemon.spec.
+
+You may edit it, in order to add/remove the --enable-[option]
+parameters.
+
+To generate the rpm files, do:
+
+	$ make dist-rpm
+
+To install the rpm files, run, as root:
+	# rpm -i `rpm --eval %{_topdir}`/RPMS/x86_64/rasdaemon-0.*.fc18.x86_64.rpm
+
+RUNNING
+=======
 
 The daemon generally requires root permission, in order to read the
 needed debugfs trace nodes, with needs to be previously mounted.
@@ -109,7 +139,8 @@ The output will be available via syslog. Or, to run it in foreground and see
 the logs in console, run it as:
 	# rasdaemon -f
 
-or, if you also want to record errors at the database:
+or, if you also want to record errors at the database (--enable-sqlite3 is
+required):
 	# rasdaemon -f -r
 
 You may also start it via systemd:
@@ -117,6 +148,22 @@ You may also start it via systemd:
 
 The rasdaemon will then output the messages to journald.
 
-A script is provided under /contrib, in order to test the daemon.
-While the daemon is running, just run:
+TESTING
+=======
+
+A script is provided under /contrib, in order to test the daemon EDAC
+handler. While the daemon is running, just run:
 	# contrib/edac-fake-inject
+
+The script requires a Kernel compiled with CONFIG_EDAC_DEBUG and a running
+EDAC driver.
+
+MCE error handling can use the MCE inject:
+	http://git.kernel.org/cgit/utils/cpu/mce/mce-inject.git
+For it to work, Kernel mce-inject module should be compiled and loaded.
+
+APEI error injection can use this tool:
+	https://git.kernel.org/cgit/linux/kernel/git/gong.chen/mce-test.git/
+
+AER error injection can use this tool:
+	https://git.kernel.org/cgit/linux/kernel/git/gong.chen/aer-inject.git/
