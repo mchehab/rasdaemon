@@ -177,7 +177,7 @@ ret:
 	return ret;
 }
 
-int register_mce_handler(struct ras_events *ras)
+int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 {
 	int rc;
 	struct mce_priv *mce;
@@ -196,6 +196,13 @@ int register_mce_handler(struct ras_events *ras)
 		free (ras->mce_priv);
 		ras->mce_priv = NULL;
 		return (rc);
+	}
+	switch (mce->cputype) {
+	case CPU_SANDY_BRIDGE_EP:
+	case CPU_IVY_BRIDGE_EPEX:
+		set_intel_imc_log(mce->cputype, ncpus);
+	default:
+		break;
 	}
 
 	return rc;
@@ -250,7 +257,7 @@ static void report_mce_event(struct ras_events *ras,
 		trace_seq_printf(s, " %s", e->user_action);
 
 	if (e->mc_location)
-		trace_seq_printf(s, ", ", e->mc_location);
+		trace_seq_printf(s, ", %s", e->mc_location);
 
 #if 0
 	/*

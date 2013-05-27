@@ -19,9 +19,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
+#include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
+#include "ras-logger.h"
 #include "ras-mce-handler.h"
 #include "bitfield.h"
 
@@ -380,6 +386,77 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 		break;
 	default:
 		break;
+	}
+
+	return 0;
+}
+
+/*
+ * Code to enable iMC logs
+ */
+static int domsr(int cpu, int msr, int bit)
+{
+	char fpath[32];
+	unsigned long long data;
+	int fd;
+
+	sprintf(fpath, "/dev/cpu/%d/msr", cpu);
+	fd = open(fpath, O_RDWR);
+	if (fd == -1) {
+		switch (errno) {
+		case ENOENT:
+			log(ALL, LOG_ERR,
+			    "Warning: cpu %d offline?, imc_log not set\n", cpu);
+			return -EINVAL;
+		default:
+			log(ALL, LOG_ERR,
+			    "Cannot open %s to set imc_log\n", fpath);
+			return -EINVAL;
+		}
+	}
+	if (pread(fd, &data, sizeof data, msr) != sizeof data) {
+		log(ALL, LOG_ERR,
+		    "Cannot read MSR_ERROR_CONTROL from %s\n", fpath);
+		return -EINVAL;
+	}
+	data |= bit;
+	if (pwrite(fd, &data, sizeof data, msr) != sizeof data) {
+		log(ALL, LOG_ERR,
+		    "Cannot write MSR_ERROR_CONTROL to %s\n", fpath);
+		return -EINVAL;
+	}
+	if (pread(fd, &data, sizeof data, msr) != sizeof data) {
+		log(ALL, LOG_ERR,
+		    "Cannot re-read MSR_ERROR_CONTROL from %s\n", fpath);
+		return -EINVAL;
+	}
+	if ((data & bit) == 0) {
+		log(ALL, LOG_ERR,
+		    "Failed to set imc_log on cpu %d\n", cpu);
+		return -EINVAL;
+	}
+	close(fd);
+	return 0;
+}
+
+int set_intel_imc_log(enum cputype cputype, unsigned ncpus)
+{
+	int cpu, msr, bit, rc;
+
+	switch (cputype) {
+	case CPU_SANDY_BRIDGE_EP:
+	case CPU_IVY_BRIDGE_EPEX:
+		msr = 0x17f;	/* MSR_ERROR_CONTROL */
+		bit = 0x2;	/* MemError Log Enable */
+		break;
+	default:
+		return 0;
+	}
+
+	for (cpu = 0; cpu < ncpus; cpu++) {
+		rc = domsr(cpu, msr, bit);
+		if (rc)
+			return rc;
 	}
 
 	return 0;

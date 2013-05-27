@@ -97,10 +97,13 @@ struct mce_priv {
 } while (0)
 
 /* register and handling routines */
-int register_mce_handler(struct ras_events *ras);
+int register_mce_handler(struct ras_events *ras, unsigned ncpus);
 int ras_mce_event_handler(struct trace_seq *s,
 			  struct pevent_record *record,
 			  struct event_format *event, void *context);
+
+/* enables intel iMC logs */
+int set_intel_imc_log(enum cputype cputype, unsigned ncpus);
 
 /* Per-CPU-type decoders for Intel CPUs */
 void p4_decode_model(struct mce_event *e);

@@ -504,8 +504,9 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 
 int handle_ras_events(int record_events)
 {
-	int rc, page_size, i, cpus;
+	int rc, page_size, i;
 	int num_events = 0;
+	unsigned cpus;
 	struct pevent *pevent = NULL;
 	struct pthread_data *data = NULL;
 	struct ras_events *ras = NULL;
@@ -559,8 +560,10 @@ int handle_ras_events(int record_events)
 		    "ras", "aer_event");
 #endif
 
+	cpus = get_num_cpus(ras);
+
 #ifdef HAVE_MCE
-	rc = register_mce_handler(ras);
+	rc = register_mce_handler(ras, cpus);
 	if (rc)
 		log(ALL, LOG_INFO, "Can't register mce handler\n");
 	if (ras->mce_priv) {
@@ -580,7 +583,6 @@ int handle_ras_events(int record_events)
 		return EINVAL;
 	}
 
-	cpus = get_num_cpus(ras);
 	data = calloc(sizeof(*data), cpus);
 	if (!data)
 		goto err;
