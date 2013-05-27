@@ -188,9 +188,10 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 		return ENOMEM;
 	}
 
+	mce = ras->mce_priv;
+
 	rc = detect_cpu(ras);
 	if (rc) {
-		mce = ras->mce_priv;
 		if (mce->processor_flags)
 			free (mce->processor_flags);
 		free (ras->mce_priv);
