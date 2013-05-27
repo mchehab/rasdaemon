@@ -1,15 +1,16 @@
-2) Make sqlite code thread safe: it currently hangs if two CPUs
-   try to record data there at the same time.
+1) Make sqlite code thread safe: it currently hangs sometimes, when
+   multiple threads try to write things there at the same time.
 
-4) Handle signals.
+2) Handle signals.
 
-5) Better handle error conditions to be sure that events won't be
+3) Better handle error conditions to be sure that events won't be
    lost.
 
-6) add a tool to handle the sqlite records, in order to detect if
+4) Add a tool to handle the sqlite records, in order to detect if
    the errors are just random noise or if they mean that memory is
    damaged.
 
-8) test support for PCIe AER trace records.
+5) Test support for PCIe AER trace records.
 
-9) add support for mce trace records.
+6) Better parse mce trace records.
+
