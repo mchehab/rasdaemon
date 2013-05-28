@@ -262,6 +262,8 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 static int get_num_cpus(struct ras_events *ras)
 {
+	return sysconf(_SC_NPROCESSORS_CONF);
+#if 0
 	char fname[MAX_PATH + 1];
 	int num_cpus = 0;
 	DIR		*dir;
@@ -280,6 +282,7 @@ static int get_num_cpus(struct ras_events *ras)
 	closedir(dir);
 
 	return num_cpus;
+#endif
 }
 
 static int read_ras_event_all_cpus(struct pthread_data *pdata,
@@ -294,7 +297,9 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	struct pollfd fds[n_cpus];
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
+#if 0
 	int need_sleep = 0;
+#endif
 
 	memset(&warnonce, 0, sizeof(warnonce));
 
@@ -343,7 +348,9 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 					log(TERM, LOG_INFO,
 					    "Error on CPU %i\n", i);
 					warnonce[i]++;
+#if 0
 					need_sleep = 1;
+#endif
 				}
 			}
 			if (!(fds[i].revents & POLLIN)) {
@@ -368,9 +375,10 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				count_nready++;
 			}
 		}
+#if 0
 		if (need_sleep)
 			sleep(POLLING_TIME);
-#if 0
+#else
 		/*
 		 * If we enable fallback mode, it will always be used, as
 		 * poll is still not working fine, IMHO
