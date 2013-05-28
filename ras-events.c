@@ -332,7 +332,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		}
 	}
 
-	log(TERM, LOG_INFO, "Listening to events for cpus 0 to %d\n", n_cpus);
+	log(TERM, LOG_INFO, "Listening to events for cpus 0 to %d\n", n_cpus - 1);
 	if (pdata[0].ras->record_events)
 		ras_mc_event_opendb(pdata[0].cpu, pdata[0].ras);
 
