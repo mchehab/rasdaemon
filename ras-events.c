@@ -489,6 +489,7 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	FILE *fp;
 	int fd, rc;
 	time_t uptime, now;
+	size_t size;
 	unsigned j1;
 	char buf[4096];
 
@@ -498,8 +499,13 @@ static int select_tracing_timestamp(struct ras_events *ras)
 		log(TERM, LOG_ERR, "Can't open trace_clock\n");
 		return -1;
 	}
-	read(fd, buf, sizeof(buf));
+	size = read(fd, buf, sizeof(buf));
 	close(fd);
+	if (!size) {
+		log(TERM, LOG_ERR, "trace_clock is empty!\n");
+		return -1;
+	}
+
 	if (!strstr(buf, UPTIME)) {
 		log(TERM, LOG_INFO, "Kernel doesn't support uptime clock\n");
 		return 0;
@@ -528,7 +534,11 @@ static int select_tracing_timestamp(struct ras_events *ras)
 		    "Couldn't read from /proc/uptime\n");
 		return 0;
 	}
-	fscanf(fp, "%zu.%u ", &uptime, &j1);
+	rc = fscanf(fp, "%zu.%u ", &uptime, &j1);
+	if (rc <= 0) {
+		log(TERM, LOG_ERR, "Can't parse /proc/uptime!\n");
+		return -1;
+	}
 	now = time(NULL);
 	fclose(fp);
 
