@@ -1,3 +1,30 @@
 2013-03-12	Mauro Carvalho Chehab <mchehab@redhat.com>
 
+	* Version 0.1.0
 	* Initial version
+
+2013-05-08	Mauro Carvalho Chehab <mchehab@redhat.com>
+
+	* Version 0.2.0
+	* Add support to log via syslog
+	* Add ras-mc-ctl script to handle dimm labels
+	* Add a rpm spec file
+	* Make sqlite3 code experimental
+	* Add manpages and systemd services
+	* Update to take advantage of tracing features on Kernel 3.10
+
+2013-05-20	Mauro Carvalho Chehab <mchehab@redhat.com>
+
+	* Version 0.3.0
+	* Several fixes
+	* Add support for MCE traces
+	* Add support for PCI AER traces
+	* Add a target to build it on rpm-based distros
+
+2013-05-28	Mauro Carvalho Chehab <mchehab@redhat.com>
+
+	* Version 0.4.0
+	* Several fixes
+	* Get rid of pthreads, to avoid troubles with sqllite3
+	  (requires Kernel 3.10 or upper)
+	* Add memory error decoding on MCE traces
