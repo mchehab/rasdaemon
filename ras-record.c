@@ -28,7 +28,7 @@
 #include "ras-mc-handler.h"
 #include "ras-logger.h"
 
-#define SQLITE_RAS_DB	"ras-mc_event.db"
+#define SQLITE_RAS_DB RASSTATEDIR "/" RAS_DB_FNAME
 
 const char *mc_event_db = " mc_event ";
 const char *mc_event_db_create_fields = "("

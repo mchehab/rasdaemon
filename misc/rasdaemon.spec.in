@@ -29,7 +29,7 @@ an utility for reporting current error counts from the EDAC sysfs files.
 
 %build
 autoreconf -vfi
-%configure --enable-mce
+%configure --enable-mce --enable-aer --enable-sqlite3
 make %{?_smp_mflags}
 
 %install
@@ -37,6 +37,8 @@ make install DESTDIR=%{buildroot}
 install -D -p -m 0644 misc/rasdaemon.service %{buildroot}/%{_unitdir}/rasdaemon.service
 install -D -p -m 0644 misc/ras-mc-ctl.service %{buildroot}%{_unitdir}/ras-mc-ctl.service
 rm INSTALL %{buildroot}/usr/include/*.h
+mkdir -p %{buildroot}/%{_sharedstatedir}/rasdaemon
+mkdir -p %{buildroot}/%{_sysconfdir}/ras.d
 
 %files
 %doc AUTHORS ChangeLog COPYING README TODO
@@ -44,6 +46,8 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_sbindir}/ras-mc-ctl
 %{_mandir}/*/*
 %{_unitdir}/*.service
+%{_sharedstatedir}/rasdaemon
+%{_sysconfdir}/ras.d
 
 %changelog
 * Mon May 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> @PACKAGE_VERSION@-1
