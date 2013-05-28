@@ -107,12 +107,12 @@ static int detect_cpu(struct ras_events *ras)
 	char *line = NULL;
 	size_t linelen = 0;
 	enum {
-		VENDOR = 1,
-		FAMILY = 2,
-		MODEL = 4,
-		MHZ = 8,
-		FLAGS = 16,
-		ALL_FLAGS = 0x1f
+		CPU_VENDOR = 1,
+		CPU_FAMILY = 2,
+		CPU_MODEL = 4,
+		CPU_MHZ = 8,
+		CPU_FLAGS = 16,
+		CPU_ALL = 0x1f
 	} seen = 0;
 
 	mce->family = 0;
@@ -126,28 +126,33 @@ static int detect_cpu(struct ras_events *ras)
 		return errno;
 	}
 
-	while (getdelim(&line, &linelen, '\n', f) > 0 && seen != ALL) {
+	while (getdelim(&line, &linelen, '\n', f) > 0 && seen != CPU_ALL) {
 		if (sscanf(line, "vendor_id : %63[^\n]",
 		    (char *)&mce->vendor) == 1)
-			seen |= VENDOR;
-		if (sscanf(line, "cpu family : %d", &mce->family) == 1)
-			seen |= FAMILY;
-		if (sscanf(line, "model : %d", &mce->model) == 1)
-			seen |= MODEL;
-		if (sscanf(line, "cpu MHz : %lf", &mce->mhz) == 1)
-			seen |= MHZ;
-		if (!strncmp(line, "flags", 5) && isspace(line[6])) {
+			seen |= CPU_VENDOR;
+		else if (sscanf(line, "cpu family : %d", &mce->family) == 1)
+			seen |= CPU_FAMILY;
+		else if (sscanf(line, "model : %d", &mce->model) == 1)
+			seen |= CPU_MODEL;
+		else if (sscanf(line, "cpu MHz : %lf", &mce->mhz) == 1)
+			seen |= CPU_MHZ;
+		else if (!strncmp(line, "flags", 5) && isspace(line[6])) {
 			if (mce->processor_flags)
 				free(mce->processor_flags);
 			mce->processor_flags = line;
 			line = NULL;
 			linelen = 0;
-			seen |= ALL_FLAGS;
+			seen |= CPU_FLAGS;
 		}
 	}
 
-	if (!(seen == ALL)) {
-		log(ALL, LOG_INFO, "Can't parse /proc/cpuinfo\n");
+	if (seen != CPU_ALL) {
+		log(ALL, LOG_INFO, "Can't parse /proc/cpuinfo: missing%s%s%s%s%s\n",
+			(seen & CPU_VENDOR) ? "" : " [vendor_id]",
+			(seen & CPU_FAMILY) ? "" : " [cpu family]",
+			(seen & CPU_MODEL)  ? "" : " [model]",
+			(seen & CPU_MHZ)    ? "" : " [cpu MHz]",
+			(seen & CPU_FLAGS)  ? "" : " [flags]");
 		ret = EINVAL;
 		goto ret;
 	}
