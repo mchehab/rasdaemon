@@ -126,7 +126,7 @@ static int detect_cpu(struct ras_events *ras)
 		return errno;
 	}
 
-	while (getdelim(&line, &linelen, '\n', f) > 0 && seen != CPU_ALL) {
+	while (seen != CPU_ALL && getdelim(&line, &linelen, '\n', f) > 0) {
 		if (sscanf(line, "vendor_id : %63[^\n]",
 		    (char *)&mce->vendor) == 1)
 			seen |= CPU_VENDOR;
