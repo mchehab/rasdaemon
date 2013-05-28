@@ -260,58 +260,6 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 	printf("\n");
 }
 
-static int read_ras_event(int fd,
-			  struct pthread_data *pdata,
-			  struct kbuffer *kbuf,
-			  void *page)
-{
-	static int warn_sleep = 0;
-	unsigned size;
-	unsigned long long time_stamp;
-	void *data;
-#if 0
-	/* POLL is currently broken on 3.10-rc2 */
-	int ready;
-	struct pollfd fds = {
-		.fd = fd,
-		.events = POLLIN | POLLPRI,
-	};
-#endif
-	do {
-#if 0
-	/* POLL is currently broken on 3.10-rc2 */
-		ready = poll(&fds, 1, -1);
-		if (ready < 0) {
-			log(TERM, LOG_WARNING, "poll\n");
-		}
-#endif
-		size = read(fd, page, pdata->ras->page_size);
-		if (size < 0) {
-			log(TERM, LOG_WARNING, "read\n");
-			return -1;
-		} else if (size > 0) {
-			kbuffer_load_subbuffer(kbuf, page);
-
-			while ((data = kbuffer_read_event(kbuf, &time_stamp))) {
-				parse_ras_data(pdata, kbuf, data, time_stamp);
-
-				/* increment to read next event */
-				kbuffer_next_event(kbuf, NULL);
-			}
-		} else {
-			/*
-			 * Before Kernel 3.10, read() never blocks. So, we
-			 * need to sleep for a while
-			 */
-			if (!warn_sleep) {
-				log(ALL, LOG_INFO, "Old kernel: need to sleep\n");
-				warn_sleep = 1;
-			}
-			sleep(POLLING_TIME);
-		}
-	} while (1);
-}
-
 static int get_num_cpus(struct ras_events *ras)
 {
 	char fname[MAX_PATH + 1];
@@ -332,6 +280,151 @@ static int get_num_cpus(struct ras_events *ras)
 	closedir(dir);
 
 	return num_cpus;
+}
+
+static int read_ras_event_all_cpus(struct pthread_data *pdata,
+				   unsigned n_cpus)
+{
+	unsigned size;
+	unsigned long long time_stamp;
+	void *data;
+	int ready, i, count_nready;
+	struct kbuffer *kbuf;
+	void *page;
+	struct pollfd fds[n_cpus];
+	int warnonce[n_cpus];
+	char pipe_raw[PATH_MAX];
+	int need_sleep = 0;
+
+	memset(&warnonce, 0, sizeof(warnonce));
+
+	page = malloc(pdata[0].ras->page_size);
+	if (!page) {
+		log(TERM, LOG_ERR, "Can't allocate page\n");
+		return -ENOMEM;
+	}
+
+	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
+	if (!kbuf) {
+		log(TERM, LOG_ERR, "Can't allocate kbuf\n");
+		free(page);
+		return -ENOMEM;
+	}
+
+	for (i = 0; i < n_cpus; i++) {
+		fds[i].events = POLLIN;
+
+		/* FIXME: use select to open for all CPUs */
+		snprintf(pipe_raw, sizeof(pipe_raw),
+			"per_cpu/cpu%d/trace_pipe_raw", i);
+
+		fds[i].fd = open_trace(pdata[0].ras, pipe_raw, O_RDONLY);
+		if (fds[i].fd < 0) {
+			log(TERM, LOG_ERR, "Can't open trace_pipe_raw\n");
+			kbuffer_free(kbuf);
+			free(page);
+			return -EINVAL;
+		}
+	}
+
+	log(TERM, LOG_INFO, "Listening to events for cpus 0 to %d\n", n_cpus);
+	if (pdata[0].ras->record_events)
+		ras_mc_event_opendb(pdata[0].cpu, pdata[0].ras);
+
+	do {
+		ready = poll(fds, n_cpus, -1);
+		if (ready < 0) {
+			log(TERM, LOG_WARNING, "poll\n");
+		}
+		count_nready = 0;
+		for (i = 0; i < n_cpus; i++) {
+			if (fds[i].revents & POLLERR) {
+				if (!warnonce[i]) {
+					log(TERM, LOG_INFO,
+					    "Error on CPU %i\n", i);
+					warnonce[i]++;
+					need_sleep = 1;
+				}
+			}
+			if (!(fds[i].revents & POLLIN)) {
+				count_nready++;
+				continue;
+			}
+			size = read(fds[i].fd, page, pdata[i].ras->page_size);
+			if (size < 0) {
+				log(TERM, LOG_WARNING, "read\n");
+				return -1;
+			} else if (size > 0) {
+				kbuffer_load_subbuffer(kbuf, page);
+
+				while ((data = kbuffer_read_event(kbuf, &time_stamp))) {
+					parse_ras_data(&pdata[i],
+						       kbuf, data, time_stamp);
+
+					/* increment to read next event */
+					kbuffer_next_event(kbuf, NULL);
+				}
+			} else {
+				count_nready++;
+			}
+		}
+		if (need_sleep)
+			sleep(POLLING_TIME);
+#if 0
+		/*
+		 * If we enable fallback mode, it will always be used, as
+		 * poll is still not working fine, IMHO
+		 */
+		if (count_nready == n_cpus) {
+			/* Should only happen with legacy kernels */
+			break;
+		}
+#endif
+	} while (1);
+
+	/* poll() is not supported. We need to fallback to the old way */
+	log(TERM, LOG_INFO,
+	    "Old kernel detected. Stop listening and fall back to pthread way.\n");
+	kbuffer_free(kbuf);
+	free(page);
+	for (i = 0; i < n_cpus; i++)
+		close(fds[i].fd);
+
+	return -255;
+}
+
+static int read_ras_event(int fd,
+			  struct pthread_data *pdata,
+			  struct kbuffer *kbuf,
+			  void *page)
+{
+	unsigned size;
+	unsigned long long time_stamp;
+	void *data;
+
+	/*
+	 * read() never blocks. We can't call poll() here, as it is
+	 * not supported on kernels below 3.10. So, the better is to just
+	 * sleep for a while, to avoid eating too much CPU here.
+	 */
+	do {
+		size = read(fd, page, pdata->ras->page_size);
+		if (size < 0) {
+			log(TERM, LOG_WARNING, "read\n");
+			return -1;
+		} else if (size > 0) {
+			kbuffer_load_subbuffer(kbuf, page);
+
+			while ((data = kbuffer_read_event(kbuf, &time_stamp))) {
+				parse_ras_data(pdata, kbuf, data, time_stamp);
+
+				/* increment to read next event */
+				kbuffer_next_event(kbuf, NULL);
+			}
+		} else {
+			sleep(POLLING_TIME);
+		}
+	} while (1);
 }
 
 static void *handle_ras_events_cpu(void *priv)
@@ -368,7 +461,7 @@ static void *handle_ras_events_cpu(void *priv)
 		return NULL;
 	}
 
-	printf("Listening to events on cpu %d\n", pdata->cpu);
+	log(TERM, LOG_INFO, "Listening to events on cpu %d\n", pdata->cpu);
 	if (pdata->ras->record_events)
 		ras_mc_event_opendb(pdata->cpu, pdata->ras);
 
@@ -587,27 +680,35 @@ int handle_ras_events(int record_events)
 	if (!data)
 		goto err;
 
-	log(SYSLOG, LOG_INFO, "Opening one thread per cpu (%d threads)\n", cpus);
+
 	for (i = 0; i < cpus; i++) {
 		data[i].ras = ras;
 		data[i].cpu = i;
-
-		rc = pthread_create(&data[i].thread, NULL,
-				    handle_ras_events_cpu,
-				    (void *)&data[i]);
-		if (rc) {
-			log(SYSLOG, LOG_INFO,
-			    "Failed to create thread for cpu %d. Aborting.\n",
-			    i);
-			while (--i)
-				pthread_cancel(data[i].thread);
-			goto err;
-		}
 	}
+	rc = read_ras_event_all_cpus(data, cpus);
 
-	/* Wait for all threads to complete */
-	for (i = 0; i < cpus; i++)
-		pthread_join(data[i].thread, NULL);
+	/* Poll doesn't work on this kernel. Fallback to pthread way */
+	if (rc == -255) {
+		log(SYSLOG, LOG_INFO,
+		"Opening one thread per cpu (%d threads)\n", cpus);
+		for (i = 0; i < cpus; i++) {
+			rc = pthread_create(&data[i].thread, NULL,
+					handle_ras_events_cpu,
+					(void *)&data[i]);
+			if (rc) {
+				log(SYSLOG, LOG_INFO,
+				"Failed to create thread for cpu %d. Aborting.\n",
+				i);
+				while (--i)
+					pthread_cancel(data[i].thread);
+				goto err;
+			}
+		}
+
+		/* Wait for all threads to complete */
+		for (i = 0; i < cpus; i++)
+			pthread_join(data[i].thread, NULL);
+	}
 
 	log(SYSLOG, LOG_INFO, "Huh! something got wrong. Aborting.\n");
 
