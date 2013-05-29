@@ -38,3 +38,4 @@ upload:
 # custom target
 install-data-local:
 	$(install_sh) -d "$(DESTDIR)@RASSTATEDIR@"
+	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d"
