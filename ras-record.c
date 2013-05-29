@@ -169,7 +169,7 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 
 	if (!priv || !priv->stmt)
 		return 0;
-	log(TERM, LOG_INFO, "store_event: %p\n", priv->stmt);
+	log(TERM, LOG_INFO, "mc_event store: %p\n", priv->stmt);
 
 	sqlite3_bind_text(priv->stmt,  1, ev->timestamp, -1, NULL);
 	sqlite3_bind_int (priv->stmt,  2, ev->error_count);
@@ -186,10 +186,10 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 	sqlite3_bind_text(priv->stmt, 13, ev->driver_detail, -1, NULL);
 	rc = sqlite3_step(priv->stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR, "Failed to do step on sqlite: error = %d\n", rc);
-	rc = sqlite3_finalize(priv->stmt);
+		log(TERM, LOG_ERR, "Failed to do mc_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR, "Failed to do finalize insert on sqlite: error = %d\n",
+		log(TERM, LOG_ERR, "Failed reset mc_event on sqlite: error = %d\n",
 		       rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");
 
