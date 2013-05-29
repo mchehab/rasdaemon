@@ -5,7 +5,7 @@ Summary:		Utility to receive RAS error tracings
 Group:			Applications/System
 License:		GPLv2
 URL:			https://git.fedorahosted.org/git/rasdaemon.git
-Source0:		http://mchehab.fedorapeople.org/@PACKAGE@-@PACKAGE_VERSION@.tar.bz2
+Source0:		http://mchehab.fedorapeople.org/%{name}-%{version}.tar.bz2
 BuildRoot:		%{_tmppath}/%{name}-%{version}-%{release}
 Requires:		hwdata, dmidecode, perl-dbd-sqlite
 BuildRequires:		autoconf, automake, gettext-devel, libtool, sqlite-devel
@@ -45,9 +45,15 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_mandir}/*/*
 %{_unitdir}/*.service
 %{_sharedstatedir}/rasdaemon
-%{_sysconfdir}/ras.d
+%{_sysconfdir}/ras/dimm_labels.d
 
 %changelog
-* Mon May 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> @PACKAGE_VERSION@-1
+* Tue May 29 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.1-1
+- Updated to version 0.4.1 with contains some bug fixes
+
+* Mon May 28 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.0-1
+- Updated to version 0.4.0 and added support for mce, aer and sqlite3 storage
+
+* Mon May 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.3.0-1
 - Package created
 
