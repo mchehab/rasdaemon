@@ -28,3 +28,9 @@
 	* Get rid of pthreads, to avoid troubles with sqllite3
 	  (requires Kernel 3.10 or upper)
 	* Add memory error decoding on MCE traces
+
+2013-05-29	Mauro Carvalho Chehab <mchehab@redhat.com>
+
+	* Version 0.4.1
+	* Some fixes, mostly at sqlite3 code
+	* Add support at ras-mc-ctl to query database
