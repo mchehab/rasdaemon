@@ -60,6 +60,8 @@ CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
 AC_SUBST([rasstatedir], [$localstatedir/lib/rasdaemon])
 AC_DEFINE_DIR([RASSTATEDIR], [rasstatedir], [rasdaemon db store state dir])
 AC_SUBST([RASSTATEDIR])
+
 AC_DEFINE([RAS_DB_FNAME], ["ras-mc_event.db"], [ras events database])
+AC_SUBST([RAS_DB_FNAME], ["ras-mc_event.db"])
 
 AC_OUTPUT

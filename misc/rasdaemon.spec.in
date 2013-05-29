@@ -7,7 +7,7 @@ License:		GPLv2
 URL:			https://git.fedorahosted.org/git/rasdaemon.git
 Source0:		http://mchehab.fedorapeople.org/@PACKAGE@-@PACKAGE_VERSION@.tar.bz2
 BuildRoot:		%{_tmppath}/%{name}-%{version}-%{release}
-Requires:		hwdata, dmidecode
+Requires:		hwdata, dmidecode, perl-dbd-sqlite
 BuildRequires:		autoconf, automake, gettext-devel, libtool, sqlite-devel
 ExclusiveArch:		%{ix86} x86_64
 Requires(post):		systemd-units

@@ -35,6 +35,7 @@ use File::Find;
 use Getopt::Long;
 use POSIX;
 
+my $dbname      = "@RASSTATEDIR@/@RAS_DB_FNAME@";
 my $prefix      = "@prefix@";
 my $sysconfdir  = "@sysconfdir@";
 my $dmidecode   = find_prog ("dmidecode");
@@ -71,6 +72,8 @@ Usage: $prog [OPTIONS...]
  --delay=N          Delay N seconds before writing DIMM labels.
  --labeldb=DB       Load label database from file DB.
  --layout           Display the memory layout.
+ --summary          Presents a summary of the logged errors.
+ --errors           Shows the errors stored at the error database.
  --help             This help message.
 EOF
 
@@ -107,6 +110,14 @@ if ($conf{opt}{status}) {
     exit ($status ? 0 : 1);
 }
 
+if ($conf{opt}{summary}) {
+    summary ();
+}
+
+if ($conf{opt}{errors}) {
+    errors ();
+}
+
 exit (0);
 
 sub parse_cmdline
@@ -119,6 +130,8 @@ sub parse_cmdline
     $conf{opt}{delay} = 0;
     $conf{opt}{display_memory_layout} = 0;
     $conf{opt}{guess_dimm_label} = 0;
+    $conf{opt}{summary} = 0;
+    $conf{opt}{errors} = 0;
 
     my $rref = \$conf{opt}{report};
     my $mref = \$conf{opt}{mainboard};
@@ -133,7 +146,10 @@ sub parse_cmdline
                          "delay:s" =>         \$conf{opt}{delay},
                          "labeldb=s" =>       \$conf{labeldb},
                          "status" =>          \$conf{opt}{status},
-			 "layout" =>          \$conf{opt}{display_memory_layout});
+                         "layout" =>          \$conf{opt}{display_memory_layout},
+                         "summary" =>         \$conf{opt}{summary},
+                         "errors" =>          \$conf{opt}{errors}
+            );
 
     usage(1) if !$rc;
 
@@ -803,6 +819,49 @@ sub find_prog
     }
     # log_error ("Failed to find $file in PATH\n");
     return "";
+}
+
+sub summary
+{
+    require DBI;
+
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
+
+    my $query = "select top_layer,middle_layer,lower_layer, count(*) from mc_event group by top_layer,middle_layer,lower_layer";
+    my $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+
+    $query_handle->bind_columns(\my($top, $mid, $low, $count));
+
+    print "Memory controller events summary:\n";
+    while($query_handle->fetch()) {
+        print "location: $top:$mid:$low errors: $count\n";
+    }
+
+    $query_handle->finish;
+    undef($dbh);
+}
+
+sub errors
+{
+    require DBI;
+
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
+
+    my $query = "select id, timestamp, err_count, err_type, err_msg, label, mc, top_layer,middle_layer,lower_layer, address, grain, syndrome, driver_detail from mc_event order by id";
+
+    my $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+
+    $query_handle->bind_columns(\my($id, $time, $count, $type, $msg, $label, $mc, $top, $mid, $low, $addr, $grain, $syndrome, $detail));
+
+    print "Memory controller events:\n";
+    while($query_handle->fetch()) {
+        print "$id $time $count $type error(s): $msg at $label location: $mc:$top:$mid:$low, addr $addr, grain $grain, syndrome $syndrome $detail\n";
+    }
+
+    $query_handle->finish;
+    undef($dbh);
 }
 
 sub log_msg   { print STDERR "$prog: ", @_ unless $conf{opt}{quiet}; }
