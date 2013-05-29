@@ -34,3 +34,7 @@ rpmlint:
 
 upload:
 	scp @PACKAGE@-@PACKAGE_VERSION@*.src.rpm @PACKAGE@-@PACKAGE_VERSION@.tar.bz2 misc/rasdaemon.spec fedorapeople.org:public_html
+
+# custom target
+install-data-local:
+	$(install_sh) -d "@RASSTATEDIR@"
