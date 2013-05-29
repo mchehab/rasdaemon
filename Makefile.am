@@ -37,4 +37,4 @@ upload:
 
 # custom target
 install-data-local:
-	$(install_sh) -d "@RASSTATEDIR@"
+	$(install_sh) -d "$(DESTDIR)@RASSTATEDIR@"
