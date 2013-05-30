@@ -827,15 +827,15 @@ sub summary
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
-    my $query = "select top_layer,middle_layer,lower_layer, count(*) from mc_event group by top_layer,middle_layer,lower_layer";
+    my $query = "select label, mc, top_layer,middle_layer,lower_layer, count(*) from mc_event group by label,mc,top_layer,middle_layer,lower_layer";
     my $query_handle = $dbh->prepare($query);
     $query_handle->execute();
 
-    $query_handle->bind_columns(\my($top, $mid, $low, $count));
+    $query_handle->bind_columns(\my($label, $mc, $top, $mid, $low, $count));
 
     print "Memory controller events summary:\n";
     while($query_handle->fetch()) {
-        print "location: $top:$mid:$low errors: $count\n";
+        print "DIMM Label(s): '$label' location: $mc:$top:$mid:$low errors: $count\n";
     }
 
     $query_handle->finish;
