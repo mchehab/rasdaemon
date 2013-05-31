@@ -46,7 +46,7 @@ struct ras_aer_event {
 
 struct sqlite3_priv {
 	sqlite3		*db;
-	sqlite3_stmt	*stmt;
+	sqlite3_stmt	*stmt_mc_event;
 };
 
 int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras);

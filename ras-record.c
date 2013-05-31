@@ -194,7 +194,7 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		return -1;
 	}
 
-	rc = ras_mc_prepare_stmt(priv, &priv->stmt, &mc_event_tab);
+	rc = ras_mc_prepare_stmt(priv, &priv->stmt_mc_event, &mc_event_tab);
 	if (rc == SQLITE_OK) {
 		log(TERM, LOG_INFO,
 		    "cpu %u: Recording events at %s\n",
@@ -214,30 +214,32 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 	int rc;
 	struct sqlite3_priv *priv = ras->db_priv;
 
-	if (!priv || !priv->stmt)
+	if (!priv || !priv->stmt_mc_event)
 		return 0;
-	log(TERM, LOG_INFO, "mc_event store: %p\n", priv->stmt);
+	log(TERM, LOG_INFO, "mc_event store: %p\n", priv->stmt_mc_event);
 
-	sqlite3_bind_text(priv->stmt,  1, ev->timestamp, -1, NULL);
-	sqlite3_bind_int (priv->stmt,  2, ev->error_count);
-	sqlite3_bind_text(priv->stmt,  3, ev->error_type, -1, NULL);
-	sqlite3_bind_text(priv->stmt,  4, ev->msg, -1, NULL);
-	sqlite3_bind_text(priv->stmt,  5, ev->label, -1, NULL);
-	sqlite3_bind_int (priv->stmt,  6, ev->mc_index);
-	sqlite3_bind_int (priv->stmt,  7, ev->top_layer);
-	sqlite3_bind_int (priv->stmt,  8, ev->middle_layer);
-	sqlite3_bind_int (priv->stmt,  9, ev->lower_layer);
-	sqlite3_bind_int (priv->stmt, 10, ev->address);
-	sqlite3_bind_int (priv->stmt, 11, ev->grain);
-	sqlite3_bind_int (priv->stmt, 12, ev->syndrome);
-	sqlite3_bind_text(priv->stmt, 13, ev->driver_detail, -1, NULL);
-	rc = sqlite3_step(priv->stmt);
+	sqlite3_bind_text(priv->stmt_mc_event,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_int (priv->stmt_mc_event,  2, ev->error_count);
+	sqlite3_bind_text(priv->stmt_mc_event,  3, ev->error_type, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mc_event,  4, ev->msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mc_event,  5, ev->label, -1, NULL);
+	sqlite3_bind_int (priv->stmt_mc_event,  6, ev->mc_index);
+	sqlite3_bind_int (priv->stmt_mc_event,  7, ev->top_layer);
+	sqlite3_bind_int (priv->stmt_mc_event,  8, ev->middle_layer);
+	sqlite3_bind_int (priv->stmt_mc_event,  9, ev->lower_layer);
+	sqlite3_bind_int (priv->stmt_mc_event, 10, ev->address);
+	sqlite3_bind_int (priv->stmt_mc_event, 11, ev->grain);
+	sqlite3_bind_int (priv->stmt_mc_event, 12, ev->syndrome);
+	sqlite3_bind_text(priv->stmt_mc_event, 13, ev->driver_detail, -1, NULL);
+	rc = sqlite3_step(priv->stmt_mc_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR, "Failed to do mc_event step on sqlite: error = %d\n", rc);
-	rc = sqlite3_reset(priv->stmt);
+		log(TERM, LOG_ERR,
+		    "Failed to do mc_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_mc_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR, "Failed reset mc_event on sqlite: error = %d\n",
-		       rc);
+		log(TERM, LOG_ERR,
+		    "Failed reset mc_event on sqlite: error = %d\n",
+		    rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");
 
 	return rc;
