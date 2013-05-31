@@ -28,72 +28,121 @@
 #include "ras-mc-handler.h"
 #include "ras-logger.h"
 
+/* #define DEBUG_SQL 1 */
+
 #define SQLITE_RAS_DB RASSTATEDIR "/" RAS_DB_FNAME
 
-const char *mc_event_db = " mc_event ";
-const char *mc_event_db_create_fields = "("
-		"id INTEGER PRIMARY KEY"
-		", timestamp TEXT"
-		", err_count INTEGER"
-		", err_type TEXT"
-		", err_msg TEXT"		/* 5 */
-		", label TEXT"
-		", mc INTEGER"
-		", top_layer INTEGER"
-		", middle_layer INTEGER"
-		", lower_layer INTEGER"		/* 10 */
-		", address INTEGER"
-		", grain INTEGER"
-		", syndrome INTEGER"
-		", driver_detail TEXT"		/* 14 */
-	")";
 
-const char *mc_event_db_fields = "("
-		"id"
-		", timestamp"
-		", err_count"
-		", err_type"
-		", err_msg"			/* 5 */
-		", label"
-		", mc"
-		", top_layer"
-		", middle_layer"
-		", lower_layer"			/* 10 */
-		", address"
-		", grain"
-		", syndrome"
-		", driver_detail"		/* 14 */
-	")";
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
 
-#define NUM_MC_EVENT_DB_VALUES	14
+struct db_fields {
+	char *name;
+	char *type;
+};
 
-const char *createdb = "CREATE TABLE IF NOT EXISTS";
+struct db_table_descriptor {
+	char			*name;
+	const struct db_fields	*fields;
+	size_t			num_fields;
+};
+
+static const struct db_fields mc_event_fields[] = {
+		{ .name="id",			.type="INTEGER PRIMARY KEY" },
+		{ .name="timestamp",		.type="TEXT" },
+		{ .name="err_count",		.type="INTEGER" },
+		{ .name="err_type",		.type="TEXT" },
+		{ .name="err_msg",		.type="TEXT" },
+		{ .name="label",		.type="TEXT" },
+		{ .name="mc",			.type="INTEGER" },
+		{ .name="top_layer",		.type="INTEGER" },
+		{ .name="middle_layer",		.type="INTEGER" },
+		{ .name="lower_layer",		.type="INTEGER" },
+		{ .name="address",		.type="INTEGER" },
+		{ .name="grain",		.type="INTEGER" },
+		{ .name="syndrome",		.type="INTEGER" },
+		{ .name="driver_detail",	.type="TEXT" },
+};
+
+static const struct db_table_descriptor mc_event_tab = {
+	.name = "mc_event",
+	.fields = mc_event_fields,
+	.num_fields = ARRAY_SIZE(mc_event_fields),
+};
+
 const char *insertdb = "INSERT INTO";
 const char *valuesdb = " VALUES ";
 
-static int ras_mc_prepare_stmt(struct sqlite3_priv *priv)
+static int ras_mc_prepare_stmt(struct sqlite3_priv *priv,
+			       sqlite3_stmt **stmt,
+			       const struct db_table_descriptor *db_tab)
+
 {
 	int i, rc;
-	char sql[1024];
+	char sql[1024], *p = sql, *end = sql + sizeof(sql);
+	const struct db_fields *field;
 
-	strcpy(sql, insertdb);
-	strcat(sql, mc_event_db);
-	strcat(sql, mc_event_db_fields);
-	strcat(sql, valuesdb);
+	p += snprintf(p, end - p, "INSERT INTO %s (",
+		      db_tab->name);
 
-	strcat(sql, "(NULL, ");	/* Auto-increment field */
-	for (i = 1; i < NUM_MC_EVENT_DB_VALUES; i++) {
-		if (i < NUM_MC_EVENT_DB_VALUES - 1)
+	for (i = 0; i < db_tab->num_fields; i++) {
+		field = &db_tab->fields[i];
+		p += snprintf(p, end - p, "%s", field->name);
+
+		if (i < db_tab->num_fields - 1)
+			p += snprintf(p, end - p, ", ");
+	}
+
+	p += snprintf(p, end - p, ") VALUES ( NULL, ");
+
+	for (i = 1; i < db_tab->num_fields; i++) {
+		if (i <  db_tab->num_fields - 1)
 			strcat(sql, "?, ");
 		else
 			strcat(sql, "?)");
 	}
 
-	rc = sqlite3_prepare_v2(priv->db, sql, -1, &priv->stmt, NULL);
-	if (rc != SQLITE_OK)
-		log(TERM, LOG_ERR, "Failed to prepare insert db on %s: error = %s\n",
-		       SQLITE_RAS_DB, sqlite3_errmsg(priv->db));
+#ifdef DEBUG_SQL
+	log(TERM, LOG_INFO, "SQL: %s\n", sql);
+#endif
 
+	rc = sqlite3_prepare_v2(priv->db, sql, -1, stmt, NULL);
+	if (rc != SQLITE_OK)
+		log(TERM, LOG_ERR,
+		    "Failed to prepare insert db at table %s (db %s): error = %s\n",
+		    db_tab->name, SQLITE_RAS_DB, sqlite3_errmsg(priv->db));
+
+	return rc;
+}
+
+static int ras_mc_create_table(struct sqlite3_priv *priv,
+			       const struct db_table_descriptor *db_tab)
+{
+	const struct db_fields *field;
+	char sql[1024], *p = sql, *end = sql + sizeof(sql);
+	int i,rc;
+
+	p += snprintf(p, end - p, "CREATE TABLE IF NOT EXISTS %s (",
+		      db_tab->name);
+
+	for (i = 0; i < db_tab->num_fields; i++) {
+		field = &db_tab->fields[i];
+		p += snprintf(p, end - p, "%s %s", field->name, field->type);
+
+		if (i < db_tab->num_fields - 1)
+			p += snprintf(p, end - p, ", ");
+	}
+	p += snprintf(p, end - p, ")");
+
+#ifdef DEBUG_SQL
+	log(TERM, LOG_INFO, "SQL: %s\n", sql);
+#endif
+
+	rc = sqlite3_exec(priv->db, sql, NULL, NULL, NULL);
+	if (rc != SQLITE_OK) {
+		log(TERM, LOG_ERR,
+		    "Failed to create table %s on %s: error = %d\n",
+		    db_tab->name, SQLITE_RAS_DB, rc);
+	}
 	return rc;
 }
 
@@ -101,7 +150,6 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 {
 	int rc;
 	sqlite3 *db;
-	char sql[1024];
 	struct sqlite3_priv *priv;
 
 	printf("Calling %s()\n", __FUNCTION__);
@@ -137,27 +185,26 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		free(priv);
 		return -1;
 	}
+	priv->db = db;
 
-	strcpy(sql, createdb);
-	strcat(sql, mc_event_db);
-	strcat(sql, mc_event_db_create_fields);
-	rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
+	rc = ras_mc_create_table(priv, &mc_event_tab);
 	if (rc != SQLITE_OK) {
-		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to create db on %s: error = %d\n",
-		    cpu, SQLITE_RAS_DB, rc);
+		sqlite3_close(db);
 		free(priv);
 		return -1;
 	}
 
-	priv->db = db;
-	ras->db_priv = priv;
-
-	rc = ras_mc_prepare_stmt(priv);
-	if (rc == SQLITE_OK)
+	rc = ras_mc_prepare_stmt(priv, &priv->stmt, &mc_event_tab);
+	if (rc == SQLITE_OK) {
 		log(TERM, LOG_INFO,
 		    "cpu %u: Recording events at %s\n",
 		    cpu, SQLITE_RAS_DB);
+		ras->db_priv = priv;
+	} else {
+		sqlite3_close(db);
+		free(priv);
+		return -1;
+	}
 
 	return 0;
 }
