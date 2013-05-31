@@ -824,21 +824,59 @@ sub find_prog
 sub summary
 {
     require DBI;
+    my ($query, $query_handle, $out);
+    my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
-    my $query = "select label, mc, top_layer,middle_layer,lower_layer, count(*) from mc_event group by label,mc,top_layer,middle_layer,lower_layer";
-    my $query_handle = $dbh->prepare($query);
+    # Memory controller mc_event errors
+    $query = "select err_type, label, mc, top_layer,middle_layer,lower_layer, count(*) from mc_event group by err_type, label, mc, top_layer, middle_layer, lower_layer";
+    $query_handle = $dbh->prepare($query);
     $query_handle->execute();
-
-    $query_handle->bind_columns(\my($label, $mc, $top, $mid, $low, $count));
-
-    print "Memory controller events summary:\n";
+    $query_handle->bind_columns(\($err_type, $label, $mc, $top, $mid, $low, $count));
+    $out = "";
     while($query_handle->fetch()) {
-        print "DIMM Label(s): '$label' location: $mc:$top:$mid:$low errors: $count\n";
+        $out .= "\t$err_type on DIMM Label(s): '$label' location: $mc:$top:$mid:$low errors: $count\n";
     }
-
+    if ($out ne "") {
+        print "Memory controller events summary:\n$out\n";
+    } else {
+        print "No Memory errors.\n\n";
+    }
     $query_handle->finish;
+
+    # PCIe AER aer_event errors
+    $query = "select err_type, err_msg, count(*) from aer_event group by err_type, err_msg";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($err_type, $msg, $count));
+    $out = "";
+    while($query_handle->fetch()) {
+        $out .= "\t$count $err_type errors: $msg\n";
+    }
+    if ($out ne "") {
+        print "PCIe AER events summary:\n$out\n";
+    } else {
+        print "No PCIe AER errors.\n\n";
+    }
+    $query_handle->finish;
+
+    # MCE mce_record errors
+    $query = "select error_msg, count(*) from mce_record group by error_msg";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($msg, $count));
+    $out = "";
+    while($query_handle->fetch()) {
+        $out .= "\t$count $msg errors\n";
+    }
+    if ($out ne "") {
+        print "MCE records summary:\n$out";
+    } else {
+        print "No MCE errors.\n";
+    }
+    $query_handle->finish;
+
     undef($dbh);
 }
 
