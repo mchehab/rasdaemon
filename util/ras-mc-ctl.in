@@ -898,9 +898,9 @@ sub errors
         $out .= "$id $time $count $type error(s): $msg at $label location: $mc:$top:$mid:$low, addr $addr, grain $grain, syndrome $syndrome $detail\n";
     }
     if ($out ne "") {
-        print "PCIe AER events:\n$out\n";
+        print "Memory controller events:\n$out\n";
     } else {
-        print "No PCIe AER errors.\n\n";
+        print "No Memory errors.\n\n";
     }
     $query_handle->finish;
 
@@ -914,9 +914,9 @@ sub errors
         $out .= "$id $time $type error: $msg\n";
     }
     if ($out ne "") {
-        print "MCE events:\n$out\n";
+        print "PCIe AER events:\n$out\n";
     } else {
-        print "No MCE errors.\n\n";
+        print "No PCIe AER errors.\n\n";
     }
     $query_handle->finish;
 
@@ -952,9 +952,9 @@ sub errors
 	$out .= "\n";
     }
     if ($out ne "") {
-        print "Memory controller events:\n$out\n";
+        print "MCE events:\n$out\n";
     } else {
-        print "No Memory errors.\n\n";
+        print "No MCE errors.\n\n";
     }
     $query_handle->finish;
 
