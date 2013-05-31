@@ -143,10 +143,14 @@ static int ras_mc_prepare_stmt(struct sqlite3_priv *priv,
 #endif
 
 	rc = sqlite3_prepare_v2(priv->db, sql, -1, stmt, NULL);
-	if (rc != SQLITE_OK)
+	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to prepare insert db at table %s (db %s): error = %s\n",
 		    db_tab->name, SQLITE_RAS_DB, sqlite3_errmsg(priv->db));
+		stmt = NULL;
+	} else {
+		log(TERM, LOG_INFO, "Recording %s events\n", db_tab->name);
+	}
 
 	return rc;
 }
@@ -225,23 +229,10 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	priv->db = db;
 
 	rc = ras_mc_create_table(priv, &mc_event_tab);
-	if (rc != SQLITE_OK) {
-		sqlite3_close(db);
-		free(priv);
-		return -1;
-	}
+	if (rc == SQLITE_OK)
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_mc_event, &mc_event_tab);
 
-	rc = ras_mc_prepare_stmt(priv, &priv->stmt_mc_event, &mc_event_tab);
-	if (rc == SQLITE_OK) {
-		log(TERM, LOG_INFO,
-		    "cpu %u: Recording events at %s\n",
-		    cpu, SQLITE_RAS_DB);
-		ras->db_priv = priv;
-	} else {
-		sqlite3_close(db);
-		free(priv);
-		return -1;
-	}
 
+	ras->db_priv = priv;
 	return 0;
 }
