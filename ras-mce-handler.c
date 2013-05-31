@@ -396,5 +396,10 @@ int ras_mce_event_handler(struct trace_seq *s,
 		return rc;
 
 	report_mce_event(ras, record, s, &e);
+
+#ifdef HAVE_SQLITE3
+	ras_store_mce_record(ras, &e);
+#endif
+
 	return 0;
 }

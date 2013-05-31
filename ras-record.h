@@ -40,6 +40,10 @@ struct ras_aer_event {
 	const char *msg;
 };
 
+struct ras_mc_event;
+struct ras_aer_event;
+struct mce_event;
+
 #ifdef HAVE_SQLITE3
 
 #include <sqlite3.h>
@@ -50,16 +54,21 @@ struct sqlite3_priv {
 #ifdef HAVE_AER
 	sqlite3_stmt	*stmt_aer_event;
 #endif
+#ifdef HAVE_MCE
+	sqlite3_stmt	*stmt_mce_record;
+#endif
 };
 
 int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras);
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
 int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev);
+int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
 static inline int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev) { return 0; };
 static inline int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev) { return 0; };
+static inline int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev) { return 0; };
 
 #endif
 

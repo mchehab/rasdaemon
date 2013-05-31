@@ -27,6 +27,7 @@
 #include "ras-events.h"
 #include "ras-mc-handler.h"
 #include "ras-aer-handler.h"
+#include "ras-mce-handler.h"
 #include "ras-logger.h"
 
 /* #define DEBUG_SQL 1 */
@@ -135,7 +136,7 @@ int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 
 	if (!priv || !priv->stmt_aer_event)
 		return 0;
-	log(TERM, LOG_INFO, "mc_event store: %p\n", priv->stmt_aer_event);
+	log(TERM, LOG_INFO, "aer_event store: %p\n", priv->stmt_aer_event);
 
 	sqlite3_bind_text(priv->stmt_aer_event,  1, ev->timestamp, -1, NULL);
 	sqlite3_bind_text(priv->stmt_aer_event,  3, ev->error_type, -1, NULL);
@@ -155,6 +156,98 @@ int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 	return rc;
 }
 #endif
+
+
+/*
+ * Table and functions to handle mce:mce_record
+ */
+
+#ifdef HAVE_MCE
+static const struct db_fields mce_record_fields[] = {
+		{ .name="id",			.type="INTEGER PRIMARY KEY" },
+		{ .name="timestamp",		.type="TEXT" },
+
+		/* MCE registers */
+		{ .name="mcgcap",		.type="INTEGER" },
+		{ .name="mcgstatus",		.type="INTEGER" },
+		{ .name="status",		.type="INTEGER" },
+		{ .name="addr",			.type="INTEGER" }, // 5
+		{ .name="misc",			.type="INTEGER" },
+		{ .name="ip",			.type="INTEGER" },
+		{ .name="tsc",			.type="INTEGER" },
+		{ .name="walltime",		.type="INTEGER" },
+		{ .name="cpu",			.type="INTEGER" }, // 10
+		{ .name="cpuid",		.type="INTEGER" },
+		{ .name="apicid",		.type="INTEGER" },
+		{ .name="socketid",		.type="INTEGER" },
+		{ .name="cs",			.type="INTEGER" },
+		{ .name="bank",			.type="INTEGER" }, //15
+		{ .name="cpuvendor",		.type="INTEGER" },
+
+		/* Parsed data - will likely change */
+		{ .name="bank_name",		.type="TEXT" },
+		{ .name="error_msg",		.type="TEXT" },
+		{ .name="mcgstatus_msg",	.type="TEXT" },
+		{ .name="mcistatus_msg",	.type="TEXT" }, // 20
+		{ .name="user_action",		.type="TEXT" },
+		{ .name="mc_location",		.type="TEXT" },
+};
+
+static const struct db_table_descriptor mce_record_tab = {
+	.name = "mce_record",
+	.fields = mce_record_fields,
+	.num_fields = ARRAY_SIZE(mce_record_fields),
+};
+
+int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_mce_record)
+		return 0;
+	log(TERM, LOG_INFO, "mce_record store: %p\n", priv->stmt_mce_record);
+
+	sqlite3_bind_text(priv->stmt_mce_record,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_int (priv->stmt_mce_record,  2, ev->mcgcap);
+	sqlite3_bind_int (priv->stmt_mce_record,  3, ev->mcgstatus);
+	sqlite3_bind_int (priv->stmt_mce_record,  4, ev->status);
+	sqlite3_bind_int (priv->stmt_mce_record,  5, ev->addr);
+	sqlite3_bind_int (priv->stmt_mce_record,  6, ev->misc);
+	sqlite3_bind_int (priv->stmt_mce_record,  7, ev->ip);
+	sqlite3_bind_int (priv->stmt_mce_record,  8, ev->tsc);
+	sqlite3_bind_int (priv->stmt_mce_record,  9, ev->walltime);
+	sqlite3_bind_int (priv->stmt_mce_record, 10, ev->cpu);
+	sqlite3_bind_int (priv->stmt_mce_record, 11, ev->cpuid);
+	sqlite3_bind_int (priv->stmt_mce_record, 12, ev->apicid);
+	sqlite3_bind_int (priv->stmt_mce_record, 13, ev->socketid);
+	sqlite3_bind_int (priv->stmt_mce_record, 14, ev->cs);
+	sqlite3_bind_int (priv->stmt_mce_record, 15, ev->bank);
+	sqlite3_bind_int (priv->stmt_mce_record, 16, ev->cpuvendor);
+
+	sqlite3_bind_text(priv->stmt_mce_record, 17, ev->bank_name, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 18, ev->error_msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 19, ev->mcgstatus_msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 20, ev->mcistatus_msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 21, ev->mcastatus_msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 22, ev->user_action, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 23, ev->mc_location, -1, NULL);
+
+	rc = sqlite3_step(priv->stmt_mce_record);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do mce_record step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_mce_record);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset mce_record on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+#endif
+
 
 /*
  * Generic code
@@ -291,6 +384,13 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 					 &aer_event_tab);
 #endif
 
-	ras->db_priv = priv;
+#ifdef HAVE_MCE
+	rc = ras_mc_create_table(priv, &mce_record_tab);
+	if (rc == SQLITE_OK)
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_mce_record,
+					 &mce_record_tab);
+#endif
+
+		ras->db_priv = priv;
 	return 0;
 }
