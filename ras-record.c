@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include "ras-events.h"
 #include "ras-mc-handler.h"
+#include "ras-aer-handler.h"
 #include "ras-logger.h"
 
 /* #define DEBUG_SQL 1 */
@@ -108,6 +109,56 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 
 	return rc;
 }
+
+/*
+ * Table and functions to handle ras:aer
+ */
+
+#ifdef HAVE_AER
+static const struct db_fields aer_event_fields[] = {
+		{ .name="id",			.type="INTEGER PRIMARY KEY" },
+		{ .name="timestamp",		.type="TEXT" },
+		{ .name="err_type",		.type="TEXT" },
+		{ .name="err_msg",		.type="TEXT" },
+};
+
+static const struct db_table_descriptor aer_event_tab = {
+	.name = "aer_event",
+	.fields = aer_event_fields,
+	.num_fields = ARRAY_SIZE(aer_event_fields),
+};
+
+int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_aer_event)
+		return 0;
+	log(TERM, LOG_INFO, "mc_event store: %p\n", priv->stmt_aer_event);
+
+	sqlite3_bind_text(priv->stmt_aer_event,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_text(priv->stmt_aer_event,  3, ev->error_type, -1, NULL);
+	sqlite3_bind_text(priv->stmt_aer_event,  4, ev->msg, -1, NULL);
+
+	rc = sqlite3_step(priv->stmt_aer_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do aer_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_aer_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset aer_event on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+#endif
+
+/*
+ * Generic code
+ */
 
 static int ras_mc_prepare_stmt(struct sqlite3_priv *priv,
 			       sqlite3_stmt **stmt,
@@ -230,8 +281,15 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 
 	rc = ras_mc_create_table(priv, &mc_event_tab);
 	if (rc == SQLITE_OK)
-		rc = ras_mc_prepare_stmt(priv, &priv->stmt_mc_event, &mc_event_tab);
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_mc_event,
+					 &mc_event_tab);
 
+#ifdef HAVE_AER
+	rc = ras_mc_create_table(priv, &aer_event_tab);
+	if (rc == SQLITE_OK)
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_aer_event,
+					 &aer_event_tab);
+#endif
 
 	ras->db_priv = priv;
 	return 0;

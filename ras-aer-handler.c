@@ -111,7 +111,9 @@ int ras_aer_event_handler(struct trace_seq *s,
 	trace_seq_puts(s, ev.error_type);
 
 	/* Insert data into the SGBD */
-//	ras_store_aer_event(ras, &ev);
+#ifdef HAVE_SQLITE3
+	ras_store_aer_event(ras, &ev);
+#endif
 
 	return 0;
 }

@@ -47,14 +47,20 @@ struct ras_aer_event {
 struct sqlite3_priv {
 	sqlite3		*db;
 	sqlite3_stmt	*stmt_mc_event;
+#ifdef HAVE_AER
+	sqlite3_stmt	*stmt_aer_event;
+#endif
 };
 
 int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras);
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
+int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
 static inline int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev) { return 0; };
+static inline int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev) { return 0; };
+
 #endif
 
 #endif
