@@ -25,6 +25,7 @@ include_HEADERS = config.h  ras-events.h  ras-logger.h  ras-mc-handler.h \
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that
 dist-rpm: dist-bzip2
+	if [ ! -d "`rpm --eval %{_topdir}`/SOURCES/" ]; then mkdir "`rpm --eval %{_topdir}`/SOURCES/"; fi
 	cp @PACKAGE@-@PACKAGE_VERSION@.tar.bz2 `rpm --eval %{_topdir}`/SOURCES/
 	rpmbuild -ba misc/@PACKAGE@.spec
 	cp `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm .
