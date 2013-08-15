@@ -508,7 +508,6 @@ sub parse_dimm_labels_file
                     }
                     map { $lh->{$vendor}{lc $_}{$mc}{$top}{$mid}{$low} = $label }
                             @models;
-                        $n = 3;
                 }
                 if (!$num) {
                         $num = $n;
@@ -542,9 +541,13 @@ sub parse_dimm_labels
 
 sub read_dimm_label
 {
-    my ($mc, $top, $mid, $low) = @_;
+    my ($num_layers, $mc, $top, $mid, $low) = @_;
     my $sysfs = "/sys/devices/system/edac/mc";
-    my $pos = "$mc:$top:$mid:$low";
+    my $pos;
+
+    $pos = "$mc:$top:$mid:$low" if ($num_layers == 3);
+    $pos = "$mc:$top:$mid" if ($num_layers == 2);
+    $pos = "$mc:$top" if ($num_layers == 1);
 
     if (!defined($dimm_node{$pos})) {
         my $label = "$pos missing";
@@ -574,9 +577,13 @@ sub read_dimm_label
 
 sub get_dimm_label_node
 {
-    my ($mc, $top, $mid, $low) = @_;
+    my ($num_layers, $mc, $top, $mid, $low) = @_;
     my $sysfs = "/sys/devices/system/edac/mc";
     my $pos = "$mc:$top:$mid:$low";
+
+    $pos = "$mc:$top:$mid:$low" if ($num_layers == 3);
+    $pos = "$mc:$top:$mid" if ($num_layers == 2);
+    $pos = "$mc:$top" if ($num_layers == 1);
 
     return "" if (!defined($dimm_node{$pos}));
 
@@ -611,7 +618,7 @@ sub print_dimm_labels
             for my $mid (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}}) {
                 for my $low (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}{$mid}}) {
                     my $label = $$lref{$vendor}{$model}{$mc}{$top}{$mid}{$low};
-                    my ($rlabel,$loc) = read_dimm_label ($mc, $top, $mid, $low);
+                    my ($rlabel,$loc) = read_dimm_label ($$num_layers{$vendor}{$model}, $mc, $top, $mid, $low);
 
                     printf $fh $format, $loc, $label, $rlabel;
                 }
@@ -645,7 +652,7 @@ sub register_dimm_labels
             for my $mid (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}}) {
                 for my $low (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}{$mid}}) {
 
-                    my $file = get_dimm_label_node($mc, $top, $mid, $low);
+                    my $file = get_dimm_label_node($$num_layers{$vendor}{$model}, $mc, $top, $mid, $low);
 
                     # Ignore sysfs files that don't exist. Might just be
                     #  unpopulated bank.
