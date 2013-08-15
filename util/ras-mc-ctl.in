@@ -673,15 +673,15 @@ sub register_dimm_labels
     return 1;
 }
 
-sub dimm_display_layer($@);
+sub dimm_display_layer_rev($@);
 
-sub dimm_display_layer($@)
+sub dimm_display_layer_rev($@)
 {
     my $layer = shift;
     my @pos = @_;
 
-    $layer--;
-    if ($layer < 0) {
+    $layer++;
+    if ($layer >= scalar(@pos) - 1) {
         my $str_loc = join(':', @pos);
         my $size = $dimm_size{$str_loc};
         if (!$size) {
@@ -695,11 +695,25 @@ sub dimm_display_layer($@)
     my $s;
     for (my $i = 0; $i <= $max_pos[$layer]; $i++) {
         $pos[$layer] = $i;
-        $s .= dimm_display_layer($layer, @pos);
+        $s .= dimm_display_layer_rev($layer, @pos);
     }
 
     return $s;
 }
+
+sub dimm_display_layer(@)
+{
+    my @pos = @_;
+
+    my $s;
+    for (my $i = 0; $i <= $max_pos[0]; $i++) {
+        $pos[0] = $i;
+        $s .= dimm_display_layer_rev(0, @pos);
+    }
+
+    return $s;
+}
+
 
 sub dimm_display_layer_header($$)
 {
@@ -753,7 +767,7 @@ sub dimm_display_mem()
         my $p1 = length($s) - 1;
 
         $pos[scalar(@pos) - 1] = $d;
-        $s .= dimm_display_layer(scalar(@pos) - 1, @pos);
+        $s .= dimm_display_layer(@pos);
         $len += length($s);
 
         $sep = "-" x $p1;
