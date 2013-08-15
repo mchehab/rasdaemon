@@ -481,14 +481,14 @@ sub parse_dimm_labels_file
 
             next unless (my ($label, $info) = ($str =~ /^(.*)\s*:\s*(.*)$/i));
 
-            unless ($info =~ /\d+(?:\.\d+)*/) {
+            unless ($info =~ /\d+(?:[\.\:]\d+)*/) {
                 log_error ("$file: $line: Invalid syntax, ignoring: \"$_\"\n");
                 next;
             }
 
             for my $target (split (/[, ]+/, $info)) {
                 my $n;
-                my ($mc, $top, $mid, $low, $extra) = ($target =~ /(\d+)(?:\.(\d+)){0,1}(?:\.(\d+)){0,1}(?:\.(\d+)){0,1}(?:\.(\d+)){0,1}/);
+                my ($mc, $top, $mid, $low, $extra) = ($target =~ /(\d+)(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}/);
 
                 if (defined($extra)) {
                         die ("Error: Only up to 3 layers are currently supported on label db \"$file\"\n");
