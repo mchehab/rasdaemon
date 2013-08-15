@@ -37,7 +37,6 @@ for i in /sys/devices/system/edac/mc/mc?/reset_counters; do
 done
 
 echo "ras:*"  >/sys/kernel/debug/tracing/set_event
-echo "hw_event:*" >>/sys/kernel/debug/tracing/set_event
 
 run echo "Enabled events: "
 run cat /sys/kernel/debug/tracing/set_event
@@ -74,7 +73,6 @@ for i in $MC; do
 	done
 done
 run grep . /sys/devices/system/edac/mc/mc?/*e_*
-run edac-util
 run cat /sys/kernel/debug/tracing/trace
 
 # FIXME:  need to add some logic there to check if the proper error
