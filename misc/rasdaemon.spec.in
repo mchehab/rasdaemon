@@ -48,10 +48,17 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_sysconfdir}/ras/dimm_labels.d
 
 %changelog
-* Tue May 29 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.1-1
+
+* Tue Sep 10 2013 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.4.2-1
+- Fix ras-mc-ctl layout filling
+ 
+* Wed May 29 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.1-2
+- Fix the name of perl-DBD-SQLite package
+ 
+* Wed May 29 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.1-1
 - Updated to version 0.4.1 with contains some bug fixes
 
-* Mon May 28 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.0-1
+* Tue May 28 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.0-1
 - Updated to version 0.4.0 and added support for mce, aer and sqlite3 storage
 
 * Mon May 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.3.0-1

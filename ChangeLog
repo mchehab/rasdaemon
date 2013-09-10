@@ -34,3 +34,9 @@
 	* Version 0.4.1
 	* Some fixes, mostly at sqlite3 code
 	* Add support at ras-mc-ctl to query database
+
+2013-09-10	Mauro Carvalho Chehab <m.chehab@samsung.com>
+
+	* Version 0.4.2
+	* Fixes ras-mc-ctl layout
+
