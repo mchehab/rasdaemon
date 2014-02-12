@@ -4,6 +4,17 @@ RAS Daemon
 Those tools provide a way to get Platform Reliability, Availability
 and Serviceability (RAS) reports made via the Kernel tracing events.
 
+The main repository for the rasdaemon is at Fedora hosted:
+
+	https://git.fedorahosted.org/cgit/rasdaemon.git/
+
+I have a secondary repository at Infradead:
+
+	http://git.infradead.org/users/mchehab/rasdaemon.git
+
+Where I use when I'm working on experimental patches, not ready yet
+for upstream.
+
 GOALS
 =====
 
