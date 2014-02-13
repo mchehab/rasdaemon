@@ -23,6 +23,7 @@
 #include "ras-mc-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
+#include "ras-report.h"
 
 int ras_mc_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
@@ -189,6 +190,12 @@ int ras_mc_event_handler(struct trace_seq *s,
 	/* Insert data into the SGBD */
 
 	ras_store_mc_event(ras, &ev);
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_mc_event(ras, &ev);
+#endif
+
 	return 0;
 
 parse_error:

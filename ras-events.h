@@ -47,6 +47,9 @@ struct ras_events {
 
 	/* For the mce handler */
 	struct mce_priv	*mce_priv;
+
+	/* For ABRT socket*/
+	int socketfd;
 };
 
 struct pthread_data {

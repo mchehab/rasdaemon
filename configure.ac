@@ -53,6 +53,15 @@ AS_IF([test "x$enable_mce" = "xyes"], [
 ])
 AM_CONDITIONAL([WITH_MCE], [test x$enable_mce = xyes])
 
+AC_ARG_ENABLE([abrt_report],
+    AS_HELP_STRING([--enable-abrt-report], [enable report event to ABRT (currently experimental)]))
+
+AS_IF([test "x$enable_abrt_report" = "xyes"], [
+  AC_DEFINE(HAVE_ABRT_REPORT,1,"have report event to ABRT")
+  AC_SUBST([WITH_ABRT_REPORT])
+])
+AM_CONDITIONAL([WITH_ABRT_REPORT], [test x$enable_abrt_report = xyes])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"

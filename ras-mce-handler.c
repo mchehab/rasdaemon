@@ -26,6 +26,7 @@
 #include "ras-mce-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
+#include "ras-report.h"
 
 /*
  * The code below were adapted from Andi Kleen/Intel/SuSe mcelog code,
@@ -399,6 +400,11 @@ int ras_mce_event_handler(struct trace_seq *s,
 
 #ifdef HAVE_SQLITE3
 	ras_store_mce_record(ras, &e);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_mce_event(ras, &e);
 #endif
 
 	return 0;

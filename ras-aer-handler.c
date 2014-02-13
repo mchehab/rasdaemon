@@ -24,6 +24,7 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "bitfield.h"
+#include "ras-report.h"
 
 static const char *aer_errors[32] = {
 	/* Correctable errors */
@@ -113,6 +114,11 @@ int ras_aer_event_handler(struct trace_seq *s,
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
 	ras_store_aer_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_aer_event(ras, &ev);
 #endif
 
 	return 0;
