@@ -236,7 +236,6 @@ static void decode_k8_threashold(struct mce_event *e)
 
 static void bank_name(struct mce_event *e)
 {
-	char *buf = e->bank_name;
 	const char *s;
 
 	if (e->bank < ARRAY_SIZE(k8bank))
@@ -247,7 +246,7 @@ static void bank_name(struct mce_event *e)
 	else
 		return;		/* Use the generic parser for bank */
 
-	snprintf(buf, sizeof(buf), "%s (bank=%d)", s, e->bank);
+	mce_snprintf(e->bank_name, "%s (bank=%d)", s, e->bank);
 }
 
 int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
