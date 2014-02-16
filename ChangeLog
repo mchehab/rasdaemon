@@ -40,3 +40,7 @@
 	* Version 0.4.2
 	* Fixes ras-mc-ctl layout
 
+2014-02-16	Mauro Carvalho Chehab <m.chehab@samsung.com>
+
+	* Version 0.5.0
+	* Initial ABRT support
