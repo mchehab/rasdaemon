@@ -3,7 +3,7 @@ Description=Initialize EDAC v3.0.0 Drivers For Machine Hardware
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/ras-mc-ctl --register-labels
+ExecStart=@sbindir@/ras-mc-ctl --register-labels
 RemainAfterExit=yes
 
 [Install]

@@ -1,6 +1,19 @@
 ACLOCAL_AMFLAGS=-I m4
 SUBDIRS = libtrace util man
-EXTRA_DIST = misc/rasdaemon.service misc/ras-mc-ctl.service
+SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in misc/ras-mc-ctl.service.in
+SYSTEMD_SERVICES = $(SYSTEMD_SERVICES_IN:.service.in=.service)
+EXTRA_DIST = $(SYSTEMD_SERVICES_IN)
+
+# This rule is needed because \@sbindir\@ is expanded to \${exec_prefix\}/sbin
+# during ./configure phase, therefore it is not possible to add .service.in
+# files to AC_CONFIG_FILES in configure.ac
+SUFFIXES = .service.in .service
+.service.in.service:
+	sed -e s,\@sbindir\@,$(sbindir),g $< > $@
+
+# This rule is needed because the service files must be generated on target
+# system after ./configure phase
+all-local: $(SYSTEMD_SERVICES)
 
 sbin_PROGRAMS = rasdaemon
 rasdaemon_SOURCES = rasdaemon.c ras-events.c ras-mc-handler.c \
