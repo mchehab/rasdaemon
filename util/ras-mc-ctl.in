@@ -912,6 +912,10 @@ sub errors
     # Memory controller mc_event errors
     $query = "select id, timestamp, err_count, err_type, err_msg, label, mc, top_layer,middle_layer,lower_layer, address, grain, syndrome, driver_detail from mc_event order by id";
     $query_handle = $dbh->prepare($query);
+    if (!$query_handle) {
+        log_error ("mc_event table missing from $dbname. Run 'rasdaemon --record'.\n");
+        exit -1
+    }
     $query_handle->execute();
     $query_handle->bind_columns(\($id, $time, $count, $type, $msg, $label, $mc, $top, $mid, $low, $addr, $grain, $syndrome, $detail));
     $out = "";
