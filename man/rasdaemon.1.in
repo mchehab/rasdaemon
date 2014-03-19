@@ -29,8 +29,10 @@ rasdaemon \- RAS daemon to log the RAS events.
 
 .SH DESCRIPTION
 
-The \fBrasdaemon\fR program is a daemon with monitors the RAS trace events
-from /sys/kernel/debug/tracing, reporting them via syslog/journald.
+The \fBrasdaemon\fR program is a daemon which monitors the platform
+Reliablity, Availability and Serviceability (RAS) reports from the
+Linux kernel trace events. These trace events are logged in
+/sys/kernel/debug/tracing, reporting them via syslog/journald.
 
 .SH OPTIONS
 .TP
@@ -51,8 +53,14 @@ Executes in foreground, printing the events at console. Useful for testing it,
 and to be used by systemd or Unix System V respan.
 If not specified, the program runs in daemon mode.
 .TP
+.BI "--record"
+Record RAS events via Sqlite3. The Sqlite3 database has the benefit of
+keeping a persistent record of the RAS events. This feature is used with
+the ras-mc-ctl utility. Note that rasdaemon may be compiled without this
+feature.
+.TP
 .BI "--version"
-Prints the program version and exit.
+Print the program version and exit.
 
 .SH SEE ALSO
 \fBras-mc-ctl\fR(8)
