@@ -54,9 +54,11 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'd':
 		args->enable_ras--;
 		break;
+#ifdef HAVE_SQLITE3
 	case 'r':
 		args->record_events++;
 		break;
+#endif
 	case 'f':
 		args->foreground++;
 		break;
