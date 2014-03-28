@@ -1,6 +1,8 @@
 .deps/
 autom4te.cache/
 misc/rasdaemon.spec
+misc/ras-mc-ctl.service
+misc/rasdaemon.service
 Makefile
 Makefile.in
 config.h
