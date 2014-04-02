@@ -51,8 +51,8 @@ static int commit_report_basic(int sockfd){
 	 * ABRT server protocol
 	 */
 	sprintf(buf, "PUT / HTTP/1.1\r\n\r\n");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	rc = write(sockfd, buf, strlen(buf));
+	if(rc < strlen(buf)){
 		return -1;
 	}
 
@@ -68,27 +68,9 @@ static int commit_report_basic(int sockfd){
 		return -1;
 	}
 
-	sprintf(buf, "BASENAME=%s", "rasdaemon");
+	sprintf(buf, "TYPE=%s", "ras");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if(rc < strlen(buf) + 1){
-		return -1;
-	}
-
-	return 0;
-}
-
-/*
- *  add "DONE" string to finish message.
- */
-static int commit_report_done(int sockfd){
-	int rc = -1;
-
-	if(sockfd < 0){
-		return -1;
-	}
-
-	rc = write(sockfd, "DONE\0", strlen("DONE\0"));
-	if(rc < strlen("DONE\0")){
 		return -1;
 	}
 
@@ -101,7 +83,7 @@ static int set_mc_event_backtrace(char *buf, struct ras_mc_event *ev){
 	if(!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE= "	\
+	sprintf(bt_buf, "BACKTRACE="	\
 						"timestamp=%s\n"	\
 						"error_count=%d\n"	\
 						"error_type=%s\n"	\
@@ -298,11 +280,6 @@ int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev){
 		goto mc_fail;
 	}
 
-	rc = commit_report_done(sockfd);
-	if(rc < 0){
-		goto mc_fail;
-	}
-
 	done = 1;
 
 mc_fail:
@@ -353,11 +330,6 @@ int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev){
 		goto aer_fail;
 	}
 
-	rc = commit_report_done(sockfd);
-	if(rc < 0){
-		goto aer_fail;
-	}
-
 	done = 1;
 
 aer_fail:
@@ -405,11 +377,6 @@ int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev){
 	sprintf(buf, "REASON=%s", "Machine Check driver report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if(rc < strlen(buf) + 1){
-		goto mce_fail;
-	}
-
-	rc = commit_report_done(sockfd);
-	if(rc < 0){
 		goto mce_fail;
 	}
 
