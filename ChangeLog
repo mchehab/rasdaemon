@@ -44,3 +44,12 @@
 
 	* Version 0.5.0
 	* Initial ABRT support
+
+2014-03-25	Mauro Carvalho Chehab <m.chehab@samsung.com>
+	* Version 0.5.1
+	* Fix patches at *.service files
+	* Some fixes and documentation for --record option
+
+2014-04-03	Mauro Carvalho Chehab <m.chehab@samsung.com>
+	- Version 0.5.2
+	* Some fixes for ABRT report support
