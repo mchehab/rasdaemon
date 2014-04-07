@@ -209,22 +209,22 @@ int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev)
 		return 0;
 	log(TERM, LOG_INFO, "mce_record store: %p\n", priv->stmt_mce_record);
 
-	sqlite3_bind_text(priv->stmt_mce_record,  1, ev->timestamp, -1, NULL);
-	sqlite3_bind_int (priv->stmt_mce_record,  2, ev->mcgcap);
-	sqlite3_bind_int (priv->stmt_mce_record,  3, ev->mcgstatus);
-	sqlite3_bind_int (priv->stmt_mce_record,  4, ev->status);
-	sqlite3_bind_int (priv->stmt_mce_record,  5, ev->addr);
-	sqlite3_bind_int (priv->stmt_mce_record,  6, ev->misc);
-	sqlite3_bind_int (priv->stmt_mce_record,  7, ev->ip);
-	sqlite3_bind_int (priv->stmt_mce_record,  8, ev->tsc);
-	sqlite3_bind_int (priv->stmt_mce_record,  9, ev->walltime);
-	sqlite3_bind_int (priv->stmt_mce_record, 10, ev->cpu);
-	sqlite3_bind_int (priv->stmt_mce_record, 11, ev->cpuid);
-	sqlite3_bind_int (priv->stmt_mce_record, 12, ev->apicid);
-	sqlite3_bind_int (priv->stmt_mce_record, 13, ev->socketid);
-	sqlite3_bind_int (priv->stmt_mce_record, 14, ev->cs);
-	sqlite3_bind_int (priv->stmt_mce_record, 15, ev->bank);
-	sqlite3_bind_int (priv->stmt_mce_record, 16, ev->cpuvendor);
+	sqlite3_bind_text  (priv->stmt_mce_record,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_int   (priv->stmt_mce_record,  2, ev->mcgcap);
+	sqlite3_bind_int   (priv->stmt_mce_record,  3, ev->mcgstatus);
+	sqlite3_bind_int64 (priv->stmt_mce_record,  4, ev->status);
+	sqlite3_bind_int64 (priv->stmt_mce_record,  5, ev->addr);
+	sqlite3_bind_int64 (priv->stmt_mce_record,  6, ev->misc);
+	sqlite3_bind_int64 (priv->stmt_mce_record,  7, ev->ip);
+	sqlite3_bind_int64 (priv->stmt_mce_record,  8, ev->tsc);
+	sqlite3_bind_int64 (priv->stmt_mce_record,  9, ev->walltime);
+	sqlite3_bind_int   (priv->stmt_mce_record, 10, ev->cpu);
+	sqlite3_bind_int   (priv->stmt_mce_record, 11, ev->cpuid);
+	sqlite3_bind_int   (priv->stmt_mce_record, 12, ev->apicid);
+	sqlite3_bind_int   (priv->stmt_mce_record, 13, ev->socketid);
+	sqlite3_bind_int   (priv->stmt_mce_record, 14, ev->cs);
+	sqlite3_bind_int   (priv->stmt_mce_record, 15, ev->bank);
+	sqlite3_bind_int   (priv->stmt_mce_record, 16, ev->cpuvendor);
 
 	sqlite3_bind_text(priv->stmt_mce_record, 17, ev->bank_name, -1, NULL);
 	sqlite3_bind_text(priv->stmt_mce_record, 18, ev->error_msg, -1, NULL);
