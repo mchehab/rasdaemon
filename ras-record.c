@@ -139,8 +139,8 @@ int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 	log(TERM, LOG_INFO, "aer_event store: %p\n", priv->stmt_aer_event);
 
 	sqlite3_bind_text(priv->stmt_aer_event,  1, ev->timestamp, -1, NULL);
-	sqlite3_bind_text(priv->stmt_aer_event,  3, ev->error_type, -1, NULL);
-	sqlite3_bind_text(priv->stmt_aer_event,  4, ev->msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_aer_event,  2, ev->error_type, -1, NULL);
+	sqlite3_bind_text(priv->stmt_aer_event,  3, ev->msg, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_aer_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -189,6 +189,7 @@ static const struct db_fields mce_record_fields[] = {
 		{ .name="error_msg",		.type="TEXT" },
 		{ .name="mcgstatus_msg",	.type="TEXT" },
 		{ .name="mcistatus_msg",	.type="TEXT" }, // 20
+		{ .name="mcastatus_msg",	.type="TEXT" },
 		{ .name="user_action",		.type="TEXT" },
 		{ .name="mc_location",		.type="TEXT" },
 };
