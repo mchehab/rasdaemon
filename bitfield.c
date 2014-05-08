@@ -92,8 +92,9 @@ void decode_numfield(struct mce_event *e, uint64_t status,
 		uint64_t mask = (1ULL << (f->end - f->start + 1)) - 1;
 		uint64_t v = (status >> f->start) & mask;
 		if (v > 0 || f->force) {
-			mce_snprintf(e->error_msg, "%%s: %s\n",
-				     f->fmt ? f->fmt : "%Lu");
+			char fmt[32] = {0};
+			snprintf(fmt, 32, "%%s: %s\n", f->fmt ? f->fmt : "%Lu");
+			mce_snprintf(e->error_msg, fmt, f->name, v);
 		}
 	}
 }
