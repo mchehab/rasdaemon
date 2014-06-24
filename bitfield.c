@@ -41,6 +41,8 @@ unsigned bitfield_msg(char *buf, size_t len, const char **bitarray,
 		if (status & (1 <<  (i + bit_offset))) {
 			if (p != buf) {
 				n = snprintf(p, len, ", ");
+				if (n < 0)
+					break;
 				len -= n;
 				p += n;
 			}
@@ -48,6 +50,8 @@ unsigned bitfield_msg(char *buf, size_t len, const char **bitarray,
 				n = snprintf(p, len, "BIT%d", i + bit_offset);
 			else
 				n = snprintf(p, len, "%s", bitarray[i]);
+			if (n < 0)
+				break;
 			len -= n;
 			p += n;
 		}
