@@ -120,25 +120,17 @@ int ras_mc_event_handler(struct trace_seq *s,
 	if (pevent_get_field_val(s,  event, "top_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
+	ev.top_layer = (signed char) val;
 
-	ev.top_layer = (int) val;
 	if (pevent_get_field_val(s,  event, "middle_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
+	ev.middle_layer = (signed char) val;
 
-	ev.middle_layer = (int) val;
 	if (pevent_get_field_val(s,  event, "lower_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
-
-	ev.lower_layer = (int) val;
-
-	if (ev.top_layer == 255)
-		ev.top_layer = -1;
-	if (ev.middle_layer == 255)
-		ev.middle_layer = -1;
-	if (ev.lower_layer == 255)
-		ev.lower_layer = -1;
+	ev.lower_layer = (signed char) val;
 
 	if (ev.top_layer >= 0 || ev.middle_layer >= 0 || ev.lower_layer >= 0) {
 		if (ev.lower_layer >= 0)
