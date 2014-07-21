@@ -3,7 +3,9 @@ Description=RAS daemon to log the RAS events
 After=syslog.target
 
 [Service]
-ExecStart=@sbindir@/rasdaemon -f
+ExecStart=@sbindir@/rasdaemon -f -r
+ExecStartPost=@sbindir@/rasdaemon --enable
+ExecStop=@sbindir@/rasdaemon --disable
 Restart=on-abort
 
 [Install]
