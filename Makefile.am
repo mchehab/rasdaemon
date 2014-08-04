@@ -30,13 +30,17 @@ if WITH_MCE
 			mce-intel-dunnington.c mce-intel-tulsa.c \
 			mce-intel-sb.c mce-intel-ivb.c
 endif
+if WITH_EXTLOG
+   rasdaemon_SOURCES += ras-extlog-handler.c
+endif
 if WITH_ABRT_REPORT
    rasdaemon_SOURCES += ras-report.c
 endif
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) libtrace/libtrace.a
 
 include_HEADERS = config.h  ras-events.h  ras-logger.h  ras-mc-handler.h \
-		  ras-aer-handler.h ras-mce-handler.h ras-record.h bitfield.h ras-report.h
+		  ras-aer-handler.h ras-mce-handler.h ras-record.h bitfield.h ras-report.h \
+		  ras-extlog-handler.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that

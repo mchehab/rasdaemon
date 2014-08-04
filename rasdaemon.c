@@ -68,6 +68,8 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	return 0;
 }
 
+long user_hz;
+
 int main(int argc, char *argv[])
 {
 	struct arguments args;
@@ -90,6 +92,8 @@ int main(int argc, char *argv[])
 
 	};
 	memset (&args, 0, sizeof(args));
+
+	user_hz = sysconf(_SC_CLK_TCK);
 
 	argp_parse(&argp, argc, argv, 0,  &idx, &args);
 

@@ -157,6 +157,57 @@ int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 }
 #endif
 
+#ifdef HAVE_EXTLOG
+static const struct db_fields extlog_event_fields[] = {
+		{ .name="id",			.type="INTEGER PRIMARY KEY" },
+		{ .name="timestamp",		.type="TEXT" },
+		{ .name="etype",		.type="INTEGER" },
+		{ .name="error_count",		.type="INTEGER" },
+		{ .name="severity",		.type="INTEGER" },
+		{ .name="address",		.type="INTEGER" },
+		{ .name="fru_id",		.type="BLOB" },
+		{ .name="fru_text",		.type="TEXT" },
+		{ .name="cper_data",		.type="BLOB" },
+};
+
+static const struct db_table_descriptor extlog_event_tab = {
+	.name = "extlog_event",
+	.fields = extlog_event_fields,
+	.num_fields = ARRAY_SIZE(extlog_event_fields),
+};
+
+int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_extlog_record)
+		return 0;
+	log(TERM, LOG_INFO, "extlog_record store: %p\n", priv->stmt_extlog_record);
+
+	sqlite3_bind_text  (priv->stmt_extlog_record,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_int   (priv->stmt_extlog_record,  2, ev->etype);
+	sqlite3_bind_int   (priv->stmt_extlog_record,  3, ev->error_seq);
+	sqlite3_bind_int   (priv->stmt_extlog_record,  4, ev->severity);
+	sqlite3_bind_int64 (priv->stmt_extlog_record,  5, ev->address);
+	sqlite3_bind_blob  (priv->stmt_extlog_record,  6, ev->fru_id, 16, NULL);
+	sqlite3_bind_text  (priv->stmt_extlog_record,  7, ev->fru_text, -1, NULL);
+	sqlite3_bind_blob  (priv->stmt_extlog_record,  8, ev->cper_data, ev->cper_data_length, NULL);
+
+	rc = sqlite3_step(priv->stmt_extlog_record);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do extlog_mem_record step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_extlog_record);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset extlog_mem_record on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+#endif
 
 /*
  * Table and functions to handle mce:mce_record
@@ -383,6 +434,13 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	if (rc == SQLITE_OK)
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_aer_event,
 					 &aer_event_tab);
+#endif
+
+#ifdef HAVE_EXTLOG
+	rc = ras_mc_create_table(priv, &extlog_event_tab);
+	if (rc == SQLITE_OK)
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_extlog_record,
+					 &extlog_event_tab);
 #endif
 
 #ifdef HAVE_MCE

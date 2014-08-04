@@ -19,7 +19,10 @@
 #ifndef __RAS_RECORD_H
 #define __RAS_RECORD_H
 
+#include <stdint.h>
 #include "config.h"
+
+extern long user_hz;
 
 struct ras_events *ras;
 
@@ -40,8 +43,22 @@ struct ras_aer_event {
 	const char *msg;
 };
 
+struct ras_extlog_event {
+	char timestamp[64];
+	int32_t error_seq;
+	int8_t etype;
+	int8_t severity;
+	unsigned long long address;
+	int8_t pa_mask_lsb;
+	const char *fru_id;
+	const char *fru_text;
+	const char *cper_data;
+	unsigned short cper_data_length;
+};
+
 struct ras_mc_event;
 struct ras_aer_event;
+struct ras_extlog_event;
 struct mce_event;
 
 #ifdef HAVE_SQLITE3
@@ -57,18 +74,23 @@ struct sqlite3_priv {
 #ifdef HAVE_MCE
 	sqlite3_stmt	*stmt_mce_record;
 #endif
+#ifdef HAVE_EXTLOG
+	sqlite3_stmt	*stmt_extlog_record;
+#endif
 };
 
 int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras);
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
 int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev);
 int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev);
+int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
 static inline int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev) { return 0; };
 static inline int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev) { return 0; };
 static inline int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev) { return 0; };
+static inline int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev) { return 0; };
 
 #endif
 

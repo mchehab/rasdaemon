@@ -30,6 +30,7 @@
 #include "ras-mc-handler.h"
 #include "ras-aer-handler.h"
 #include "ras-mce-handler.h"
+#include "ras-extlog-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 
@@ -201,6 +202,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_MCE
 	rc |= __toggle_ras_mc_event(ras, "mce", "mce_record", enable);
+#endif
+
+#ifdef HAVE_EXTLOG
+	rc |= __toggle_ras_mc_event(ras, "ras", "extlog_mem_event", enable);
 #endif
 
 free_ras:
@@ -688,6 +693,19 @@ int handle_ras_events(int record_events)
 		    "mce", "mce_record");
 	}
 #endif
+
+#ifdef HAVE_EXTLOG
+	rc = add_event_handler(ras, pevent, page_size, "ras", "extlog_mem_event",
+			       ras_extlog_mem_event_handler);
+	if (!rc) {
+		/* tell kernel we are listening, so don't printk to console */
+		(void)open("/sys/kernel/debug/ras/daemon_active", 0);
+		num_events++;
+	} else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "ras", "aer_event");
+#endif
+
 	if (!num_events) {
 		log(ALL, LOG_INFO,
 		    "Failed to trace all supported RAS events. Aborting.\n");

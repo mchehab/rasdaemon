@@ -842,11 +842,141 @@ sub find_prog
     return "";
 }
 
+sub get_extlog_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 15) {
+        return "unknown-type";
+    }
+
+    @types = ("unknown",
+              "no error",
+              "single-bit ECC",
+              "multi-bit ECC",
+              "single-symbol chipkill ECC",
+              "multi-symbol chipkill ECC",
+              "master abort",
+              "target abort",
+              "parity error",
+              "watchdog timeout",
+              "invalid address",
+              "mirror Broken",
+              "memory sparing",
+              "scrub corrected error",
+              "scrub uncorrected error",
+              "physical memory map-out event",
+              "unknown-type");
+    return $types[$_[0]];
+}
+
+sub get_extlog_severity
+{
+    my @sev;
+
+    if ($_[0] < 0 || $_[0] > 3) {
+        return "unknown-severity";
+    }
+
+    @sev = ("recoverable",
+            "fatal",
+            "corrected",
+            "informational",
+            "unknown-severity");
+    return $sev[$_[0]];
+}
+
+use constant {
+    CPER_MEM_VALID_NODE => 0x0008,
+    CPER_MEM_VALID_CARD => 0x0010,
+    CPER_MEM_VALID_MODULE => 0x0020,
+    CPER_MEM_VALID_BANK => 0x0040,
+    CPER_MEM_VALID_DEVICE => 0x0080,
+    CPER_MEM_VALID_ROW => 0x0100,
+    CPER_MEM_VALID_COLUMN => 0x0200,
+    CPER_MEM_VALID_BIT_POSITION => 0x0400,
+    CPER_MEM_VALID_REQUESTOR_ID => 0x0800,
+    CPER_MEM_VALID_RESPONDER_ID => 0x1000,
+    CPER_MEM_VALID_TARGET_ID => 0x2000,
+    CPER_MEM_VALID_ERROR_TYPE => 0x4000,
+    CPER_MEM_VALID_RANK_NUMBER => 0x8000,
+    CPER_MEM_VALID_CARD_HANDLE => 0x10000,
+    CPER_MEM_VALID_MODULE_HANDLE => 0x20000,
+};
+
+sub get_cper_data_text
+{
+    my $cper_data = $_[0];
+    my ($validation_bits, $node, $card, $module, $bank, $device, $row, $column, $bit_pos, $requestor_id, $responder_id, $target_id, $rank, $mem_array_handle, $mem_dev_handle) = unpack 'QSSSSSSSSQQQSSS', $cper_data;
+    my @out;
+
+    if ($validation_bits & CPER_MEM_VALID_NODE) {
+        push @out, (sprintf "node=%d", $node);
+    }
+    if ($validation_bits & CPER_MEM_VALID_CARD) {
+        push @out, (sprintf "card=%d", $card);
+    }
+    if ($validation_bits & CPER_MEM_VALID_MODULE) {
+        push @out, (sprintf "module=%d", $module);
+    }
+    if ($validation_bits & CPER_MEM_VALID_BANK) {
+        push @out, (sprintf "bank=%d", $bank);
+    }
+    if ($validation_bits & CPER_MEM_VALID_DEVICE) {
+        push @out, (sprintf "device=%d", $device);
+    }
+    if ($validation_bits & CPER_MEM_VALID_ROW) {
+        push @out, (sprintf "row=%d", $row);
+    }
+    if ($validation_bits & CPER_MEM_VALID_COLUMN) {
+        push @out, (sprintf "column=%d", $column);
+    }
+    if ($validation_bits & CPER_MEM_VALID_BIT_POSITION) {
+        push @out, (sprintf "bit_position=%d", $bit_pos);
+    }
+    if ($validation_bits & CPER_MEM_VALID_REQUESTOR_ID) {
+        push @out, (sprintf "0x%08x", $requestor_id);
+    }
+    if ($validation_bits & CPER_MEM_VALID_RESPONDER_ID) {
+        push @out, (sprintf "0x%08x", $responder_id);
+    }
+    if ($validation_bits & CPER_MEM_VALID_TARGET_ID) {
+        push @out, (sprintf "0x%08x", $target_id);
+    }
+    if ($validation_bits & CPER_MEM_VALID_RANK_NUMBER) {
+        push @out, (sprintf "rank=%d", $rank);
+    }
+    if ($validation_bits & CPER_MEM_VALID_CARD_HANDLE) {
+        push @out, (sprintf "mem_array_handle=%d", $mem_array_handle);
+    }
+    if ($validation_bits & CPER_MEM_VALID_MODULE_HANDLE) {
+        push @out, (sprintf "mem_dev_handle=%d", $mem_dev_handle);
+    }
+
+    return join (", ", @out);
+}
+
+sub get_uuid_le
+{
+    my $out = "";
+    my @bytes = unpack "C*", $_[0];
+    my @le16_table = (3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15);
+
+    for (my $i = 0; $i < 16; $i++) {
+        $out .= sprintf "%.2x", $bytes[$le16_table[$i]];
+        if ($i == 3 or $i == 5 or $i == 7 or $i == 9) {
+            $out .= "-";
+        }
+    }
+    return $out;
+}
+
 sub summary
 {
     require DBI;
     my ($query, $query_handle, $out);
     my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg);
+    my ($etype, $severity, $etype_string, $severity_string);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -882,6 +1012,24 @@ sub summary
     }
     $query_handle->finish;
 
+    # extlog errors
+    $query = "select etype, severity, count(*) from extlog_event group by etype, severity";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($etype, $severity, $count));
+    $out = "";
+    while($query_handle->fetch()) {
+        $etype_string = get_extlog_type($etype);
+        $severity_string = get_extlog_severity($severity);
+        $out .= "\t$count $etype_string $severity_string errors\n";
+    }
+    if ($out ne "") {
+        print "Extlog records summary:\n$out";
+    } else {
+        print "No Extlog errors.\n";
+    }
+    $query_handle->finish;
+
     # MCE mce_record errors
     $query = "select error_msg, count(*) from mce_record group by error_msg";
     $query_handle = $dbh->prepare($query);
@@ -906,6 +1054,7 @@ sub errors
     require DBI;
     my ($query, $query_handle, $id, $time, $count, $type, $msg, $label, $mc, $top, $mid, $low, $addr, $grain, $syndrome, $detail, $out);
     my ($mcgcap,$mcgstatus, $status, $misc, $ip, $tsc, $walltime, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $mcgstatus_msg, $mcistatus_msg, $user_action, $mc_location);
+    my ($timestamp, $etype, $severity, $etype_string, $severity_string, $fru_id, $fru_text, $cper_data);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -942,6 +1091,31 @@ sub errors
         print "PCIe AER events:\n$out\n";
     } else {
         print "No PCIe AER errors.\n\n";
+    }
+    $query_handle->finish;
+
+    # Extlog errors
+    $query = "select id, timestamp, etype, severity, address, fru_id, fru_text, cper_data from extlog_event order by id";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($id, $timestamp, $etype, $severity, $addr, $fru_id, $fru_text, $cper_data));
+    $out = "";
+    while($query_handle->fetch()) {
+        $etype_string = get_extlog_type($etype);
+        $severity_string = get_extlog_severity($severity);
+        $out .= "$id $timestamp error: ";
+        $out .= "type=$etype_string, ";
+        $out .= "severity=$severity_string, ";
+        $out .= sprintf "address=0x%08x, ", $addr;
+        $out .= sprintf "fru_id=%s, ", get_uuid_le($fru_id);
+        $out .= "fru_text='$fru_text', ";
+        $out .= get_cper_data_text($cper_data) if ($cper_data);
+        $out .= "\n";
+    }
+    if ($out ne "") {
+        print "Extlog events:\n$out\n";
+    } else {
+        print "No Extlog errors.\n\n";
     }
     $query_handle->finish;
 

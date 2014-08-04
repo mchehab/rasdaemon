@@ -237,7 +237,7 @@ static void report_mce_event(struct ras_events *ras,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/1000000000L + ras->uptime_diff;
+		now = record->ts/user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 

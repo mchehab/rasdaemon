@@ -53,6 +53,15 @@ AS_IF([test "x$enable_mce" = "xyes"], [
 ])
 AM_CONDITIONAL([WITH_MCE], [test x$enable_mce = xyes])
 
+AC_ARG_ENABLE([extlog],
+    AS_HELP_STRING([--enable-extlog], [enable EXTLOG events (currently experimental)]))
+
+AS_IF([test "x$enable_extlog" = "xyes"], [
+  AC_DEFINE(HAVE_EXTLOG,1,"have EXTLOG events collect")
+  AC_SUBST([WITH_EXTLOG])
+])
+AM_CONDITIONAL([WITH_EXTLOG], [test x$enable_extlog = xyes])
+
 AC_ARG_ENABLE([abrt_report],
     AS_HELP_STRING([--enable-abrt-report], [enable report event to ABRT (currently experimental)]))
 
