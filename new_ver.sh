@@ -1,6 +1,6 @@
 #!/bin/bash
 
-autoreconf && ./configure
+autoreconf && ./configure --enable-sqlite3 --enable-aer --enable-mce --enable-extlog --enable-abrt-report
 
 VER="`perl -ne 'print "$1\n" if (/Version:\s*(.*)/);' misc/rasdaemon.spec`"
 if [ "x$VER" == "x" ]; then
@@ -12,4 +12,4 @@ echo "************************************************************************"
 echo "Building RPM files for version: $VER"
 echo "************************************************************************"
 echo
-make -j1 dist-bzip2 && make -j1 dist-rpm && git tag v$VER -f && git push --tags fedorahosted && make upload && git push --tags
+git tag v$VER -f && make mock && make upload && git push --tags master

@@ -29,7 +29,7 @@ an utility for reporting current error counts from the EDAC sysfs files.
 
 %build
 autoreconf -vfi
-%configure --enable-mce --enable-aer --enable-sqlite3
+%configure --enable-mce --enable-aer --enable-sqlite3 --enable-extlog --enable-abrt-report
 make %{?_smp_mflags}
 
 %install
@@ -48,6 +48,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_sysconfdir}/ras/dimm_labels.d
 
 %changelog
+
+* Sun Aug 10 2014 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.5.3-1
+- Bump to version 0.5.3 and enable ABRT and ExtLog
 
 * Tue Sep 10 2013 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.4.2-1
 - Fix ras-mc-ctl layout filling

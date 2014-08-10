@@ -53,3 +53,9 @@
 2014-04-03	Mauro Carvalho Chehab <m.chehab@samsung.com>
 	- Version 0.5.2
 	* Some fixes for ABRT report support
+2014-08-10	Mauro Carvalho Chehab <m.chehab@samsung.com>
+	- Version 0.5.3
+	* Add support for extlog trace events
+	* Some fixes affecting sqlite handling
+	* Handle failures of snprintf()
+        * Fix mce numfield decoded error
