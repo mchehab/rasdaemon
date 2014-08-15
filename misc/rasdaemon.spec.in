@@ -49,6 +49,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Fri Aug 15 2014 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.5.4-1
+- Bump to version 0.5.4 with some fixes, mainly for amd64
+
 * Sun Aug 10 2014 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.5.3-1
 - Bump to version 0.5.3 and enable ABRT and ExtLog
 

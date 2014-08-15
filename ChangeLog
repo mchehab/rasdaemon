@@ -46,16 +46,27 @@
 	* Initial ABRT support
 
 2014-03-25	Mauro Carvalho Chehab <m.chehab@samsung.com>
+
 	* Version 0.5.1
 	* Fix patches at *.service files
 	* Some fixes and documentation for --record option
 
 2014-04-03	Mauro Carvalho Chehab <m.chehab@samsung.com>
+
 	- Version 0.5.2
 	* Some fixes for ABRT report support
+
 2014-08-10	Mauro Carvalho Chehab <m.chehab@samsung.com>
+
 	- Version 0.5.3
 	* Add support for extlog trace events
 	* Some fixes affecting sqlite handling
 	* Handle failures of snprintf()
         * Fix mce numfield decoded error
+
+2014-08-15	Mauro Carvalho Chehab <m.chehab@samsung.com>
+
+	- Version 0.5.4
+	* Fix a bug while parsing dimm labels on amd64
+	* Enable database recording by default on systemd service file
+	* Correct range while parsing top, middle and lower layers
