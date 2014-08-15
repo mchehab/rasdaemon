@@ -45,6 +45,8 @@ my %conf        = ();
 my %bus         = ();
 my %dimm_size   = ();
 my %dimm_node   = ();
+my %dimm_label_file = ();
+my %dimm_location = ();
 my %csrow_size  = ();
 my %rank_size   = ();
 my %csrow_ranks = ();
@@ -278,6 +280,9 @@ sub parse_dimm_nodes
         my $str_loc = join(':', $mc, @pos);
         $dimm_size{$str_loc} = $size;
         $dimm_node{$str_loc} = $dimm;
+        $file =~ s/size/dimm_label/;
+        $dimm_label_file{$str_loc} = $file;
+        $dimm_location{$str_loc} = $location;
 
         return;
     }
@@ -557,12 +562,14 @@ sub read_dimm_label
 
     my $dimm = $dimm_node{$pos};
 
-    my $file = "$sysfs/mc$mc/dimm$dimm/dimm_label";
+    my $dimm_label_file = $dimm_label_file{$pos};
 
-    return ("$pos missing") unless -f $file;
+    my $location = $dimm_location{$pos};
 
-    if (!open (LABEL, "$file")) {
-        warn "Failed to open $file: $!\n";
+    return ("label missing", "$pos missing") unless -f $dimm_label_file;
+
+    if (!open (LABEL, "$dimm_label_file")) {
+        warn "Failed to open $dimm_label_file: $!\n";
         return ("Error");
     }
 
@@ -570,7 +577,7 @@ sub read_dimm_label
 
     close (LABEL);
 
-    $pos = "mc$mc " . qx(cat $sysfs/mc$mc/dimm$dimm/dimm_location);
+    $pos = "mc$mc $location";
 
     return ($label, $pos);
 }
@@ -587,9 +594,7 @@ sub get_dimm_label_node
 
     return "" if (!defined($dimm_node{$pos}));
 
-    my $dimm = $dimm_node{$pos};
-
-    return "$sysfs/mc$mc/dimm$dimm/dimm_label";
+    return "$dimm_label_file{$pos}";
 }
 
 
