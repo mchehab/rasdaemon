@@ -49,6 +49,7 @@ static char *cputype_name[] = {
 	[CPU_IVY_BRIDGE_EPEX] = "Ivy Bridge EP/EX",	/* Fill in better name */
 	[CPU_HASWELL] = "Haswell",
 	[CPU_HASWELL_EPEX] = "Intel Xeon v3 (Haswell) EP/EX",
+	[CPU_BROADWELL] = "Broadwell",
 };
 
 static enum cputype select_intel_cputype(struct ras_events *ras)
@@ -88,6 +89,8 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
 			return CPU_HASWELL;
 		else if (mce->model == 0x3f)
 			return CPU_HASWELL_EPEX;
+		else if (mce->model == 0x3d)
+			return CPU_BROADWELL;
 
 		if (mce->model > 0x1a) {
 			log(ALL, LOG_INFO,
