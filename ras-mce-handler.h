@@ -45,6 +45,7 @@ enum cputype {
 	CPU_HASWELL,
 	CPU_HASWELL_EPEX,
 	CPU_BROADWELL,
+	CPU_KNIGHTS_LANDING,
 };
 
 struct mce_event {
