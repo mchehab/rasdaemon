@@ -115,6 +115,7 @@ static char *mca_msg[] = {
 	[3] = "External error",
 	[4] = "FRC error",
 	[5] = "Internal parity error",
+	[6] = "SMM Handler Code Access Violation",
 };
 
 static char *tracking_msg[] = {
