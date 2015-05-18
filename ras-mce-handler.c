@@ -75,7 +75,7 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
 			return CPU_NEHALEM;
 		else if (mce->model == 0x2e || mce->model == 0x2f)
 			return CPU_XEON75XX;
-		else if (mce->model == 0x2a || mce->model == 0x3a)
+		else if (mce->model == 0x2a)
 			return CPU_SANDY_BRIDGE;
 		else if (mce->model == 0x2d)
 			return CPU_SANDY_BRIDGE_EP;
