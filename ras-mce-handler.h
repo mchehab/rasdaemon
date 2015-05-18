@@ -42,6 +42,8 @@ enum cputype {
 	CPU_SANDY_BRIDGE_EP,
 	CPU_IVY_BRIDGE,
 	CPU_IVY_BRIDGE_EPEX,
+	CPU_HASWELL,
+	CPU_HASWELL_EPEX,
 };
 
 struct mce_event {
@@ -114,6 +116,7 @@ void xeon75xx_decode_model(struct mce_event *e);
 void dunnington_decode_model(struct mce_event *e);
 void snb_decode_model(struct ras_events *ras, struct mce_event *e);
 void ivb_decode_model(struct ras_events *ras, struct mce_event *e);
+void hsw_decode_model(struct ras_events *ras, struct mce_event *e);
 void tulsa_decode_model(struct mce_event *e);
 
 /* Software defined banks */

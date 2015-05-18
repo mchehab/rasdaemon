@@ -392,6 +392,8 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_IVY_BRIDGE_EPEX:
 		ivb_decode_model(ras, e);
 		break;
+	case CPU_HASWELL_EPEX:
+		hsw_decode_model(ras, e);
 	default:
 		break;
 	}

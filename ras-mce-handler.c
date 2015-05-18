@@ -47,6 +47,8 @@ static char *cputype_name[] = {
 	[CPU_SANDY_BRIDGE_EP] = "Sandy Bridge EP",	/* Fill in better name */
 	[CPU_IVY_BRIDGE] = "Ivy Bridge",		/* Fill in better name */
 	[CPU_IVY_BRIDGE_EPEX] = "Ivy Bridge EP/EX",	/* Fill in better name */
+	[CPU_HASWELL] = "Haswell",
+	[CPU_HASWELL_EPEX] = "Intel Xeon v3 (Haswell) EP/EX",
 };
 
 static enum cputype select_intel_cputype(struct ras_events *ras)
@@ -81,6 +83,12 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
 			return CPU_IVY_BRIDGE;
 		else if (mce->model == 0x3e)
 			return CPU_IVY_BRIDGE_EPEX;
+		else if (mce->model == 0x3c || mce->model == 0x45 ||
+			 mce->model == 0x46)
+			return CPU_HASWELL;
+		else if (mce->model == 0x3f)
+			return CPU_HASWELL_EPEX;
+
 		if (mce->model > 0x1a) {
 			log(ALL, LOG_INFO,
 			    "Family 6 Model %x CPU: only decoding architectural errors\n",
