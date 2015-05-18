@@ -76,6 +76,7 @@ static char *memctrl_1[] = {
 	[0x010] = "Uncorrected patrol scrub error",
 	[0x020] = "Corrected spare error",
 	[0x040] = "Uncorrected spare error",
+	[0x080] = "Corrected memory read error",
 	[0x100] = "iMC, WDB, parity errors",
 };
 
