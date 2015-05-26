@@ -174,22 +174,20 @@ void hsw_decode_model(struct ras_events *ras, struct mce_event *e)
 
 	mce_snprintf(e->mc_location, "memory_channel=%d", chan);
 
-	if (EXTRACT(e->misc, 62, 62))
+	if (EXTRACT(e->misc, 62, 62)) {
 		rank0 = EXTRACT(e->misc, 46, 50);
-
-	if (EXTRACT(e->misc, 63, 63))
-		rank1 = EXTRACT(e->misc, 51, 55);
+		if (EXTRACT(e->misc, 63, 63))
+			rank1 = EXTRACT(e->misc, 51, 55);
+	}
 
 	/*
 	 * FIXME: The conversion from rank to dimm requires to parse the
 	 * DMI tables and call failrank2dimm().
 	 */
-	if (rank0 >= 0 && rank1 >= 0)
+	if (rank0 != -1 && rank1 != -1)
 		mce_snprintf(e->mc_location, "ranks=%d and %d",
 				     rank0, rank1);
-	else if (rank0 >= 0)
+	else if (rank0 != -1)
 		mce_snprintf(e->mc_location, "rank=%d", rank0);
-	else
-		mce_snprintf(e->mc_location, "rank=%d", rank1);
 }
 
