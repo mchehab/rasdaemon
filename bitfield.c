@@ -84,7 +84,8 @@ void decode_bitfield(struct mce_event *e, uint64_t status,
 				continue;
 			mce_snprintf(e->error_msg, "<%u:%llx>",
 				     f->start_bit, (long long)v);
-		}
+		} else
+			mce_snprintf(e->error_msg, "%s", s);
 	}
 }
 
