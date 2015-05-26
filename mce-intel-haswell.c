@@ -137,6 +137,7 @@ void hsw_decode_model(struct ras_events *ras, struct mce_event *e)
                 }
                 if (EXTRACT(status, 16, 19))
                         /* PCU internal error */
+                        ;
                 decode_bitfield(e, status, pcu_mc4);
                 break;
         case 5:
