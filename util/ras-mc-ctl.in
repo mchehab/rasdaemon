@@ -288,8 +288,27 @@ sub parse_dimm_nodes
     }
 }
 
+sub guess_product {
+    my $pvendor = undef;
+    my $pname = undef;
+
+    if (open (VENDOR, "/sys/class/dmi/id/product_vendor")) {
+        $pvendor = <VENDOR>;
+        close VENDOR;
+        chomp($pvendor);
+    }
+    if (open (NAME, "/sys/class/dmi/id/product_name")) {
+        $pname = <NAME>;
+        close NAME;
+        chomp($pname);
+    }
+
+    return ($pvendor, $pname);
+}
+
 sub get_mainboard_info {
     my ($vendor, $model);
+    my ($pvendor, $pname);
 
     if ($conf{opt}{mainboard} && $conf{opt}{mainboard} ne "report") {
         ($vendor, $model) = split (/[: ]/, $conf{opt}{mainboard}, 2);
@@ -301,6 +320,15 @@ sub get_mainboard_info {
 
     $conf{mainboard}{vendor} = $vendor;
     $conf{mainboard}{model}  = $model;
+
+    ($pvendor, $pname) = guess_product ();
+    # since product vendor is rare, use mainboard's vendor
+    if ($pvendor) {
+        $conf{mainboard}{product_vendor} = $pvendor;
+    } else {
+        $conf{mainboard}{product_vendor} = $vendor;
+    }
+    $conf{mainboard}{product_name} = $pname if $pname;
 }
 
 sub guess_vendor_model_dmidecode {
@@ -449,10 +477,11 @@ sub guess_dimm_label {
 
 sub parse_dimm_labels_file
 {
-    my ($lh, $num_layers, $file) = (@_);
+    my ($lh, $num_layers, $lh_prod, $num_layers_prod, $file) = (@_);
     my $line = -1;
     my $vendor = "";
     my @models = ();
+    my @products = ();
     my $num;
 
     open (LABELS, "$file")
@@ -469,12 +498,21 @@ sub parse_dimm_labels_file
         if (/vendor\s*:\s*(.*\S)\s*/i) {
             $vendor = lc $1;
             @models = ();
+            @products = ();
             $num = 0;
             next;
         }
         if (/(model|board)\s*:\s*(.*)$/i) {
             !$vendor && die "$file: line $line: MB model without vendor\n";
             @models = grep { s/\s*(.*)\s*$/$1/ } split(/[,;]+/, $2);
+            @products = ();
+            $num = 0;
+            next;
+        }
+        if (/(product)\s*:\s*(.*)$/i) {
+            !$vendor && die "$file: line $line: product without vendor\n";
+            @models = ();
+            @products = grep { s/\s*(.*)\s*$/$1/ } split(/[,;]+/, $2);
             $num = 0;
             next;
         }
@@ -513,10 +551,13 @@ sub parse_dimm_labels_file
                     }
                     map { $lh->{$vendor}{lc $_}{$mc}{$top}{$mid}{$low} = $label }
                             @models;
+                    map { $lh_prod->{$vendor}{lc $_}{$mc}{$top}{$mid}{$low} = $label }
+                            @products;
                 }
                 if (!$num) {
                         $num = $n;
                         map { $num_layers->{$vendor}{lc $_} = $num } @models;
+                        map { $num_layers_prod->{$vendor}{lc $_} = $num } @products;
                 } elsif ($num != $n) {
                         die ("Error: Inconsistent number of layers at label db \"$file\"\n");
                 }
@@ -531,6 +572,8 @@ sub parse_dimm_labels
 {
     my %labels = ();
     my %num_layers = ();
+    my %labels_prod = ();
+    my %num_layers_prod = ();
 
     #
     #  Accrue all DIMM labels from the labels.db file, as
@@ -538,10 +581,10 @@ sub parse_dimm_labels
     #
     for my $file ($conf{labeldb}, <$conf{labeldir}/*>) {
         next unless -r $file;
-        parse_dimm_labels_file (\%labels, \%num_layers, $file);
+        parse_dimm_labels_file (\%labels, \%num_layers, \%labels_prod, \%num_layers_prod, $file);
     }
 
-    return (\%labels, \%num_layers);
+    return (\%labels, \%num_layers, \%labels_prod, \%num_layers_prod);
 }
 
 sub read_dimm_label
@@ -598,25 +641,9 @@ sub get_dimm_label_node
 }
 
 
-sub print_dimm_labels
+sub _print_dimm_labels
 {
-    my $fh = shift || *STDOUT;
-    my ($lref, $num_layers) = parse_dimm_labels ();
-    my $vendor = lc $conf{mainboard}{vendor};
-    my $model  = lc $conf{mainboard}{model};
-    my $format = "%-35s %-20s %-20s\n";
-
-    if (!exists $$lref{$vendor}{$model}) {
-        log_error ("No dimm labels for $conf{mainboard}{vendor} " .
-                   "model $conf{mainboard}{model}\n");
-        return;
-    }
-
-    my $sysfs_dir = "/sys/devices/system/edac/mc";
-
-    find({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
-
-    printf $fh $format, "LOCATION", "CONFIGURED LABEL", "SYSFS CONTENTS";
+    my ($lref, $num_layers, $vendor, $model, $fh, $format) = @_;
 
     for my $mc (sort keys %{$$lref{$vendor}{$model}}) {
         for my $top (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
@@ -631,26 +658,40 @@ sub print_dimm_labels
         }
     }
     print $fh "\n";
-
 }
 
-sub register_dimm_labels
+sub print_dimm_labels
 {
-    my ($lref, $num_layers) = parse_dimm_labels ();
+    my $fh = shift || *STDOUT;
+    my ($lref, $num_layers, $lref_prod, $num_layers_prod) = parse_dimm_labels ();
     my $vendor = lc $conf{mainboard}{vendor};
     my $model  = lc $conf{mainboard}{model};
-    my $sysfs  = "/sys/devices/system/edac/mc";
+    my $pvendor = lc $conf{mainboard}{product_vendor};
+    my $pname = lc $conf{mainboard}{product_name};
+    my $format = "%-35s %-20s %-20s\n";
 
-    if (!exists $$lref{$vendor}{$model}) {
+    if (!exists $$lref{$vendor}{$model} && !exists $$lref_prod{$pvendor}{$pname}) {
         log_error ("No dimm labels for $conf{mainboard}{vendor} " .
-                                      "model $conf{mainboard}{model}\n");
-        return 0;
+                   "model $conf{mainboard}{model}\n");
+        return;
     }
+
     my $sysfs_dir = "/sys/devices/system/edac/mc";
 
     find({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
 
-    select (undef, undef, undef, $conf{opt}{delay});
+    printf $fh $format, "LOCATION", "CONFIGURED LABEL", "SYSFS CONTENTS";
+
+    if (exists $$lref{$vendor}{$model}) {
+        _print_dimm_labels($lref, $num_layers, $vendor, $model, $fh, $format);
+    } elsif (exists $$lref_prod{$pvendor}{$pname}) {
+        _print_dimm_labels($lref_prod, $num_layers_prod, $pvendor, $pname, $fh, $format);
+    }
+}
+
+sub write_dimm_labels
+{
+    my ($lref, $num_layers, $vendor, $model) = @_;
 
     for my $mc (sort keys %{$$lref{$vendor}{$model}}) {
         for my $top (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
@@ -675,6 +716,34 @@ sub register_dimm_labels
             }
         }
     }
+}
+
+sub register_dimm_labels
+{
+    my ($lref, $num_layers, $lref_prod, $num_layers_prod) = parse_dimm_labels ();
+    my $vendor = lc $conf{mainboard}{vendor};
+    my $model  = lc $conf{mainboard}{model};
+    my $pvendor = lc $conf{mainboard}{product_vendor};
+    my $pname = lc $conf{mainboard}{product_name};
+    my $sysfs  = "/sys/devices/system/edac/mc";
+
+    if (!exists $$lref{$vendor}{$model} && !exists $$lref_prod{$pvendor}{$pname}) {
+        log_error ("No dimm labels for $conf{mainboard}{vendor} " .
+                                      "model $conf{mainboard}{model}\n");
+        return 0;
+    }
+    my $sysfs_dir = "/sys/devices/system/edac/mc";
+
+    find({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
+
+    select (undef, undef, undef, $conf{opt}{delay});
+
+    if (exists $$lref{$vendor}{$model}) {
+        write_dimm_labels($lref, $num_layers, $vendor, $model);
+    } else {
+        write_dimm_labels($lref_prod, $num_layers_prod, $pvendor, $pname);
+    }
+
     return 1;
 }
 
