@@ -70,3 +70,11 @@
 	* Fix a bug while parsing dimm labels on amd64
 	* Enable database recording by default on systemd service file
 	* Correct range while parsing top, middle and lower layers
+
+2015-06-03	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+
+	- Version 0.5.5
+	* Improve INSTALL summary instructions
+	* Add support to match the machine by system's product name
+	* Add support for Haswell/Broadwell/Knights Landing
+	* Some bug fixes on some MCE handlers

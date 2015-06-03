@@ -49,6 +49,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Wed Jun 03 2015 Mauro Carvalho Chehab <mchehab@osg.samsung.com> 0.5.5-1
+- Bump to version 0.5.5 with support for newer Intel platforms & some fixes
+
 * Fri Aug 15 2014 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.5.4-1
 - Bump to version 0.5.4 with some fixes, mainly for amd64
 
