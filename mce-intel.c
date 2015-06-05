@@ -185,6 +185,8 @@ static void decode_mcg(struct mce_event *e)
 		mce_snprintf(e->mcgstatus_msg, "EIPV");
 	if (mcgstatus & MCG_STATUS_MCIP)
 		mce_snprintf(e->mcgstatus_msg, "MCIP");
+	if (mcgstatus & MCG_STATUS_LMCE)
+		mce_snprintf(e->mcgstatus_msg, "LMCE");
 }
 
 static void bank_name(struct mce_event *e)
