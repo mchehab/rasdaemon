@@ -176,7 +176,7 @@ static void decode_mcg(struct mce_event *e)
 {
 	uint64_t mcgstatus = e->mcgstatus;
 
-	mce_snprintf(e->mcgstatus_msg, "mcgstatus= %lld",
+	mce_snprintf(e->mcgstatus_msg, "mcgstatus=%lld",
 		     (long long)e->mcgstatus);
 
 	if (mcgstatus & MCG_STATUS_RIPV)
