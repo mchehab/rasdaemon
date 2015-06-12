@@ -411,6 +411,9 @@ int ras_mce_event_handler(struct trace_seq *s,
 	if (rc)
 		return rc;
 
+	if (!*e.error_msg && *e.mcastatus_msg)
+		mce_snprintf(e.error_msg, "%s", e.mcastatus_msg);
+
 	report_mce_event(ras, record, s, &e);
 
 #ifdef HAVE_SQLITE3
