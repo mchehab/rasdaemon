@@ -126,18 +126,17 @@ void hsw_decode_model(struct ras_events *ras, struct mce_event *e)
         case 4:
                 switch (EXTRACT(status, 0, 15) & ~(1ull << 12)) {
                 case 0x402: case 0x403:
-                        /* Internal errors */
+                        mce_snprintf(e->mcastatus_msg, "PCU Internal Errors");
                         break;
                 case 0x406:
-                        /* Intel TXT errors */
+                        mce_snprintf(e->mcastatus_msg, "Intel TXT Errors");
                         break;
                 case 0x407:
-                        /* Other UBOX Internal errors */
+                        mce_snprintf(e->mcastatus_msg, "Other UBOX Internal Errors");
                         break;
                 }
-                if (EXTRACT(status, 16, 19))
-                        /* PCU internal error */
-                        ;
+                if (EXTRACT(status, 16, 17) && !EXTRACT(status, 18, 19))
+                        mce_snprintf(e->error_msg, "PCU Internal error");
                 decode_bitfield(e, status, pcu_mc4);
                 break;
         case 5:
