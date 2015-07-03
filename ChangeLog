@@ -78,3 +78,12 @@
 	* Add support to match the machine by system's product name
 	* Add support for Haswell/Broadwell/Knights Landing
 	* Some bug fixes on some MCE handlers
+
+2015-07-03	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+	- Version 0.5.6
+	* Add internal errors of IA32_MC4_STATUS for Haswell
+	* Use MCA error msg as error_msg
+	* Unnecessary comma for empty mc_location string
+	* Remove a space from mcgstatus_msg
+	* Add support to log Local Machine Check Exception (LMCE)
+

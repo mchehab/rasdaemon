@@ -49,6 +49,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Fri Jul 03 2015 Mauro Carvalho Chehab <mchehab@osg.samsung.com> 0.5.6-1
+- Bump to version 0.5.6 with support for LMCE and some fixes
+
 * Wed Jun 03 2015 Mauro Carvalho Chehab <mchehab@osg.samsung.com> 0.5.5-1
 - Bump to version 0.5.5 with support for newer Intel platforms & some fixes
 
