@@ -69,14 +69,14 @@ Display the configured labels for the current hardware, as
 well as the current labels registered with EDAC.
 .TP
 .BI "--guess-labels"
-Print DMI labels, when bank locator is available at the DMI table.
+Print DMI labels, when bank locator is available in the DMI table.
 It helps to fill the labels database at @sysconfdir@/ras/dimm_labels.d/.
 .TP
 .BI "--labeldb="DB
 Specify an alternate location for the labels database.
 .TP
 .BI "--delay="time
-Specify a delay of \ftime\fR seconds before registering dimm labels.
+Specify a delay of \fBtime\fR seconds before registering DIMM labels.
 Only meaninful if used together with --register-labels.
 .TP
 .BI "--layout
@@ -121,4 +121,4 @@ back to parsing output of the \fBdmidecode\fR(8) utility. Use of this
 utility will most often require that \fBras-mc-ctl\fR be run as root.
 
 .SH SEE ALSO
-\f\fBrasdaemon\fR(1)
+\fBrasdaemon\fR(1)
