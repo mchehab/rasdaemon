@@ -28,7 +28,8 @@ if WITH_MCE
    rasdaemon_SOURCES += ras-mce-handler.c mce-intel.c mce-amd-k8.c \
 			mce-intel-p4-p6.c mce-intel-nehalem.c \
 			mce-intel-dunnington.c mce-intel-tulsa.c \
-			mce-intel-sb.c mce-intel-ivb.c mce-intel-haswell.c
+			mce-intel-sb.c mce-intel-ivb.c mce-intel-haswell.c \
+			mce-intel-knl.c
 endif
 if WITH_EXTLOG
    rasdaemon_SOURCES += ras-extlog-handler.c

@@ -223,6 +223,7 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 	case CPU_SANDY_BRIDGE_EP:
 	case CPU_IVY_BRIDGE_EPEX:
 	case CPU_HASWELL_EPEX:
+	case CPU_KNIGHTS_LANDING:
 		set_intel_imc_log(mce->cputype, ncpus);
 	default:
 		break;

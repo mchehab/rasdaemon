@@ -119,6 +119,7 @@ void dunnington_decode_model(struct mce_event *e);
 void snb_decode_model(struct ras_events *ras, struct mce_event *e);
 void ivb_decode_model(struct ras_events *ras, struct mce_event *e);
 void hsw_decode_model(struct ras_events *ras, struct mce_event *e);
+void knl_decode_model(struct ras_events *ras, struct mce_event *e);
 void tulsa_decode_model(struct mce_event *e);
 
 /* Software defined banks */
