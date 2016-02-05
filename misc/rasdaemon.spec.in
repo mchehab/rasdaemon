@@ -49,6 +49,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Fri Feb 05 2016 Mauro Carvalho Chehab <mchehab@osg.samsung.com> 0.5.7-1
+- Bump to version 0.5.7 adding support for Broadwell-EP/EX and -DE and Knights Landing processors
+
 * Fri Jul 03 2015 Mauro Carvalho Chehab <mchehab@osg.samsung.com> 0.5.6-1
 - Bump to version 0.5.6 with support for LMCE and some fixes
 

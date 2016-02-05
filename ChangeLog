@@ -87,3 +87,8 @@
 	* Remove a space from mcgstatus_msg
 	* Add support to log Local Machine Check Exception (LMCE)
 
+2016-02-05	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+	- Version 0.5.7
+	* Add model numbers for Broadwell-EP/EX and -DE
+	* Add support for Knights Landing processor
+
