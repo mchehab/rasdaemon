@@ -45,6 +45,7 @@ enum cputype {
 	CPU_HASWELL,
 	CPU_HASWELL_EPEX,
 	CPU_BROADWELL,
+	CPU_BROADWELL_DE,
 	CPU_KNIGHTS_LANDING,
 };
 
@@ -121,6 +122,7 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e);
 void hsw_decode_model(struct ras_events *ras, struct mce_event *e);
 void knl_decode_model(struct ras_events *ras, struct mce_event *e);
 void tulsa_decode_model(struct mce_event *e);
+void broadwell_de_decode_model(struct ras_events *ras, struct mce_event *e);
 
 /* Software defined banks */
 #define MCE_EXTENDED_BANK	128

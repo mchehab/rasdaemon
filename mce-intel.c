@@ -401,6 +401,9 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_KNIGHTS_LANDING:
 		knl_decode_model(ras, e);
 		break;
+	case CPU_BROADWELL_DE:
+		broadwell_de_decode_model(ras, e);
+		break;
 	default:
 		break;
 	}
