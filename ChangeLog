@@ -92,3 +92,6 @@
 	* Add model numbers for Broadwell-EP/EX and -DE
 	* Add support for Knights Landing processor
 
+2016-04-15	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+	- Version 0.5.8
+	* Add Broadwell EP/EX MSCOD and Broadwell DE MSCOD values
