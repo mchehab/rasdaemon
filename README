@@ -6,14 +6,10 @@ and Serviceability (RAS) reports made via the Kernel tracing events.
 
 The main repository for the rasdaemon is at Fedora hosted:
 
-	https://git.fedorahosted.org/cgit/rasdaemon.git/
-
-I have a secondary repository at Infradead:
-
 	http://git.infradead.org/users/mchehab/rasdaemon.git
 
-Where I use when I'm working on experimental patches, not ready yet
-for upstream.
+Tarballs for each release can be found at:
+	http://www.infradead.org/~mchehab/rasdaemon/
 
 GOALS
 =====
@@ -186,11 +182,11 @@ SUBMITTING PATCHES
 If you want to help improving this tool, be my guest! We try to follow
 the Kernel's CodingStyle and submission rules as a reference. Please
 send patches enclosed in an email, in plain text, to:
-	Mauro Carvalho Chehab <m.chehab@samsung.com>
+	Mauro Carvalho Chehab <mchehab@s-opensource.com>
 		or
 	Mauro Carvalho Chehab <mchehab@infradead.org>
 
-Sending a copy also to linux-edac@vger.kernel.org.
+Please always send a copy to linux-edac@vger.kernel.org.
 
 Don't foget to add a description of the patch in the body of the email, adding
 a Signed-off-by: at the end of the patch description (before the unified diff
