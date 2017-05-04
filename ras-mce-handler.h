@@ -48,6 +48,7 @@ enum cputype {
 	CPU_BROADWELL_DE,
 	CPU_BROADWELL_EPEX,
 	CPU_KNIGHTS_LANDING,
+	CPU_KNIGHTS_MILL,
 };
 
 struct mce_event {

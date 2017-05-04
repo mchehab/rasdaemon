@@ -53,6 +53,7 @@ static char *cputype_name[] = {
 	[CPU_BROADWELL_DE] = "Broadwell DE",
 	[CPU_BROADWELL_EPEX] = "Broadwell EP/EX",
 	[CPU_KNIGHTS_LANDING] = "Knights Landing",
+	[CPU_KNIGHTS_MILL] = "Knights Mill",
 };
 
 static enum cputype select_intel_cputype(struct ras_events *ras)
@@ -100,6 +101,8 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
 			return CPU_BROADWELL;
 		else if (mce->model == 0x57)
 			return CPU_KNIGHTS_LANDING;
+		else if (mce->model == 0x85)
+			return CPU_KNIGHTS_MILL;
 
 		if (mce->model > 0x1a) {
 			log(ALL, LOG_INFO,
@@ -229,6 +232,7 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 	case CPU_IVY_BRIDGE_EPEX:
 	case CPU_HASWELL_EPEX:
 	case CPU_KNIGHTS_LANDING:
+	case CPU_KNIGHTS_MILL:
 		set_intel_imc_log(mce->cputype, ncpus);
 	default:
 		break;

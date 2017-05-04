@@ -399,6 +399,7 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 		hsw_decode_model(ras, e);
 		break;
 	case CPU_KNIGHTS_LANDING:
+	case CPU_KNIGHTS_MILL:
 		knl_decode_model(ras, e);
 		break;
 	case CPU_BROADWELL_DE:
@@ -471,6 +472,7 @@ int set_intel_imc_log(enum cputype cputype, unsigned ncpus)
 	case CPU_IVY_BRIDGE_EPEX:
 	case CPU_HASWELL_EPEX:
 	case CPU_KNIGHTS_LANDING:
+	case CPU_KNIGHTS_MILL:
 		msr = 0x17f;	/* MSR_ERROR_CONTROL */
 		bit = 0x2;	/* MemError Log Enable */
 		break;
