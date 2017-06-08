@@ -83,3 +83,18 @@ AC_DEFINE([RAS_DB_FNAME], ["ras-mc_event.db"], [ras events database])
 AC_SUBST([RAS_DB_FNAME], ["ras-mc_event.db"])
 
 AC_OUTPUT
+
+dnl ---------------------------------------------------------------------
+dnl compile time options summary
+
+cat <<EOF
+
+compile time options summary
+============================
+
+    Sqlite3           : $enable_sqlite3
+    AER               : $enable_aer
+    MCE               : $enable_mce
+    EXTLOG            : $enable_extlog
+    ABRT report       : $enable_abrt_report
+EOF
