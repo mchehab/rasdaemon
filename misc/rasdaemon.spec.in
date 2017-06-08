@@ -56,6 +56,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Thu Jun 08 2017 Mauro Carvalho Chehab <mchehab@osg.samsung.com> 0.5.9-1
+- Bump to version 0.5.8 adding support for Knights Mill and update DELL labels
+
 * Fri Apr 15 2016 Mauro Carvalho Chehab <mchehab@osg.samsung.com> 0.5.8-1
 - Bump to version 0.5.8 adding support for Broadwell EP/EX MSCOD and Broadwell DE MSCOD
 
@@ -76,10 +79,10 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 * Tue Sep 10 2013 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.4.2-1
 - Fix ras-mc-ctl layout filling
- 
+
 * Wed May 29 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.1-2
 - Fix the name of perl-DBD-SQLite package
- 
+
 * Wed May 29 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.1-1
 - Updated to version 0.4.1 with contains some bug fixes
 

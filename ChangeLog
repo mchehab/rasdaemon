@@ -95,3 +95,8 @@
 2016-04-15	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
 	- Version 0.5.8
 	* Add Broadwell EP/EX MSCOD and Broadwell DE MSCOD values
+
+2016-06-08	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+	- Version 0.5.9
+	* Add Knights Mill and updated DELL labels
+	* Configure now reports enabled options
