@@ -4,15 +4,23 @@ Release:		1%{?dist}
 Summary:		Utility to receive RAS error tracings
 Group:			Applications/System
 License:		GPLv2
-URL:			https://git.fedorahosted.org/git/rasdaemon.git
-Source0:		http://mchehab.fedorapeople.org/%{name}-%{version}.tar.bz2
-BuildRoot:		%{_tmppath}/%{name}-%{version}-%{release}
-Requires:		hwdata, dmidecode, perl-dbd-sqlite
-BuildRequires:		autoconf, automake, gettext-devel, libtool, sqlite-devel
-ExclusiveArch:		%{ix86} x86_64
-Requires(post):		systemd-units
-Requires(preun):	systemd-units
-Requires(postun):	systemd-units
+URL:			http://git.infradead.org/users/mchehab/rasdaemon.git
+Source0:		http://www.infradead.org/~mchehab/rasdaemon/%{name}-%{version}.tar.bz2
+ExcludeArch:		s390 s390x
+BuildRequires:		gettext-devel
+BuildRequires:		perl-generators
+BuildRequires:		sqlite-devel
+BuildRequires:		systemd
+Provides:		bundled(kernel-event-lib)
+Requires:		hwdata
+Requires:		perl-DBD-SQLite
+%ifarch %{ix86} x86_64
+Requires:		dmidecode
+%endif
+
+Requires(post):		systemd
+Requires(preun):	systemd
+Requires(postun):	systemd
 
 %description
 %{name} is a RAS (Reliability, Availability and Serviceability) logging tool.
@@ -28,7 +36,6 @@ an utility for reporting current error counts from the EDAC sysfs files.
 %setup -q
 
 %build
-autoreconf -vfi
 %configure --enable-mce --enable-aer --enable-sqlite3 --enable-extlog --enable-abrt-report
 make %{?_smp_mflags}
 
