@@ -68,6 +68,14 @@ enum hw_event_mc_err_type {
 	HW_EVENT_ERR_INFO,
 };
 
+/* Should match the code at Kernel's include/acpi/ghes.h */
+enum ghes_severity {
+	GHES_SEV_NO,
+	GHES_SEV_CORRECTED,
+	GHES_SEV_RECOVERABLE,
+	GHES_SEV_PANIC,
+};
+
 /* Function prototypes */
 int toggle_ras_mc_event(int enable);
 int handle_ras_events(int record_events);

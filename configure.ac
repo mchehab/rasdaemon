@@ -44,6 +44,15 @@ AS_IF([test "x$enable_aer" = "xyes"], [
 ])
 AM_CONDITIONAL([WITH_AER], [test x$enable_aer = xyes])
 
+AC_ARG_ENABLE([non_standard],
+    AS_HELP_STRING([--enable-non-standard], [enable NON_STANDARD events (currently experimental)]))
+
+AS_IF([test "x$enable_non_standard" = "xyes"], [
+  AC_DEFINE(HAVE_NON_STANDARD,1,"have UNKNOWN_SEC events collect")
+  AC_SUBST([WITH_NON_STANDARD])
+])
+AM_CONDITIONAL([WITH_NON_STANDARD], [test x$enable_non_standard = xyes])
+
 AC_ARG_ENABLE([mce],
     AS_HELP_STRING([--enable-mce], [enable MCE events (currently experimental)]))
 

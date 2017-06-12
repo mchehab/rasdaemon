@@ -29,6 +29,7 @@
 #include "libtrace/event-parse.h"
 #include "ras-mc-handler.h"
 #include "ras-aer-handler.h"
+#include "ras-non-standard-handler.h"
 #include "ras-mce-handler.h"
 #include "ras-extlog-handler.h"
 #include "ras-record.h"
@@ -206,6 +207,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_EXTLOG
 	rc |= __toggle_ras_mc_event(ras, "ras", "extlog_mem_event", enable);
+#endif
+
+#ifdef HAVE_NON_STANDARD
+	rc |= __toggle_ras_mc_event(ras, "ras", "non_standard_event", enable);
 #endif
 
 free_ras:
@@ -674,6 +679,16 @@ int handle_ras_events(int record_events)
 	else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "aer_event");
+#endif
+
+#ifdef HAVE_NON_STANDARD
+        rc = add_event_handler(ras, pevent, page_size, "ras", "non_standard_event",
+                               ras_non_standard_event_handler);
+        if (!rc)
+                num_events++;
+        else
+                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+                    "ras", "non_standard_event");
 #endif
 
 	cpus = get_num_cpus(ras);
