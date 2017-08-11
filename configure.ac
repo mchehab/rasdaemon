@@ -105,5 +105,6 @@ compile time options summary
     AER               : $enable_aer
     MCE               : $enable_mce
     EXTLOG            : $enable_extlog
+    CPER non-standard : $enable_non_standard
     ABRT report       : $enable_abrt_report
 EOF
