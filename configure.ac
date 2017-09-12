@@ -53,6 +53,15 @@ AS_IF([test "x$enable_non_standard" = "xyes"], [
 ])
 AM_CONDITIONAL([WITH_NON_STANDARD], [test x$enable_non_standard = xyes])
 
+AC_ARG_ENABLE([arm],
+    AS_HELP_STRING([--enable-arm], [enable ARM events (currently experimental)]))
+
+AS_IF([test "x$enable_arm" = "xyes"], [
+  AC_DEFINE(HAVE_ARM,1,"have ARM events collect")
+  AC_SUBST([WITH_ARM])
+])
+AM_CONDITIONAL([WITH_ARM], [test x$enable_arm = xyes])
+
 AC_ARG_ENABLE([mce],
     AS_HELP_STRING([--enable-mce], [enable MCE events (currently experimental)]))
 

@@ -33,7 +33,8 @@ enum {
 	MC_EVENT,
 	MCE_EVENT,
 	AER_EVENT,
-	NON_STANDARD_EVENT
+	NON_STANDARD_EVENT,
+	ARM_EVENT
 };
 
 #ifdef HAVE_ABRT_REPORT
@@ -42,6 +43,7 @@ int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
 int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev);
 int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev);
 int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standard_event *ev);
+int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev);
 
 #else
 
@@ -49,6 +51,7 @@ static inline int ras_report_mc_event(struct ras_events *ras, struct ras_mc_even
 static inline int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev) { return 0; };
 static inline int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev) { return 0; };
 static inline int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standard_event *ev) { return 0; };
+static inline int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev) { return 0; };
 
 #endif
 

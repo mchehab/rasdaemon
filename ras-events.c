@@ -30,6 +30,7 @@
 #include "ras-mc-handler.h"
 #include "ras-aer-handler.h"
 #include "ras-non-standard-handler.h"
+#include "ras-arm-handler.h"
 #include "ras-mce-handler.h"
 #include "ras-extlog-handler.h"
 #include "ras-record.h"
@@ -211,6 +212,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_NON_STANDARD
 	rc |= __toggle_ras_mc_event(ras, "ras", "non_standard_event", enable);
+#endif
+
+#ifdef HAVE_ARM
+	rc |= __toggle_ras_mc_event(ras, "ras", "arm_event", enable);
 #endif
 
 free_ras:
@@ -689,6 +694,16 @@ int handle_ras_events(int record_events)
         else
                 log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
                     "ras", "non_standard_event");
+#endif
+
+#ifdef HAVE_ARM
+        rc = add_event_handler(ras, pevent, page_size, "ras", "arm_event",
+                               ras_arm_event_handler);
+        if (!rc)
+                num_events++;
+        else
+                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+                    "ras", "arm_event");
 #endif
 
 	cpus = get_num_cpus(ras);

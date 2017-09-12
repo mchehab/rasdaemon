@@ -228,6 +228,33 @@ static int set_non_standard_event_backtrace(char *buf, struct ras_non_standard_e
 	return 0;
 }
 
+static int set_arm_event_backtrace(char *buf, struct ras_arm_event *ev){
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if(!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="    \
+						"timestamp=%s\n"	\
+						"error_count=%d\n"	\
+						"affinity=%d\n"	\
+						"mpidr=0x%lx\n"	\
+						"midr=0x%lx\n"	\
+						"running_state=%d\n"	\
+						"psci_state=%d\n",	\
+						ev->timestamp,	\
+						ev->error_count,	\
+						ev->affinity,	\
+						ev->mpidr,	\
+						ev->midr,	\
+						ev->running_state,	\
+						ev->psci_state);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
 static int commit_report_backtrace(int sockfd, int type, void *ev){
 	char buf[MAX_BACKTRACE_SIZE];
 	char *pbuf = buf;
@@ -252,6 +279,9 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 		break;
 	case NON_STANDARD_EVENT:
 		rc = set_non_standard_event_backtrace(buf, (struct ras_non_standard_event *)ev);
+		break;
+	case ARM_EVENT:
+		rc = set_arm_event_backtrace(buf, (struct ras_arm_event *)ev);
 		break;
 	default:
 		return -1;
@@ -417,6 +447,51 @@ int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standar
 	rc = 0;
 
 non_standard_fail:
+
+	if(sockfd > 0){
+		close(sockfd);
+	}
+
+	return rc;
+}
+
+int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev){
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if(sockfd < 0){
+		return rc;
+	}
+
+	rc = commit_report_basic(sockfd);
+	if(rc < 0){
+		goto arm_fail;
+	}
+
+	rc = commit_report_backtrace(sockfd, ARM_EVENT, ev);
+	if(rc < 0){
+		goto arm_fail;
+	}
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-arm");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if(rc < strlen(buf) + 1){
+		goto arm_fail;
+	}
+
+	sprintf(buf, "REASON=%s", "ARM CPU report problem");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if(rc < strlen(buf) + 1){
+		goto arm_fail;
+	}
+
+	rc = 0;
+
+arm_fail:
 
 	if(sockfd > 0){
 		close(sockfd);
