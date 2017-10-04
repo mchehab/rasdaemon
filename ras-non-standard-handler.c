@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include "libtrace/kbuffer.h"
@@ -20,6 +21,31 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+
+static p_ns_dec_tab * ns_dec_tab;
+static size_t dec_tab_count;
+
+int register_ns_dec_tab(const p_ns_dec_tab tab)
+{
+	ns_dec_tab = (p_ns_dec_tab *)realloc(ns_dec_tab,
+					    (dec_tab_count + 1) * sizeof(tab));
+	if (ns_dec_tab == NULL) {
+		printf("%s p_ns_dec_tab malloc failed", __func__);
+		return -1;
+	}
+	ns_dec_tab[dec_tab_count] = tab;
+	dec_tab_count++;
+	return 0;
+}
+
+void unregister_ns_dec_tab(void)
+{
+	if (ns_dec_tab) {
+		free(ns_dec_tab);
+		ns_dec_tab = NULL;
+		dec_tab_count = 0;
+	}
+}
 
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index) {
 	trace_seq_printf(s, "%02x%02x%02x%02x", buf[index+3], buf[index+2], buf[index+1], buf[index]);
@@ -49,16 +75,32 @@ static char *uuid_le(const char *uu)
 	return uuid;
 }
 
+static int uuid_le_cmp(const char *sec_type, const char *uuid2)
+{
+	static char uuid1[32];
+	char *p = uuid1;
+	int i;
+	static const unsigned char le[16] = {
+			3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15};
+
+	for (i = 0; i < 16; i++)
+		p += sprintf(p, "%.2x", sec_type[le[i]]);
+	*p = 0;
+	return strncmp(uuid1, uuid2, 32);
+}
+
 int ras_non_standard_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
 			 struct event_format *event, void *context)
 {
-	int len, i, line_count;
+	int len, i, line_count, count;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	time_t now;
 	struct tm *tm;
 	struct ras_non_standard_event ev;
+	p_ns_dec_tab dec_tab;
+	bool dec_done = false;
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -133,6 +175,18 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 			trace_seq_printf(s, " ");
 	}
 
+	for (count = 0; count < dec_tab_count && !dec_done; count++) {
+		dec_tab = ns_dec_tab[count];
+		for (i = 0; i < dec_tab[0].len; i++) {
+			if (uuid_le_cmp(ev.sec_type,
+					dec_tab[i].sec_type) == 0) {
+				dec_tab[i].decode(s, ev.error);
+				dec_done = true;
+				break;
+			}
+		}
+	}
+
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
 	ras_store_non_standard_record(ras, &ev);
@@ -144,4 +198,10 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 #endif
 
 	return 0;
+}
+
+__attribute__((destructor))
+static void ns_exit(void)
+{
+	unregister_ns_dec_tab();
 }
