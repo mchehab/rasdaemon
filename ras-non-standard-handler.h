@@ -17,6 +17,9 @@
 #include "ras-events.h"
 #include "libtrace/event-parse.h"
 
+#define BIT(nr)                 (1UL << (nr))
+#define BIT_ULL(nr)             (1ULL << (nr))
+
 typedef struct ras_ns_dec_tab {
 	const char *sec_type;
 	int (*decode)(struct trace_seq *s, const void *err);

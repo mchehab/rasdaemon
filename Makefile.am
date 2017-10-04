@@ -41,6 +41,9 @@ endif
 if WITH_ABRT_REPORT
    rasdaemon_SOURCES += ras-report.c
 endif
+if WITH_HISI_NS_DECODE
+   rasdaemon_SOURCES += non-standard-hisi_hip07.c
+endif
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) libtrace/libtrace.a
 
 include_HEADERS = config.h  ras-events.h  ras-logger.h  ras-mc-handler.h \

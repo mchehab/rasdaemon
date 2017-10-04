@@ -80,6 +80,15 @@ AS_IF([test "x$enable_abrt_report" = "xyes"], [
 ])
 AM_CONDITIONAL([WITH_ABRT_REPORT], [test x$enable_abrt_report = xyes])
 
+AC_ARG_ENABLE([hisi_ns_decode],
+    AS_HELP_STRING([--enable-hisi-ns-decode], [enable HISI_NS_DECODE events (currently experimental)]))
+
+AS_IF([test "x$enable_hisi_ns_decode" = "xyes"], [
+  AC_DEFINE(HAVE_HISI_NS_DECODE,1,"have HISI UNKNOWN_SEC events decode")
+  AC_SUBST([WITH_HISI_NS_DECODE])
+])
+AM_CONDITIONAL([WITH_HISI_NS_DECODE], [test x$enable_hisi_ns_decode = xyes])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
