@@ -57,6 +57,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Sat Oct 14 2017 Mauro Carvalho Chehab <mchehab@osg.samsung.com>  0.6.0-1
+- Bump to version 0.5.8 adding support for Arm and Hisilicon events and update Dell Skylate labels
+
 * Thu Jun 08 2017 Mauro Carvalho Chehab <mchehab@osg.samsung.com> 0.5.9-1
 - Bump to version 0.5.8 adding support for Knights Mill and update DELL labels
 
@@ -92,4 +95,3 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 * Mon May 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.3.0-1
 - Package created
-

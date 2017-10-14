@@ -100,3 +100,10 @@
 	- Version 0.5.9
 	* Add Knights Mill and updated DELL labels
 	* Configure now reports enabled options
+
+2017-10-14	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+	- Version 0.6.0
+	* Added support for non-standard CPER error sections
+	* Added support for Hisilicon HIP07 SAS HW module
+	* Added support for ARM events
+	* Updated DIMM labels for Intel Skylake servers
