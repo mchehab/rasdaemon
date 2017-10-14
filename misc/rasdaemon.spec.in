@@ -36,7 +36,8 @@ an utility for reporting current error counts from the EDAC sysfs files.
 %setup -q
 
 %build
-%configure --enable-mce --enable-aer --enable-sqlite3 --enable-extlog --enable-abrt-report
+%configure --enable-mce --enable-aer --enable-sqlite3 --enable-extlog --enable-abrt-report --enable-non-standard --enable-hisi-ns-decode --enable-arm
+
 make %{?_smp_mflags}
 
 %install
