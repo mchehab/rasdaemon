@@ -35,7 +35,7 @@
 #define ARGS_DOC "<options>"
 
 const char *argp_program_version = TOOL_NAME " " VERSION;
-const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@redhat.com>";
+const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.org>";
 
 struct arguments {
 	int record_events;
