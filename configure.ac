@@ -126,4 +126,5 @@ compile time options summary
     CPER non-standard   : $enable_non_standard
     ABRT report         : $enable_abrt_report
     HIP07 SAS HW errors : $enable_hisi_ns_decode
+    ARM events          : $enable_arm
 EOF
