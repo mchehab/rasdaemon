@@ -110,10 +110,11 @@ cat <<EOF
 compile time options summary
 ============================
 
-    Sqlite3           : $enable_sqlite3
-    AER               : $enable_aer
-    MCE               : $enable_mce
-    EXTLOG            : $enable_extlog
-    CPER non-standard : $enable_non_standard
-    ABRT report       : $enable_abrt_report
+    Sqlite3             : $enable_sqlite3
+    AER                 : $enable_aer
+    MCE                 : $enable_mce
+    EXTLOG              : $enable_extlog
+    CPER non-standard   : $enable_non_standard
+    ABRT report         : $enable_abrt_report
+    HIP07 SAS HW errors : $enable_hisi_ns_decode
 EOF
