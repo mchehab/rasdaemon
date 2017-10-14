@@ -127,7 +127,7 @@ void p4_decode_model(struct mce_event *e)
 
 	for (i = 0; i < ARRAY_SIZE(p4_model); i++) {
 		if (model & (1 << p4_model[i].value))
-			mce_snprintf(e->error_msg, p4_model[i].str);
+			mce_snprintf(e->error_msg, "%s", p4_model[i].str);
 	}
 }
 
