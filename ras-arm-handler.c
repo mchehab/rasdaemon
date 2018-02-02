@@ -31,6 +31,8 @@ int ras_arm_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct ras_arm_event ev;
 
+	memset(&ev, 0, sizeof(ev));
+
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would
