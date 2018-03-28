@@ -54,6 +54,7 @@ static char *cputype_name[] = {
 	[CPU_BROADWELL_EPEX] = "Broadwell EP/EX",
 	[CPU_KNIGHTS_LANDING] = "Knights Landing",
 	[CPU_KNIGHTS_MILL] = "Knights Mill",
+	[CPU_SKYLAKE_XEON] = "Skylake server",
 };
 
 static enum cputype select_intel_cputype(struct ras_events *ras)
@@ -103,6 +104,8 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
 			return CPU_KNIGHTS_LANDING;
 		else if (mce->model == 0x85)
 			return CPU_KNIGHTS_MILL;
+		else if (mce->model == 0x55)
+			return CPU_SKYLAKE_XEON;
 
 		if (mce->model > 0x1a) {
 			log(ALL, LOG_INFO,

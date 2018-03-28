@@ -49,6 +49,7 @@ enum cputype {
 	CPU_BROADWELL_EPEX,
 	CPU_KNIGHTS_LANDING,
 	CPU_KNIGHTS_MILL,
+	CPU_SKYLAKE_XEON,
 };
 
 struct mce_event {
@@ -126,6 +127,7 @@ void knl_decode_model(struct ras_events *ras, struct mce_event *e);
 void tulsa_decode_model(struct mce_event *e);
 void broadwell_de_decode_model(struct ras_events *ras, struct mce_event *e);
 void broadwell_epex_decode_model(struct ras_events *ras, struct mce_event *e);
+void skylake_s_decode_model(struct ras_events *ras, struct mce_event *e);
 
 /* Software defined banks */
 #define MCE_EXTENDED_BANK	128
