@@ -107,3 +107,10 @@
 	* Added support for Hisilicon HIP07 SAS HW module
 	* Added support for ARM events
 	* Updated DIMM labels for Intel Skylake servers
+
+2018-04-25	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+	- Version 0.6.1
+	* Update DIMM labels for 2-socket servers
+	* Add Skylake Xeon MSCOD values
+	* ARM: fully initialize ras_arm_event
+	* Update my email

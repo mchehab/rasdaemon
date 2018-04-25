@@ -57,11 +57,14 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Wed Apr 25 2018 Mauro Carvalho Chehab <mchehab+samsung@kernel.org>  0.6.1-1
+- Bump to version 0.6.1 adding support for Skylake Xeon MSCOD, a bug fix and some new DELL labels
+
 * Sat Oct 14 2017 Mauro Carvalho Chehab <mchehab+samsung@kernel.org>  0.6.0-1
-- Bump to version 0.5.8 adding support for Arm and Hisilicon events and update Dell Skylate labels
+- Bump to version 0.6.0 adding support for Arm and Hisilicon events and update Dell Skylate labels
 
 * Thu Jun 08 2017 Mauro Carvalho Chehab <mchehab+samsung@kernel.org> 0.5.9-1
-- Bump to version 0.5.8 adding support for Knights Mill and update DELL labels
+- Bump to version 0.5.9 adding support for Knights Mill and update DELL labels
 
 * Fri Apr 15 2016 Mauro Carvalho Chehab <mchehab+samsung@kernel.org> 0.5.8-1
 - Bump to version 0.5.8 adding support for Broadwell EP/EX MSCOD and Broadwell DE MSCOD
