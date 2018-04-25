@@ -1,9 +1,9 @@
-2013-03-12	Mauro Carvalho Chehab <mchehab@redhat.com>
+2013-03-12	Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
 
 	* Version 0.1.0
 	* Initial version
 
-2013-05-08	Mauro Carvalho Chehab <mchehab@redhat.com>
+2013-05-08	Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
 
 	* Version 0.2.0
 	* Add support to log via syslog
@@ -13,7 +13,7 @@
 	* Add manpages and systemd services
 	* Update to take advantage of tracing features on Kernel 3.10
 
-2013-05-20	Mauro Carvalho Chehab <mchehab@redhat.com>
+2013-05-20	Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
 
 	* Version 0.3.0
 	* Several fixes
@@ -21,7 +21,7 @@
 	* Add support for PCI AER traces
 	* Add a target to build it on rpm-based distros
 
-2013-05-28	Mauro Carvalho Chehab <mchehab@redhat.com>
+2013-05-28	Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
 
 	* Version 0.4.0
 	* Several fixes
@@ -29,7 +29,7 @@
 	  (requires Kernel 3.10 or upper)
 	* Add memory error decoding on MCE traces
 
-2013-05-29	Mauro Carvalho Chehab <mchehab@redhat.com>
+2013-05-29	Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
 
 	* Version 0.4.1
 	* Some fixes, mostly at sqlite3 code
@@ -71,7 +71,7 @@
 	* Enable database recording by default on systemd service file
 	* Correct range while parsing top, middle and lower layers
 
-2015-06-03	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+2015-06-03	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 
 	- Version 0.5.5
 	* Improve INSTALL summary instructions
@@ -79,7 +79,7 @@
 	* Add support for Haswell/Broadwell/Knights Landing
 	* Some bug fixes on some MCE handlers
 
-2015-07-03	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+2015-07-03	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 	- Version 0.5.6
 	* Add internal errors of IA32_MC4_STATUS for Haswell
 	* Use MCA error msg as error_msg
@@ -87,21 +87,21 @@
 	* Remove a space from mcgstatus_msg
 	* Add support to log Local Machine Check Exception (LMCE)
 
-2016-02-05	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+2016-02-05	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 	- Version 0.5.7
 	* Add model numbers for Broadwell-EP/EX and -DE
 	* Add support for Knights Landing processor
 
-2016-04-15	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+2016-04-15	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 	- Version 0.5.8
 	* Add Broadwell EP/EX MSCOD and Broadwell DE MSCOD values
 
-2016-06-08	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+2016-06-08	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 	- Version 0.5.9
 	* Add Knights Mill and updated DELL labels
 	* Configure now reports enabled options
 
-2017-10-14	Mauro Carvalho Chehab <mchehab@osg.samsung.com>
+2017-10-14	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 	- Version 0.6.0
 	* Added support for non-standard CPER error sections
 	* Added support for Hisilicon HIP07 SAS HW module

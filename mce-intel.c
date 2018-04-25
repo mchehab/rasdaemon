@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab@redhat.com>
+ * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
  *
  * The code below were adapted from Andi Kleen/Intel/SuSe mcelog code,
  * released under GNU Public General License, v.2
