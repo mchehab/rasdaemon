@@ -26,7 +26,8 @@
 #include "bitfield.h"
 #include "ras-report.h"
 
-static const char *aer_errors[32] = {
+/* bit field meaning for correctable error */
+static const char *aer_cor_errors[32] = {
 	/* Correctable errors */
 	[0]  = "Receiver Error",
 	[6]  = "Bad TLP",
@@ -34,7 +35,10 @@ static const char *aer_errors[32] = {
 	[8]  = "RELAY_NUM Rollover",
 	[12] = "Replay Timer Timeout",
 	[13] = "Advisory Non-Fatal",
+};
 
+/* bit field meaning for uncorrectable error */
+static const char *aer_uncor_errors[32] = {
 	/* Uncorrectable errors */
 	[4]  = "Data Link Protocol",
 	[12] = "Poisoned TLP",
@@ -53,7 +57,8 @@ int ras_aer_event_handler(struct trace_seq *s,
 			 struct event_format *event, void *context)
 {
 	int len;
-	unsigned long long val;
+	unsigned long long severity_val;
+	unsigned long long status_val;
 	struct ras_events *ras = context;
 	time_t now;
 	struct tm *tm;
@@ -85,17 +90,24 @@ int ras_aer_event_handler(struct trace_seq *s,
 	if (!ev.dev_name)
 		return -1;
 
-	if (pevent_get_field_val(s,  event, "status", record, &val, 1) < 0)
+	if (pevent_get_field_val(s,  event, "status", record, &status_val, 1) < 0)
 		return -1;
 
-	/* Fills the error buffer */
-	bitfield_msg(buf, sizeof(buf), aer_errors, 32, 0, 0, val);
+	if (pevent_get_field_val(s, event, "severity", record, &severity_val, 1) < 0)
+		return -1;
+
+	/* Fills the error buffer. If it is a correctable error then use the
+	 * aer_cor_errors bit field. Otherwise use aer_uncor_errors.
+	 */
+	if (severity_val == HW_EVENT_AER_CORRECTED)
+		bitfield_msg(buf, sizeof(buf), aer_cor_errors, 32, 0, 0, status_val);
+	else
+		bitfield_msg(buf, sizeof(buf), aer_uncor_errors, 32, 0, 0, status_val);
 	ev.msg = buf;
 	trace_seq_printf(s, "%s ", ev.msg);
 
-	if (pevent_get_field_val(s, event, "severity", record, &val, 1) < 0)
-		return -1;
-	switch (val) {
+	/* Use hw_event_aer_err_type switch between different severity_val */
+	switch (severity_val) {
 	case HW_EVENT_AER_UNCORRECTED_NON_FATAL:
 		ev.error_type = "Uncorrected (Non-Fatal)";
 		break;
