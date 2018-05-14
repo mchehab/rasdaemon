@@ -96,18 +96,17 @@ int ras_aer_event_handler(struct trace_seq *s,
 	if (pevent_get_field_val(s, event, "severity", record, &val, 1) < 0)
 		return -1;
 	switch (val) {
-	case HW_EVENT_ERR_CORRECTED:
+	case HW_EVENT_AER_UNCORRECTED_NON_FATAL:
+		ev.error_type = "Uncorrected (Non-Fatal)";
+		break;
+        case HW_EVENT_AER_UNCORRECTED_FATAL:
+		ev.error_type = "Uncorrected (Fatal)";
+		break;
+        case HW_EVENT_AER_CORRECTED:
 		ev.error_type = "Corrected";
 		break;
-	case HW_EVENT_ERR_UNCORRECTED:
-		ev.error_type = "Uncorrected";
-		break;
-	case HW_EVENT_ERR_FATAL:
-		ev.error_type = "Fatal";
-		break;
 	default:
-	case HW_EVENT_ERR_INFO:
-		ev.error_type = "Info";
+		ev.error_type = "Unknown severity";
 	}
 	trace_seq_puts(s, ev.error_type);
 

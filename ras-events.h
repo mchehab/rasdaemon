@@ -68,6 +68,13 @@ enum hw_event_mc_err_type {
 	HW_EVENT_ERR_INFO,
 };
 
+/* Should match the code at Kernel's /drivers/pci/pcie/aer/aerdrv_errprint.c */
+enum hw_event_aer_err_type {
+	HW_EVENT_AER_UNCORRECTED_NON_FATAL,
+	HW_EVENT_AER_UNCORRECTED_FATAL,
+	HW_EVENT_AER_CORRECTED,
+};
+
 /* Should match the code at Kernel's include/acpi/ghes.h */
 enum ghes_severity {
 	GHES_SEV_NO,
