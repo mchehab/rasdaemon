@@ -50,6 +50,8 @@ my %dimm_location = ();
 my %csrow_size  = ();
 my %rank_size   = ();
 my %csrow_ranks = ();
+my %dimm_ce_count = ();
+my %dimm_ue_count = ();
 
 my @layers;
 my @max_pos;
@@ -76,6 +78,7 @@ Usage: $prog [OPTIONS...]
  --layout           Display the memory layout.
  --summary          Presents a summary of the logged errors.
  --errors           Shows the errors stored at the error database.
+ --error-count      Shows the corrected and uncorrected error counts using sysfs.
  --help             This help message.
 EOF
 
@@ -83,7 +86,7 @@ parse_cmdline();
 
 if (  $conf{opt}{mainboard} || $conf{opt}{print_labels}
    || $conf{opt}{register_labels} || $conf{opt}{display_memory_layout}
-   || $conf{opt}{guess_dimm_label}) {
+   || $conf{opt}{guess_dimm_label} || $conf{opt}{error_count}) {
 
     get_mainboard_info();
 
@@ -104,6 +107,9 @@ if (  $conf{opt}{mainboard} || $conf{opt}{print_labels}
     }
     if ($conf{opt}{guess_dimm_label}) {
         guess_dimm_label ();
+    }
+    if ($conf{opt}{error_count}) {
+        display_error_count ();
     }
 }
 
@@ -134,6 +140,7 @@ sub parse_cmdline
     $conf{opt}{guess_dimm_label} = 0;
     $conf{opt}{summary} = 0;
     $conf{opt}{errors} = 0;
+    $conf{opt}{error_count} = 0;
 
     my $rref = \$conf{opt}{report};
     my $mref = \$conf{opt}{mainboard};
@@ -150,7 +157,8 @@ sub parse_cmdline
                          "status" =>          \$conf{opt}{status},
                          "layout" =>          \$conf{opt}{display_memory_layout},
                          "summary" =>         \$conf{opt}{summary},
-                         "errors" =>          \$conf{opt}{errors}
+                         "errors" =>          \$conf{opt}{errors},
+                         "error-count" =>     \$conf{opt}{error_count}
             );
 
     usage(1) if !$rc;
@@ -283,6 +291,30 @@ sub parse_dimm_nodes
         $file =~ s/size/dimm_label/;
         $dimm_label_file{$str_loc} = $file;
         $dimm_location{$str_loc} = $location;
+
+        my $count;
+
+        $file =~s/dimm_label/dimm_ce_count/;
+        if (-e $file) {
+                open IN, $file;
+                chomp($count = <IN>);
+                close IN;
+        } else {
+                log_error ("dimm_ce_count not found in sysfs. Old kernel?\n");
+                exit -1;
+        }
+        $dimm_ce_count{$str_loc} = $count;
+
+        $file =~s/dimm_ce_count/dimm_ue_count/;
+        if (-e $file) {
+                open IN, $file;
+                chomp($count = <IN>);
+                close IN;
+        } else {
+                log_error ("dimm_ue_count not found in sysfs. Old kernel?\n");
+                exit -1;
+        }
+        $dimm_ue_count{$str_loc} = $count;
 
         return;
     }
@@ -904,6 +936,45 @@ sub display_memory_layout
         %dimm_size = %rank_size;
     }
     dimm_display_mem();
+}
+
+sub display_error_count
+{
+    my $sysfs_dir = "/sys/devices/system/edac/mc";
+    my $key;
+    my $max_width = 0;
+    my %dimm_labels = ();
+
+    find ({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
+
+    if (!scalar(keys %dimm_node)) {
+        log_error ("No DIMMs found in /sys or new sysfs EDAC interface not found.\n");
+        exit -1;
+    }
+
+    foreach $key (keys %dimm_node) {
+        my $label_width;
+
+        open IN, $dimm_label_file{$key};
+        chomp(my $label = <IN>);
+        close IN;
+        $label_width = length $label;
+
+        if ($label_width > $max_width) {
+            $max_width = $label_width;
+        }
+        $dimm_labels{$key} = $label;
+    }
+    my $string = "Label";
+    $string .= " " x ($max_width - length $string);
+    print($string . "\tCE\tUE\n");
+
+    foreach $key (keys %dimm_node) {
+        my $ce_count = $dimm_ce_count{$key};
+        my $ue_count = $dimm_ue_count{$key};
+
+        print("$dimm_labels{$key}\t$ce_count\t$ue_count\n");
+    }
 }
 
 sub find_prog
