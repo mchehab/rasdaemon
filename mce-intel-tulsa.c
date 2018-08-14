@@ -39,7 +39,7 @@ static struct field tls_bus_status[] = {
 	SBITFIELD(16, "Parity error detected during FSB request phase"),
 	SBITFIELD(17, "Partity error detected on Core 0 request's address field"),
 	SBITFIELD(18, "Partity error detected on Core 1 request's address field"),
-	FIELD(19, NULL),
+	FIELD_NULL(19),
 	SBITFIELD(20, "Parity error on FSB response field detected"),
 	SBITFIELD(21, "FSB data parity error on inbound date detected"),
 	SBITFIELD(22, "Data parity error on data received from Core 0 detected"),
@@ -48,8 +48,8 @@ static struct field tls_bus_status[] = {
 	SBITFIELD(25, "Data ECC event to error on inbound data correctable or uncorrectable"),
 	SBITFIELD(26, "Pad logic detected a data strobe glitch or sequencing error"),
 	SBITFIELD(27, "Pad logic detected a request strobe glitch or sequencing error"),
-	FIELD(28, NULL),
-	FIELD(31, NULL),
+	FIELD_NULL(28),
+	FIELD_NULL(31),
 	{}
 };
 

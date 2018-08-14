@@ -27,14 +27,14 @@
 
 static struct field dunnington_bus_status[] = {
 	SBITFIELD(16, "Parity error detected during FSB request phase"),
-	FIELD(17, NULL),
+	FIELD_NULL(17),
 	SBITFIELD(20, "Hard Failure response received for a local transaction"),
 	SBITFIELD(21, "Parity error on FSB response field detected"),
 	SBITFIELD(22, "Parity data error on inbound data detected"),
-	FIELD(23, NULL),
-	FIELD(25, NULL),
-	FIELD(28, NULL),
-	FIELD(31, NULL),
+	FIELD_NULL(23),
+	FIELD_NULL(25),
+	FIELD_NULL(28),
+	FIELD_NULL(31),
 	{}
 };
 

@@ -35,6 +35,7 @@ struct numfield {
 };
 
 #define FIELD(start_bit, name) { start_bit, name, ARRAY_SIZE(name) }
+#define FIELD_NULL(start_bit) { start_bit, NULL, 0 }
 #define SBITFIELD(start_bit, string) { start_bit, ((char * [2]) { NULL, string }), 2 }
 
 #define NUMBER(start, end, name) { start, end, name, "%Lu", 0 }

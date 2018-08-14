@@ -60,7 +60,7 @@ static char *bus_queue_error_type[] = {
 };
 
 static struct field p6_shared_status[] = {
-	FIELD(16, NULL),
+	FIELD_NULL(16),
 	FIELD(19, bus_queue_req_type),
 	FIELD(25, bus_queue_error_type),
 	FIELD(25, bus_queue_error_type),
@@ -68,7 +68,7 @@ static struct field p6_shared_status[] = {
 	SBITFIELD(36, "received parity error on response transaction"),
 	SBITFIELD(38, "timeout BINIT (ROB timeout)."
 		  " No micro-instruction retired for some time"),
-	FIELD(39, NULL),
+	FIELD_NULL(39),
 	SBITFIELD(42, "bus transaction received hard error response"),
 	SBITFIELD(43, "failure that caused IERR"),
 	/* The following are reserved for Core in the SDM. Let's keep them here anyways*/
@@ -76,15 +76,15 @@ static struct field p6_shared_status[] = {
 	SBITFIELD(45, "uncorrectable ECC error"),
 	SBITFIELD(46, "correctable ECC error"),
 	/* [47..54]: ECC syndrome */
-	FIELD(55, NULL),
+	FIELD_NULL(55),
 	{},
 };
 
 static struct field p6old_status[] = {
 	SBITFIELD(28, "FRC error"),
 	SBITFIELD(29, "BERR on this CPU"),
-	FIELD(31, NULL),
-	FIELD(32, NULL),
+	FIELD_NULL(31),
+	FIELD_NULL(32),
 	SBITFIELD(35, "BINIT received from external bus"),
 	SBITFIELD(37, "Received hard error reponse on split transaction (Bus BINIT)"),
 	{}
@@ -94,9 +94,9 @@ static struct field core2_status[] = {
 	SBITFIELD(28, "MCE driven"),
 	SBITFIELD(29, "MCE is observed"),
 	SBITFIELD(31, "BINIT observed"),
-	FIELD(32, NULL),
+	FIELD_NULL(32),
 	SBITFIELD(34, "PIC or FSB data parity error"),
-	FIELD(35, NULL),
+	FIELD_NULL(35),
 	SBITFIELD(37, "FSB address parity error detected"),
 	{}
 };
