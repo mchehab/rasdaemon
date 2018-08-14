@@ -1,6 +1,7 @@
 #!/bin/bash
 
-autoreconf && ./configure --enable-sqlite3 --enable-aer --enable-mce --enable-extlog --enable-abrt-report
+autoreconf && ./configure --enable-sqlite3 --enable-aer --enable-non-standard --enable-arm --enable-mce --enable-extlog --enable-abrt-report --enable-hisi-ns-decode
+
 
 VER="`perl -ne 'print "$1\n" if (/Version:\s*(.*)/);' misc/rasdaemon.spec`"
 if [ "x$VER" == "x" ]; then

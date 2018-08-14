@@ -1,3 +1,13 @@
+2018-08-14	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+	- Version 0.6.2
+
+	* Update INSTALL from the auto-tools generated one
+	* Reorder this ChangeLog place new stuff at the beginning
+	* add option to show error counts at ras-mc-ctl
+	* Do some new gcc 8.1 warning cleanups
+	* Use separate string array for PCIe AER error status
+	* Fix PCIe AER error type
+
 2018-04-25	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 	- Version 0.6.1
 

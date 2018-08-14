@@ -57,6 +57,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Tue Aug 14 2018 Mauro Carvalho Chehab <mchehab+samsung@kernel.org>  0.6.2-1
+- Bump to version 0.6.2 with improvements for PCIe AER parsing and at ras-mc-ctl tool
+
 * Wed Apr 25 2018 Mauro Carvalho Chehab <mchehab+samsung@kernel.org>  0.6.1-1
 - Bump to version 0.6.1 adding support for Skylake Xeon MSCOD, a bug fix and some new DELL labels
 
