@@ -125,7 +125,7 @@ static const char *highbits[32] = {
 
 static void decode_k8_generic_errcode(struct mce_event *e)
 {
-	char tmp_buf[4096];
+	char tmp_buf[4092];
 	unsigned short errcode = e->status & 0xffff;
 	int n;
 
