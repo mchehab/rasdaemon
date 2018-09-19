@@ -37,7 +37,8 @@ static int setup_report_socket(void){
 	addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
 
 	rc = connect(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));
-	if (rc < 0){
+	if (rc < 0) {
+		close(sockfd);
 		return -1;
 	}
 
