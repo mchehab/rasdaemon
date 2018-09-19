@@ -302,6 +302,7 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 	record.size = kbuffer_event_size(kbuf);
 	record.data = data;
 	record.offset = kbuffer_curr_offset(kbuf);
+	record.cpu = pdata->cpu;
 
 	/* note offset is just offset in subbuffer */
 	record.missed_events = kbuffer_missed_events(kbuf);
@@ -309,7 +310,6 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 	/* TODO - logging */
 	trace_seq_init(&s);
-	printf("cpu %02d:", pdata->cpu);
 	pevent_print_event(pdata->ras->pevent, &s, &record);
 	trace_seq_do_printf(&s);
 	printf("\n");
