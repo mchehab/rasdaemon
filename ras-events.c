@@ -310,10 +310,10 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 	/* TODO - logging */
 	trace_seq_init(&s);
 	printf("cpu %02d:", pdata->cpu);
-	fflush(stdout);
 	pevent_print_event(pdata->ras->pevent, &s, &record);
 	trace_seq_do_printf(&s);
 	printf("\n");
+	fflush(stdout);
 }
 
 static int get_num_cpus(struct ras_events *ras)
