@@ -1175,6 +1175,22 @@ sub summary
     }
     $query_handle->finish;
 
+    # devlink errors
+    $query = "select dev_name, count(*) from devlink_event group by dev_name";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($dev_name, $count));
+    $out = "";
+    while($query_handle->fetch()) {
+        $out .= "\t$dev_name has $count errors\n";
+    }
+    if ($out ne "") {
+        print "Devlink records summary:\n$out";
+    } else {
+        print "No devlink errors.\n";
+    }
+    $query_handle->finish;
+
     # MCE mce_record errors
     $query = "select error_msg, count(*) from mce_record group by error_msg";
     $query_handle = $dbh->prepare($query);
@@ -1261,6 +1277,28 @@ sub errors
         print "Extlog events:\n$out\n";
     } else {
         print "No Extlog errors.\n\n";
+    }
+    $query_handle->finish;
+
+    # devlink errors
+    $query = "select id, timestamp, bus_name, dev_name, driver_name, reporter_name, msg from devlink_event order by id";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($id, $timestamp, $bus_name, $dev_name, $driver_name, $reporter_name, $msg));
+    $out = "";
+    while($query_handle->fetch()) {
+        $out .= "$id $timestamp error: ";
+        $out .= "bus_name=$bus_name, ";
+        $out .= "dev_name=$dev_name, ";
+        $out .= "driver_name=$driver_name, ";
+        $out .= "reporter_name=$reporter_name, ";
+        $out .= "message='$msg', ";
+        $out .= "\n";
+    }
+    if ($out ne "") {
+        print "Devlink events:\n$out\n";
+    } else {
+        print "No devlink errors.\n\n";
     }
     $query_handle->finish;
 

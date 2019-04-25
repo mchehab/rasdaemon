@@ -33,6 +33,7 @@
 #include "ras-arm-handler.h"
 #include "ras-mce-handler.h"
 #include "ras-extlog-handler.h"
+#include "ras-devlink-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 
@@ -216,6 +217,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_ARM
 	rc |= __toggle_ras_mc_event(ras, "ras", "arm_event", enable);
+#endif
+
+#ifdef HAVE_DEVLINK
+	rc |= __toggle_ras_mc_event(ras, "devlink", "devlink_health_report", enable);
 #endif
 
 free_ras:
@@ -734,6 +739,17 @@ int handle_ras_events(int record_events)
 	} else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "aer_event");
+#endif
+
+#ifdef HAVE_DEVLINK
+	rc = add_event_handler(ras, pevent, page_size, "devlink",
+			       "devlink_health_report",
+			       ras_devlink_event_handler);
+        if (!rc)
+                num_events++;
+        else
+                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+                    "devlink", "devlink_health_report");
 #endif
 
 	if (!num_events) {

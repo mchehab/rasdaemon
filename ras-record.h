@@ -75,12 +75,22 @@ struct ras_arm_event {
 	int32_t psci_state;
 };
 
+struct devlink_event {
+	char timestamp[64];
+	const char *bus_name;
+	const char *dev_name;
+	const char *driver_name;
+	const char *reporter_name;
+	const char *msg;
+};
+
 struct ras_mc_event;
 struct ras_aer_event;
 struct ras_extlog_event;
 struct ras_non_standard_event;
 struct ras_arm_event;
 struct mce_event;
+struct devlink_event;
 
 #ifdef HAVE_SQLITE3
 
@@ -104,6 +114,9 @@ struct sqlite3_priv {
 #ifdef HAVE_ARM
 	sqlite3_stmt	*stmt_arm_record;
 #endif
+#ifdef HAVE_DEVLINK
+	sqlite3_stmt	*stmt_devlink_event;
+#endif
 };
 
 int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras);
@@ -113,6 +126,7 @@ int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev);
 int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev);
 int ras_store_non_standard_record(struct ras_events *ras, struct ras_non_standard_event *ev);
 int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev);
+int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
@@ -122,6 +136,7 @@ static inline int ras_store_mce_record(struct ras_events *ras, struct mce_event 
 static inline int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev) { return 0; };
 static inline int ras_store_non_standard_record(struct ras_events *ras, struct ras_non_standard_event *ev) { return 0; };
 static inline int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev) { return 0; };
+static inline int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev) { return 0; };
 
 #endif
 
