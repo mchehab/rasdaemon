@@ -31,12 +31,13 @@ if WITH_ARM
    rasdaemon_SOURCES += ras-arm-handler.c
 endif
 if WITH_MCE
-   rasdaemon_SOURCES += ras-mce-handler.c mce-intel.c mce-amd-k8.c \
+   rasdaemon_SOURCES += ras-mce-handler.c mce-intel.c mce-amd.c \
 			mce-intel-p4-p6.c mce-intel-nehalem.c \
 			mce-intel-dunnington.c mce-intel-tulsa.c \
 			mce-intel-sb.c mce-intel-ivb.c mce-intel-haswell.c \
 			mce-intel-knl.c mce-intel-broadwell-de.c \
-			mce-intel-broadwell-epex.c mce-intel-skylake-xeon.c
+			mce-intel-broadwell-epex.c mce-intel-skylake-xeon.c \
+			mce-amd-k8.c mce-amd-smca.c
 endif
 if WITH_EXTLOG
    rasdaemon_SOURCES += ras-extlog-handler.c
