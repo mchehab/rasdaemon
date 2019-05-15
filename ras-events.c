@@ -426,7 +426,7 @@ static int read_ras_event(int fd,
 			  struct kbuffer *kbuf,
 			  void *page)
 {
-	unsigned size;
+	int size;
 	unsigned long long time_stamp;
 	void *data;
 
