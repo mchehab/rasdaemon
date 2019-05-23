@@ -51,6 +51,7 @@ enum cputype {
 	CPU_KNIGHTS_MILL,
 	CPU_SKYLAKE_XEON,
 	CPU_NAPLES,
+	CPU_DHYANA,
 };
 
 struct mce_event {

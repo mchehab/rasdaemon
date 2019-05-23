@@ -55,7 +55,8 @@ static char *cputype_name[] = {
 	[CPU_KNIGHTS_LANDING] = "Knights Landing",
 	[CPU_KNIGHTS_MILL] = "Knights Mill",
 	[CPU_SKYLAKE_XEON] = "Skylake server",
-	[CPU_NAPLES] = "AMD Family 17h Zen1"
+	[CPU_NAPLES] = "AMD Family 17h Zen1",
+	[CPU_DHYANA] = "Hygon Family 18h Moksha"
 };
 
 static enum cputype select_intel_cputype(struct ras_events *ras)
@@ -198,6 +199,11 @@ static int detect_cpu(struct ras_events *ras)
 			    "Can't parse MCE for this AMD CPU yet %d\n",
 			    mce->family);
 			ret = EINVAL;
+		}
+		goto ret;
+	} else if (!strcmp(mce->vendor,"HygonGenuine")) {
+		if (mce->family == 24) {
+			mce->cputype = CPU_DHYANA;
 		}
 		goto ret;
 	} else if (!strcmp(mce->vendor,"GenuineIntel")) {
@@ -436,6 +442,7 @@ int ras_mce_event_handler(struct trace_seq *s,
 		rc = parse_amd_k8_event(ras, &e);
 		break;
 	case CPU_NAPLES:
+	case CPU_DHYANA:
 		rc = parse_amd_smca_event(ras, &e);
 		break;
 	default:			/* All other CPU types are Intel */
