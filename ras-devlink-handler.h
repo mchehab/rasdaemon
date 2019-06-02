@@ -22,6 +22,10 @@
 #include "ras-events.h"
 #include "libtrace/event-parse.h"
 
+int ras_net_xmit_timeout_handler(struct trace_seq *s,
+				 struct pevent_record *record,
+				 struct event_format *event, void *context);
+
 int ras_devlink_event_handler(struct trace_seq *s,
 			      struct pevent_record *record,
 			      struct event_format *event, void *context);

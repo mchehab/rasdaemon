@@ -15,6 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +25,61 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+
+int ras_net_xmit_timeout_handler(struct trace_seq *s,
+				 struct pevent_record *record,
+				 struct event_format *event, void *context)
+{
+	unsigned long long val;
+	int len;
+	struct ras_events *ras = context;
+	time_t now;
+	struct tm *tm;
+	struct devlink_event ev;
+
+	if (ras->use_uptime)
+		now = record->ts/user_hz + ras->uptime_diff;
+	else
+		now = time(NULL);
+
+	tm = localtime(&now);
+	if (tm)
+		strftime(ev.timestamp, sizeof(ev.timestamp),
+			 "%Y-%m-%d %H:%M:%S %z", tm);
+	trace_seq_printf(s, "%s ", ev.timestamp);
+
+	ev.bus_name = "";
+	ev.reporter_name = "";
+
+	ev.dev_name = pevent_get_field_raw(s, event, "name",
+					   record, &len, 1);
+	if (!ev.dev_name)
+		return -1;
+
+	ev.driver_name = pevent_get_field_raw(s, event, "driver",
+					   record, &len, 1);
+	if (!ev.driver_name)
+		return -1;
+
+	if (pevent_get_field_val(s, event, "queue_index", record, &val, 1) < 0)
+		return -1;
+	if (asprintf(&ev.msg, "TX timeout on queue: %d\n", (int)val) < 0)
+		return -1;
+
+	/* Insert data into the SGBD */
+#ifdef HAVE_SQLITE3
+	ras_store_devlink_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_devlink_event(ras, &ev);
+#endif
+
+	free(ev.msg);
+	return 0;
+
+}
 
 int ras_devlink_event_handler(struct trace_seq *s,
 			      struct pevent_record *record,
@@ -35,6 +91,8 @@ int ras_devlink_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct devlink_event ev;
 
+	if (ras->filter && pevent_filter_match(ras->filter, record) == FILTER_MATCH)
+		return 0;
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would

@@ -81,7 +81,7 @@ struct devlink_event {
 	const char *dev_name;
 	const char *driver_name;
 	const char *reporter_name;
-	const char *msg;
+	char *msg;
 };
 
 struct ras_mc_event;
