@@ -341,7 +341,7 @@ static void report_mce_event(struct ras_events *ras,
 	if (e->ipid)
 		trace_seq_printf(s, ", ipid= %llx", (long long)e->ipid);
 
-	if (e->mcgstatus_msg)
+	if (*e->mcgstatus_msg)
 		trace_seq_printf(s, ", %s", e->mcgstatus_msg);
 	else
 		trace_seq_printf(s, ", mcgstatus= %llx",
