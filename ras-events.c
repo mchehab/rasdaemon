@@ -33,6 +33,7 @@
 #include "ras-arm-handler.h"
 #include "ras-mce-handler.h"
 #include "ras-extlog-handler.h"
+#include "ras-devlink-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 
@@ -216,6 +217,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_ARM
 	rc |= __toggle_ras_mc_event(ras, "ras", "arm_event", enable);
+#endif
+
+#ifdef HAVE_DEVLINK
+	rc |= __toggle_ras_mc_event(ras, "devlink", "devlink_health_report", enable);
 #endif
 
 free_ras:
@@ -565,10 +570,11 @@ static int select_tracing_timestamp(struct ras_events *ras)
 
 static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 			     unsigned page_size, char *group, char *event,
-			     pevent_event_handler_func func)
+			     pevent_event_handler_func func, char *filter_str)
 {
 	int fd, size, rc;
 	char *page, fname[MAX_PATH + 1];
+	struct event_filter * filter = NULL;
 
 	snprintf(fname, sizeof(fname), "events/%s/%s/format", group, event);
 
@@ -613,6 +619,28 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 		return EINVAL;
 	}
 
+	if (filter_str) {
+		char *error;
+
+		filter = pevent_filter_alloc(pevent);
+		if (!filter) {
+			log(TERM, LOG_ERR,
+			    "Failed to allocate filter for %s/%s.\n", group, event);
+			free(page);
+			return EINVAL;
+		}
+		rc = pevent_filter_add_filter_str(filter, filter_str, &error);
+		if (rc) {
+			log(TERM, LOG_ERR,
+			    "Failed to install filter for %s/%s: %s\n", group, event, error);
+			pevent_filter_free(filter);
+			free(page);
+			return rc;
+		}
+	}
+
+	ras->filter = filter;
+
 	/* Enable RAS events */
 	rc = __toggle_ras_mc_event(ras, group, event, 1);
 	if (rc < 0) {
@@ -636,6 +664,7 @@ int handle_ras_events(int record_events)
 	struct pevent *pevent = NULL;
 	struct pthread_data *data = NULL;
 	struct ras_events *ras = NULL;
+	char *filter_str = NULL;
 
 	ras = calloc(1, sizeof(*ras));
 	if (!ras) {
@@ -669,7 +698,7 @@ int handle_ras_events(int record_events)
 	ras->record_events = record_events;
 
 	rc = add_event_handler(ras, pevent, page_size, "ras", "mc_event",
-			       ras_mc_event_handler);
+			       ras_mc_event_handler, NULL);
 	if (!rc)
 		num_events++;
 	else
@@ -678,7 +707,7 @@ int handle_ras_events(int record_events)
 
 #ifdef HAVE_AER
 	rc = add_event_handler(ras, pevent, page_size, "ras", "aer_event",
-			       ras_aer_event_handler);
+			       ras_aer_event_handler, NULL);
 	if (!rc)
 		num_events++;
 	else
@@ -688,7 +717,7 @@ int handle_ras_events(int record_events)
 
 #ifdef HAVE_NON_STANDARD
         rc = add_event_handler(ras, pevent, page_size, "ras", "non_standard_event",
-                               ras_non_standard_event_handler);
+                               ras_non_standard_event_handler, NULL);
         if (!rc)
                 num_events++;
         else
@@ -698,7 +727,7 @@ int handle_ras_events(int record_events)
 
 #ifdef HAVE_ARM
         rc = add_event_handler(ras, pevent, page_size, "ras", "arm_event",
-                               ras_arm_event_handler);
+                               ras_arm_event_handler, NULL);
         if (!rc)
                 num_events++;
         else
@@ -715,7 +744,7 @@ int handle_ras_events(int record_events)
 	if (ras->mce_priv) {
 		rc = add_event_handler(ras, pevent, page_size,
 				       "mce", "mce_record",
-			               ras_mce_event_handler);
+			               ras_mce_event_handler, NULL);
 		if (!rc)
 			num_events++;
 	else
@@ -726,7 +755,7 @@ int handle_ras_events(int record_events)
 
 #ifdef HAVE_EXTLOG
 	rc = add_event_handler(ras, pevent, page_size, "ras", "extlog_mem_event",
-			       ras_extlog_mem_event_handler);
+			       ras_extlog_mem_event_handler, NULL);
 	if (!rc) {
 		/* tell kernel we are listening, so don't printk to console */
 		(void)open("/sys/kernel/debug/ras/daemon_active", 0);
@@ -734,6 +763,23 @@ int handle_ras_events(int record_events)
 	} else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "aer_event");
+#endif
+
+#ifdef HAVE_DEVLINK
+	rc = add_event_handler(ras, pevent, page_size, "net",
+			       "net_dev_xmit_timeout",
+			       ras_net_xmit_timeout_handler, NULL);
+        if (!rc)
+		filter_str = "devlink/devlink_health_report:msg=~\'TX timeout*\'";
+
+	rc = add_event_handler(ras, pevent, page_size, "devlink",
+			       "devlink_health_report",
+			       ras_devlink_event_handler, filter_str);
+        if (!rc)
+                num_events++;
+        else
+                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+                    "devlink", "devlink_health_report");
 #endif
 
 	if (!num_events) {
@@ -785,8 +831,11 @@ err:
 	if (pevent)
 		pevent_free(pevent);
 
-	if (ras)
+	if (ras) {
+		if (ras->filter)
+			pevent_filter_free(ras->filter);
 		free(ras);
+	}
 
 	return rc;
 }

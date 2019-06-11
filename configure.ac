@@ -80,6 +80,15 @@ AS_IF([test "x$enable_extlog" = "xyes"], [
 ])
 AM_CONDITIONAL([WITH_EXTLOG], [test x$enable_extlog = xyes])
 
+AC_ARG_ENABLE([devlink],
+    AS_HELP_STRING([--enable-devlink], [enable devlink health events (currently experimental)]))
+
+AS_IF([test "x$enable_devlink" = "xyes"], [
+  AC_DEFINE(HAVE_DEVLINK,1,"have devlink health events collect")
+  AC_SUBST([WITH_DEVLINK])
+])
+AM_CONDITIONAL([WITH_DEVLINK], [test x$enable_devlink = xyes])
+
 AC_ARG_ENABLE([abrt_report],
     AS_HELP_STRING([--enable-abrt-report], [enable report event to ABRT (currently experimental)]))
 
@@ -127,4 +136,5 @@ compile time options summary
     ABRT report         : $enable_abrt_report
     HIP07 SAS HW errors : $enable_hisi_ns_decode
     ARM events          : $enable_arm
+    DEVLINK             : $enable_devlink
 EOF
