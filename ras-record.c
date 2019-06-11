@@ -404,6 +404,57 @@ int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev)
 }
 #endif
 
+/*
+ * Table and functions to handle devlink:devlink_health_report
+ */
+
+#ifdef HAVE_DEVLINK
+static const struct db_fields devlink_event_fields[] = {
+		{ .name="id",			.type="INTEGER PRIMARY KEY" },
+		{ .name="timestamp",		.type="TEXT" },
+		{ .name="bus_name",		.type="TEXT" },
+		{ .name="dev_name",		.type="TEXT" },
+		{ .name="driver_name",		.type="TEXT" },
+		{ .name="reporter_name",	.type="TEXT" },
+		{ .name="msg",			.type="TEXT" },
+};
+
+static const struct db_table_descriptor devlink_event_tab = {
+	.name = "devlink_event",
+	.fields = devlink_event_fields,
+	.num_fields = ARRAY_SIZE(devlink_event_fields),
+};
+
+int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_devlink_event)
+		return 0;
+	log(TERM, LOG_INFO, "devlink_event store: %p\n", priv->stmt_devlink_event);
+
+	sqlite3_bind_text(priv->stmt_devlink_event,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_text(priv->stmt_devlink_event,  2, ev->bus_name, -1, NULL);
+	sqlite3_bind_text(priv->stmt_devlink_event,  3, ev->dev_name, -1, NULL);
+	sqlite3_bind_text(priv->stmt_devlink_event,  4, ev->driver_name, -1, NULL);
+	sqlite3_bind_text(priv->stmt_devlink_event,  5, ev->reporter_name, -1, NULL);
+	sqlite3_bind_text(priv->stmt_devlink_event,  6, ev->msg, -1, NULL);
+
+	rc = sqlite3_step(priv->stmt_devlink_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do devlink_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_devlink_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset devlink_event on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+#endif
 
 /*
  * Generic code
@@ -566,6 +617,12 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	if (rc == SQLITE_OK)
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_arm_record,
 					&arm_event_tab);
+#endif
+#ifdef HAVE_DEVLINK
+	rc = ras_mc_create_table(priv, &devlink_event_tab);
+	if (rc == SQLITE_OK)
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_devlink_event,
+					&devlink_event_tab);
 #endif
 
 		ras->db_priv = priv;

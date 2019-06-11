@@ -50,6 +50,8 @@ struct ras_events {
 
 	/* For ABRT socket*/
 	int socketfd;
+
+	struct event_filter *filter;
 };
 
 struct pthread_data {
