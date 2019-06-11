@@ -664,7 +664,9 @@ int handle_ras_events(int record_events)
 	struct pevent *pevent = NULL;
 	struct pthread_data *data = NULL;
 	struct ras_events *ras = NULL;
+#ifdef HAVE_DEVLINK
 	char *filter_str = NULL;
+#endif
 
 	ras = calloc(1, sizeof(*ras));
 	if (!ras) {
