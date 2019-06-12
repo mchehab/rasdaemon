@@ -446,6 +446,60 @@ int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 #endif
 
 /*
+ * Table and functions to handle block:block_rq_complete
+ */
+
+#ifdef HAVE_DISKERROR
+static const struct db_fields diskerror_event_fields[] = {
+		{ .name="id",			.type="INTEGER PRIMARY KEY" },
+		{ .name="timestamp",		.type="TEXT" },
+		{ .name="dev",			.type="TEXT" },
+		{ .name="sector",		.type="INTEGER" },
+		{ .name="nr_sector",		.type="INTEGER" },
+		{ .name="error",		.type="TEXT" },
+		{ .name="rwbs",			.type="TEXT" },
+		{ .name="cmd",			.type="TEXT" },
+};
+
+static const struct db_table_descriptor diskerror_event_tab = {
+	.name = "disk_errors",
+	.fields = diskerror_event_fields,
+	.num_fields = ARRAY_SIZE(diskerror_event_fields),
+};
+
+int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_diskerror_event)
+		return 0;
+	log(TERM, LOG_INFO, "diskerror_eventstore: %p\n", priv->stmt_diskerror_event);
+
+	sqlite3_bind_text(priv->stmt_diskerror_event,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_text(priv->stmt_diskerror_event,  2, ev->dev, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_diskerror_event,  3, ev->sector);
+	sqlite3_bind_int(priv->stmt_diskerror_event,  4, ev->nr_sector);
+	sqlite3_bind_text(priv->stmt_diskerror_event,  5, ev->error, -1, NULL);
+	sqlite3_bind_text(priv->stmt_diskerror_event,  6, ev->rwbs, -1, NULL);
+	sqlite3_bind_text(priv->stmt_diskerror_event,  7, ev->cmd, -1, NULL);
+
+	rc = sqlite3_step(priv->stmt_diskerror_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do diskerror_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_diskerror_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset diskerror_event on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+#endif
+
+/*
  * Generic code
  */
 
@@ -629,6 +683,13 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	if (rc == SQLITE_OK)
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_devlink_event,
 					&devlink_event_tab);
+#endif
+
+#ifdef HAVE_DISKERROR
+	rc = ras_mc_create_table(priv, &diskerror_event_tab);
+	if (rc == SQLITE_OK)
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_diskerror_event,
+					&diskerror_event_tab);
 #endif
 
 		ras->db_priv = priv;

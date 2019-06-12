@@ -1122,7 +1122,7 @@ sub summary
     my ($query, $query_handle, $out);
     my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg);
     my ($etype, $severity, $etype_string, $severity_string);
-    my $dev_name;
+    my ($dev_name, $dev);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1192,6 +1192,22 @@ sub summary
     }
     $query_handle->finish;
 
+    # Disk errors
+    $query = "select dev, count(*) from disk_errors group by dev";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($dev, $count));
+    $out = "";
+    while($query_handle->fetch()) {
+        $out .= "\t$dev has $count errors\n";
+    }
+    if ($out ne "") {
+        print "Disk errors summary:\n$out";
+    } else {
+        print "No disk errors.\n";
+    }
+    $query_handle->finish;
+
     # MCE mce_record errors
     $query = "select error_msg, count(*) from mce_record group by error_msg";
     $query_handle = $dbh->prepare($query);
@@ -1218,6 +1234,7 @@ sub errors
     my ($mcgcap,$mcgstatus, $status, $misc, $ip, $tsc, $walltime, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $mcgstatus_msg, $mcistatus_msg, $user_action, $mc_location);
     my ($timestamp, $etype, $severity, $etype_string, $severity_string, $fru_id, $fru_text, $cper_data);
     my ($bus_name, $dev_name, $driver_name, $reporter_name);
+    my ($dev, $sector, $nr_sector, $error, $rwbs, $cmd);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1301,6 +1318,29 @@ sub errors
         print "Devlink events:\n$out\n";
     } else {
         print "No devlink errors.\n\n";
+    }
+    $query_handle->finish;
+
+    # Disk errors
+    $query = "select id, timestamp, dev, sector, nr_sector, error, rwbs, cmd from disk_errors order by id";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($id, $timestamp, $dev, $sector, $nr_sector, $error, $rwbs, $cmd));
+    $out = "";
+    while($query_handle->fetch()) {
+        $out .= "$id $timestamp error: ";
+        $out .= "dev=$dev, ";
+        $out .= "sector=$sector, ";
+        $out .= "nr_sector=$nr_sector, ";
+        $out .= "error='$error', ";
+        $out .= "rwbs='$rwbs', ";
+        $out .= "cmd='$cmd', ";
+        $out .= "\n";
+    }
+    if ($out ne "") {
+        print "Disk errors\n$out\n";
+    } else {
+        print "No disk errors.\n\n";
     }
     $query_handle->finish;
 

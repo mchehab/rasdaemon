@@ -20,7 +20,7 @@ before_install:
 - sudo apt-get install -y sqlite3
 install:
 - autoreconf -vfi
-- ./configure --enable-sqlite3 --enable-aer --enable-non-standard --enable-arm --enable-mce --enable-extlog --enable-devlink --enable-abrt-report --enable-hisi-ns-decode
+- ./configure --enable-sqlite3 --enable-aer --enable-non-standard --enable-arm --enable-mce --enable-extlog --enable-devlink --enable-diskerror --enable-abrt-report --enable-hisi-ns-decode
 
 script:
 - make && sudo make install

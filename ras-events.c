@@ -34,6 +34,7 @@
 #include "ras-mce-handler.h"
 #include "ras-extlog-handler.h"
 #include "ras-devlink-handler.h"
+#include "ras-diskerror-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 
@@ -221,6 +222,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_DEVLINK
 	rc |= __toggle_ras_mc_event(ras, "devlink", "devlink_health_report", enable);
+#endif
+
+#ifdef HAVE_DISKERROR
+	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_complete", enable);
 #endif
 
 free_ras:
@@ -782,6 +787,17 @@ int handle_ras_events(int record_events)
         else
                 log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
                     "devlink", "devlink_health_report");
+#endif
+
+#ifdef HAVE_DISKERROR
+	rc = add_event_handler(ras, pevent, page_size, "block",
+			       "block_rq_complete", ras_diskerror_event_handler,
+				"block/block_rq_complete:error==0", DISKERROR_EVENT);
+        if (!rc)
+                num_events++;
+	else
+                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+                    "block", "block_rq_complete");
 #endif
 
 	if (!num_events) {

@@ -89,6 +89,15 @@ AS_IF([test "x$enable_devlink" = "xyes"], [
 ])
 AM_CONDITIONAL([WITH_DEVLINK], [test x$enable_devlink = xyes])
 
+AC_ARG_ENABLE([diskerror],
+    AS_HELP_STRING([--enable-diskerror], [enable disk I/O error events (currently experimental)]))
+
+AS_IF([test "x$enable_diskerror" = "xyes"], [
+  AC_DEFINE(HAVE_DISKERROR,1,"have disk I/O errors collect")
+  AC_SUBST([WITH_DISKERROR])
+])
+AM_CONDITIONAL([WITH_DISKERROR], [test x$enable_diskerror = xyes])
+
 AC_ARG_ENABLE([abrt_report],
     AS_HELP_STRING([--enable-abrt-report], [enable report event to ABRT (currently experimental)]))
 
@@ -137,4 +146,5 @@ compile time options summary
     HIP07 SAS HW errors : $enable_hisi_ns_decode
     ARM events          : $enable_arm
     DEVLINK             : $enable_devlink
+    Disk I/O errors     : $enable_diskerror
 EOF

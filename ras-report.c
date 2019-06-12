@@ -281,6 +281,33 @@ static int set_devlink_event_backtrace(char *buf, struct devlink_event *ev){
 	return 0;
 }
 
+static int set_diskerror_event_backtrace(char *buf, struct diskerror_event *ev) {
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if(!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"dev=%s\n"		\
+						"sector=%llu\n"		\
+						"nr_sector=%u\n"	\
+						"error=%s\n"		\
+						"rwbs=%s\n"		\
+						"cmd=%s\n",		\
+						ev->timestamp,		\
+						ev->dev,		\
+						ev->sector,		\
+						ev->nr_sector,		\
+						ev->error,		\
+						ev->rwbs,		\
+						ev->cmd);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
 static int commit_report_backtrace(int sockfd, int type, void *ev){
 	char buf[MAX_BACKTRACE_SIZE];
 	char *pbuf = buf;
@@ -311,6 +338,9 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 		break;
 	case DEVLINK_EVENT:
 		rc = set_devlink_event_backtrace(buf, (struct devlink_event *)ev);
+		break;
+	case DISKERROR_EVENT:
+		rc = set_diskerror_event_backtrace(buf, (struct diskerror_event *)ev);
 		break;
 	default:
 		return -1;
@@ -618,6 +648,55 @@ int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev){
 
 devlink_fail:
 
+	if(sockfd > 0){
+		close(sockfd);
+	}
+
+	if(done){
+		return 0;
+	}else{
+		return -1;
+	}
+}
+
+int ras_report_diskerror_event(struct ras_events *ras, struct diskerror_event *ev){
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if(sockfd < 0){
+		return -1;
+	}
+
+	rc = commit_report_basic(sockfd);
+	if(rc < 0){
+		goto diskerror_fail;
+	}
+
+	rc = commit_report_backtrace(sockfd, DISKERROR_EVENT, ev);
+	if(rc < 0){
+		goto diskerror_fail;
+	}
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-diskerror");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if(rc < strlen(buf) + 1){
+		goto diskerror_fail;
+	}
+
+	sprintf(buf, "REASON=%s", "disk I/O error");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if(rc < strlen(buf) + 1){
+		goto diskerror_fail;
+	}
+
+	done = 1;
+
+diskerror_fail:
 	if(sockfd > 0){
 		close(sockfd);
 	}
