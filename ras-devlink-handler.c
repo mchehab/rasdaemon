@@ -91,7 +91,8 @@ int ras_devlink_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct devlink_event ev;
 
-	if (ras->filter && pevent_filter_match(ras->filter, record) == FILTER_MATCH)
+	if (ras->filters[DEVLINK_EVENT] &&
+	    pevent_filter_match(ras->filters[DEVLINK_EVENT], record) == FILTER_MATCH)
 		return 0;
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.

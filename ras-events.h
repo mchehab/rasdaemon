@@ -29,6 +29,17 @@
 
 struct mce_priv;
 
+enum {
+	MC_EVENT,
+	MCE_EVENT,
+	AER_EVENT,
+	NON_STANDARD_EVENT,
+	ARM_EVENT,
+	EXTLOG_EVENT,
+	DEVLINK_EVENT,
+	NR_EVENTS
+};
+
 struct ras_events {
 	char debugfs[MAX_PATH + 1];
 	char tracing[MAX_PATH + 1];
@@ -51,7 +62,7 @@ struct ras_events {
 	/* For ABRT socket*/
 	int socketfd;
 
-	struct event_filter *filter;
+	struct event_filter *filters[NR_EVENTS];
 };
 
 struct pthread_data {

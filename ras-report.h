@@ -29,15 +29,6 @@
 /* ABRT socket file */
 #define ABRT_SOCKET "/var/run/abrt/abrt.socket"
 
-enum {
-	MC_EVENT,
-	MCE_EVENT,
-	AER_EVENT,
-	NON_STANDARD_EVENT,
-	ARM_EVENT,
-	DEVLINK_EVENT
-};
-
 #ifdef HAVE_ABRT_REPORT
 
 int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
