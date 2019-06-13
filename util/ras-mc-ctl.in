@@ -1122,6 +1122,7 @@ sub summary
     my ($query, $query_handle, $out);
     my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg);
     my ($etype, $severity, $etype_string, $severity_string);
+    my $dev_name;
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1216,6 +1217,7 @@ sub errors
     my ($query, $query_handle, $id, $time, $count, $type, $msg, $label, $mc, $top, $mid, $low, $addr, $grain, $syndrome, $detail, $out);
     my ($mcgcap,$mcgstatus, $status, $misc, $ip, $tsc, $walltime, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $mcgstatus_msg, $mcistatus_msg, $user_action, $mc_location);
     my ($timestamp, $etype, $severity, $etype_string, $severity_string, $fru_id, $fru_text, $cper_data);
+    my ($bus_name, $dev_name, $driver_name, $reporter_name);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
