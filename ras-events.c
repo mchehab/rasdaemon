@@ -233,6 +233,37 @@ free_ras:
 	return rc;
 }
 
+/*
+ * Set kernel filter. libtrace doesn't provide an API for setting filters
+ * in kernel, we have to implement it here.
+ */
+static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
+			       const char *filter_str)
+{
+	int fd, rc;
+	char fname[MAX_PATH + 1];
+
+	snprintf(fname, sizeof(fname), "events/%s/%s/filter", group, event);
+	fd = open_trace(ras, fname, O_RDWR | O_APPEND);
+	if (fd < 0) {
+		log(ALL, LOG_WARNING, "Can't open filter file\n");
+		return errno;
+	}
+
+	rc = write(fd, filter_str ,strlen(filter_str));
+	if (rc < 0) {
+		log(ALL, LOG_WARNING, "Can't write to filter file\n");
+		close(fd);
+		return rc;
+	}
+	close(fd);
+	if (!rc) {
+		log(ALL, LOG_WARNING, "Nothing was written on filter file\n");
+		return EIO;
+	}
+
+	return 0;
+}
 
 /*
  * Tracing read code
@@ -790,14 +821,17 @@ int handle_ras_events(int record_events)
 #endif
 
 #ifdef HAVE_DISKERROR
-	rc = add_event_handler(ras, pevent, page_size, "block",
-			       "block_rq_complete", ras_diskerror_event_handler,
-				"block/block_rq_complete:error==0", DISKERROR_EVENT);
-        if (!rc)
-                num_events++;
-	else
-                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-                    "block", "block_rq_complete");
+	rc = filter_ras_mc_event(ras, "block", "block_rq_complete", "error != 0");
+	if (!rc) {
+		rc = add_event_handler(ras, pevent, page_size, "block",
+				       "block_rq_complete", ras_diskerror_event_handler,
+					NULL, DISKERROR_EVENT);
+		if (!rc)
+			num_events++;
+		else
+			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+			    "block", "block_rq_complete");
+	}
 #endif
 
 	if (!num_events) {

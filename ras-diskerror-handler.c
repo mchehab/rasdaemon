@@ -71,9 +71,6 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 	struct diskerror_event ev;
 	dev_t dev;
 
-	if (ras->filters[DISKERROR_EVENT] &&
-	    pevent_filter_match(ras->filters[DISKERROR_EVENT], record) == FILTER_MATCH)
-		return 0;
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would
