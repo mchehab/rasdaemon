@@ -163,7 +163,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 
 	for (count = 0; count < dec_tab_count && !dec_done; count++) {
 		dec_tab = ns_dec_tab[count];
-		for (i = 0; i < dec_tab[0].len; i++) {
+		for (i = 0; dec_tab[i].decode; i++) {
 			if (uuid_le_cmp(ev.sec_type,
 					dec_tab[i].sec_type) == 0) {
 				dec_tab[i].decode(s, ev.error);

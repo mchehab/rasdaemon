@@ -134,11 +134,11 @@ struct ras_ns_dec_tab hisi_ns_dec_tab[] = {
 		.sec_type = "fbc2d923ea7a453dab132949f5af9e53",
 		.decode = decode_hip07_hns_error,
 	},
+	{ /* sentinel */ }
 };
 
 __attribute__((constructor))
 static void hip07_init(void)
 {
-	hisi_ns_dec_tab[0].len = ARRAY_SIZE(hisi_ns_dec_tab);
 	register_ns_dec_tab(hisi_ns_dec_tab);
 }

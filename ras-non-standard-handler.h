@@ -23,7 +23,6 @@
 typedef struct ras_ns_dec_tab {
 	const char *sec_type;
 	int (*decode)(struct trace_seq *s, const void *err);
-	size_t len;
 } *p_ns_dec_tab;
 
 int ras_non_standard_event_handler(struct trace_seq *s,
