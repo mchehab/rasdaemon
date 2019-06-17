@@ -22,7 +22,12 @@
 
 typedef struct ras_ns_dec_tab {
 	const char *sec_type;
-	int (*decode)(struct trace_seq *s, const void *err);
+	int (*decode)(struct ras_events *ras, struct ras_ns_dec_tab *dec_tab,
+		      struct trace_seq *s, const void *err);
+#ifdef HAVE_SQLITE3
+#include <sqlite3.h>
+	sqlite3_stmt *stmt_dec_record;
+#endif
 } *p_ns_dec_tab;
 
 int ras_non_standard_event_handler(struct trace_seq *s,

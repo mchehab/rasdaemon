@@ -38,17 +38,6 @@
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
 
-struct db_fields {
-	char *name;
-	char *type;
-};
-
-struct db_table_descriptor {
-	char			*name;
-	const struct db_fields	*fields;
-	size_t			num_fields;
-};
-
 /*
  * Table and functions to handle ras:mc_event
  */
@@ -511,7 +500,7 @@ static int ras_mc_create_table(struct sqlite3_priv *priv,
 {
 	const struct db_fields *field;
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
-	int i,rc;
+	int i, rc;
 
 	p += snprintf(p, end - p, "CREATE TABLE IF NOT EXISTS %s (",
 		      db_tab->name);
@@ -535,6 +524,23 @@ static int ras_mc_create_table(struct sqlite3_priv *priv,
 		    "Failed to create table %s on %s: error = %d\n",
 		    db_tab->name, SQLITE_RAS_DB, rc);
 	}
+	return rc;
+}
+
+int ras_mc_add_vendor_table(struct ras_events *ras,
+			    sqlite3_stmt **stmt,
+			    const struct db_table_descriptor *db_tab)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv)
+		return -1;
+
+	rc = ras_mc_create_table(priv, db_tab);
+	if (rc == SQLITE_OK)
+		rc = ras_mc_prepare_stmt(priv, stmt, db_tab);
+
 	return rc;
 }
 

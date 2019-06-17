@@ -87,7 +87,9 @@ static char *sas_axi_err_type(int etype)
 	return "unknown error";
 }
 
-static int decode_hip07_sas_error(struct trace_seq *s, const void *error)
+static int decode_hip07_sas_error(struct ras_events *ras,
+				  struct ras_ns_dec_tab *dec_tab,
+				  struct trace_seq *s, const void *error)
 {
 	char buf[1024];
 	char *p = buf;
@@ -120,7 +122,9 @@ static int decode_hip07_sas_error(struct trace_seq *s, const void *error)
 	return 0;
 }
 
-static int decode_hip07_hns_error(struct trace_seq *s, const void *error)
+static int decode_hip07_hns_error(struct ras_events *ras,
+				  struct ras_ns_dec_tab *dec_tab,
+				  struct trace_seq *s, const void *error)
 {
 	return 0;
 }

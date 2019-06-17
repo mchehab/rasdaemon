@@ -166,7 +166,8 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 		for (i = 0; dec_tab[i].decode; i++) {
 			if (uuid_le_cmp(ev.sec_type,
 					dec_tab[i].sec_type) == 0) {
-				dec_tab[i].decode(s, ev.error);
+				dec_tab[i].decode(ras, &dec_tab[i],
+						  s, ev.error);
 				dec_done = true;
 				break;
 			}
