@@ -24,20 +24,6 @@
 #define HISI_SAS_VALID_ERR_TYPE       BIT(2)
 #define HISI_SAS_VALID_AXI_ERR_INFO   BIT(3)
 
-static int decode_hip07_sas_error(struct trace_seq *s, const void *error);
-static int decode_hip07_hns_error(struct trace_seq *s, const void *error);
-
-struct ras_ns_dec_tab hisi_ns_dec_tab[] = {
-	{
-		.sec_type = "daffd8146eba4d8c8a91bc9bbf4aa301",
-		.decode = decode_hip07_sas_error,
-	},
-	{
-		.sec_type = "fbc2d923ea7a453dab132949f5af9e53",
-		.decode = decode_hip07_hns_error,
-	},
-};
-
 struct hisi_sas_err_sec {
 	uint64_t   val_bits;
 	uint64_t   physical_addr;
@@ -138,6 +124,18 @@ static int decode_hip07_hns_error(struct trace_seq *s, const void *error)
 {
 	return 0;
 }
+
+struct ras_ns_dec_tab hisi_ns_dec_tab[] = {
+	{
+		.sec_type = "daffd8146eba4d8c8a91bc9bbf4aa301",
+		.decode = decode_hip07_sas_error,
+	},
+	{
+		.sec_type = "fbc2d923ea7a453dab132949f5af9e53",
+		.decode = decode_hip07_hns_error,
+	},
+};
+
 __attribute__((constructor))
 static void hip07_init(void)
 {
