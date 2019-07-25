@@ -1172,7 +1172,7 @@ sub summary
     if ($out ne "") {
         print "Extlog records summary:\n$out";
     } else {
-        print "No Extlog errors.\n";
+        print "No Extlog errors.\n\n";
     }
     $query_handle->finish;
 
