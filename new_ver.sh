@@ -13,4 +13,4 @@ echo "************************************************************************"
 echo "Building RPM files for version: $VER"
 echo "************************************************************************"
 echo
-git tag v$VER -f && make mock && make upload && git push --tags master
+git tag v$VER -f && make mock && make upload && git push

@@ -1,3 +1,16 @@
+2019-08-23	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+	- Version 0.6.3
+
+	* Added support for ARM Scalable MCA
+	* Added support for HiSilicon HIP08
+	* Added support for Hygon Dhyana family 18h processor
+	* Added support for disk I/O error monitoring
+	* Added devlink events
+	* Integrate rasdaemon build tests with Travis CI
+	* Fixed asdaemon high CPU usage when part of CPUs offline
+	* Fixed mcgstatus message print
+	* Some other minor fixes
+
 2018-08-14	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 	- Version 0.6.2
 

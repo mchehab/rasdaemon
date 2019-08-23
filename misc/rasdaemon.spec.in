@@ -6,7 +6,9 @@ Group:			Applications/System
 License:		GPLv2
 URL:			http://git.infradead.org/users/mchehab/rasdaemon.git
 Source0:		http://www.infradead.org/~mchehab/rasdaemon/%{name}-%{version}.tar.bz2
+
 ExcludeArch:		s390 s390x
+BuildRequires:		gcc
 BuildRequires:		gettext-devel
 BuildRequires:		perl-generators
 BuildRequires:		sqlite-devel
@@ -36,7 +38,7 @@ an utility for reporting current error counts from the EDAC sysfs files.
 %setup -q
 
 %build
-%configure --enable-mce --enable-aer --enable-sqlite3 --enable-extlog --enable-abrt-report --enable-non-standard --enable-hisi-ns-decode --enable-arm
+%configure --enable-all
 
 make %{?_smp_mflags}
 
@@ -56,6 +58,9 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_sysconfdir}/ras/dimm_labels.d
 
 %changelog
+
+* Fri Aug 23 2019 Mauro Carvalho Chehab <mchehab+samsung@kernel.org>  0.6.3-1
+- Bump to version 0.6.3 with new ARM events, plus disk I/O and netlink support
 
 * Tue Aug 14 2018 Mauro Carvalho Chehab <mchehab+samsung@kernel.org>  0.6.2-1
 - Bump to version 0.6.2 with improvements for PCIe AER parsing and at ras-mc-ctl tool
