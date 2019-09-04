@@ -35,19 +35,19 @@ static const struct {
 	int             error;
 	const char      *name;
 } blk_errors[] = {
-        { -EOPNOTSUPP, "operation not supported error" },
-        { -ETIMEDOUT, "timeout error" },
-        { -ENOSPC,    "critical space allocation error" },
-        { -ENOLINK,   "recoverable transport error" },
-        { -EREMOTEIO, "critical target error" },
-        { -EBADE,     "critical nexus error" },
-        { -ENODATA,   "critical medium error" },
-        { -EILSEQ,    "protection error" },
-        { -ENOMEM,    "kernel resource error" },
-        { -EBUSY,     "device resource error" },
-        { -EAGAIN,    "nonblocking retry error" },
-        { -EREMCHG, "dm internal retry error" },
-        { -EIO,       "I/O error" },
+	{ -EOPNOTSUPP, "operation not supported error" },
+	{ -ETIMEDOUT, "timeout error" },
+	{ -ENOSPC,    "critical space allocation error" },
+	{ -ENOLINK,   "recoverable transport error" },
+	{ -EREMOTEIO, "critical target error" },
+	{ -EBADE,     "critical nexus error" },
+	{ -ENODATA,   "critical medium error" },
+	{ -EILSEQ,    "protection error" },
+	{ -ENOMEM,    "kernel resource error" },
+	{ -EBUSY,     "device resource error" },
+	{ -EAGAIN,    "nonblocking retry error" },
+	{ -EREMCHG, "dm internal retry error" },
+	{ -EIO,       "I/O error" },
 };
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))

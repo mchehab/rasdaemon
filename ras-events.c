@@ -754,23 +754,23 @@ int handle_ras_events(int record_events)
 #endif
 
 #ifdef HAVE_NON_STANDARD
-        rc = add_event_handler(ras, pevent, page_size, "ras", "non_standard_event",
-                               ras_non_standard_event_handler, NULL, NON_STANDARD_EVENT);
-        if (!rc)
-                num_events++;
-        else
-                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-                    "ras", "non_standard_event");
+	rc = add_event_handler(ras, pevent, page_size, "ras", "non_standard_event",
+			       ras_non_standard_event_handler, NULL, NON_STANDARD_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "ras", "non_standard_event");
 #endif
 
 #ifdef HAVE_ARM
-        rc = add_event_handler(ras, pevent, page_size, "ras", "arm_event",
-                               ras_arm_event_handler, NULL, ARM_EVENT);
-        if (!rc)
-                num_events++;
-        else
-                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-                    "ras", "arm_event");
+	rc = add_event_handler(ras, pevent, page_size, "ras", "arm_event",
+			       ras_arm_event_handler, NULL, ARM_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "ras", "arm_event");
 #endif
 
 	cpus = get_num_cpus(ras);
@@ -782,7 +782,7 @@ int handle_ras_events(int record_events)
 	if (ras->mce_priv) {
 		rc = add_event_handler(ras, pevent, page_size,
 				       "mce", "mce_record",
-			               ras_mce_event_handler, NULL, MCE_EVENT);
+				       ras_mce_event_handler, NULL, MCE_EVENT);
 		if (!rc)
 			num_events++;
 	else
@@ -807,17 +807,17 @@ int handle_ras_events(int record_events)
 	rc = add_event_handler(ras, pevent, page_size, "net",
 			       "net_dev_xmit_timeout",
 			       ras_net_xmit_timeout_handler, NULL, DEVLINK_EVENT);
-        if (!rc)
+	if (!rc)
 		filter_str = "devlink/devlink_health_report:msg=~\'TX timeout*\'";
 
 	rc = add_event_handler(ras, pevent, page_size, "devlink",
 			       "devlink_health_report",
 			       ras_devlink_event_handler, filter_str, DEVLINK_EVENT);
-        if (!rc)
-                num_events++;
-        else
-                log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-                    "devlink", "devlink_health_report");
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "devlink", "devlink_health_report");
 #endif
 
 #ifdef HAVE_DISKERROR

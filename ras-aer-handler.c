@@ -111,10 +111,10 @@ int ras_aer_event_handler(struct trace_seq *s,
 	case HW_EVENT_AER_UNCORRECTED_NON_FATAL:
 		ev.error_type = "Uncorrected (Non-Fatal)";
 		break;
-        case HW_EVENT_AER_UNCORRECTED_FATAL:
+	case HW_EVENT_AER_UNCORRECTED_FATAL:
 		ev.error_type = "Uncorrected (Fatal)";
 		break;
-        case HW_EVENT_AER_CORRECTED:
+	case HW_EVENT_AER_CORRECTED:
 		ev.error_type = "Corrected";
 		break;
 	default:
