@@ -8,6 +8,11 @@ The main repository for the rasdaemon is at Fedora hosted:
 
 	http://git.infradead.org/users/mchehab/rasdaemon.git
 
+And two mirrors are available:
+
+	https://github.com/mchehab/rasdaemon
+	https://gitlab.com/mchehab_kernel/rasdaemon
+
 Tarballs for each release can be found at:
 	http://www.infradead.org/~mchehab/rasdaemon/
 
@@ -180,13 +185,22 @@ SUBMITTING PATCHES
 ==================
 
 If you want to help improving this tool, be my guest! We try to follow
-the Kernel's CodingStyle and submission rules as a reference. Please
-send patches enclosed in an email, in plain text, to:
-	Mauro Carvalho Chehab <mchehab@s-opensource.com>
-		or
-	Mauro Carvalho Chehab <mchehab@infradead.org>
+the Kernel's CodingStyle and submission rules as a reference. 
 
-Please always send a copy to linux-edac@vger.kernel.org.
+Please send patches enclosed in an email, in plain text, to:
+
+	linux-edac@vger.kernel.org
+
+With a copy to:
+
+	Mauro Carvalho Chehab <mchehab@kernel.org>
+
+Or, alternatively, send a pull request against github or gitlab repositories at:
+
+	https://github.com/mchehab/rasdaemon
+	https://gitlab.com/mchehab_kernel/rasdaemon
+
+(github preferred)
 
 Don't foget to add a description of the patch in the body of the email, adding
 a Signed-off-by: at the end of the patch description (before the unified diff
