@@ -140,6 +140,7 @@ enum hisi_oem_data_type {
 
 enum {
 	hip08_oem_type1_field_id,
+	hip08_oem_type1_field_timestamp,
 	hip08_oem_type1_field_version,
 	hip08_oem_type1_field_soc_id,
 	hip08_oem_type1_field_socket_id,
@@ -152,6 +153,7 @@ enum {
 
 enum {
 	hip08_oem_type2_field_id,
+	hip08_oem_type2_field_timestamp,
 	hip08_oem_type2_field_version,
 	hip08_oem_type2_field_soc_id,
 	hip08_oem_type2_field_socket_id,
@@ -164,6 +166,7 @@ enum {
 
 enum {
 	hip08_pcie_local_field_id,
+	hip08_pcie_local_field_timestamp,
 	hip08_pcie_local_field_version,
 	hip08_pcie_local_field_soc_id,
 	hip08_pcie_local_field_socket_id,
@@ -289,6 +292,7 @@ static char *pcie_local_sub_module_name(uint8_t id)
 #ifdef HAVE_SQLITE3
 static const struct db_fields hip08_oem_type1_event_fields[] = {
 	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",          .type = "TEXT" },
 	{ .name = "version",		.type = "INTEGER" },
 	{ .name = "soc_id",		.type = "INTEGER" },
 	{ .name = "socket_id",		.type = "INTEGER" },
@@ -300,13 +304,14 @@ static const struct db_fields hip08_oem_type1_event_fields[] = {
 };
 
 static const struct db_table_descriptor hip08_oem_type1_event_tab = {
-	.name = "hip08_oem_type1_event",
+	.name = "hip08_oem_type1_event_v2",
 	.fields = hip08_oem_type1_event_fields,
 	.num_fields = ARRAY_SIZE(hip08_oem_type1_event_fields),
 };
 
 static const struct db_fields hip08_oem_type2_event_fields[] = {
 	{ .name = "id",                 .type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",          .type = "TEXT" },
 	{ .name = "version",            .type = "INTEGER" },
 	{ .name = "soc_id",             .type = "INTEGER" },
 	{ .name = "socket_id",          .type = "INTEGER" },
@@ -318,13 +323,14 @@ static const struct db_fields hip08_oem_type2_event_fields[] = {
 };
 
 static const struct db_table_descriptor hip08_oem_type2_event_tab = {
-	.name = "hip08_oem_type2_event",
+	.name = "hip08_oem_type2_event_v2",
 	.fields = hip08_oem_type2_event_fields,
 	.num_fields = ARRAY_SIZE(hip08_oem_type2_event_fields),
 };
 
 static const struct db_fields hip08_pcie_local_event_fields[] = {
 	{ .name = "id",                 .type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",          .type = "TEXT" },
 	{ .name = "version",            .type = "INTEGER" },
 	{ .name = "soc_id",             .type = "INTEGER" },
 	{ .name = "socket_id",          .type = "INTEGER" },
@@ -338,7 +344,7 @@ static const struct db_fields hip08_pcie_local_event_fields[] = {
 };
 
 static const struct db_table_descriptor hip08_pcie_local_event_tab = {
-	.name = "hip08_pcie_local_event",
+	.name = "hip08_pcie_local_event_v2",
 	.fields = hip08_pcie_local_event_fields,
 	.num_fields = ARRAY_SIZE(hip08_pcie_local_event_fields),
 };
@@ -399,9 +405,11 @@ static int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab, char *name)
 /* error data decoding functions */
 static int decode_hip08_oem_type1_error(struct ras_events *ras,
 					struct ras_ns_dec_tab *dec_tab,
-					struct trace_seq *s, const void *error)
+					struct trace_seq *s,
+					struct ras_non_standard_event *event)
 {
-	const struct hisi_oem_type1_err_sec *err = error;
+	const struct hisi_oem_type1_err_sec *err =
+			(struct hisi_oem_type1_err_sec*)event->error;
 	char buf[1024];
 	char *p = buf;
 
@@ -422,6 +430,9 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 		}
 	}
 #endif
+	record_vendor_data(dec_tab, hisi_oem_data_type_text,
+			   hip08_oem_type1_field_timestamp,
+			   0, event->timestamp);
 
 	p += sprintf(p, "[ ");
 	p += sprintf(p, "table_version=%d ", err->version);
@@ -524,9 +535,11 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 
 static int decode_hip08_oem_type2_error(struct ras_events *ras,
 					struct ras_ns_dec_tab *dec_tab,
-					struct trace_seq *s, const void *error)
+					struct trace_seq *s,
+					struct ras_non_standard_event *event)
 {
-	const struct hisi_oem_type2_err_sec *err = error;
+	const struct hisi_oem_type2_err_sec *err =
+			(struct hisi_oem_type2_err_sec *)event->error;
 	char buf[1024];
 	char *p = buf;
 
@@ -546,6 +559,10 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 		}
 	}
 #endif
+	record_vendor_data(dec_tab, hisi_oem_data_type_text,
+			   hip08_oem_type2_field_timestamp,
+			   0, event->timestamp);
+
 	p += sprintf(p, "[ ");
 	p += sprintf(p, "table_version=%d ", err->version);
 	record_vendor_data(dec_tab, hisi_oem_data_type_int,
@@ -657,9 +674,11 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 
 static int decode_hip08_pcie_local_error(struct ras_events *ras,
 					 struct ras_ns_dec_tab *dec_tab,
-					 struct trace_seq *s, const void *error)
+					 struct trace_seq *s,
+					 struct ras_non_standard_event *event)
 {
-	const struct hisi_pcie_local_err_sec *err = error;
+	const struct hisi_pcie_local_err_sec *err =
+			(struct hisi_pcie_local_err_sec *)event->error;
 	char buf[1024];
 	char *p = buf;
 	uint32_t i;
@@ -680,6 +699,10 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 		}
 	}
 #endif
+	record_vendor_data(dec_tab, hisi_oem_data_type_text,
+			   hip08_pcie_local_field_timestamp,
+			   0, event->timestamp);
+
 	p += sprintf(p, "[ ");
 	p += sprintf(p, "table_version=%d ", err->version);
 	record_vendor_data(dec_tab, hisi_oem_data_type_int,

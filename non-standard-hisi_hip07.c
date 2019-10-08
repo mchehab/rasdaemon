@@ -89,11 +89,13 @@ static char *sas_axi_err_type(int etype)
 
 static int decode_hip07_sas_error(struct ras_events *ras,
 				  struct ras_ns_dec_tab *dec_tab,
-				  struct trace_seq *s, const void *error)
+				  struct trace_seq *s,
+				  struct ras_non_standard_event *event)
 {
 	char buf[1024];
 	char *p = buf;
-	const struct hisi_sas_err_sec *err = error;
+	const struct hisi_sas_err_sec *err =
+			(struct hisi_sas_err_sec *)event->error;
 
 	if (err->val_bits == 0) {
 		trace_seq_printf(s, "%s: no valid error data\n",
@@ -124,7 +126,8 @@ static int decode_hip07_sas_error(struct ras_events *ras,
 
 static int decode_hip07_hns_error(struct ras_events *ras,
 				  struct ras_ns_dec_tab *dec_tab,
-				  struct trace_seq *s, const void *error)
+				  struct trace_seq *s,
+				  struct ras_non_standard_event *event)
 {
 	return 0;
 }

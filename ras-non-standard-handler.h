@@ -23,7 +23,7 @@
 typedef struct ras_ns_dec_tab {
 	const char *sec_type;
 	int (*decode)(struct ras_events *ras, struct ras_ns_dec_tab *dec_tab,
-		      struct trace_seq *s, const void *err);
+		      struct trace_seq *s, struct ras_non_standard_event *event);
 #ifdef HAVE_SQLITE3
 #include <sqlite3.h>
 	sqlite3_stmt *stmt_dec_record;
