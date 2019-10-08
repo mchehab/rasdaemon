@@ -26,8 +26,11 @@
 #define HISI_OEM_MODULE_ID_POE	5
 #define HISI_OEM_MODULE_ID_DISP	8
 #define HISI_OEM_MODULE_ID_LPC	9
+#define HISI_OEM_MODULE_ID_GIC	13
+#define HISI_OEM_MODULE_ID_RDE	14
 #define HISI_OEM_MODULE_ID_SAS	15
 #define HISI_OEM_MODULE_ID_SATA	16
+#define HISI_OEM_MODULE_ID_USB	17
 
 #define HISI_OEM_VALID_SOC_ID		BIT(0)
 #define HISI_OEM_VALID_SOCKET_ID	BIT(1)
@@ -202,8 +205,11 @@ static char *oem_type1_module_name(uint8_t module_id)
 	case HISI_OEM_MODULE_ID_POE: return "POE";
 	case HISI_OEM_MODULE_ID_DISP: return "DISP";
 	case HISI_OEM_MODULE_ID_LPC: return "LPC";
+	case HISI_OEM_MODULE_ID_GIC: return "GIC";
+	case HISI_OEM_MODULE_ID_RDE: return "RDE";
 	case HISI_OEM_MODULE_ID_SAS: return "SAS";
 	case HISI_OEM_MODULE_ID_SATA: return "SATA";
+	case HISI_OEM_MODULE_ID_USB: return "USB";
 	}
 	return "unknown";
 }
