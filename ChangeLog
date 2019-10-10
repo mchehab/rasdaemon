@@ -1,3 +1,16 @@
+2019-10-10	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+	- Version 0.6.4
+
+	* Change DB for hip08 in order to better handle some OEM data
+	* Fix an issue of sqlite3 integer bind parameter mismatch
+	* Update instructions about sending patches
+	* Fix URLs to git.kernel.org repositories in README file
+	* Fix file descriptor leak in ras-report.c:setup_report_socket()
+	* Initialize record.cpu before pevent_print_event().
+	* Flush trace buffer immediately, not on next call
+	* Replace whitespaces by tabs
+	* Fix build with musl
+
 2019-08-23	Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
 	- Version 0.6.3
 
