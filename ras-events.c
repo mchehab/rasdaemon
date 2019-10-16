@@ -688,6 +688,7 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 
 	/* Enable RAS events */
 	rc = __toggle_ras_mc_event(ras, group, event, 1);
+	free(page);
 	if (rc < 0) {
 		log(TERM, LOG_ERR, "Can't enable %s:%s tracing\n",
 		    group, event);
@@ -697,7 +698,6 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 
 	log(ALL, LOG_INFO, "Enabled event %s:%s\n", group, event);
 
-	free(page);
 	return 0;
 }
 
