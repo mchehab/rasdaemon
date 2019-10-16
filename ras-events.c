@@ -846,7 +846,8 @@ int handle_ras_events(int record_events)
 	if (!num_events) {
 		log(ALL, LOG_INFO,
 		    "Failed to trace all supported RAS events. Aborting.\n");
-		return EINVAL;
+		rc = -EINVAL;
+		goto err;
 	}
 
 	data = calloc(sizeof(*data), cpus);
