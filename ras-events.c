@@ -600,12 +600,12 @@ static int select_tracing_timestamp(struct ras_events *ras)
 		return 0;
 	}
 	rc = fscanf(fp, "%zu.%u ", &uptime, &j1);
+	fclose(fp);
 	if (rc <= 0) {
 		log(TERM, LOG_ERR, "Can't parse /proc/uptime!\n");
 		return -1;
 	}
 	now = time(NULL);
-	fclose(fp);
 
 	ras->use_uptime = 1;
 	ras->uptime_diff = now - uptime;
