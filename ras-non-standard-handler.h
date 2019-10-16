@@ -36,8 +36,12 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index);
 
+#ifdef HAVE_NON_STANDARD
 int register_ns_dec_tab(const p_ns_dec_tab tab);
-
 void unregister_ns_dec_tab(void);
+#else
+static inline int register_ns_dec_tab(const p_ns_dec_tab tab) { return 0; };
+static inline void unregister_ns_dec_tab(void) { return; };
+#endif
 
 #endif

@@ -595,6 +595,18 @@ int ras_mc_add_vendor_table(struct ras_events *ras,
 	return rc;
 }
 
+int ras_mc_finalize_vendor_table(sqlite3_stmt *stmt)
+{
+	int rc;
+
+	rc = sqlite3_finalize(stmt);
+	if (rc != SQLITE_OK)
+		log(TERM, LOG_ERR,
+		    "Failed to finalize sqlite: error = %d\n", rc);
+
+	return rc;
+}
+
 int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 {
 	int rc;
@@ -690,5 +702,113 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 #endif
 
 		ras->db_priv = priv;
+	return 0;
+}
+
+int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
+{
+	int rc;
+	sqlite3 *db;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	printf("Calling %s()\n", __func__);
+
+	if (!priv)
+		return -1;
+
+	db = priv->db;
+	if (!db)
+		return -1;
+
+	if (priv->stmt_mc_event) {
+		rc = sqlite3_finalize(priv->stmt_mc_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize mc_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+#ifdef HAVE_AER
+	if (priv->stmt_aer_event) {
+		rc = sqlite3_finalize(priv->stmt_aer_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize aer_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+#ifdef HAVE_EXTLOG
+	if (priv->stmt_extlog_record) {
+		rc = sqlite3_finalize(priv->stmt_extlog_record);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize extlog_record sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+
+#ifdef HAVE_MCE
+	if (priv->stmt_mce_record) {
+		rc = sqlite3_finalize(priv->stmt_mce_record);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize mce_record sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+#ifdef HAVE_NON_STANDARD
+	if (priv->stmt_non_standard_record) {
+		rc = sqlite3_finalize(priv->stmt_non_standard_record);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize non_standard_record sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+#ifdef HAVE_ARM
+	if (priv->stmt_arm_record) {
+		rc = sqlite3_finalize(priv->stmt_arm_record);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize arm_record sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+#ifdef HAVE_DEVLINK
+	if (priv->stmt_devlink_event) {
+		rc = sqlite3_finalize(priv->stmt_devlink_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize devlink_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+#ifdef HAVE_DISKERROR
+	if (priv->stmt_diskerror_event) {
+		rc = sqlite3_finalize(priv->stmt_diskerror_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize diskerror_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+	rc = sqlite3_close_v2(db);
+	if (rc != SQLITE_OK)
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to close sqlite: error = %d\n", cpu, rc);
+
+	rc = sqlite3_shutdown();
+	if (rc != SQLITE_OK)
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to shutdown sqlite: error = %d\n", cpu, rc);
+	free(priv);
+
 	return 0;
 }

@@ -41,6 +41,22 @@ int register_ns_dec_tab(const p_ns_dec_tab tab)
 void unregister_ns_dec_tab(void)
 {
 	if (ns_dec_tab) {
+#ifdef HAVE_SQLITE3
+		p_ns_dec_tab dec_tab;
+		int i, count;
+
+		for (count = 0; count < dec_tab_count; count++) {
+			dec_tab = ns_dec_tab[count];
+			for (i = 0; dec_tab[i].decode; i++) {
+				if (dec_tab[i].stmt_dec_record) {
+					ras_mc_finalize_vendor_table(
+						dec_tab[i].stmt_dec_record);
+					dec_tab[i].stmt_dec_record = NULL;
+				}
+			}
+		}
+#endif
+
 		free(ns_dec_tab);
 		ns_dec_tab = NULL;
 		dec_tab_count = 0;

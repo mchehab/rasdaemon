@@ -418,7 +418,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			size = read(fds[i].fd, page, pdata[i].ras->page_size);
 			if (size < 0) {
 				log(TERM, LOG_WARNING, "read\n");
-				goto error;
+				goto cleanup;
 			} else if (size > 0) {
 				kbuffer_load_subbuffer(kbuf, page);
 
@@ -452,6 +452,13 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	/* poll() is not supported. We need to fallback to the old way */
 	log(TERM, LOG_INFO,
 	    "Old kernel detected. Stop listening and fall back to pthread way.\n");
+
+cleanup:
+	if (pdata[0].ras->record_events) {
+		unregister_ns_dec_tab();
+		ras_mc_event_closedb(pdata[0].cpu, pdata[0].ras);
+	}
+
 error:
 	kbuffer_free(kbuf);
 	free(page);
@@ -539,6 +546,11 @@ static void *handle_ras_events_cpu(void *priv)
 		ras_mc_event_opendb(pdata->cpu, pdata->ras);
 
 	read_ras_event(fd, pdata, kbuf, page);
+
+	if (pdata->ras->record_events) {
+		unregister_ns_dec_tab();
+		ras_mc_event_closedb(pdata->cpu, pdata->ras);
+	}
 
 	close(fd);
 	kbuffer_free(kbuf);
