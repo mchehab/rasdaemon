@@ -353,6 +353,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	struct pollfd fds[n_cpus];
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
+	int legacy_kernel = 0;
 #if 0
 	int need_sleep = 0;
 #endif
@@ -372,6 +373,9 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		return -ENOMEM;
 	}
 
+	for (i = 0; i < n_cpus; i++)
+		fds[i].fd = -1;
+
 	for (i = 0; i < n_cpus; i++) {
 		fds[i].events = POLLIN;
 
@@ -382,9 +386,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		fds[i].fd = open_trace(pdata[0].ras, pipe_raw, O_RDONLY);
 		if (fds[i].fd < 0) {
 			log(TERM, LOG_ERR, "Can't open trace_pipe_raw\n");
-			kbuffer_free(kbuf);
-			free(page);
-			return -EINVAL;
+			goto error;
 		}
 	}
 
@@ -416,7 +418,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			size = read(fds[i].fd, page, pdata[i].ras->page_size);
 			if (size < 0) {
 				log(TERM, LOG_WARNING, "read\n");
-				return -1;
+				goto error;
 			} else if (size > 0) {
 				kbuffer_load_subbuffer(kbuf, page);
 
@@ -441,6 +443,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		 */
 		if (count_nready == n_cpus) {
 			/* Should only happen with legacy kernels */
+			legacy_kernel = 1;
 			break;
 		}
 #endif
@@ -449,12 +452,18 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	/* poll() is not supported. We need to fallback to the old way */
 	log(TERM, LOG_INFO,
 	    "Old kernel detected. Stop listening and fall back to pthread way.\n");
+error:
 	kbuffer_free(kbuf);
 	free(page);
-	for (i = 0; i < n_cpus; i++)
-		close(fds[i].fd);
+	for (i = 0; i < n_cpus; i++) {
+		if (fds[i].fd > 0)
+			close(fds[i].fd);
+	}
 
-	return -255;
+	if (legacy_kernel)
+		return -255;
+	else
+		return -1;
 }
 
 static int read_ras_event(int fd,
