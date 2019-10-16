@@ -24,9 +24,6 @@
 #include "ras-events.h"
 #include "libtrace/event-parse.h"
 
-
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
-
 enum cputype {
 	CPU_GENERIC,
 	CPU_P6OLD,

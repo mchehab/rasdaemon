@@ -35,9 +35,6 @@
 
 #define SQLITE_RAS_DB RASSTATEDIR "/" RAS_DB_FNAME
 
-
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
-
 /*
  * Table and functions to handle ras:mc_event
  */

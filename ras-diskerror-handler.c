@@ -50,8 +50,6 @@ static const struct {
 	{ -EIO,       "I/O error" },
 };
 
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
-
 static const char *get_blk_error(int err)
 {
 	int i;

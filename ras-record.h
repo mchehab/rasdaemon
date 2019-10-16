@@ -23,6 +23,8 @@
 #include <stdint.h>
 #include "config.h"
 
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
+
 extern long user_hz;
 
 struct ras_events *ras;
