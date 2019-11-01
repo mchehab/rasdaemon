@@ -55,7 +55,7 @@ static char *cputype_name[] = {
 	[CPU_KNIGHTS_LANDING] = "Knights Landing",
 	[CPU_KNIGHTS_MILL] = "Knights Mill",
 	[CPU_SKYLAKE_XEON] = "Skylake server",
-	[CPU_NAPLES] = "AMD Family 17h Zen1",
+	[CPU_AMD_SMCA] = "AMD Scalable MCA",
 	[CPU_DHYANA] = "Hygon Family 18h Moksha"
 };
 
@@ -192,8 +192,10 @@ static int detect_cpu(struct ras_events *ras)
 	if (!strcmp(mce->vendor, "AuthenticAMD")) {
 		if (mce->family == 15)
 			mce->cputype = CPU_K8;
-		if (mce->family == 23)
-			mce->cputype = CPU_NAPLES;
+		if (strstr(mce->processor_flags, "smca")) {
+			mce->cputype = CPU_AMD_SMCA;
+			goto ret;
+		}
 		if (mce->family > 23) {
 			log(ALL, LOG_INFO,
 			    "Can't parse MCE for this AMD CPU yet %d\n",
@@ -441,7 +443,7 @@ int ras_mce_event_handler(struct trace_seq *s,
 	case CPU_K8:
 		rc = parse_amd_k8_event(ras, &e);
 		break;
-	case CPU_NAPLES:
+	case CPU_AMD_SMCA:
 	case CPU_DHYANA:
 		rc = parse_amd_smca_event(ras, &e);
 		break;
