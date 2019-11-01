@@ -49,11 +49,17 @@ enum smca_bank_types {
 	SMCA_FP,        /* Floating Point */
 	SMCA_L3_CACHE,  /* L3 Cache */
 	SMCA_CS,        /* Coherent Slave */
+	SMCA_CS_V2,     /* Coherent Slave V2 */
 	SMCA_PIE,       /* Power, Interrupts, etc. */
 	SMCA_UMC,       /* Unified Memory Controller */
 	SMCA_PB,        /* Parameter Block */
 	SMCA_PSP,       /* Platform Security Processor */
+	SMCA_PSP_V2,    /* Platform Security Processor V2 */
 	SMCA_SMU,       /* System Management Unit */
+	SMCA_SMU_V2,    /* System Management Unit V2 */
+	SMCA_MP5,	/* Microprocessor 5 Unit */
+	SMCA_NBIO,	/* Northbridge IO Unit */
+	SMCA_PCIE,	/* PCI Express Unit */
 	N_SMCA_BANK_TYPES
 };
 
@@ -165,6 +171,23 @@ static const char * const smca_cs_mce_desc[] = {
 	"Atomic request parity",
 	"ECC error on probe filter access",
 };
+/* Coherent Slave Unit V2 */
+static const char * const smca_cs2_mce_desc[] = {
+	"Illegal Request",
+	"Address Violation",
+	"Security Violation",
+	"Illegal Response",
+	"Unexpected Response",
+	"Request or Probe Parity Error",
+	"Read Response Parity Error",
+	"Atomic Request Parity Error",
+	"SDP read response had no match in the CS queue",
+	"Probe Filter Protocol Error",
+	"Probe Filter ECC Error",
+	"SDP read response had an unexpected RETRY error",
+	"Counter overflow error",
+	"Counter underflow error",
+};
 /* Power, Interrupt, etc.. */
 static const char * const smca_pie_mce_desc[] = {
 	"HW assert",
@@ -189,10 +212,75 @@ static const char * const smca_pb_mce_desc[] = {
 static const char * const smca_psp_mce_desc[] = {
 	"PSP RAM ECC or parity error",
 };
+/* Platform Security Processor V2 */
+static const char * const smca_psp2_mce_desc[] = {
+	"High SRAM ECC or parity error",
+	"Low SRAM ECC or parity error",
+	"Instruction Cache Bank 0 ECC or parity error",
+	"Instruction Cache Bank 1 ECC or parity error",
+	"Instruction Tag Ram 0 parity error",
+	"Instruction Tag Ram 1 parity error",
+	"Data Cache Bank 0 ECC or parity error",
+	"Data Cache Bank 1 ECC or parity error",
+	"Data Cache Bank 2 ECC or parity error",
+	"Data Cache Bank 3 ECC or parity error",
+	"Data Tag Bank 0 parity error",
+	"Data Tag Bank 1 parity error",
+	"Data Tag Bank 2 parity error",
+	"Data Tag Bank 3 parity error",
+	"Dirty Data Ram parity error",
+	"TLB Bank 0 parity error",
+	"TLB Bank 1 parity error",
+	"System Hub Read Buffer ECC or parity error",
+};
 /* System Management Unit */
 static const char * const smca_smu_mce_desc[] = {
 	"SMU RAM ECC or parity error",
 };
+/* System Management Unit V2 */
+static const char * const smca_smu2_mce_desc[] = {
+	"High SRAM ECC or parity error",
+	"Low SRAM ECC or parity error",
+	"Data Cache Bank A ECC or parity error",
+	"Data Cache Bank B ECC or parity error",
+	"Data Tag Cache Bank A ECC or parity error",
+	"Data Tag Cache Bank B ECC or parity error",
+	"Instruction Cache Bank A ECC or parity error",
+	"Instruction Cache Bank B ECC or parity error",
+	"Instruction Tag Cache Bank A ECC or parity error",
+	"Instruction Tag Cache Bank B ECC or parity error",
+	"System Hub Read Buffer ECC or parity error",
+};
+/* Microprocessor 5 Unit */
+static const char * const smca_mp5_mce_desc[] = {
+	"High SRAM ECC or parity error",
+	"Low SRAM ECC or parity error",
+	"Data Cache Bank A ECC or parity error",
+	"Data Cache Bank B ECC or parity error",
+	"Data Tag Cache Bank A ECC or parity error",
+	"Data Tag Cache Bank B ECC or parity error",
+	"Instruction Cache Bank A ECC or parity error",
+	"Instruction Cache Bank B ECC or parity error",
+	"Instruction Tag Cache Bank A ECC or parity error",
+	"Instruction Tag Cache Bank B ECC or parity error",
+};
+/* Northbridge IO Unit */
+static const char * const smca_nbio_mce_desc[] = {
+	"ECC or Parity error",
+	"PCIE error",
+	"SDP ErrEvent error",
+	"SDP Egress Poison Error",
+	"IOHC Internal Poison Error",
+};
+/* PCI Express Unit */
+static const char * const smca_pcie_mce_desc[] = {
+	"CCIX PER Message logging",
+	"CCIX Read Response with Status: Non-Data Error",
+	"CCIX Write Response with Status: Non-Data Error",
+	"CCIX Read Response with Status: Data Error",
+	"CCIX Non-okay write response with data error",
+};
+
 
 struct smca_mce_desc {
 	const char * const *descs;
@@ -208,11 +296,17 @@ static struct smca_mce_desc smca_mce_descs[] = {
 	[SMCA_FP]       = { smca_fp_mce_desc,   ARRAY_SIZE(smca_fp_mce_desc)  },
 	[SMCA_L3_CACHE] = { smca_l3_mce_desc,   ARRAY_SIZE(smca_l3_mce_desc)  },
 	[SMCA_CS]       = { smca_cs_mce_desc,   ARRAY_SIZE(smca_cs_mce_desc)  },
+	[SMCA_CS_V2]    = { smca_cs2_mce_desc,  ARRAY_SIZE(smca_cs2_mce_desc) },
 	[SMCA_PIE]      = { smca_pie_mce_desc,  ARRAY_SIZE(smca_pie_mce_desc) },
 	[SMCA_UMC]      = { smca_umc_mce_desc,  ARRAY_SIZE(smca_umc_mce_desc) },
 	[SMCA_PB]       = { smca_pb_mce_desc,   ARRAY_SIZE(smca_pb_mce_desc)  },
 	[SMCA_PSP]      = { smca_psp_mce_desc,  ARRAY_SIZE(smca_psp_mce_desc) },
+	[SMCA_PSP_V2]   = { smca_psp2_mce_desc, ARRAY_SIZE(smca_psp2_mce_desc)},
 	[SMCA_SMU]      = { smca_smu_mce_desc,  ARRAY_SIZE(smca_smu_mce_desc) },
+	[SMCA_SMU_V2]   = { smca_smu2_mce_desc, ARRAY_SIZE(smca_smu2_mce_desc)},
+	[SMCA_MP5]      = { smca_mp5_mce_desc,  ARRAY_SIZE(smca_mp5_mce_desc) },
+	[SMCA_NBIO]     = { smca_nbio_mce_desc, ARRAY_SIZE(smca_nbio_mce_desc)},
+	[SMCA_PCIE]     = { smca_pcie_mce_desc, ARRAY_SIZE(smca_pcie_mce_desc)},
 };
 
 struct smca_hwid {
@@ -235,6 +329,7 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 
 	/* Data Fabric MCA types */
 	{ SMCA_CS,       0x0000002E },
+	{ SMCA_CS_V2,    0x0002002E },
 	{ SMCA_PIE,      0x0001002E },
 
 	/* Unified Memory Controller MCA type */
@@ -245,9 +340,20 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 
 	/* Platform Security Processor MCA type */
 	{ SMCA_PSP,      0x000000FF },
+	{ SMCA_PSP_V2,   0x000100FF },
 
 	/* System Management Unit MCA type */
 	{ SMCA_SMU,      0x00000001 },
+	{ SMCA_SMU_V2,   0x00010001 },
+
+	/* Microprocessor 5 Unit MCA type */
+	{ SMCA_MP5,      0x00020001 },
+
+	/* Northbridge IO Unit MCA type */
+	{ SMCA_NBIO,     0x00000018 },
+
+	/* PCI Express Unit MCA type */
+	{ SMCA_PCIE,     0x00000046 },
 };
 
 struct smca_bank_name {
@@ -264,11 +370,17 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_FP]       = { "Floating Point Unit" },
 	[SMCA_L3_CACHE] = { "L3 Cache" },
 	[SMCA_CS]       = { "Coherent Slave" },
+	[SMCA_CS_V2]    = { "Coherent Slave" },
 	[SMCA_PIE]      = { "Power, Interrupts, etc." },
 	[SMCA_UMC]      = { "Unified Memory Controller" },
 	[SMCA_PB]       = { "Parameter Block" },
 	[SMCA_PSP]      = { "Platform Security Processor" },
+	[SMCA_PSP_V2]   = { "Platform Security Processor" },
 	[SMCA_SMU]      = { "System Management Unit" },
+	[SMCA_SMU_V2]   = { "System Management Unit" },
+	[SMCA_MP5]	= { "Microprocessor 5 Unit" },
+	[SMCA_NBIO]     = { "Northbridge IO Unit" },
+	[SMCA_PCIE]     = { "PCI Express Unit" },
 };
 
 static void amd_decode_errcode(struct mce_event *e)
