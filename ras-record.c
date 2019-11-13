@@ -499,10 +499,9 @@ int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev
 /*
  * Generic code
  */
-
-static int ras_mc_prepare_stmt(struct sqlite3_priv *priv,
-			       sqlite3_stmt **stmt,
-			       const struct db_table_descriptor *db_tab)
+static int __ras_mc_prepare_stmt(struct sqlite3_priv *priv,
+				 sqlite3_stmt **stmt,
+				 const struct db_table_descriptor *db_tab)
 
 {
 	int i, rc;
@@ -575,6 +574,92 @@ static int ras_mc_create_table(struct sqlite3_priv *priv,
 		    "Failed to create table %s on %s: error = %d\n",
 		    db_tab->name, SQLITE_RAS_DB, rc);
 	}
+	return rc;
+}
+
+static int ras_mc_alter_table(struct sqlite3_priv *priv,
+			      sqlite3_stmt **stmt,
+			      const struct db_table_descriptor *db_tab)
+{
+	char sql[1024], *p = sql, *end = sql + sizeof(sql);
+	const struct db_fields *field;
+	int col_count;
+	int i, j, rc, found;
+
+	snprintf(p, end - p, "SELECT * FROM %s", db_tab->name);
+	rc = sqlite3_prepare_v2(priv->db, sql, -1, stmt, NULL);
+	if (rc != SQLITE_OK) {
+		log(TERM, LOG_ERR,
+		    "Failed to query fields from the table %s on %s: error = %d\n",
+		    db_tab->name, SQLITE_RAS_DB, rc);
+		return rc;
+	}
+
+	col_count = sqlite3_column_count(*stmt);
+	for (i = 0; i < db_tab->num_fields; i++) {
+		field = &db_tab->fields[i];
+		found = 0;
+		for (j = 0; j < col_count; j++) {
+			if (!strcmp(field->name,
+			    sqlite3_column_name(*stmt, j))) {
+				found = 1;
+				break;
+			}
+		}
+
+		if (!found) {
+			/* add new field */
+			p += snprintf(p, end - p, "ALTER TABLE %s ADD ",
+				      db_tab->name);
+			p += snprintf(p, end - p,
+				      "%s %s", field->name, field->type);
+#ifdef DEBUG_SQL
+			log(TERM, LOG_INFO, "SQL: %s\n", sql);
+#endif
+			rc = sqlite3_exec(priv->db, sql, NULL, NULL, NULL);
+			if (rc != SQLITE_OK) {
+				log(TERM, LOG_ERR,
+				    "Failed to add new field %s to the table %s on %s: error = %d\n",
+				    field->name, db_tab->name,
+				    SQLITE_RAS_DB, rc);
+				return rc;
+			}
+			p = sql;
+			memset(sql, 0, sizeof(sql));
+		}
+	}
+
+	return rc;
+}
+
+static int ras_mc_prepare_stmt(struct sqlite3_priv *priv,
+			       sqlite3_stmt **stmt,
+			       const struct db_table_descriptor *db_tab)
+{
+	int rc;
+
+	rc = __ras_mc_prepare_stmt(priv, stmt, db_tab);
+	if (rc != SQLITE_OK) {
+		log(TERM, LOG_ERR,
+		    "Failed to prepare insert db at table %s (db %s): error = %s\n",
+		    db_tab->name, SQLITE_RAS_DB, sqlite3_errmsg(priv->db));
+
+		log(TERM, LOG_INFO, "Trying to alter db at table %s (db %s)\n",
+		    db_tab->name, SQLITE_RAS_DB);
+
+		rc = ras_mc_alter_table(priv, stmt, db_tab);
+		if (rc != SQLITE_OK && rc != SQLITE_DONE) {
+			log(TERM, LOG_ERR,
+			    "Failed to alter db at table %s (db %s): error = %s\n",
+			    db_tab->name, SQLITE_RAS_DB,
+			    sqlite3_errmsg(priv->db));
+			stmt = NULL;
+			return rc;
+		}
+
+		rc = __ras_mc_prepare_stmt(priv, stmt, db_tab);
+	}
+
 	return rc;
 }
 
