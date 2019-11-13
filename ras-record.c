@@ -106,6 +106,7 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 static const struct db_fields aer_event_fields[] = {
 		{ .name="id",			.type="INTEGER PRIMARY KEY" },
 		{ .name="timestamp",		.type="TEXT" },
+		{ .name="dev_name",		.type="TEXT" },
 		{ .name="err_type",		.type="TEXT" },
 		{ .name="err_msg",		.type="TEXT" },
 };
@@ -126,8 +127,9 @@ int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 	log(TERM, LOG_INFO, "aer_event store: %p\n", priv->stmt_aer_event);
 
 	sqlite3_bind_text(priv->stmt_aer_event,  1, ev->timestamp, -1, NULL);
-	sqlite3_bind_text(priv->stmt_aer_event,  2, ev->error_type, -1, NULL);
-	sqlite3_bind_text(priv->stmt_aer_event,  3, ev->msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_aer_event,  2, ev->dev_name, -1, NULL);
+	sqlite3_bind_text(priv->stmt_aer_event,  3, ev->error_type, -1, NULL);
+	sqlite3_bind_text(priv->stmt_aer_event,  4, ev->msg, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_aer_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)

@@ -43,6 +43,8 @@ struct ras_aer_event {
 	char timestamp[64];
 	const char *error_type;
 	const char *dev_name;
+	uint8_t tlp_header_valid;
+	uint32_t *tlp_header;
 	const char *msg;
 };
 

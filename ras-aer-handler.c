@@ -52,6 +52,8 @@ static const char *aer_uncor_errors[32] = {
 	[20] = "Unsupported Request",
 };
 
+#define BUF_LEN	1024
+
 int ras_aer_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
 			 struct event_format *event, void *context)
@@ -59,11 +61,12 @@ int ras_aer_event_handler(struct trace_seq *s,
 	int len;
 	unsigned long long severity_val;
 	unsigned long long status_val;
+	unsigned long long val;
 	struct ras_events *ras = context;
 	time_t now;
 	struct tm *tm;
 	struct ras_aer_event ev;
-	char buf[1024];
+	char buf[BUF_LEN];
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -89,6 +92,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 					   record, &len, 1);
 	if (!ev.dev_name)
 		return -1;
+	trace_seq_printf(s, "%s ", ev.dev_name);
 
 	if (pevent_get_field_val(s,  event, "status", record, &status_val, 1) < 0)
 		return -1;
@@ -104,6 +108,21 @@ int ras_aer_event_handler(struct trace_seq *s,
 	else
 		bitfield_msg(buf, sizeof(buf), aer_uncor_errors, 32, 0, 0, status_val);
 	ev.msg = buf;
+
+	if (pevent_get_field_val(s, event, "tlp_header_valid",
+				record, &val, 1) < 0)
+		return -1;
+
+	ev.tlp_header_valid = val;
+	if (ev.tlp_header_valid) {
+		ev.tlp_header = pevent_get_field_raw(s, event, "tlp_header",
+						     record, &len, 1);
+		snprintf((buf + strlen(ev.msg)), BUF_LEN - strlen(ev.msg),
+			 " TLP Header: %08x %08x %08x %08x",
+			 ev.tlp_header[0], ev.tlp_header[1],
+			 ev.tlp_header[2], ev.tlp_header[3]);
+	}
+
 	trace_seq_printf(s, "%s ", ev.msg);
 
 	/* Use hw_event_aer_err_type switch between different severity_val */
