@@ -59,8 +59,11 @@ rm INSTALL %{buildroot}/usr/include/*.h
 
 %changelog
 
+* Wed Nov 20 2019 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>  0.6.5-1
+- Bump to version 0.6.5 with several fixes and improves PCIe events record
+
 * Fri Oct 10 2019 Mauro Carvalho Chehab <mchehab+samsung@kernel.org>  0.6.4-1
-- Bump to version 0.6.3 with some DB changes for hip08 and some fixes
+- Bump to version 0.6.4 with some DB changes for hip08 and some fixes
 
 * Fri Aug 23 2019 Mauro Carvalho Chehab <mchehab+samsung@kernel.org>  0.6.3-1
 - Bump to version 0.6.3 with new ARM events, plus disk I/O and netlink support
