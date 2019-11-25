@@ -27,7 +27,7 @@
 
 extern long user_hz;
 
-struct ras_events *ras;
+struct ras_events;
 
 struct ras_mc_event {
 	char timestamp[64];
