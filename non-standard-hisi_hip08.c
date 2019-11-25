@@ -811,8 +811,7 @@ struct ras_ns_dec_tab hip08_ns_oem_tab[] = {
 	{ /* sentinel */ }
 };
 
-__attribute__((constructor))
-static void hip08_init(void)
+static void __attribute__((constructor)) hip08_init(void)
 {
 	register_ns_dec_tab(hip08_ns_oem_tab);
 }
