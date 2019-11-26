@@ -205,6 +205,8 @@ static char *err_severity(uint8_t err_sev)
 	case HISI_ERR_SEVERITY_FE: return "fatal";
 	case HISI_ERR_SEVERITY_CE: return "corrected";
 	case HISI_ERR_SEVERITY_NONE: return "none";
+	default:
+		break;
 	}
 	return "unknown";
 }
@@ -451,6 +453,8 @@ static char *pcie_local_sub_module_name(uint8_t id)
 	case HISI_PCIE_SUB_MODULE_ID_MAC: return "MAC_Layer";
 	case HISI_PCIE_SUB_MODULE_ID_DL: return "DL_Layer";
 	case HISI_PCIE_SUB_MODULE_ID_SDI: return "SDI_Layer";
+	default:
+		break;
 	}
 	return "unknown";
 }
