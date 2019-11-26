@@ -867,36 +867,12 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 	return 0;
 }
 
-static int decode_hip08_pcie_local_error(struct ras_events *ras,
-					 struct ras_ns_dec_tab *dec_tab,
-					 struct trace_seq *s,
-					 struct ras_non_standard_event *event)
+static void decode_pcie_local_err_hdr(struct ras_ns_dec_tab *dec_tab,
+				      struct trace_seq *s,
+				      const struct hisi_pcie_local_err_sec *err)
 {
-	const struct hisi_pcie_local_err_sec *err =
-			(struct hisi_pcie_local_err_sec *)event->error;
 	char buf[1024];
 	char *p = buf;
-	uint32_t i;
-
-	if (err->val_bits == 0) {
-		trace_seq_printf(s, "%s: no valid error information\n",
-				 __func__);
-		return -1;
-	}
-
-#ifdef HAVE_SQLITE3
-	if (!dec_tab->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &dec_tab->stmt_dec_record,
-				&hip08_pcie_local_event_tab) != SQLITE_OK) {
-			trace_seq_printf(s,
-				"create sql hip08_pcie_local_event_tab fail\n");
-			return -1;
-		}
-	}
-#endif
-	record_vendor_data(dec_tab, hisi_oem_data_type_text,
-			   hip08_pcie_local_field_timestamp,
-			   0, event->timestamp);
 
 	p += sprintf(p, "[ ");
 	p += sprintf(p, "table_version=%d ", err->version);
@@ -961,11 +937,17 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 				   err->err_type, NULL);
 	}
 	p += sprintf(p, "]");
-
-	trace_seq_printf(s, "\nHISI HIP08: PCIe local error\n");
 	trace_seq_printf(s, "%s\n", buf);
+}
 
-	p = buf;
+static void decode_pcie_local_err_regs(struct ras_ns_dec_tab *dec_tab,
+				       struct trace_seq *s,
+				       const struct hisi_pcie_local_err_sec *err)
+{
+	char buf[1024];
+	char *p = buf;
+	uint32_t i;
+
 	trace_seq_printf(s, "Reg Dump:\n");
 	for (i = 0; i < 33; i++) {
 		if (err->val_bits & BIT(HISI_PCIE_LOCAL_VALID_ERR_MISC + i)) {
@@ -980,6 +962,39 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 			   hip08_pcie_local_field_regs_dump, 0, buf);
 
 	step_vendor_data_tab(dec_tab, "hip08_pcie_local_event_tab");
+}
+
+static int decode_hip08_pcie_local_error(struct ras_events *ras,
+					 struct ras_ns_dec_tab *dec_tab,
+					 struct trace_seq *s,
+					 struct ras_non_standard_event *event)
+{
+	const struct hisi_pcie_local_err_sec *err =
+			(struct hisi_pcie_local_err_sec *)event->error;
+
+	if (err->val_bits == 0) {
+		trace_seq_printf(s, "%s: no valid error information\n",
+				 __func__);
+		return -1;
+	}
+
+#ifdef HAVE_SQLITE3
+	if (!dec_tab->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &dec_tab->stmt_dec_record,
+				&hip08_pcie_local_event_tab) != SQLITE_OK) {
+			trace_seq_printf(s,
+				"create sql hip08_pcie_local_event_tab fail\n");
+			return -1;
+		}
+	}
+#endif
+	record_vendor_data(dec_tab, hisi_oem_data_type_text,
+			   hip08_pcie_local_field_timestamp,
+			   0, event->timestamp);
+
+	trace_seq_printf(s, "\nHISI HIP08: PCIe local error\n");
+	decode_pcie_local_err_hdr(dec_tab, s, err);
+	decode_pcie_local_err_regs(dec_tab, s, err);
 
 	return 0;
 }
