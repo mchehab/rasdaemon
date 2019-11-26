@@ -561,37 +561,12 @@ static int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab, char *name)
 }
 #endif
 
-/* error data decoding functions */
-static int decode_hip08_oem_type1_error(struct ras_events *ras,
-					struct ras_ns_dec_tab *dec_tab,
-					struct trace_seq *s,
-					struct ras_non_standard_event *event)
+static void decode_oem_type1_err_hdr(struct ras_ns_dec_tab *dec_tab,
+				     struct trace_seq *s,
+				     const struct hisi_oem_type1_err_sec *err)
 {
-	const struct hisi_oem_type1_err_sec *err =
-			(struct hisi_oem_type1_err_sec*)event->error;
 	char buf[1024];
 	char *p = buf;
-
-	if (err->val_bits == 0) {
-		trace_seq_printf(s, "%s: no valid error information\n",
-				 __func__);
-		return -1;
-	}
-
-#ifdef HAVE_SQLITE3
-	if (!dec_tab->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &dec_tab->stmt_dec_record,
-					    &hip08_oem_type1_event_tab)
-			!= SQLITE_OK) {
-			trace_seq_printf(s,
-					"create sql hip08_oem_type1_event_tab fail\n");
-			return -1;
-		}
-	}
-#endif
-	record_vendor_data(dec_tab, hisi_oem_data_type_text,
-			   hip08_oem_type1_field_timestamp,
-			   0, event->timestamp);
 
 	p += sprintf(p, "[ ");
 	p += sprintf(p, "table_version=%d ", err->version);
@@ -649,10 +624,16 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 	}
 
 	p += sprintf(p, "]");
-	trace_seq_printf(s, "\nHISI HIP08: OEM Type-1 Error\n");
 	trace_seq_printf(s, "%s\n", buf);
+}
 
-	p = buf;
+static void decode_oem_type1_err_regs(struct ras_ns_dec_tab *dec_tab,
+				      struct trace_seq *s,
+				      const struct hisi_oem_type1_err_sec *err)
+{
+	char buf[1024];
+	char *p = buf;
+
 	trace_seq_printf(s, "Reg Dump:\n");
 	if (err->val_bits & HISI_OEM_TYPE1_VALID_ERR_MISC_0) {
 		trace_seq_printf(s, "ERR_MISC0=0x%x\n", err->err_misc_0);
@@ -689,6 +670,41 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 			   hip08_oem_type1_field_regs_dump, 0, buf);
 
 	step_vendor_data_tab(dec_tab, "hip08_oem_type1_event_tab");
+}
+
+/* error data decoding functions */
+static int decode_hip08_oem_type1_error(struct ras_events *ras,
+					struct ras_ns_dec_tab *dec_tab,
+					struct trace_seq *s,
+					struct ras_non_standard_event *event)
+{
+	const struct hisi_oem_type1_err_sec *err =
+			(struct hisi_oem_type1_err_sec*)event->error;
+
+	if (err->val_bits == 0) {
+		trace_seq_printf(s, "%s: no valid error information\n",
+				 __func__);
+		return -1;
+	}
+
+#ifdef HAVE_SQLITE3
+	if (!dec_tab->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &dec_tab->stmt_dec_record,
+					    &hip08_oem_type1_event_tab)
+			!= SQLITE_OK) {
+			trace_seq_printf(s,
+					"create sql hip08_oem_type1_event_tab fail\n");
+			return -1;
+		}
+	}
+#endif
+	record_vendor_data(dec_tab, hisi_oem_data_type_text,
+			   hip08_oem_type1_field_timestamp,
+			   0, event->timestamp);
+
+	trace_seq_printf(s, "\nHISI HIP08: OEM Type-1 Error\n");
+	decode_oem_type1_err_hdr(dec_tab, s, err);
+	decode_oem_type1_err_regs(dec_tab, s, err);
 
 	return 0;
 }
