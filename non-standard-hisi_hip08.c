@@ -78,6 +78,14 @@
 #define HISI_PCIE_LOCAL_VALID_ERR_SEVERITY	BIT(8)
 #define HISI_PCIE_LOCAL_VALID_ERR_MISC		9
 
+#define HISI_PCIE_LOCAL_ERR_MISC_MAX	33
+#define HISI_BUF_LEN	1024
+
+#define HISI_ERR_SEVERITY_NFE	0
+#define HISI_ERR_SEVERITY_FE	1
+#define HISI_ERR_SEVERITY_CE	2
+#define HISI_ERR_SEVERITY_NONE	3
+
 struct hisi_oem_type1_err_sec {
 	uint32_t   val_bits;
 	uint8_t    version;
@@ -132,7 +140,7 @@ struct hisi_pcie_local_err_sec {
 	uint8_t    err_severity;
 	uint16_t   err_type;
 	uint8_t    reserv[2];
-	uint32_t   err_misc[33];
+	uint32_t   err_misc[HISI_PCIE_LOCAL_ERR_MISC_MAX];
 };
 
 enum hisi_oem_data_type {
@@ -193,10 +201,10 @@ struct hisi_module_info {
 static char *err_severity(uint8_t err_sev)
 {
 	switch (err_sev) {
-	case 0: return "recoverable";
-	case 1: return "fatal";
-	case 2: return "corrected";
-	case 3: return "none";
+	case HISI_ERR_SEVERITY_NFE: return "recoverable";
+	case HISI_ERR_SEVERITY_FE: return "fatal";
+	case HISI_ERR_SEVERITY_CE: return "corrected";
+	case HISI_ERR_SEVERITY_NONE: return "none";
 	}
 	return "unknown";
 }
@@ -565,7 +573,7 @@ static void decode_oem_type1_err_hdr(struct ras_ns_dec_tab *dec_tab,
 				     struct trace_seq *s,
 				     const struct hisi_oem_type1_err_sec *err)
 {
-	char buf[1024];
+	char buf[HISI_BUF_LEN];
 	char *p = buf;
 
 	p += sprintf(p, "[ ");
@@ -631,7 +639,7 @@ static void decode_oem_type1_err_regs(struct ras_ns_dec_tab *dec_tab,
 				      struct trace_seq *s,
 				      const struct hisi_oem_type1_err_sec *err)
 {
-	char buf[1024];
+	char buf[HISI_BUF_LEN];
 	char *p = buf;
 
 	trace_seq_printf(s, "Reg Dump:\n");
@@ -713,7 +721,7 @@ static void decode_oem_type2_err_hdr(struct ras_ns_dec_tab *dec_tab,
 				     struct trace_seq *s,
 				     const struct hisi_oem_type2_err_sec *err)
 {
-	char buf[1024];
+	char buf[HISI_BUF_LEN];
 	char *p = buf;
 
 	p += sprintf(p, "[ ");
@@ -778,7 +786,7 @@ static void decode_oem_type2_err_regs(struct ras_ns_dec_tab *dec_tab,
 				      struct trace_seq *s,
 				      const struct hisi_oem_type2_err_sec *err)
 {
-	char buf[1024];
+	char buf[HISI_BUF_LEN];
 	char *p = buf;
 
 	trace_seq_printf(s, "Reg Dump:\n");
@@ -871,7 +879,7 @@ static void decode_pcie_local_err_hdr(struct ras_ns_dec_tab *dec_tab,
 				      struct trace_seq *s,
 				      const struct hisi_pcie_local_err_sec *err)
 {
-	char buf[1024];
+	char buf[HISI_BUF_LEN];
 	char *p = buf;
 
 	p += sprintf(p, "[ ");
@@ -944,12 +952,12 @@ static void decode_pcie_local_err_regs(struct ras_ns_dec_tab *dec_tab,
 				       struct trace_seq *s,
 				       const struct hisi_pcie_local_err_sec *err)
 {
-	char buf[1024];
+	char buf[HISI_BUF_LEN];
 	char *p = buf;
 	uint32_t i;
 
 	trace_seq_printf(s, "Reg Dump:\n");
-	for (i = 0; i < 33; i++) {
+	for (i = 0; i < HISI_PCIE_LOCAL_ERR_MISC_MAX; i++) {
 		if (err->val_bits & BIT(HISI_PCIE_LOCAL_VALID_ERR_MISC + i)) {
 			trace_seq_printf(s, "ERR_MISC_%d=0x%x\n", i,
 					 err->err_misc[i]);
