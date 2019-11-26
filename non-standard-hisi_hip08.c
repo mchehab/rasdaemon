@@ -347,21 +347,21 @@ static const char *hllc_submodule_name[] = {
 };
 
 static const char *hha_submodule_name[] = {
-	"TA_HHA0",
-	"TA_HHA1",
 	"TB_HHA0",
-	"TB_HHA1"
+	"TB_HHA1",
+	"TA_HHA0",
+	"TA_HHA1"
 };
 
 static const char *ddrc_submodule_name[] = {
-	"TA_DDRC0",
-	"TA_DDRC1",
-	"TA_DDRC2",
-	"TA_DDRC3",
 	"TB_DDRC0",
 	"TB_DDRC1",
 	"TB_DDRC2",
 	"TB_DDRC3",
+	"TA_DDRC0",
+	"TA_DDRC1",
+	"TA_DDRC2",
+	"TA_DDRC3",
 };
 
 static const struct hisi_module_info hisi_oem_type2_module[] = {
@@ -526,7 +526,8 @@ static void record_vendor_data(struct ras_ns_dec_tab *dec_tab,
 	}
 }
 
-static int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab, char *name)
+static int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab,
+				const char *name)
 {
 	int rc;
 
