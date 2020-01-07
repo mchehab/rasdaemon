@@ -713,8 +713,7 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		log(TERM, LOG_ERR,
 		    "cpu %u: Failed to initialize sqlite: error = %d\n",
 		    cpu, rc);
-		free(priv);
-		return -1;
+		goto error;
 	}
 
 	do {
@@ -730,66 +729,93 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		log(TERM, LOG_ERR,
 		    "cpu %u: Failed to connect to %s: error = %d\n",
 		    cpu, SQLITE_RAS_DB, rc);
-		free(priv);
-		return -1;
+		goto error;
 	}
 	priv->db = db;
 
 	rc = ras_mc_create_table(priv, &mc_event_tab);
-	if (rc == SQLITE_OK)
+	if (rc == SQLITE_OK) {
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_mc_event,
 					 &mc_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 
 #ifdef HAVE_AER
 	rc = ras_mc_create_table(priv, &aer_event_tab);
-	if (rc == SQLITE_OK)
+	if (rc == SQLITE_OK) {
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_aer_event,
 					 &aer_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 #ifdef HAVE_EXTLOG
 	rc = ras_mc_create_table(priv, &extlog_event_tab);
-	if (rc == SQLITE_OK)
+	if (rc == SQLITE_OK) {
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_extlog_record,
 					 &extlog_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 #ifdef HAVE_MCE
 	rc = ras_mc_create_table(priv, &mce_record_tab);
-	if (rc == SQLITE_OK)
+	if (rc == SQLITE_OK) {
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_mce_record,
 					 &mce_record_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 #ifdef HAVE_NON_STANDARD
 	rc = ras_mc_create_table(priv, &non_standard_event_tab);
-	if (rc == SQLITE_OK)
+	if (rc == SQLITE_OK) {
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_non_standard_record,
 					&non_standard_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 #ifdef HAVE_ARM
 	rc = ras_mc_create_table(priv, &arm_event_tab);
-	if (rc == SQLITE_OK)
+	if (rc == SQLITE_OK) {
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_arm_record,
 					&arm_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 #ifdef HAVE_DEVLINK
 	rc = ras_mc_create_table(priv, &devlink_event_tab);
-	if (rc == SQLITE_OK)
+	if (rc == SQLITE_OK) {
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_devlink_event,
 					&devlink_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 #ifdef HAVE_DISKERROR
 	rc = ras_mc_create_table(priv, &diskerror_event_tab);
-	if (rc == SQLITE_OK)
+	if (rc == SQLITE_OK) {
 		rc = ras_mc_prepare_stmt(priv, &priv->stmt_diskerror_event,
 					&diskerror_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
-		ras->db_priv = priv;
+	ras->db_priv = priv;
 	return 0;
+
+error:
+	free(priv);
+	return -1;
 }
 
 int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
