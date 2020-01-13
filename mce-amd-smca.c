@@ -38,9 +38,16 @@
  * 03: EC[3], 02: EC[2], 01: EC[1], 00: EC[0]
  */
 
+/* MCA_STATUS REGISTER FOR FAMILY 19H
+ * The bits 24 ~ 29 contains AddressLsb
+ * 29: ADDRLS[5], 28: ADDRLS[4], 27: ADDRLS[3],
+ * 26: ADDRLS[2], 25: ADDRLS[1], 24: ADDRLS[0]
+ */
+
 /* These may be used by multiple smca_hwid_mcatypes */
 enum smca_bank_types {
 	SMCA_LS = 0,    /* Load Store */
+	SMCA_LS_V2,	/* Load Store */
 	SMCA_IF,        /* Instruction Fetch */
 	SMCA_L2_CACHE,  /* L2 Cache */
 	SMCA_DE,        /* Decoder Unit */
@@ -87,6 +94,32 @@ static const char * const smca_ls_mce_desc[] = {
 	"DC tag error type 3",
 	"DC tag error type 5",
 	"L2 fill data error",
+};
+static const char * const smca_ls2_mce_desc[] = {
+	"An ECC error was detected on a data cache read by a probe or victimization",
+	"An ECC error or L2 poison was detected on a data cache read by a load",
+	"An ECC error was detected on a data cache read-modify-write by a store",
+	"An ECC error or poison bit mismatch was detected on a tag read by a probe or victimization",
+	"An ECC error or poison bit mismatch was detected on a tag read by a load",
+	"An ECC error or poison bit mismatch was detected on a tag read by a store",
+	"An ECC error was detected on an EMEM read by a load",
+	"An ECC error was detected on an EMEM read-modify-write by a store",
+	"A parity error was detected in an L1 TLB entry by any access",
+	"A parity error was detected in an L2 TLB entry by any access",
+	"A parity error was detected in a PWC entry by any access",
+	"A parity error was detected in an STQ entry by any access",
+	"A parity error was detected in an LDQ entry by any access",
+	"A parity error was detected in a MAB entry by any access",
+	"A parity error was detected in an SCB entry state field by any access",
+	"A parity error was detected in an SCB entry address field by any access",
+	"A parity error was detected in an SCB entry data field by any access",
+	"A parity error was detected in a WCB entry by any access",
+	"A poisoned line was detected in an SCB entry by any access",
+	"A SystemReadDataError error was reported on read data returned from L2 for a load",
+	"A SystemReadDataError error was reported on read data returned from L2 for an SCB store",
+	"A SystemReadDataError error was reported on read data returned from L2 for a WCB store",
+	"A hardware assertion error was reported",
+	"A parity error was detected in an STLF, SCB EMEM entry or SRB store data by any access",
 };
 /* Instruction Fetch */
 static const char * const smca_if_mce_desc[] = {
@@ -289,6 +322,7 @@ struct smca_mce_desc {
 
 static struct smca_mce_desc smca_mce_descs[] = {
 	[SMCA_LS]       = { smca_ls_mce_desc,   ARRAY_SIZE(smca_ls_mce_desc)  },
+	[SMCA_LS_V2]	= { smca_ls2_mce_desc,	ARRAY_SIZE(smca_ls2_mce_desc) },
 	[SMCA_IF]       = { smca_if_mce_desc,   ARRAY_SIZE(smca_if_mce_desc)  },
 	[SMCA_L2_CACHE] = { smca_l2_mce_desc,   ARRAY_SIZE(smca_l2_mce_desc)  },
 	[SMCA_DE]       = { smca_de_mce_desc,   ARRAY_SIZE(smca_de_mce_desc)  },
@@ -319,6 +353,7 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 
 	/* ZN Core (HWID=0xB0) MCA types */
 	{ SMCA_LS,       0x000000B0 },
+	{ SMCA_LS_V2,    0x001000B0 },
 	{ SMCA_IF,       0x000100B0 },
 	{ SMCA_L2_CACHE, 0x000200B0 },
 	{ SMCA_DE,       0x000300B0 },
@@ -362,6 +397,7 @@ struct smca_bank_name {
 
 static struct smca_bank_name smca_names[] = {
 	[SMCA_LS]       = { "Load Store Unit" },
+	[SMCA_LS_V2]    = { "Load Store Unit" },
 	[SMCA_IF]       = { "Instruction Fetch Unit" },
 	[SMCA_L2_CACHE] = { "L2 Cache" },
 	[SMCA_DE]       = { "Decode Unit" },
