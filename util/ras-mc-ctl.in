@@ -247,7 +247,7 @@ sub parse_dimm_nodes
         $mc =~ s,.*mc(\d+).*,$1,;
 
         my $dimm = $file;
-        $dimm =~ s,.*dimm(\d+).*,$1,;
+        $dimm =~ s,.*(rank|dimm)(\d+).*,$2,;
 
         open IN, $file;
         my $location = <IN>;
