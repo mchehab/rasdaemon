@@ -270,8 +270,8 @@ sub parse_dimm_nodes
         for (my $i = 1; $i < scalar(@temp); $i += 2) {
                 $pos[$i / 2] = $temp[$i];
 
-                if ($pos[$i / 2] > $max_pos[$i / 2]) {
-                $max_pos[$i / 2 + 1] = $pos[$i / 2];
+                if ($pos[$i / 2] > $max_pos[$i / 2 + 1]) {
+                        $max_pos[$i / 2 + 1] = $pos[$i / 2];
                 }
         }
         if ($mc > $max_pos[0]) {
