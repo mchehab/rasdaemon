@@ -95,7 +95,8 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 	if (pevent_get_field_val(s, event, "dev", record, &val, 1) < 0)
 		return -1;
 	dev = (dev_t)val;
-	asprintf(&ev.dev, "%u:%u", major(dev), minor(dev));
+	if (asprintf(&ev.dev, "%u:%u", major(dev), minor(dev)) < 0)
+		return -1;
 
 	if (pevent_get_field_val(s, event, "sector", record, &val, 1) < 0)
 		return -1;
