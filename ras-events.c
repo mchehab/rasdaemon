@@ -496,10 +496,8 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	    "Old kernel detected. Stop listening and fall back to pthread way.\n");
 
 cleanup:
-	if (pdata[0].ras->record_events) {
-		unregister_ns_dec_tab();
+	if (pdata[0].ras->record_events)
 		ras_mc_event_closedb(pdata[0].cpu, pdata[0].ras);
-	}
 
 error:
 	kbuffer_free(kbuf);
@@ -598,10 +596,8 @@ static void *handle_ras_events_cpu(void *priv)
 
 	read_ras_event(fd, pdata, kbuf, page);
 
-	if (pdata->ras->record_events) {
-		unregister_ns_dec_tab();
+	if (pdata->ras->record_events)
 		ras_mc_event_closedb(pdata->cpu, pdata->ras);
-	}
 
 	close(fd);
 	kbuffer_free(kbuf);
