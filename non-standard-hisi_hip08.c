@@ -52,6 +52,8 @@
 #define HISI_OEM_MODULE_ID_PA	2
 #define HISI_OEM_MODULE_ID_HLLC	3
 #define HISI_OEM_MODULE_ID_DDRC	4
+#define HISI_OEM_MODULE_ID_L3T	5
+#define HISI_OEM_MODULE_ID_L3D	6
 
 #define HISI_OEM_TYPE2_VALID_ERR_FR	BIT(6)
 #define HISI_OEM_TYPE2_VALID_ERR_CTRL	BIT(7)
@@ -374,6 +376,36 @@ static const char *ddrc_submodule_name[] = {
 	"TA_DDRC3",
 };
 
+static const char *l3tag_submodule_name[] = {
+	"TB_PARTITION0",
+	"TB_PARTITION1",
+	"TB_PARTITION2",
+	"TB_PARTITION3",
+	"TB_PARTITION4",
+	"TB_PARTITION5",
+	"TB_PARTITION6",
+	"TB_PARTITION7",
+	"TA_PARTITION0",
+	"TA_PARTITION1",
+	"TA_PARTITION2",
+	"TA_PARTITION3",
+	"TA_PARTITION4",
+	"TA_PARTITION5",
+	"TA_PARTITION6",
+	"TA_PARTITION7",
+};
+
+static const char *l3data_submodule_name[] = {
+	"TB_BANK0",
+	"TB_BANK1",
+	"TB_BANK2",
+	"TB_BANK3",
+	"TA_BANK0",
+	"TA_BANK1",
+	"TA_BANK2",
+	"TA_BANK3",
+};
+
 static const struct hisi_module_info hisi_oem_type2_module[] = {
 	{
 		.id = HISI_OEM_MODULE_ID_SMMU,
@@ -402,6 +434,18 @@ static const struct hisi_module_info hisi_oem_type2_module[] = {
 		.name = "DDRC",
 		.sub = ddrc_submodule_name,
 		.sub_num = ARRAY_SIZE(ddrc_submodule_name),
+	},
+	{
+		.id = HISI_OEM_MODULE_ID_L3T,
+		.name = "L3TAG",
+		.sub = l3tag_submodule_name,
+		.sub_num = ARRAY_SIZE(l3tag_submodule_name),
+	},
+	{
+		.id = HISI_OEM_MODULE_ID_L3D,
+		.name = "L3DATA",
+		.sub = l3data_submodule_name,
+		.sub_num = ARRAY_SIZE(l3data_submodule_name),
 	},
 	{
 	}
