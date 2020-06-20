@@ -62,6 +62,13 @@ feature.
 .BI "--version"
 Print the program version and exit.
 
+.SH CONFIG FILE
+
+The \fBrasdaemon\fR program supports a config file to set rasdaemon systemd service
+environment variables. By default the config file is read from /etc/sysconfig/rasdaemon.
+
+The general format is environmentname=value.
+
 .SH SEE ALSO
 \fBras-mc-ctl\fR(8)
 

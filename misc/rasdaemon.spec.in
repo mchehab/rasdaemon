@@ -44,6 +44,7 @@ make %{?_smp_mflags}
 
 %install
 make install DESTDIR=%{buildroot}
+install -D -p -m 0644 misc/rasdaemon.env %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 install -D -p -m 0644 misc/rasdaemon.service %{buildroot}/%{_unitdir}/rasdaemon.service
 install -D -p -m 0644 misc/ras-mc-ctl.service %{buildroot}%{_unitdir}/ras-mc-ctl.service
 rm INSTALL %{buildroot}/usr/include/*.h
@@ -56,6 +57,7 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_unitdir}/*.service
 %{_sharedstatedir}/rasdaemon
 %{_sysconfdir}/ras/dimm_labels.d
+%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 
 %changelog
 

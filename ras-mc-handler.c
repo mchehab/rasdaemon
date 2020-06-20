@@ -23,6 +23,7 @@
 #include "ras-mc-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
+#include "ras-page-isolation.h"
 #include "ras-report.h"
 
 int ras_mc_event_handler(struct trace_seq *s,
@@ -182,6 +183,12 @@ int ras_mc_event_handler(struct trace_seq *s,
 	/* Insert data into the SGBD */
 
 	ras_store_mc_event(ras, &ev);
+
+#ifdef HAVE_MEMORY_CE_PFA
+	/* Account page corrected errors */
+	if (!strcmp(ev.error_type, "Corrected"))
+		ras_record_page_error(ev.address, ev.error_count, now);
+#endif
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */

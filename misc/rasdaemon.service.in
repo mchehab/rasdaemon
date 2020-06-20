@@ -3,6 +3,7 @@ Description=RAS daemon to log the RAS events
 After=syslog.target
 
 [Service]
+EnvironmentFile=/etc/sysconfig/rasdaemon
 ExecStart=@sbindir@/rasdaemon -f -r
 ExecStartPost=@sbindir@/rasdaemon --enable
 ExecStop=@sbindir@/rasdaemon --disable

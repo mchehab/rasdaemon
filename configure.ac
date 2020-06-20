@@ -131,6 +131,16 @@ AS_IF([test "x$enable_hisi_ns_decode" = "xyes" || test "x$enable_all" == "xyes"]
 AM_CONDITIONAL([WITH_HISI_NS_DECODE], [test x$enable_hisi_ns_decode = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_HISI_NS_DECODE], [USE_HISI_NS_DECODE="yes"], [USE_HISI_NS_DECODE="no"])
 
+AC_ARG_ENABLE([memory_ce_pfa],
+    AS_HELP_STRING([--enable-memory-ce-pfa], [enable memory Corrected Error predictive failure analysis]))
+
+AS_IF([test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_MEMORY_CE_PFA,1,"have memory corrected error predictive failure analysis")
+  AC_SUBST([WITH_MEMORY_CE_PFA])
+])
+AM_CONDITIONAL([WITH_MEMORY_CE_PFA], [test x$enable_memory_ce_pfa = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_MEMORY_CE_PFA], [USE_MEMORY_CE_PFA="yes"], [USE_MEMORY_CE_PFA="no"])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
@@ -162,4 +172,5 @@ compile time options summary
     ARM events          : $USE_ARM
     DEVLINK             : $USE_DEVLINK
     Disk I/O errors     : $USE_DISKERROR
+    Memory CE PFA       : $USE_MEMORY_CE_PFA
 EOF

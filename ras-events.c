@@ -39,6 +39,7 @@
 #include "ras-diskerror-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
+#include "ras-page-isolation.h"
 
 /*
  * Polling time, if read() doesn't block. Currently, trace_pipe_raw never
@@ -802,6 +803,11 @@ int handle_ras_events(int record_events)
 	ras->pevent = pevent;
 	ras->page_size = page_size;
 	ras->record_events = record_events;
+
+#ifdef HAVE_MEMORY_CE_PFA
+	/* FIXME: enable memory isolation unconditionally */
+	ras_page_account_init();
+#endif
 
 	rc = add_event_handler(ras, pevent, page_size, "ras", "mc_event",
 			       ras_mc_event_handler, NULL, MC_EVENT);
