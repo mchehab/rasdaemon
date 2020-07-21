@@ -1,3 +1,11 @@
+2020-07-21	Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+	- Version 0.6.6
+
+	* Support for new AMD SMCA bank types
+	* Add decoders for more hip08 events
+	* Add support for memory Corrected Error predictive failure analysis
+	* Some bugs fixed
+
 2019-11-20	Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 	- Version 0.6.5
 
