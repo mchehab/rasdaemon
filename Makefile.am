@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS=-I m4
 SUBDIRS = libtrace util man
 SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in misc/ras-mc-ctl.service.in
 SYSTEMD_SERVICES = $(SYSTEMD_SERVICES_IN:.service.in=.service)
-EXTRA_DIST = $(SYSTEMD_SERVICES_IN)
+EXTRA_DIST = $(SYSTEMD_SERVICES_IN) misc/rasdaemon.env
 
 # This rule is needed because \@sbindir\@ is expanded to \${exec_prefix\}/sbin
 # during ./configure phase, therefore it is not possible to add .service.in
@@ -90,3 +90,6 @@ upload:
 install-data-local:
 	$(install_sh) -d "$(DESTDIR)@RASSTATEDIR@"
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d"
+if WITH_MEMORY_CE_PFA
+	$(install_sh) @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@sysconfdir@/sysconfig/rasdaemon"
+endif
