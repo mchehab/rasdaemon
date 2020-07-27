@@ -39,6 +39,16 @@ AM_COND_IF([WITH_SQLITE3], [USE_SQLITE3="yes"], [USE_SQLITE3="no"])
 
 AC_SUBST([SQLITE3_LIBS])
 
+AC_ARG_ENABLE([broadcast],
+    AS_HELP_STRING([--enable-broadcast], [enable broadcast of events using local sockets (currently experimental)]))
+
+AS_IF([test "x$enable_broadcast" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_BROADCAST,1,"broadcast RAS events")
+  AC_SUBST([WITH_BROADCAST])
+])
+
+AM_CONDITIONAL([WITH_BROADCAST], [test x$enable_broadcast = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_BROADCAST], [USE_BROADCAST="yes"], [USE_BROADCAST="no"])
 
 AC_ARG_ENABLE([aer],
     AS_HELP_STRING([--enable-aer], [enable PCIe AER events (currently experimental)]))
@@ -169,6 +179,7 @@ compile time options summary
 ============================
 
     Sqlite3             : $USE_SQLITE3
+    broadcast           : $USE_BROADCAST
     AER                 : $USE_AER
     MCE                 : $USE_MCE
     EXTLOG              : $USE_EXTLOG

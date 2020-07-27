@@ -27,6 +27,7 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include "ras-server.h"
 
 /*
  * The code below were adapted from Andi Kleen/Intel/SuSe mcelog code,
@@ -466,6 +467,11 @@ int ras_mce_event_handler(struct trace_seq *s,
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_mce_event(ras, &e);
+#endif
+
+#ifdef HAVE_BROADCAST
+  if(ras->broadcast_events)
+	  ras_server_broadcast(MCE_EVENT, &e);
 #endif
 
 	return 0;

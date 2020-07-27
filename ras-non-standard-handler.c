@@ -21,6 +21,7 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include "ras-server.h"
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 
@@ -222,6 +223,11 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_non_standard_event(ras, &ev);
+#endif
+
+#ifdef HAVE_BROADCAST
+  if(ras->broadcast_events)
+	  ras_server_broadcast(NON_STANDARD_EVENT, &ev);
 #endif
 
 	return 0;

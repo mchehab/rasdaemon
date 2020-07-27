@@ -25,6 +25,7 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include "ras-server.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
 				 struct pevent_record *record,
@@ -146,6 +147,11 @@ int ras_devlink_event_handler(struct trace_seq *s,
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_devlink_event(ras, &ev);
+#endif
+
+#ifdef HAVE_BROADCAST
+  if(ras->broadcast_events)
+	  ras_server_broadcast(DEVLINK_EVENT, &ev);
 #endif
 
 	return 0;
