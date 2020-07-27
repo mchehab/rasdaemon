@@ -52,7 +52,7 @@ if WITH_ABRT_REPORT
    rasdaemon_SOURCES += ras-report.c
 endif
 if WITH_HISI_NS_DECODE
-   rasdaemon_SOURCES += non-standard-hisi_hip07.c non-standard-hisi_hip08.c
+   rasdaemon_SOURCES += non-standard-hisi_hip08.c
 endif
 if WITH_MEMORY_CE_PFA
    rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
