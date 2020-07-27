@@ -15,6 +15,7 @@
 #include "ras-logger.h"
 #include "ras-report.h"
 #include "ras-non-standard-handler.h"
+#include "non-standard-hisilicon.h"
 
 /* HISI OEM error definitions */
 /* HISI OEM format1 error definitions */
@@ -83,11 +84,6 @@
 #define HISI_PCIE_LOCAL_ERR_MISC_MAX	33
 #define HISI_BUF_LEN	1024
 
-#define HISI_ERR_SEVERITY_NFE	0
-#define HISI_ERR_SEVERITY_FE	1
-#define HISI_ERR_SEVERITY_CE	2
-#define HISI_ERR_SEVERITY_NONE	3
-
 struct hisi_oem_type1_err_sec {
 	uint32_t   val_bits;
 	uint8_t    version;
@@ -145,12 +141,6 @@ struct hisi_pcie_local_err_sec {
 	uint32_t   err_misc[HISI_PCIE_LOCAL_ERR_MISC_MAX];
 };
 
-enum hisi_oem_data_type {
-	HISI_OEM_DATA_TYPE_INT,
-	HISI_OEM_DATA_TYPE_INT64,
-	HISI_OEM_DATA_TYPE_TEXT,
-};
-
 enum {
 	HIP08_OEM_TYPE1_FIELD_ID,
 	HIP08_OEM_TYPE1_FIELD_TIMESTAMP,
@@ -198,20 +188,6 @@ struct hisi_module_info {
 	const char **sub;
 	int sub_num;
 };
-
-/* helper functions */
-static char *err_severity(uint8_t err_sev)
-{
-	switch (err_sev) {
-	case HISI_ERR_SEVERITY_NFE: return "recoverable";
-	case HISI_ERR_SEVERITY_FE: return "fatal";
-	case HISI_ERR_SEVERITY_CE: return "corrected";
-	case HISI_ERR_SEVERITY_NONE: return "none";
-	default:
-		break;
-	}
-	return "unknown";
-}
 
 static const char *pll_submodule_name[] = {
 	"TB_PLL0",
@@ -549,59 +525,6 @@ static const struct db_table_descriptor hip08_pcie_local_event_tab = {
 	.fields = hip08_pcie_local_event_fields,
 	.num_fields = ARRAY_SIZE(hip08_pcie_local_event_fields),
 };
-
-static void record_vendor_data(struct ras_ns_dec_tab *dec_tab,
-			       enum hisi_oem_data_type data_type,
-			       int id, int64_t data, const char *text)
-{
-	switch (data_type) {
-	case HISI_OEM_DATA_TYPE_INT:
-		sqlite3_bind_int(dec_tab->stmt_dec_record, id, data);
-		break;
-	case HISI_OEM_DATA_TYPE_INT64:
-		sqlite3_bind_int64(dec_tab->stmt_dec_record, id, data);
-		break;
-	case HISI_OEM_DATA_TYPE_TEXT:
-		sqlite3_bind_text(dec_tab->stmt_dec_record, id, text, -1, NULL);
-		break;
-	default:
-		break;
-	}
-}
-
-static int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab,
-				const char *name)
-{
-	int rc;
-
-	rc = sqlite3_step(dec_tab->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to do %s step on sqlite: error = %d\n", name, rc);
-
-	rc = sqlite3_reset(dec_tab->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to reset %s on sqlite: error = %d\n", name, rc);
-
-	rc = sqlite3_clear_bindings(dec_tab->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to clear bindings %s on sqlite: error = %d\n",
-		    name, rc);
-
-	return rc;
-}
-#else
-static void record_vendor_data(struct ras_ns_dec_tab *dec_tab,
-			       enum hisi_oem_data_type data_type,
-			       int id, int64_t data, const char *text)
-{ }
-
-static int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab, char *name)
-{
-	return 0;
-}
 #endif
 
 #define IN_RANGE(p, start, end) ((p) >= (start) && (p) < (end))
