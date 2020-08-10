@@ -874,7 +874,7 @@ int handle_ras_events(int record_events)
 		num_events++;
 	} else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "ras", "aer_event");
+		    "ras", "extlog_mem_event");
 #endif
 
 #ifdef HAVE_DEVLINK
