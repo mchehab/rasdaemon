@@ -73,38 +73,38 @@ struct hisi_event {
 };
 
 #ifdef HAVE_SQLITE3
-void record_vendor_data(struct ras_ns_dec_tab *dec_tab,
+void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 			       enum hisi_oem_data_type data_type,
 			       int id, int64_t data, const char *text)
 {
 	switch (data_type) {
 	case HISI_OEM_DATA_TYPE_INT:
-		sqlite3_bind_int(dec_tab->stmt_dec_record, id, data);
+		sqlite3_bind_int(ev_decoder->stmt_dec_record, id, data);
 		break;
 	case HISI_OEM_DATA_TYPE_INT64:
-		sqlite3_bind_int64(dec_tab->stmt_dec_record, id, data);
+		sqlite3_bind_int64(ev_decoder->stmt_dec_record, id, data);
 		break;
 	case HISI_OEM_DATA_TYPE_TEXT:
-		sqlite3_bind_text(dec_tab->stmt_dec_record, id, text, -1, NULL);
+		sqlite3_bind_text(ev_decoder->stmt_dec_record, id, text, -1, NULL);
 		break;
 	}
 }
 
-int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab, const char *name)
+int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 {
 	int rc;
 
-	rc = sqlite3_step(dec_tab->stmt_dec_record);
+	rc = sqlite3_step(ev_decoder->stmt_dec_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do %s step on sqlite: error = %d\n", name, rc);
 
-	rc = sqlite3_reset(dec_tab->stmt_dec_record);
+	rc = sqlite3_reset(ev_decoder->stmt_dec_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to reset %s on sqlite: error = %d\n", name, rc);
 
-	rc = sqlite3_clear_bindings(dec_tab->stmt_dec_record);
+	rc = sqlite3_clear_bindings(ev_decoder->stmt_dec_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to clear bindings %s on sqlite: error = %d\n",
@@ -113,12 +113,12 @@ int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab, const char *name)
 	return rc;
 }
 #else
-void record_vendor_data(struct ras_ns_dec_tab *dec_tab,
+void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 			enum hisi_oem_data_type data_type,
 			int id, int64_t data, const char *text)
 { }
 
-int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab, const char *name)
+int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 {
 	return 0;
 }
@@ -197,7 +197,7 @@ static void decode_module(struct hisi_event *event, uint8_t module_id)
 		HISI_SNPRINTF(event->error_msg, "module=%s ", module_name[module_id]);
 }
 
-static void decode_hisi_common_section_hdr(struct ras_ns_dec_tab *dec_tab,
+static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
 					  const struct hisi_common_error_section *err,
 					  struct hisi_event *event)
 {
@@ -244,7 +244,7 @@ static void decode_hisi_common_section_hdr(struct ras_ns_dec_tab *dec_tab,
 }
 
 static int decode_hisi_common_section(struct ras_events *ras,
-				      struct ras_ns_dec_tab *dec_tab,
+				      struct ras_ns_ev_decoder *ev_decoder,
 				      struct trace_seq *s,
 				      struct ras_non_standard_event *event)
 {
@@ -253,8 +253,8 @@ static int decode_hisi_common_section(struct ras_events *ras,
 	struct hisi_event hevent;
 
 #ifdef HAVE_SQLITE3
-	if (ras->record_events && !dec_tab->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &dec_tab->stmt_dec_record,
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
 				&hisi_common_section_tab) != SQLITE_OK) {
 			trace_seq_printf(s, "create sql hisi_common_section_tab fail\n");
 			return -1;
@@ -264,7 +264,7 @@ static int decode_hisi_common_section(struct ras_events *ras,
 
 	memset(&hevent, 0, sizeof(struct hisi_event));
 	trace_seq_printf(s, "\nHisilicon Common Error Section:\n");
-	decode_hisi_common_section_hdr(dec_tab, err, &hevent);
+	decode_hisi_common_section_hdr(ev_decoder, err, &hevent);
 	trace_seq_printf(s, "%s\n", hevent.error_msg);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_REG_ARRAY_SIZE) && err->reg_array_size > 0) {
@@ -280,28 +280,30 @@ static int decode_hisi_common_section(struct ras_events *ras,
 	}
 
 	if (ras->record_events) {
-		record_vendor_data(dec_tab, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 				   HISI_COMMON_FIELD_TIMESTAMP,
 				   0, event->timestamp);
-		record_vendor_data(dec_tab, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 				   HISI_COMMON_FIELD_ERR_INFO, 0, hevent.error_msg);
-		record_vendor_data(dec_tab, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 				   HISI_COMMON_FIELD_REGS_DUMP, 0, hevent.reg_msg);
-		step_vendor_data_tab(dec_tab, "hisi_common_section_tab");
+		step_vendor_data_tab(ev_decoder, "hisi_common_section_tab");
 	}
 
 	return 0;
 }
 
-struct ras_ns_dec_tab hisi_section_ns_tab[] = {
+static struct ras_ns_ev_decoder hisi_section_ns_ev_decoder[]  = {
 	{
 		.sec_type = "c8b328a899174af69a132e08ab2e7586",
 		.decode = decode_hisi_common_section,
 	},
-	{ /* sentinel */ }
 };
 
 static void __attribute__((constructor)) hisi_ns_init(void)
 {
-	register_ns_dec_tab(hisi_section_ns_tab);
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(hisi_section_ns_ev_decoder); i++)
+		register_ns_ev_decoder(&hisi_section_ns_ev_decoder[i]);
 }

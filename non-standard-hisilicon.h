@@ -41,9 +41,9 @@ static inline char *err_severity(uint8_t err_sev)
 	return "unknown";
 }
 
-void record_vendor_data(struct ras_ns_dec_tab *dec_tab,
+void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 			enum hisi_oem_data_type data_type,
 			int id, int64_t data, const char *text);
-int step_vendor_data_tab(struct ras_ns_dec_tab *dec_tab, const char *name);
+int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name);
 
 #endif

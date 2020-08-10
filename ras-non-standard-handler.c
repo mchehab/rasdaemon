@@ -22,46 +22,7 @@
 #include "ras-logger.h"
 #include "ras-report.h"
 
-static p_ns_dec_tab * ns_dec_tab;
-static size_t dec_tab_count;
-
-int register_ns_dec_tab(const p_ns_dec_tab tab)
-{
-	ns_dec_tab = (p_ns_dec_tab *)realloc(ns_dec_tab,
-					    (dec_tab_count + 1) * sizeof(tab));
-	if (ns_dec_tab == NULL) {
-		printf("%s p_ns_dec_tab malloc failed", __func__);
-		return -1;
-	}
-	ns_dec_tab[dec_tab_count] = tab;
-	dec_tab_count++;
-	return 0;
-}
-
-void unregister_ns_dec_tab(void)
-{
-	if (ns_dec_tab) {
-#ifdef HAVE_SQLITE3
-		p_ns_dec_tab dec_tab;
-		int i, count;
-
-		for (count = 0; count < dec_tab_count; count++) {
-			dec_tab = ns_dec_tab[count];
-			for (i = 0; dec_tab[i].decode; i++) {
-				if (dec_tab[i].stmt_dec_record) {
-					ras_mc_finalize_vendor_table(
-						dec_tab[i].stmt_dec_record);
-					dec_tab[i].stmt_dec_record = NULL;
-				}
-			}
-		}
-#endif
-
-		free(ns_dec_tab);
-		ns_dec_tab = NULL;
-		dec_tab_count = 0;
-	}
-}
+static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index) {
 	trace_seq_printf(s, "%02x%02x%02x%02x", buf[index+3], buf[index+2], buf[index+1], buf[index]);
@@ -105,18 +66,75 @@ static int uuid_le_cmp(const char *sec_type, const char *uuid2)
 	return strncmp(uuid1, uuid2, 32);
 }
 
+int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
+{
+	struct ras_ns_ev_decoder *list;
+
+	if (!ns_ev_decoder)
+		return -1;
+
+	ns_ev_decoder->next = NULL;
+	ns_ev_decoder->stmt_dec_record = NULL;
+	if (!ras_ns_ev_dec_list) {
+		ras_ns_ev_dec_list = ns_ev_decoder;
+	} else {
+		list = ras_ns_ev_dec_list;
+		while (list->next)
+			list = list->next;
+		list->next = ns_ev_decoder;
+	}
+
+	return 0;
+}
+
+static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p_ns_ev_dec)
+{
+	struct ras_ns_ev_decoder *ns_ev_decoder;
+	int match = 0;
+
+	ns_ev_decoder = ras_ns_ev_dec_list;
+	while (ns_ev_decoder) {
+		if (uuid_le_cmp(sec_type, ns_ev_decoder->sec_type) == 0) {
+			*p_ns_ev_dec = ns_ev_decoder;
+			match  = 1;
+			break;
+		}
+		ns_ev_decoder = ns_ev_decoder->next;
+	}
+
+	if (!match)
+		return -1;
+
+	return 0;
+}
+
+static void unregister_ns_ev_decoder(void)
+{
+#ifdef HAVE_SQLITE3
+	struct ras_ns_ev_decoder *ns_ev_decoder = ras_ns_ev_dec_list;
+
+	while (ns_ev_decoder) {
+		if (ns_ev_decoder->stmt_dec_record) {
+			ras_mc_finalize_vendor_table(ns_ev_decoder->stmt_dec_record);
+			ns_ev_decoder->stmt_dec_record = NULL;
+		}
+		ns_ev_decoder = ns_ev_decoder->next;
+	}
+#endif
+	ras_ns_ev_dec_list = NULL;
+}
+
 int ras_non_standard_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
 			 struct event_format *event, void *context)
 {
-	int len, i, line_count, count;
+	int len, i, line_count;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	time_t now;
 	struct tm *tm;
 	struct ras_non_standard_event ev;
-	p_ns_dec_tab dec_tab;
-	bool dec_done = false;
+	struct ras_ns_ev_decoder *ns_ev_decoder;
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -177,19 +195,9 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	if(!ev.error)
 		return -1;
 
-	for (count = 0; count < dec_tab_count && !dec_done; count++) {
-		dec_tab = ns_dec_tab[count];
-		for (i = 0; dec_tab[i].decode; i++) {
-			if (uuid_le_cmp(ev.sec_type,
-					dec_tab[i].sec_type) == 0) {
-				dec_tab[i].decode(ras, &dec_tab[i], s, &ev);
-				dec_done = true;
-				break;
-			}
-		}
-	}
-
-	if (!dec_done) {
+	if (!find_ns_ev_decoder(ev.sec_type, &ns_ev_decoder)) {
+		ns_ev_decoder->decode(ras, ns_ev_decoder, s, &ev);
+	} else {
 		len = ev.length;
 		i = 0;
 		line_count = 0;
@@ -222,5 +230,5 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 __attribute__((destructor))
 static void ns_exit(void)
 {
-	unregister_ns_dec_tab();
+	unregister_ns_ev_decoder();
 }

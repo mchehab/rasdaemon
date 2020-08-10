@@ -20,15 +20,16 @@
 #define BIT(nr)                 (1UL << (nr))
 #define BIT_ULL(nr)             (1ULL << (nr))
 
-typedef struct ras_ns_dec_tab {
+struct ras_ns_ev_decoder {
+	struct ras_ns_ev_decoder *next;
 	const char *sec_type;
-	int (*decode)(struct ras_events *ras, struct ras_ns_dec_tab *dec_tab,
+	int (*decode)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder,
 		      struct trace_seq *s, struct ras_non_standard_event *event);
 #ifdef HAVE_SQLITE3
 #include <sqlite3.h>
 	sqlite3_stmt *stmt_dec_record;
 #endif
-} *p_ns_dec_tab;
+};
 
 int ras_non_standard_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
@@ -37,11 +38,9 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index);
 
 #ifdef HAVE_NON_STANDARD
-int register_ns_dec_tab(const p_ns_dec_tab tab);
-void unregister_ns_dec_tab(void);
+int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder);
 #else
-static inline int register_ns_dec_tab(const p_ns_dec_tab tab) { return 0; };
-static inline void unregister_ns_dec_tab(void) { return; };
+static inline int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder) { return 0; };
 #endif
 
 #endif
