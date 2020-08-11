@@ -1123,6 +1123,7 @@ sub summary
     my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg);
     my ($etype, $severity, $etype_string, $severity_string);
     my ($dev_name, $dev);
+    my ($affinity, $mpidr);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1155,6 +1156,22 @@ sub summary
         print "PCIe AER events summary:\n$out\n";
     } else {
         print "No PCIe AER errors.\n\n";
+    }
+    $query_handle->finish;
+
+    # ARM processor arm_event errors
+    $query = "select affinity, mpidr, count(*) from arm_event group by affinity, mpidr";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($affinity, $mpidr, $count));
+    $out = "";
+    while($query_handle->fetch()) {
+        $out .= "\t$count errors\n";
+    }
+    if ($out ne "") {
+        print "ARM processor events summary:\n$out\n";
+    } else {
+        print "No ARM processor errors.\n\n";
     }
     $query_handle->finish;
 
@@ -1235,6 +1252,7 @@ sub errors
     my ($timestamp, $etype, $severity, $etype_string, $severity_string, $fru_id, $fru_text, $cper_data);
     my ($bus_name, $dev_name, $driver_name, $reporter_name);
     my ($dev, $sector, $nr_sector, $error, $rwbs, $cmd);
+    my ($error_count, $affinity, $mpidr, $r_state, $psci_state);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1271,6 +1289,28 @@ sub errors
         print "PCIe AER events:\n$out\n";
     } else {
         print "No PCIe AER errors.\n\n";
+    }
+    $query_handle->finish;
+
+    # ARM processor arm_event errors
+    $query = "select id, timestamp, error_count, affinity, mpidr, running_state, psci_state from arm_event order by id";
+    $query_handle = $dbh->prepare($query);
+    $query_handle->execute();
+    $query_handle->bind_columns(\($id, $timestamp, $error_count, $affinity, $mpidr, $r_state, $psci_state));
+    $out = "";
+    while($query_handle->fetch()) {
+        $out .= "$id $timestamp error: ";
+        $out .= "error_count=$error_count, " if ($error_count);
+        $out .= "affinity_level=$affinity, ";
+        $out .= sprintf "mpidr=0x%x, ", $mpidr;
+        $out .= sprintf "running_state=0x%x, ", $r_state;
+        $out .= sprintf "psci_state=0x%x", $psci_state;
+        $out .= "\n";
+    }
+    if ($out ne "") {
+        print "ARM processor events:\n$out\n";
+    } else {
+        print "No ARM processor errors.\n\n";
     }
     $query_handle->finish;
 
