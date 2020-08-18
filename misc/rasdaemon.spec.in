@@ -56,8 +56,8 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_unitdir}/*.service
 %{_sharedstatedir}/rasdaemon
 %{_sysconfdir}/ras/dimm_labels.d
-%{_sysconfdir}/sysconfig/%{name}
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+@SYSCONFDEFDIR@/%{name}
+%config(noreplace) @SYSCONFDIFDIR@/%{name}
 
 %changelog
 
