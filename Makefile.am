@@ -9,7 +9,7 @@ EXTRA_DIST = $(SYSTEMD_SERVICES_IN) misc/rasdaemon.env
 # files to AC_CONFIG_FILES in configure.ac
 SUFFIXES = .service.in .service
 .service.in.service:
-	sed -e s,\@sbindir\@,$(sbindir),g $< > $@
+	sed -e s,\@sbindir\@,$(sbindir),g -e s,\@SYSCONFDEFDIR\@,@SYSCONFDEFDIR@,g $< > $@
 
 # This rule is needed because the service files must be generated on target
 # system after ./configure phase
@@ -91,5 +91,5 @@ install-data-local:
 	$(install_sh) -d "$(DESTDIR)@RASSTATEDIR@"
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d"
 if WITH_MEMORY_CE_PFA
-	$(install_sh) @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@sysconfdir@/sysconfig/rasdaemon"
+	$(install_sh) @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@SYSCONFDEFDIR@/rasdaemon"
 endif
