@@ -438,15 +438,7 @@ static void amd_decode_errcode(struct mce_event *e)
  */
 static int find_umc_channel(struct mce_event *e)
 {
-	uint32_t umc_instance_id[] = {0x50f00, 0x150f00};
-	uint32_t instance_id = EXTRACT(e->ipid, 0, 31);
-	int i, channel = -1;
-
-	for (i = 0; i < ARRAY_SIZE(umc_instance_id); i++)
-		if (umc_instance_id[i] == instance_id)
-			channel = i;
-
-	return channel;
+	return EXTRACT(e->ipid, 0, 31) >> 20;
 }
 /* Decode extended errors according to Scalable MCA specification */
 static void decode_smca_error(struct mce_event *e)
