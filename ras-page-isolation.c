@@ -237,12 +237,17 @@ static void page_offline(struct page_record *pr)
 	int ret;
 
 	/* Offlining page is not required */
-	if (offline <= OFFLINE_ACCOUNT)
+	if (offline <= OFFLINE_ACCOUNT) {
+		log(TERM, LOG_INFO, "PAGE_CE_ACTION=%s, ignore to offline page at %#llx\n",
+				offline_choice[offline].name, addr);
 		return;
+	}
 
 	/* Ignore offlined pages */
-	if (pr->offlined != PAGE_ONLINE)
+	if (pr->offlined == PAGE_OFFLINE) {
+		log(TERM, LOG_INFO, "page at %#llx is already offlined, ignore\n", addr);
 		return;
+	}
 
 	/* Time to silence this noisy page */
 	if (offline == OFFLINE_SOFT_THEN_HARD) {
