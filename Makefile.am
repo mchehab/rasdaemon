@@ -62,7 +62,8 @@ rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) libtrace/libtrace.a
 include_HEADERS = config.h  ras-events.h  ras-logger.h  ras-mc-handler.h \
 		  ras-aer-handler.h ras-mce-handler.h ras-record.h bitfield.h ras-report.h \
 		  ras-extlog-handler.h ras-arm-handler.h ras-non-standard-handler.h \
-		  ras-devlink-handler.h ras-diskerror-handler.h rbtree.h ras-page-isolation.h
+		  ras-devlink-handler.h ras-diskerror-handler.h rbtree.h ras-page-isolation.h \
+		  non-standard-hisilicon.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that
