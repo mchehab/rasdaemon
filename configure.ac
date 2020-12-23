@@ -141,6 +141,16 @@ AS_IF([test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_all" == "xyes"],
 AM_CONDITIONAL([WITH_MEMORY_CE_PFA], [test x$enable_memory_ce_pfa = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_MEMORY_CE_PFA], [USE_MEMORY_CE_PFA="yes"], [USE_MEMORY_CE_PFA="no"])
 
+AC_ARG_ENABLE([amp_ns_decode],
+    AS_HELP_STRING([--enable-amp-ns-decode], [enable AMP_NS_DECODE events (currently experimental)]))
+
+AS_IF([test "x$enable_amp_ns_decode" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_AMP_NS_DECODE,1,"have AMP UNKNOWN_SEC events decode")
+  AC_SUBST([WITH_AMP_NS_DECODE])
+])
+AM_CONDITIONAL([WITH_AMP_NS_DECODE], [test x$enable_amp_ns_decode = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_AMP_NS_DECODE], [USE_AMP_NS_DECODE="yes"], [USE_AMP_NS_DECODE="no"])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
@@ -179,4 +189,5 @@ compile time options summary
     DEVLINK             : $USE_DEVLINK
     Disk I/O errors     : $USE_DISKERROR
     Memory CE PFA       : $USE_MEMORY_CE_PFA
+    AMP RAS errors      : $USE_AMP_NS_DECODE
 EOF
