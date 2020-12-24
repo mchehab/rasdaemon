@@ -16,6 +16,12 @@ matrix:
   - env: TARGET_OS=bionic
   - compiler: clang
     env: TARGET_OS=bionic
+  #powerjobs
+  - env: TARGET_OS=bionic
+    arch: ppc64le
+  - compiler: clang
+    arch: ppc64le
+    env: TARGET_OS=bionic
 before_install:
 - sudo apt-get install -y sqlite3
 install:

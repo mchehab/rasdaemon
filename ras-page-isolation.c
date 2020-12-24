@@ -17,6 +17,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
 
@@ -210,18 +213,22 @@ void ras_page_account_init(void)
 
 static int do_page_offline(unsigned long long addr, enum otype type)
 {
-	FILE *offline_file;
-	int err;
+	int fd, rc;
+	char buf[20];
 
-	offline_file = fopen(kernel_offline[type], "w");
-	if (!offline_file)
+	fd = open(kernel_offline[type], O_WRONLY);
+	if (fd == -1) {
+		log(TERM, LOG_ERR, "[%s]:open file: %s failed\n", __func__, kernel_offline[type]);
 		return -1;
+	}
 
-	fprintf(offline_file, "%#llx", addr);
-	err = ferror(offline_file) ? -1 : 0;
-	fclose(offline_file);
-
-	return err;
+	sprintf(buf, "%#llx", addr);
+	rc = write(fd, buf, strlen(buf));
+	if (rc < 0) {
+		log(TERM, LOG_ERR, "page offline addr(%s) by %s failed, errno:%d\n", buf, kernel_offline[type], errno);
+	}
+	close(fd);
+	return rc;
 }
 
 static void page_offline(struct page_record *pr)
@@ -230,12 +237,17 @@ static void page_offline(struct page_record *pr)
 	int ret;
 
 	/* Offlining page is not required */
-	if (offline <= OFFLINE_ACCOUNT)
+	if (offline <= OFFLINE_ACCOUNT) {
+		log(TERM, LOG_INFO, "PAGE_CE_ACTION=%s, ignore to offline page at %#llx\n",
+				offline_choice[offline].name, addr);
 		return;
+	}
 
 	/* Ignore offlined pages */
-	if (pr->offlined != PAGE_ONLINE)
+	if (pr->offlined == PAGE_OFFLINE) {
+		log(TERM, LOG_INFO, "page at %#llx is already offlined, ignore\n", addr);
 		return;
+	}
 
 	/* Time to silence this noisy page */
 	if (offline == OFFLINE_SOFT_THEN_HARD) {
