@@ -20,5 +20,7 @@
 int ras_arm_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
 			 struct event_format *event, void *context);
-
+void display_raw_data(struct trace_seq *s,
+		const uint8_t *buf,
+		uint32_t datalen);
 #endif

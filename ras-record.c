@@ -210,6 +210,9 @@ static const struct db_fields arm_event_fields[] = {
 		{ .name="mpidr",		.type="INTEGER" },
 		{ .name="running_state",	.type="INTEGER" },
 		{ .name="psci_state",		.type="INTEGER" },
+		{ .name="err_info",		.type="BLOB"	},
+		{ .name="context_info",		.type="BLOB"	},
+		{ .name="vendor_info",		.type="BLOB"	},
 };
 
 static const struct db_table_descriptor arm_event_tab = {
@@ -233,6 +236,12 @@ int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 	sqlite3_bind_int64  (priv->stmt_arm_record,  4,  ev->mpidr);
 	sqlite3_bind_int  (priv->stmt_arm_record,  5,  ev->running_state);
 	sqlite3_bind_int  (priv->stmt_arm_record,  6,  ev->psci_state);
+	sqlite3_bind_blob (priv->stmt_arm_record,  7,
+			    ev->pei_error, ev->pei_len, NULL);
+	sqlite3_bind_blob (priv->stmt_arm_record,  8,
+			    ev->ctx_error, ev->ctx_len, NULL);
+	sqlite3_bind_blob (priv->stmt_arm_record,  9,
+			    ev->vsei_error, ev->oem_len, NULL);
 
 	rc = sqlite3_step(priv->stmt_arm_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
