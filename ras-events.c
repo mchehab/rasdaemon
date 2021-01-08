@@ -317,6 +317,7 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 	trace_seq_do_printf(&s);
 	printf("\n");
 	fflush(stdout);
+	trace_seq_destroy(&s);
 }
 
 static int get_num_cpus(struct ras_events *ras)
