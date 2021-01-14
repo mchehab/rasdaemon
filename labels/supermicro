@@ -14,3 +14,54 @@ Vendor: Supermicro
     DIMMA1: 0.0.0;    DIMMA2: 0.0.1;
     DIMMB1: 0.1.0;    DIMMB2: 0.1.1;
 
+
+	Product: X10SRA-F
+		DIMMA1: 0.0.0
+		DIMMA2: 0.0.1
+		DIMMB1: 0.1.0
+		DIMMB2: 0.1.1
+		DIMMC1: 1.0.0
+		DIMMC2: 1.0.1
+		DIMMD1: 1.1.0
+		DIMMD2: 1.1.1
+
+	Product: H8DGU
+		P1_DIMM1A: 0.2.0;
+		P1_DIMM1A: 0.3.0;
+		P2_DIMM1A: 3.2.0;
+		P2_DIMM1A: 3.3.0;
+
+		P1_DIMM2A: 0.2.1;
+		P1_DIMM2A: 0.3.1;
+		P2_DIMM2A: 3.2.1;
+		P2_DIMM2A: 3.3.1;
+
+		P1_DIMM3A: 1.2.0;
+		P1_DIMM3A: 1.3.0;
+		P2_DIMM3A: 2.2.0;
+		P2_DIMM3A: 2.3.0;
+
+		P1_DIMM4A: 1.2.1;
+		P1_DIMM4A: 1.3.1;
+		P2_DIMM4A: 2.2.1;
+		P2_DIMM4A: 2.3.1;
+
+		P1_DIMM1B: 0.0.0;
+		P1_DIMM1B: 0.2.0;
+		P2_DIMM1B: 3.0.0;
+		P2_DIMM1B: 3.1.0;
+
+		P1_DIMM2B: 0.0.1;
+		P1_DIMM2B: 0.1.1;
+		P2_DIMM2B: 3.0.1;
+		P2_DIMM2B: 3.1.1;
+
+		P1_DIMM3B: 1.0.0;
+		P1_DIMM3B: 1.1.0;
+		P2_DIMM3B: 2.0.0;
+		P2_DIMM3B: 2.1.0;
+
+		P1_DIMM4B: 1.0.1;
+		P1_DIMM4B: 1.1.1;
+		P2_DIMM4B: 2.0.1;
+		P2_DIMM4B: 2.1.1;
