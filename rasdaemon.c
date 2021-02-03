@@ -41,6 +41,7 @@ struct arguments {
 	int record_events;
 	int enable_ras;
 	int foreground;
+  int broadcast_events;
 };
 
 static error_t parse_opt(int k, char *arg, struct argp_state *state)
@@ -57,6 +58,11 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 #ifdef HAVE_SQLITE3
 	case 'r':
 		args->record_events++;
+		break;
+#endif
+#ifdef HAVE_BROADCAST
+  case 'b':
+		args->broadcast_events++;
 		break;
 #endif
 	case 'f':
@@ -81,7 +87,9 @@ int main(int argc, char *argv[])
 		{"record",  'r', 0, 0, "record events via sqlite3", 0},
 #endif
 		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},
-
+#ifdef HAVE_BROADCAST
+    {"broadcast", 'b', 0, 0, "broadcast events to other processes"},
+#endif
 		{ 0, 0, 0, 0, 0, 0 }
 	};
 	const struct argp argp = {
@@ -116,7 +124,7 @@ int main(int argc, char *argv[])
 		if (daemon(0,0))
 			exit(EXIT_FAILURE);
 
-	handle_ras_events(args.record_events);
+	handle_ras_events(args.record_events, args.broadcast_events);
 
 	return 0;
 }

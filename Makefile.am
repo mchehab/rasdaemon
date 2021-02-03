@@ -21,6 +21,9 @@ rasdaemon_SOURCES = rasdaemon.c ras-events.c ras-mc-handler.c \
 if WITH_SQLITE3
    rasdaemon_SOURCES += ras-record.c
 endif
+if WITH_BROADCAST
+   rasdaemon_SOURCES += ras-server.c
+endif
 if WITH_AER
    rasdaemon_SOURCES += ras-aer-handler.c
 endif

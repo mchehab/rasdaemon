@@ -50,6 +50,7 @@ struct ras_events {
 	/* Booleans */
 	unsigned	use_uptime: 1;
 	unsigned        record_events: 1;
+	unsigned        broadcast_events: 1;
 
 	/* For timestamp */
 	time_t		uptime_diff;
@@ -99,6 +100,6 @@ enum ghes_severity {
 
 /* Function prototypes */
 int toggle_ras_mc_event(int enable);
-int handle_ras_events(int record_events);
+int handle_ras_events(int record_events, int broadcast_events);
 
 #endif

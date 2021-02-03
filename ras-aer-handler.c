@@ -25,6 +25,7 @@
 #include "ras-logger.h"
 #include "bitfield.h"
 #include "ras-report.h"
+#include "ras-server.h"
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {
@@ -149,6 +150,11 @@ int ras_aer_event_handler(struct trace_seq *s,
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_aer_event(ras, &ev);
+#endif
+
+#ifdef HAVE_BROADCAST
+  if(ras->broadcast_events)
+	  ras_server_broadcast(AER_EVENT, &ev);
 #endif
 
 	return 0;
