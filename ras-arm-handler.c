@@ -20,6 +20,27 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include "ras-non-standard-handler.h"
+#include "non-standard-ampere.h"
+
+void display_raw_data(struct trace_seq *s,
+		const uint8_t *buf,
+		uint32_t datalen)
+{
+	int i = 0, line_count = 0;
+
+	trace_seq_printf(s, "  %08x: ", i);
+	while (datalen >= 4) {
+		print_le_hex(s, buf, i);
+		i += 4;
+		datalen -= 4;
+		if (++line_count == 4) {
+			trace_seq_printf(s, "\n  %08x: ", i);
+			line_count = 0;
+		} else
+			trace_seq_printf(s, " ");
+	}
+}
 
 int ras_arm_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
@@ -30,7 +51,7 @@ int ras_arm_event_handler(struct trace_seq *s,
 	time_t now;
 	struct tm *tm;
 	struct ras_arm_event ev;
-
+	int len = 0;
 	memset(&ev, 0, sizeof(ev));
 
 	/*
@@ -77,6 +98,46 @@ int ras_arm_event_handler(struct trace_seq *s,
 		return -1;
 	ev.psci_state = val;
 	trace_seq_printf(s, "\n psci_state: %d", ev.psci_state);
+
+	if (pevent_get_field_val(s, event, "pei_len", record, &val, 1) < 0)
+		return -1;
+	ev.pei_len = val;
+	trace_seq_printf(s, "\n ARM Processor Err Info data len: %d\n",
+			 ev.pei_len);
+
+	ev.pei_error = pevent_get_field_raw(s, event, "buf", record, &len, 1);
+	if (!ev.pei_error)
+		return -1;
+	display_raw_data(s, ev.pei_error, ev.pei_len);
+
+	if (pevent_get_field_val(s, event, "ctx_len", record, &val, 1) < 0)
+		return -1;
+	ev.ctx_len = val;
+	trace_seq_printf(s, "\n ARM Processor Err Context Info data len: %d\n",
+			 ev.ctx_len);
+
+	ev.ctx_error = pevent_get_field_raw(s, event, "buf1", record, &len, 1);
+	if (!ev.ctx_error)
+		return -1;
+	display_raw_data(s, ev.ctx_error, ev.ctx_len);
+
+	if (pevent_get_field_val(s, event, "oem_len", record, &val, 1) < 0)
+		return -1;
+	ev.oem_len = val;
+	trace_seq_printf(s, "\n Vendor Specific Err Info data len: %d\n",
+			 ev.oem_len);
+
+	ev.vsei_error = pevent_get_field_raw(s, event, "buf2", record, &len, 1);
+	if (!ev.vsei_error)
+		return -1;
+
+#ifdef HAVE_AMP_NS_DECODE
+	//decode ampere specific error
+	decode_amp_payload0_err_regs(NULL, s,
+				(struct amp_payload0_type_sec *)ev.vsei_error);
+#else
+	display_raw_data(s, ev.vsei_error, ev.oem_len);
+#endif
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3

@@ -77,6 +77,12 @@ struct ras_arm_event {
 	int64_t midr;
 	int32_t running_state;
 	int32_t psci_state;
+	const uint8_t *pei_error;
+	uint32_t pei_len;
+	const uint8_t *ctx_error;
+	uint32_t ctx_len;
+	const uint8_t *vsei_error;
+	uint32_t oem_len;
 };
 
 struct devlink_event {
