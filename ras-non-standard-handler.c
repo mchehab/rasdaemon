@@ -174,10 +174,17 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	}
 	trace_seq_printf(s, "\n %s", ev.severity);
 
-	ev.sec_type = pevent_get_field_raw(s, event, "sec_type", record, &len, 1);
+	ev.sec_type = pevent_get_field_raw(s, event, "sec_type",
+					   record, &len, 1);
 	if(!ev.sec_type)
 		return -1;
-	trace_seq_printf(s, "\n section type: %s", uuid_le(ev.sec_type));
+	if (strcmp(uuid_le(ev.sec_type),
+		   "e8ed898d-df16-43cc-8ecc-54f060ef157f") == 0)
+		trace_seq_printf(s, "\n section type: %s",
+		"Ampere Specific Error\n");
+	else
+		trace_seq_printf(s, "\n section type: %s",
+				 uuid_le(ev.sec_type));
 	ev.fru_text = pevent_get_field_raw(s, event, "fru_text",
 						record, &len, 1);
 	ev.fru_id = pevent_get_field_raw(s, event, "fru_id",
