@@ -14,6 +14,9 @@ Vendor: Supermicro
     DIMMA1: 0.0.0;    DIMMA2: 0.0.1;
     DIMMB1: 0.1.0;    DIMMB2: 0.1.1;
 
+  Model: A2SDi-8C+-HLN4F
+    DIMMA1: 0.0.0;    DIMMA2: 0.0.1;
+    DIMMB1: 0.1.0;    DIMMB2: 0.1.1;
 
 	Product: X10SRA-F
 		DIMMA1: 0.0.0
