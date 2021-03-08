@@ -1527,6 +1527,7 @@ sub errors
 # Definitions of the vendor platform IDs.
 use constant {
     HISILICON_KUNPENG_920 => "Kunpeng920",
+    HISILICON_KUNPENG_9XX => "Kunpeng9xx",
 };
 
 sub vendor_errors_summary
@@ -1534,7 +1535,7 @@ sub vendor_errors_summary
     require DBI;
     my ($num_args, $platform_id);
     my ($query, $query_handle, $count, $out);
-    my ($module_id, $sub_module_id, $err_severity, $err_sev);
+    my ($module_id, $sub_module_id, $err_severity, $err_sev, $err_info);
 
     $num_args = $#ARGV + 1;
     $platform_id = 0;
@@ -1609,6 +1610,24 @@ sub vendor_errors_summary
         $query_handle->finish;
     }
 
+    # HiSilicon Kunpeng9xx common errors
+    if ($platform_id eq HISILICON_KUNPENG_9XX) {
+        $query = "select err_info, count(*) from hisi_common_section";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($err_info, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\terrors: $count\n";
+        }
+        if ($out ne "") {
+            print "HiSilicon Kunpeng9xx common error events summary:\n$out\n";
+        } else {
+            print "No HiSilicon Kunpeng9xx common errors.\n\n";
+        }
+        $query_handle->finish;
+    }
+
     undef($dbh);
 }
 
@@ -1618,7 +1637,7 @@ sub vendor_errors
     my ($num_args, $platform_id);
     my ($query, $query_handle, $id, $timestamp, $out);
     my ($version, $soc_id, $socket_id, $nimbus_id, $core_id, $port_id);
-    my ($module_id, $sub_module_id, $err_severity, $err_type, $regs);
+    my ($module_id, $sub_module_id, $err_severity, $err_type, $err_info, $regs);
 
     $num_args = $#ARGV + 1;
     $platform_id = 0;
@@ -1704,6 +1723,26 @@ sub vendor_errors
         $query_handle->finish;
     }
 
+    # HiSilicon Kunpeng9xx common errors
+    if ($platform_id eq HISILICON_KUNPENG_9XX) {
+        $query = "select id, timestamp, err_info, regs_dump from hisi_common_section order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $err_info, $regs));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id. $timestamp ";
+            $out .= "Error Info:$err_info \n" if ($err_info);
+            $out .= "Error Registers: $regs\n\n" if ($regs);
+        }
+        if ($out ne "") {
+            print "HiSilicon Kunpeng9xx common error events:\n$out\n";
+        } else {
+            print "No HiSilicon Kunpeng9xx common errors.\n";
+        }
+        $query_handle->finish;
+    }
+
     undef($dbh);
 }
 
@@ -1711,6 +1750,7 @@ sub vendor_platforms
 {
         print "\nSupported platforms for the vendor-specific errors:\n";
         print "\tHiSilicon Kunpeng920, platform-id=\"", HISILICON_KUNPENG_920, "\"\n";
+        print "\tHiSilicon Kunpeng9xx, platform-id=\"", HISILICON_KUNPENG_9XX, "\"\n";
         print "\n";
 }
 
