@@ -111,6 +111,16 @@ AS_IF([test "x$enable_diskerror" = "xyes" || test "x$enable_all" == "xyes"], [
 AM_CONDITIONAL([WITH_DISKERROR], [test x$enable_diskerror = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_DISKERROR], [USE_DISKERROR="yes"], [USE_DISKERROR="no"])
 
+AC_ARG_ENABLE([memory_failure],
+    AS_HELP_STRING([--enable-memory-failure], [enable memory failure events (currently experimental)]))
+
+AS_IF([test "x$enable_memory_failure" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_MEMORY_FAILURE,1,"have memory failure events collect")
+  AC_SUBST([WITH_MEMORY_FAILURE])
+])
+AM_CONDITIONAL([WITH_MEMORY_FAILURE], [test x$enable_memory_failure = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_MEMORY_FAILURE], [USE_MEMORY_FAILURE="yes"], [USE_MEMORY_FAILURE="no"])
+
 AC_ARG_ENABLE([abrt_report],
     AS_HELP_STRING([--enable-abrt-report], [enable report event to ABRT (currently experimental)]))
 
@@ -184,10 +194,11 @@ compile time options summary
     EXTLOG              : $USE_EXTLOG
     CPER non-standard   : $USE_NON_STANDARD
     ABRT report         : $USE_ABRT_REPORT
-    HIP07 SAS HW errors : $USE_HISI_NS_DECODE
+    HISI Kunpeng errors : $USE_HISI_NS_DECODE
     ARM events          : $USE_ARM
     DEVLINK             : $USE_DEVLINK
     Disk I/O errors     : $USE_DISKERROR
+    Memory Failure      : $USE_MEMORY_FAILURE
     Memory CE PFA       : $USE_MEMORY_CE_PFA
     AMP RAS errors      : $USE_AMP_NS_DECODE
 EOF
