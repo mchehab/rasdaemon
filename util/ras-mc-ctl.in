@@ -95,6 +95,9 @@ Usage: $prog [OPTIONS...]
  --summary          Presents a summary of the logged errors.
  --errors           Shows the errors stored at the error database.
  --error-count      Shows the corrected and uncorrected error counts using sysfs.
+ --vendor-errors-summary <platform-id>    Presents a summary of the vendor-specific logged errors.
+ --vendor-errors         <platform-id>    Shows the vendor-specific errors stored in the error database.
+ --vendor-platforms Shows the supported platforms with platform-ids for the vendor-specific errors.
  --help             This help message.
 EOF
 
@@ -142,6 +145,18 @@ if ($conf{opt}{errors}) {
     errors ();
 }
 
+if ($conf{opt}{vendor_errors_summary}) {
+    vendor_errors_summary ();
+}
+
+if ($conf{opt}{vendor_errors}) {
+    vendor_errors ();
+}
+
+if ($conf{opt}{vendor_platforms}) {
+    vendor_platforms ();
+}
+
 exit (0);
 
 sub parse_cmdline
@@ -157,6 +172,9 @@ sub parse_cmdline
     $conf{opt}{summary} = 0;
     $conf{opt}{errors} = 0;
     $conf{opt}{error_count} = 0;
+    $conf{opt}{vendor_errors_summary} = 0;
+    $conf{opt}{vendor_errors} = 0;
+    $conf{opt}{vendor_platforms} = 0;
 
     my $rref = \$conf{opt}{report};
     my $mref = \$conf{opt}{mainboard};
@@ -174,7 +192,10 @@ sub parse_cmdline
                          "layout" =>          \$conf{opt}{display_memory_layout},
                          "summary" =>         \$conf{opt}{summary},
                          "errors" =>          \$conf{opt}{errors},
-                         "error-count" =>     \$conf{opt}{error_count}
+                         "error-count" =>     \$conf{opt}{error_count},
+                         "vendor-errors-summary" =>    \$conf{opt}{vendor_errors_summary},
+                         "vendor-errors" =>   \$conf{opt}{vendor_errors},
+                         "vendor-platforms" =>    \$conf{opt}{vendor_platforms},
             );
 
     usage(1) if !$rc;
@@ -1501,6 +1522,47 @@ sub errors
     }
 
     undef($dbh);
+}
+
+sub vendor_errors_summary
+{
+    require DBI;
+    my ($num_args, $platform_id);
+
+    $num_args = $#ARGV + 1;
+    $platform_id = 0;
+    if ($num_args ne 0) {
+        $platform_id = $ARGV[0];
+    } else {
+        return;
+    }
+
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
+
+    undef($dbh);
+}
+
+sub vendor_errors
+{
+    require DBI;
+    my ($num_args, $platform_id);
+
+    $num_args = $#ARGV + 1;
+    $platform_id = 0;
+    if ($num_args ne 0) {
+        $platform_id = $ARGV[0];
+    } else {
+        return;
+    }
+
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
+
+    undef($dbh);
+}
+
+sub vendor_platforms
+{
+        print "\nSupported platforms for the vendor-specific errors:\n";
 }
 
 sub log_msg   { print STDERR "$prog: ", @_ unless $conf{opt}{quiet}; }
