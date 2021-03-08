@@ -1137,7 +1137,7 @@ sub summary
     my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg);
     my ($etype, $severity, $etype_string, $severity_string);
     my ($dev_name, $dev);
-    my ($affinity, $mpidr);
+    my ($mpidr);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1177,13 +1177,13 @@ sub summary
 
     # ARM processor arm_event errors
     if ($has_arm == 1) {
-        $query = "select affinity, mpidr, count(*) from arm_event group by affinity, mpidr";
+        $query = "select mpidr, count(*) from arm_event group by mpidr";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
-        $query_handle->bind_columns(\($affinity, $mpidr, $count));
+        $query_handle->bind_columns(\($mpidr, $count));
         $out = "";
         while($query_handle->fetch()) {
-            $out .= "\t$count errors\n";
+            $out .= sprintf "\tCPU(mpidr=0x%x) has %d errors\n", $mpidr, $count;
         }
         if ($out ne "") {
             print "ARM processor events summary:\n$out\n";
