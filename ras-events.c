@@ -37,6 +37,7 @@
 #include "ras-extlog-handler.h"
 #include "ras-devlink-handler.h"
 #include "ras-diskerror-handler.h"
+#include "ras-memory-failure-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
@@ -229,6 +230,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_DISKERROR
 	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_complete", enable);
+#endif
+
+#ifdef HAVE_MEMORY_FAILURE
+	rc |= __toggle_ras_mc_event(ras, "ras", "memory_failure_event", enable);
 #endif
 
 free_ras:
@@ -907,6 +912,16 @@ int handle_ras_events(int record_events)
 			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 			    "block", "block_rq_complete");
 	}
+#endif
+
+#ifdef HAVE_MEMORY_FAILURE
+	rc = add_event_handler(ras, pevent, page_size, "ras", "memory_failure_event",
+			       ras_memory_failure_event_handler, NULL, MF_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "ras", "memory_failure_event");
 #endif
 
 	if (!num_events) {

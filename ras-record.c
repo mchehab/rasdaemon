@@ -510,6 +510,56 @@ int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev
 #endif
 
 /*
+ * Table and functions to handle ras:memory_failure
+ */
+
+#ifdef HAVE_MEMORY_FAILURE
+static const struct db_fields mf_event_fields[] = {
+	{ .name="id",			.type="INTEGER PRIMARY KEY" },
+	{ .name="timestamp",		.type="TEXT" },
+	{ .name="pfn",			.type="TEXT" },
+	{ .name="page_type",		.type="TEXT" },
+	{ .name="action_result",	.type="TEXT" },
+};
+
+static const struct db_table_descriptor mf_event_tab = {
+	.name = "memory_failure_event",
+	.fields = mf_event_fields,
+	.num_fields = ARRAY_SIZE(mf_event_fields),
+};
+
+int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_mf_event)
+		return 0;
+	log(TERM, LOG_INFO, "memory_failure_event store: %p\n", priv->stmt_mf_event);
+
+	sqlite3_bind_text(priv->stmt_mf_event,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mf_event,  2, ev->pfn, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mf_event,  3, ev->page_type, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mf_event,  4, ev->action_result, -1, NULL);
+
+	rc = sqlite3_step(priv->stmt_mf_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do memory_failure_event step on sqlite: error = %d\n", rc);
+
+	rc = sqlite3_reset(priv->stmt_mf_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset memory_failure_event on sqlite: error = %d\n",
+		    rc);
+
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+#endif
+
+/*
  * Generic code
  */
 static int __ras_mc_prepare_stmt(struct sqlite3_priv *priv,
@@ -836,6 +886,16 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	}
 #endif
 
+#ifdef HAVE_MEMORY_FAILURE
+	rc = ras_mc_create_table(priv, &mf_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_mf_event,
+					 &mf_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
+#endif
+
 	ras->db_priv = priv;
 	return 0;
 
@@ -934,6 +994,16 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			log(TERM, LOG_ERR,
 			    "cpu %u: Failed to finalize diskerror_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+#ifdef HAVE_MEMORY_FAILURE
+	if (priv->stmt_mf_event) {
+		rc = sqlite3_finalize(priv->stmt_mf_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize mf_event sqlite: error = %d\n",
 			    cpu, rc);
 	}
 #endif

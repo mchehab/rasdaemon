@@ -309,6 +309,28 @@ static int set_diskerror_event_backtrace(char *buf, struct diskerror_event *ev) 
 	return 0;
 }
 
+static int set_mf_event_backtrace(char *buf, struct ras_mf_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="    \
+                                                "timestamp=%s\n"	\
+                                                "pfn=%s\n"		\
+                                                "page_type=%s\n"	\
+                                                "action_result=%s\n",	\
+                                                ev->timestamp,		\
+                                                ev->pfn,		\
+                                                ev->page_type,		\
+                                                ev->action_result);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
 static int commit_report_backtrace(int sockfd, int type, void *ev){
 	char buf[MAX_BACKTRACE_SIZE];
 	char *pbuf = buf;
@@ -342,6 +364,9 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 		break;
 	case DISKERROR_EVENT:
 		rc = set_diskerror_event_backtrace(buf, (struct diskerror_event *)ev);
+		break;
+	case MF_EVENT:
+		rc = set_mf_event_backtrace(buf, (struct ras_mf_event *)ev);
 		break;
 	default:
 		return -1;
@@ -707,4 +732,47 @@ diskerror_fail:
 	}else{
 		return -1;
 	}
+}
+
+int ras_report_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto mf_fail;
+
+	rc = commit_report_backtrace(sockfd, MF_EVENT, ev);
+	if (rc < 0)
+		goto mf_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-memory_failure");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto mf_fail;
+
+	sprintf(buf, "REASON=%s", "memory failure problem");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto mf_fail;
+
+	done = 1;
+
+mf_fail:
+	if (sockfd > 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
 }

@@ -104,6 +104,13 @@ struct diskerror_event {
 	const char *cmd;
 };
 
+struct ras_mf_event {
+	char timestamp[64];
+	char pfn[30];
+	const char *page_type;
+	const char *action_result;
+};
+
 struct ras_mc_event;
 struct ras_aer_event;
 struct ras_extlog_event;
@@ -112,6 +119,7 @@ struct ras_arm_event;
 struct mce_event;
 struct devlink_event;
 struct diskerror_event;
+struct ras_mf_event;
 
 #ifdef HAVE_SQLITE3
 
@@ -141,6 +149,9 @@ struct sqlite3_priv {
 #ifdef HAVE_DISKERROR
 	sqlite3_stmt	*stmt_diskerror_event;
 #endif
+#ifdef HAVE_MEMORY_FAILURE
+	sqlite3_stmt	*stmt_mf_event;
+#endif
 };
 
 struct db_fields {
@@ -167,6 +178,7 @@ int ras_store_non_standard_record(struct ras_events *ras, struct ras_non_standar
 int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev);
 int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev);
 int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev);
+int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
@@ -179,6 +191,7 @@ static inline int ras_store_non_standard_record(struct ras_events *ras, struct r
 static inline int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev) { return 0; };
 static inline int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev) { return 0; };
 static inline int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev) { return 0; };
+static inline int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev) { return 0; };
 
 #endif
 
