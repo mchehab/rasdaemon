@@ -74,7 +74,9 @@ int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 		return -1;
 
 	ns_ev_decoder->next = NULL;
+#ifdef HAVE_SQLITE3
 	ns_ev_decoder->stmt_dec_record = NULL;
+#endif
 	if (!ras_ns_ev_dec_list) {
 		ras_ns_ev_dec_list = ns_ev_decoder;
 	} else {
