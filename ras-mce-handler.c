@@ -56,7 +56,11 @@ static char *cputype_name[] = {
 	[CPU_KNIGHTS_MILL] = "Knights Mill",
 	[CPU_SKYLAKE_XEON] = "Skylake server",
 	[CPU_AMD_SMCA] = "AMD Scalable MCA",
-	[CPU_DHYANA] = "Hygon Family 18h Moksha"
+	[CPU_DHYANA] = "Hygon Family 18h Moksha",
+	[CPU_ICELAKE_XEON] = "Icelake server",
+	[CPU_ICELAKE_DE] = "Icelake server D Family",
+	[CPU_TREMONT_D] = "Tremont microserver",
+	[CPU_SAPPHIRERAPIDS] = "Sapphirerapids server",
 };
 
 static enum cputype select_intel_cputype(struct ras_events *ras)
@@ -108,6 +112,14 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
 			return CPU_KNIGHTS_MILL;
 		else if (mce->model == 0x55)
 			return CPU_SKYLAKE_XEON;
+		else if (mce->model == 0x6a)
+			return CPU_ICELAKE_XEON;
+		else if (mce->model == 0x6c)
+                        return CPU_ICELAKE_DE;
+		else if (mce->model == 0x86)
+                        return CPU_TREMONT_D;
+		else if (mce->model == 0x8f)
+                        return CPU_SAPPHIRERAPIDS;
 
 		if (mce->model > 0x1a) {
 			log(ALL, LOG_INFO,

@@ -411,6 +411,11 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_SKYLAKE_XEON:
 		skylake_s_decode_model(ras, e);
 		break;
+	case CPU_ICELAKE_XEON:
+	case CPU_ICELAKE_DE:
+	case CPU_TREMONT_D:
+	case CPU_SAPPHIRERAPIDS:
+		i10nm_decode_model(mce->cputype, ras, e);
 	default:
 		break;
 	}

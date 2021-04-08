@@ -37,7 +37,7 @@ if WITH_MCE
 			mce-intel-sb.c mce-intel-ivb.c mce-intel-haswell.c \
 			mce-intel-knl.c mce-intel-broadwell-de.c \
 			mce-intel-broadwell-epex.c mce-intel-skylake-xeon.c \
-			mce-amd-k8.c mce-amd-smca.c
+			mce-amd-k8.c mce-amd-smca.c mce-intel-i10nm.c
 endif
 if WITH_EXTLOG
    rasdaemon_SOURCES += ras-extlog-handler.c

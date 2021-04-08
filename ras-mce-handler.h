@@ -49,6 +49,10 @@ enum cputype {
 	CPU_SKYLAKE_XEON,
 	CPU_AMD_SMCA,
 	CPU_DHYANA,
+	CPU_ICELAKE_XEON,
+	CPU_ICELAKE_DE,
+	CPU_TREMONT_D,
+	CPU_SAPPHIRERAPIDS,
 };
 
 struct mce_event {
@@ -129,6 +133,7 @@ void tulsa_decode_model(struct mce_event *e);
 void broadwell_de_decode_model(struct ras_events *ras, struct mce_event *e);
 void broadwell_epex_decode_model(struct ras_events *ras, struct mce_event *e);
 void skylake_s_decode_model(struct ras_events *ras, struct mce_event *e);
+void i10nm_decode_model(enum cputype cputype, struct ras_events *ras, struct mce_event *e);
 
 /* AMD error code decode function */
 void decode_amd_errcode(struct mce_event *e);
