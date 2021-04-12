@@ -92,7 +92,6 @@ upload:
 
 # custom target
 install-data-local:
-	$(install_sh) -d "$(DESTDIR)@RASSTATEDIR@"
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d"
 if WITH_MEMORY_CE_PFA
 	$(install_sh) @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@SYSCONFDEFDIR@/rasdaemon"
