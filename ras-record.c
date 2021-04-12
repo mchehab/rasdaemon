@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
+#include <sys/stat.h>
 #include "ras-events.h"
 #include "ras-mc-handler.h"
 #include "ras-aer-handler.h"
@@ -707,6 +709,21 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	priv = calloc(1, sizeof(*priv));
 	if (!priv)
 		return -1;
+
+	struct stat st = {0};
+	if (stat(RASSTATEDIR, &st) == -1) {
+		if (errno != ENOENT) {
+			log(TERM, LOG_ERR,
+			    "Failed to read state directory " RASSTATEDIR);
+			goto error;
+		}
+
+		if (mkdir(RASSTATEDIR, 0700) == -1) {
+			log(TERM, LOG_ERR,
+			    "Failed to create state directory " RASSTATEDIR);
+			goto error;
+		}
+	}
 
 	rc = sqlite3_initialize();
 	if (rc != SQLITE_OK) {
