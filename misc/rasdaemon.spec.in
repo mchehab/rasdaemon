@@ -54,7 +54,6 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_sbindir}/ras-mc-ctl
 %{_mandir}/*/*
 %{_unitdir}/*.service
-%{_sharedstatedir}/rasdaemon
 %{_sysconfdir}/ras/dimm_labels.d
 @SYSCONFDEFDIR@/%{name}
 %config(noreplace) @SYSCONFDEFDIR@/%{name}
