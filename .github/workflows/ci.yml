@@ -9,6 +9,9 @@ jobs:
   Ubuntu:
     name: Ubuntu
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x64_64, aarch64, ppc64le]
     steps:
       - uses: actions/checkout@v2
       - name: prepare
