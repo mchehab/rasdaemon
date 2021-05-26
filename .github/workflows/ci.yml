@@ -1,0 +1,34 @@
+name: CI
+
+# Should run only on branches and PR, as "on_tag.yml" will handle tags
+on:
+  push:
+    branches: master test
+  pull_request:
+    branches: master
+
+jobs:
+
+#
+# Linux
+#
+  Ubuntu:
+    name: Ubuntu
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        arch: [x64_64, aarch64, armv7, ppc64le]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        arch: ${{ matrix.arch }}
+    - name: prepare
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential sqlite3
+    - name: build
+      run: |
+        autoreconf -vfi
+        ./configure --enable-all
+        make
+        sudo make install
