@@ -1,3 +1,24 @@
+2021-05-26	Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+	- Version 0.6.7
+
+	* Support for Ice Lake and Sapphire Rapids
+	* Support for HiSilicon Kunpeng9xx
+	* Support for Ampere
+	* Support for memory failure events
+	* Support for ARM processor error information
+	* Support for  decoding for new SMCA Load Store bank type
+	* Add 8 channel decoding for SMCA systems
+	* Improvements at the page isolation logic
+	* New labels: A2SDi-8C-HLN4F, A2SDi-8C+-HLN4F, ASUS PRIME X570-PRO
+	* New labels:  Supermicro X10SRA-F and H8DGU
+	* Added support to specify SYSCONFDEFDIR
+	* RASSTATEDIR is now created at runtime
+	* Use a linked list for non-standard error decoding interface
+	* PCIe AER now displas PCIe dev name
+	* Fixed a memory leak
+	* Several fixes
+	* Added ppc64le to travis build
+
 2020-07-21	Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 	- Version 0.6.6
 
