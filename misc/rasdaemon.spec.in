@@ -61,10 +61,10 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %changelog
 
 * Wed May 26 2021 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>  0.6.7-1
-- Bump to version 0.6.5 with several fixes and additions
+- Bump to version 0.6.7 with several fixes and additions
 
 * Tue Jul 21 2020 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>  0.6.6-1
-- Bump to version 0.6.5 with several fixes, new hip08 events and memory prediction analysis
+- Bump to version 0.6.6 with several fixes, new hip08 events and memory prediction analysis
 
 * Wed Nov 20 2019 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>  0.6.5-1
 - Bump to version 0.6.5 with several fixes and improves PCIe events record
