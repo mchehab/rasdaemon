@@ -47,7 +47,7 @@
 /* These may be used by multiple smca_hwid_mcatypes */
 enum smca_bank_types {
 	SMCA_LS = 0,    /* Load Store */
-	SMCA_LS_V2,	/* Load Store */
+	SMCA_LS_V2,
 	SMCA_IF,        /* Instruction Fetch */
 	SMCA_L2_CACHE,  /* L2 Cache */
 	SMCA_DE,        /* Decoder Unit */
@@ -56,17 +56,22 @@ enum smca_bank_types {
 	SMCA_FP,        /* Floating Point */
 	SMCA_L3_CACHE,  /* L3 Cache */
 	SMCA_CS,        /* Coherent Slave */
-	SMCA_CS_V2,     /* Coherent Slave V2 */
+	SMCA_CS_V2,
 	SMCA_PIE,       /* Power, Interrupts, etc. */
 	SMCA_UMC,       /* Unified Memory Controller */
+	SMCA_UMC_V2,
 	SMCA_PB,        /* Parameter Block */
 	SMCA_PSP,       /* Platform Security Processor */
-	SMCA_PSP_V2,    /* Platform Security Processor V2 */
+	SMCA_PSP_V2,
 	SMCA_SMU,       /* System Management Unit */
-	SMCA_SMU_V2,    /* System Management Unit V2 */
+	SMCA_SMU_V2,
 	SMCA_MP5,	/* Microprocessor 5 Unit */
 	SMCA_NBIO,	/* Northbridge IO Unit */
 	SMCA_PCIE,	/* PCI Express Unit */
+	SMCA_PCIE_V2,
+	SMCA_XGMI_PCS,	/* xGMI PCS Unit */
+	SMCA_XGMI_PHY,	/* xGMI PHY Unit */
+	SMCA_WAFL_PHY,	/* WAFL PHY Unit */
 	N_SMCA_BANK_TYPES
 };
 
@@ -237,6 +242,22 @@ static const char * const smca_umc_mce_desc[] = {
 	"Command/address parity error",
 	"Write data CRC error",
 };
+
+static const char * const smca_umc2_mce_desc[] = {
+	"DRAM ECC error",
+	"Data poison error",
+	"SDP parity error",
+	"Reserved",
+	"Address/Command parity error",
+	"Write data parity error",
+	"DCQ SRAM ECC error",
+	"Reserved",
+	"Read data parity error",
+	"Rdb SRAM ECC error",
+	"RdRsp SRAM ECC error",
+	"LM32 MP errors",
+};
+
 /* Parameter Block */
 static const char * const smca_pb_mce_desc[] = {
 	"Parameter Block RAM ECC error",
@@ -314,6 +335,55 @@ static const char * const smca_pcie_mce_desc[] = {
 	"CCIX Non-okay write response with data error",
 };
 
+static const char * const smca_pcie2_mce_desc[] = {
+	"SDP Parity Error logging",
+};
+
+static const char * const smca_xgmipcs_mce_desc[] = {
+	"Data Loss Error",
+	"Training Error",
+	"Flow Control Acknowledge Error",
+	"Rx Fifo Underflow Error",
+	"Rx Fifo Overflow Error",
+	"CRC Error",
+	"BER Exceeded Error",
+	"Tx Vcid Data Error",
+	"Replay Buffer Parity Error",
+	"Data Parity Error",
+	"Replay Fifo Overflow Error",
+	"Replay Fifo Underflow Error",
+	"Elastic Fifo Overflow Error",
+	"Deskew Error",
+	"Flow Control CRC Error",
+	"Data Startup Limit Error",
+	"FC Init Timeout Error",
+	"Recovery Timeout Error",
+	"Ready Serial Timeout Error",
+	"Ready Serial Attempt Error",
+	"Recovery Attempt Error",
+	"Recovery Relock Attempt Error",
+	"Replay Attempt Error",
+	"Sync Header Error",
+	"Tx Replay Timeout Error",
+	"Rx Replay Timeout Error",
+	"LinkSub Tx Timeout Error",
+	"LinkSub Rx Timeout Error",
+	"Rx CMD Pocket Error",
+};
+
+static const char * const smca_xgmiphy_mce_desc[] = {
+	"RAM ECC Error",
+	"ARC instruction buffer parity error",
+	"ARC data buffer parity error",
+	"PHY APB error",
+};
+
+static const char * const smca_waflphy_mce_desc[] = {
+	"RAM ECC Error",
+	"ARC instruction buffer parity error",
+	"ARC data buffer parity error",
+	"PHY APB error",
+};
 
 struct smca_mce_desc {
 	const char * const *descs;
@@ -333,6 +403,7 @@ static struct smca_mce_desc smca_mce_descs[] = {
 	[SMCA_CS_V2]    = { smca_cs2_mce_desc,  ARRAY_SIZE(smca_cs2_mce_desc) },
 	[SMCA_PIE]      = { smca_pie_mce_desc,  ARRAY_SIZE(smca_pie_mce_desc) },
 	[SMCA_UMC]      = { smca_umc_mce_desc,  ARRAY_SIZE(smca_umc_mce_desc) },
+	[SMCA_UMC_V2]	= { smca_umc2_mce_desc,	ARRAY_SIZE(smca_umc2_mce_desc)	},
 	[SMCA_PB]       = { smca_pb_mce_desc,   ARRAY_SIZE(smca_pb_mce_desc)  },
 	[SMCA_PSP]      = { smca_psp_mce_desc,  ARRAY_SIZE(smca_psp_mce_desc) },
 	[SMCA_PSP_V2]   = { smca_psp2_mce_desc, ARRAY_SIZE(smca_psp2_mce_desc)},
@@ -341,6 +412,10 @@ static struct smca_mce_desc smca_mce_descs[] = {
 	[SMCA_MP5]      = { smca_mp5_mce_desc,  ARRAY_SIZE(smca_mp5_mce_desc) },
 	[SMCA_NBIO]     = { smca_nbio_mce_desc, ARRAY_SIZE(smca_nbio_mce_desc)},
 	[SMCA_PCIE]     = { smca_pcie_mce_desc, ARRAY_SIZE(smca_pcie_mce_desc)},
+	[SMCA_PCIE_V2]	= { smca_pcie2_mce_desc,   ARRAY_SIZE(smca_pcie2_mce_desc)	},
+	[SMCA_XGMI_PCS]	= { smca_xgmipcs_mce_desc, ARRAY_SIZE(smca_xgmipcs_mce_desc)	},
+	[SMCA_XGMI_PHY]	= { smca_xgmiphy_mce_desc, ARRAY_SIZE(smca_xgmiphy_mce_desc)	},
+	[SMCA_WAFL_PHY]	= { smca_waflphy_mce_desc, ARRAY_SIZE(smca_waflphy_mce_desc)	},
 };
 
 struct smca_hwid {
@@ -369,6 +444,8 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 
 	/* Unified Memory Controller MCA type */
 	{ SMCA_UMC,      0x00000096 },
+	/* Heterogeneous systems may have both UMC and UMC_v2 types on the same node. */
+	{ SMCA_UMC_V2,   0x00010096 },
 
 	/* Parameter Block MCA type */
 	{ SMCA_PB,       0x00000005 },
@@ -389,6 +466,16 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 
 	/* PCI Express Unit MCA type */
 	{ SMCA_PCIE,     0x00000046 },
+	{ SMCA_PCIE_V2,  0x00010046 },
+
+	/* Ext Global Memory Interconnect PCS MCA type */
+	{ SMCA_XGMI_PCS, 0x00000050 },
+
+	/* Ext Global Memory Interconnect PHY MCA type */
+	{ SMCA_XGMI_PHY, 0x00000259 },
+
+	/* WAFL PHY MCA type */
+	{ SMCA_WAFL_PHY, 0x00000267 },
 };
 
 struct smca_bank_name {
@@ -396,27 +483,28 @@ struct smca_bank_name {
 };
 
 static struct smca_bank_name smca_names[] = {
-	[SMCA_LS]       = { "Load Store Unit" },
-	[SMCA_LS_V2]    = { "Load Store Unit" },
-	[SMCA_IF]       = { "Instruction Fetch Unit" },
-	[SMCA_L2_CACHE] = { "L2 Cache" },
-	[SMCA_DE]       = { "Decode Unit" },
-	[SMCA_RESERVED] = { "Reserved" },
-	[SMCA_EX]       = { "Execution Unit" },
-	[SMCA_FP]       = { "Floating Point Unit" },
-	[SMCA_L3_CACHE] = { "L3 Cache" },
-	[SMCA_CS]       = { "Coherent Slave" },
-	[SMCA_CS_V2]    = { "Coherent Slave" },
-	[SMCA_PIE]      = { "Power, Interrupts, etc." },
-	[SMCA_UMC]      = { "Unified Memory Controller" },
-	[SMCA_PB]       = { "Parameter Block" },
-	[SMCA_PSP]      = { "Platform Security Processor" },
-	[SMCA_PSP_V2]   = { "Platform Security Processor" },
-	[SMCA_SMU]      = { "System Management Unit" },
-	[SMCA_SMU_V2]   = { "System Management Unit" },
-	[SMCA_MP5]	= { "Microprocessor 5 Unit" },
-	[SMCA_NBIO]     = { "Northbridge IO Unit" },
-	[SMCA_PCIE]     = { "PCI Express Unit" },
+	[SMCA_LS ... SMCA_LS_V2]	= { "Load Store Unit" },
+	[SMCA_IF]			= { "Instruction Fetch Unit" },
+	[SMCA_L2_CACHE]			= { "L2 Cache" },
+	[SMCA_DE]			= { "Decode Unit" },
+	[SMCA_RESERVED]			= { "Reserved" },
+	[SMCA_EX]			= { "Execution Unit" },
+	[SMCA_FP]			= { "Floating Point Unit" },
+	[SMCA_L3_CACHE]			= { "L3 Cache" },
+	[SMCA_CS ... SMCA_CS_V2]	= { "Coherent Slave" },
+	[SMCA_PIE]			= { "Power, Interrupts, etc." },
+	[SMCA_UMC]			= { "Unified Memory Controller" },
+	[SMCA_UMC_V2]			= { "Unified Memory Controller V2" },
+	[SMCA_PB]			= { "Parameter Block" },
+	[SMCA_PSP ... SMCA_PSP_V2]	= { "Platform Security Processor" },
+	[SMCA_SMU ... SMCA_SMU_V2]	= { "System Management Unit" },
+	[SMCA_MP5]			= { "Microprocessor 5 Unit" },
+	[SMCA_NBIO]			= { "Northbridge IO Unit" },
+	[SMCA_PCIE ... SMCA_PCIE_V2]	= { "PCI Express Unit" },
+	[SMCA_XGMI_PCS]			= { "Ext Global Memory Interconnect PCS Unit" },
+	[SMCA_XGMI_PHY]			= { "Ext Global Memory Interconnect PHY Unit" },
+	[SMCA_WAFL_PHY]			= { "WAFL PHY Unit" },
+
 };
 
 static void amd_decode_errcode(struct mce_event *e)
