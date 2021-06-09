@@ -172,7 +172,7 @@ AC_SUBST([RASSTATEDIR])
 AC_ARG_WITH(sysconfdefdir,
     AC_HELP_STRING([--with-sysconfdefdir=DIR], [rasdaemon environment file dir]),
     [SYSCONFDEFDIR=$withval],
-    ["/etc/sysconfig"])
+    [SYSCONFDEFDIR=/etc/sysconfig])
 AC_SUBST([SYSCONFDEFDIR])
 
 AC_DEFINE([RAS_DB_FNAME], ["ras-mc_event.db"], [ras events database])
