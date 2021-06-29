@@ -69,7 +69,7 @@ Vendor: Supermicro
 		P2_DIMM4B: 2.0.1;
 		P2_DIMM4B: 2.1.1;
   
-  Model: X11DPH-i
+  Model: X11DPH-i, X11DPH-T, X11DPH-TQ
     P1-DIMMA1: 0.0.0;    P1-DIMMA2: 0.0.1;
     P1-DIMMB1: 0.1.0;
     P1-DIMMC1: 0.2.0;
@@ -92,3 +92,17 @@ Vendor: Supermicro
     P2-DIMMF1: 1.1.0;    P2-DIMMF2: 1.1.1;
     P2-DIMMG1: 1.2.0;    P2-DIMMG2: 1.2.1;
     P2-DIMMH1: 1.3.0;    P2-DIMMH2: 1.3.1;
+  
+  Model: X11DDW-NT, X11DDW-L
+    P1-DIMMA1: 0.0.0;
+    P1-DIMMB1: 0.1.0;
+    P1-DIMMC1: 0.2.0;
+    P1-DIMMD1: 1.0.0;
+    P1-DIMME1: 1.1.0;
+    P1-DIMMF1: 1.2.0;
+    P2-DIMMA1: 2.0.0;
+    P2-DIMMB1: 2.1.0;
+    P2-DIMMC1: 2.2.0;
+    P2-DIMMD1: 3.0.0;
+    P2-DIMME1: 3.1.0;
+    P2-DIMMF1: 3.2.0;
