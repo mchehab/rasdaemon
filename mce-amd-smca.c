@@ -78,6 +78,12 @@ enum smca_bank_types {
 /* Maximum number of MCA banks per CPU. */
 #define MAX_NR_BANKS	64
 
+/*
+ * On Newer heterogeneous systems from AMD with CPU and GPU nodes connected
+ * via xGMI links, the NON CPU Nodes are enumerated from index 8
+ */
+#define NONCPU_NODE_INDEX	8
+
 /* SMCA Extended error strings */
 /* Load Store */
 static const char * const smca_ls_mce_desc[] = {
@@ -531,6 +537,26 @@ static int find_umc_channel(struct mce_event *e)
 {
 	return EXTRACT(e->ipid, 0, 31) >> 20;
 }
+
+/*
+ * The HBM memory managed by the UMCCH of the noncpu node
+ * can be calculated based on the [15:12]bits of IPID
+ */
+static int find_hbm_channel(struct mce_event *e)
+{
+	int umc, tmp;
+
+	umc = EXTRACT(e->ipid, 0, 31) >> 20;
+
+	/*
+	 * The HBM channel managed by the UMC of the noncpu node
+	 * can be calculated based on the [15:12]bits of IPID as follows
+	 */
+	tmp = ((e->ipid >> 12) & 0xf);
+
+	return (umc % 2) ? tmp + 4 : tmp;
+}
+
 /* Decode extended errors according to Scalable MCA specification */
 static void decode_smca_error(struct mce_event *e)
 {
@@ -539,6 +565,7 @@ static void decode_smca_error(struct mce_event *e)
 	unsigned short xec = (e->status >> 16) & 0x3f;
 	const struct smca_hwid *s_hwid;
 	uint32_t mcatype_hwid = EXTRACT(e->ipid, 32, 63);
+	uint8_t mcatype_instancehi = EXTRACT(e->ipid, 44, 47);
 	unsigned int csrow = -1, channel = -1;
 	unsigned int i;
 
@@ -548,14 +575,16 @@ static void decode_smca_error(struct mce_event *e)
 			bank_type = s_hwid->bank_type;
 			break;
 		}
+		if (mcatype_instancehi >= NONCPU_NODE_INDEX)
+			bank_type = SMCA_UMC_V2;
 	}
 
-	if (i >= ARRAY_SIZE(smca_hwid_mcatypes)) {
+	if (i >= MAX_NR_BANKS) {
 		strcpy(e->mcastatus_msg, "Couldn't find bank type with IPID");
 		return;
 	}
 
-	if (bank_type >= N_SMCA_BANK_TYPES) {
+	if (bank_type >= MAX_NR_BANKS) {
 		strcpy(e->mcastatus_msg, "Don't know how to decode this bank");
 		return;
 	}
@@ -580,6 +609,16 @@ static void decode_smca_error(struct mce_event *e)
 		mce_snprintf(e->mc_location, "memory_channel=%d,csrow=%d",
 			     channel, csrow);
 	}
+
+	if (bank_type == SMCA_UMC_V2 && xec == 0) {
+		/* The UMCPHY is reported as csrow in case of noncpu nodes */
+		csrow = find_umc_channel(e) / 2;
+		/* UMCCH is managing the HBM memory */
+		channel = find_hbm_channel(e);
+		mce_snprintf(e->mc_location, "memory_channel=%d,csrow=%d",
+			     channel, csrow);
+	}
+
 }
 
 int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e)
