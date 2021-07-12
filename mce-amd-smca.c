@@ -75,6 +75,9 @@ enum smca_bank_types {
 	N_SMCA_BANK_TYPES
 };
 
+/* Maximum number of MCA banks per CPU. */
+#define MAX_NR_BANKS	64
+
 /* SMCA Extended error strings */
 /* Load Store */
 static const char * const smca_ls_mce_desc[] = {
