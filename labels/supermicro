@@ -134,3 +134,9 @@ Vendor: Supermicro
   Model: X11SCA, X11SCA-F
     DIMMA1:  0.0.0, 0.1.0;    DIMMA2:   0.2.0, 0.3.0;
     DIMMB1:  0.0.1, 0.1.1;    DIMMB2:   0.2.1, 0.3.1;
+    
+  Model: X11SCW-F
+    DIMMA1: 0.1.0;
+    DIMMA2: 0.0.0;
+    DIMMB1: 0.1.1;
+    DIMMB2: 0.0.1;
