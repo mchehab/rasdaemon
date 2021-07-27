@@ -246,6 +246,7 @@ sub parse_dimm_nodes
     if (($file =~ /max_location$/)) {
         open IN, $file;
         my $location = <IN>;
+        $location =~ s/\s+$//;
         close IN;
         my @temp = split(/ /, $location);
 
@@ -288,6 +289,7 @@ sub parse_dimm_nodes
 
         open IN, $file;
         my $location = <IN>;
+        $location =~ s/\s+$//;
         close IN;
 
         my @pos;
