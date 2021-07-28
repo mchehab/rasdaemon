@@ -208,7 +208,7 @@ static int detect_cpu(struct ras_events *ras)
 			mce->cputype = CPU_AMD_SMCA;
 			goto ret;
 		}
-		if (mce->family > 23) {
+		if (mce->family > 25) {
 			log(ALL, LOG_INFO,
 			    "Can't parse MCE for this AMD CPU yet %d\n",
 			    mce->family);
