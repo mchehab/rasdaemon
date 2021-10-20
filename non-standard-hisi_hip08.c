@@ -670,7 +670,7 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 	}
 
 #ifdef HAVE_SQLITE3
-	if (!ev_decoder->stmt_dec_record) {
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
 					    &hip08_oem_type1_event_tab)
 			!= SQLITE_OK) {
@@ -842,7 +842,7 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 	}
 
 #ifdef HAVE_SQLITE3
-	if (!ev_decoder->stmt_dec_record) {
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
 			&hip08_oem_type2_event_tab) != SQLITE_OK) {
 			trace_seq_printf(s,
@@ -992,7 +992,7 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 	}
 
 #ifdef HAVE_SQLITE3
-	if (!ev_decoder->stmt_dec_record) {
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
 				&hip08_pcie_local_event_tab) != SQLITE_OK) {
 			trace_seq_printf(s,

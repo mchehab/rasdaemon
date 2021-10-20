@@ -77,6 +77,9 @@ void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 			       enum hisi_oem_data_type data_type,
 			       int id, int64_t data, const char *text)
 {
+	if (ev_decoder->stmt_dec_record == NULL)
+		return;
+
 	switch (data_type) {
 	case HISI_OEM_DATA_TYPE_INT:
 		sqlite3_bind_int(ev_decoder->stmt_dec_record, id, data);
@@ -93,6 +96,9 @@ void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 {
 	int rc;
+
+	if (ev_decoder->stmt_dec_record == NULL)
+		return 0;
 
 	rc = sqlite3_step(ev_decoder->stmt_dec_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
