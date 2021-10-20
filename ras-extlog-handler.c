@@ -152,7 +152,7 @@ static char *uuid_le(const char *uu)
 	static const unsigned char le[16] = {3,2,1,0,5,4,7,6,8,9,10,11,12,13,14,15};
 
 	for (i = 0; i < 16; i++) {
-		p += sprintf(p, "%.2x", uu[le[i]]);
+		p += sprintf(p, "%.2x", (unsigned char) uu[le[i]]);
 		switch (i) {
 		case 3:
 		case 5:
