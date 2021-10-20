@@ -198,7 +198,7 @@ static const char* get_soc_desc(uint8_t soc_id)
 static void decode_module(struct hisi_event *event, uint8_t module_id)
 {
 	if (module_id >= sizeof(module_name)/sizeof(char *))
-		HISI_SNPRINTF(event->error_msg, "module=unknown(id=%d) ", module_id);
+		HISI_SNPRINTF(event->error_msg, "module=unknown(id=%hhu) ", module_id);
 	else
 		HISI_SNPRINTF(event->error_msg, "module=%s ", module_name[module_id]);
 }
@@ -207,36 +207,36 @@ static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
 					  const struct hisi_common_error_section *err,
 					  struct hisi_event *event)
 {
-	HISI_SNPRINTF(event->error_msg, "[ table_version=%d", err->version);
+	HISI_SNPRINTF(event->error_msg, "[ table_version=%hhu", err->version);
 	if (err->val_bits & BIT(HISI_COMMON_VALID_SOC_ID))
 		HISI_SNPRINTF(event->error_msg, "soc=%s", get_soc_desc(err->soc_id));
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_SOCKET_ID))
-		HISI_SNPRINTF(event->error_msg, "socket_id=%d", err->socket_id);
+		HISI_SNPRINTF(event->error_msg, "socket_id=%hhu", err->socket_id);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_TOTEM_ID))
-		HISI_SNPRINTF(event->error_msg, "totem_id=%d", err->totem_id);
+		HISI_SNPRINTF(event->error_msg, "totem_id=%hhu", err->totem_id);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_NIMBUS_ID))
-		HISI_SNPRINTF(event->error_msg, "nimbus_id=%d", err->nimbus_id);
+		HISI_SNPRINTF(event->error_msg, "nimbus_id=%hhu", err->nimbus_id);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_SUBSYSTEM_ID))
-		HISI_SNPRINTF(event->error_msg, "subsystem_id=%d", err->subsystem_id);
+		HISI_SNPRINTF(event->error_msg, "subsystem_id=%hhu", err->subsystem_id);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_MODULE_ID))
 		decode_module(event, err->module_id);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_SUBMODULE_ID))
-		HISI_SNPRINTF(event->error_msg, "submodule_id=%d", err->submodule_id);
+		HISI_SNPRINTF(event->error_msg, "submodule_id=%hhu", err->submodule_id);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_CORE_ID))
-		HISI_SNPRINTF(event->error_msg, "core_id=%d", err->core_id);
+		HISI_SNPRINTF(event->error_msg, "core_id=%hhu", err->core_id);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_PORT_ID))
-		HISI_SNPRINTF(event->error_msg, "port_id=%d", err->port_id);
+		HISI_SNPRINTF(event->error_msg, "port_id=%hhu", err->port_id);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_ERR_TYPE))
-		HISI_SNPRINTF(event->error_msg, "err_type=%d", err->err_type);
+		HISI_SNPRINTF(event->error_msg, "err_type=%hu", err->err_type);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_PCIE_INFO))
 		HISI_SNPRINTF(event->error_msg, "pcie_device_id=%04x:%02x:%02x.%x",
