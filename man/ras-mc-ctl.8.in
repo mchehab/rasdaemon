@@ -79,9 +79,27 @@ Specify an alternate location for the labels database.
 Specify a delay of \fBtime\fR seconds before registering DIMM labels.
 Only meaninful if used together with --register-labels.
 .TP
-.BI "--layout
+.BI "--layout"
 Prints the memory layout as detected by the EDAC driver. Useful to check
 if the EDAC driver is properly detecting the memory controller architecture.
+.TP
+.BI "--summary"
+Presents a summary of the logged errors.
+.TP
+.BI "--errors"
+Shows the errors stored at the error database.
+.TP
+.BI "--error-count"
+Shows the corrected and uncorrected error counts using sysfs.
+.TP
+.BI "--vendor-errors-summary="platform-id
+Pressents a summary of the vendor-specific logged errors.
+.TP
+.BI "--vendor-errors="platform-id
+Shows the vendor-specific errors stored in the error database.
+.TP
+.BI "--vendor-platforms"
+Shows the supported platforms with platform-ids for the vendor-specific errors.
 
 .SH MAINBOARD CONFIGURATION
 .PP
