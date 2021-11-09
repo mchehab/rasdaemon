@@ -26,4 +26,5 @@ int ras_aer_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
 			 struct event_format *event, void *context);
 
+void ras_aer_handler_init(void);
 #endif
