@@ -26,10 +26,12 @@
 #include "bitfield.h"
 #include "ras-report.h"
 #ifdef HAVE_AMP_NS_DECODE
+#include "dmi_processor_info.h"
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #endif
+
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {
@@ -58,45 +60,36 @@ static const char *aer_uncor_errors[32] = {
 };
 
 #ifdef HAVE_AMP_NS_DECODE
+#ifndef IPMITOOL_CMD
 #define IPMITOOL_CMD "/usr/bin/ipmitool"
-#define DMIDECODE_CMD "/usr/sbin/dmidecode"
+#endif
 static bool ampere_ipmitool = false;
 
+#define ARM_ID "aarch64"
 static void ras_report_aer_ipmi_init(void)
 {
 	struct utsname unm;
 	struct stat st;
-	int rc;
 
 	/*
 	 * Verify on startup if we are on an Ampere Altra or Altra Max
 	 * platform, to set the use of ipmitool (if installed).
-	 * This depends on BIOS implementation to provide the CPU information.
-	 * If the BIOS doesn't provide it or gives a different string, the
-	 * ipmitool use will be disabled.
 	 */
-	if (stat(IPMITOOL_CMD, &st) != 0)
+
+	if ((uname(&unm) != 0) || (strncmp(unm.machine, ARM_ID, strlen(ARM_ID) + 1) != 0))
 		return;
 
-	if ((uname(&unm) != 0) || (strncmp(unm.machine, "aarch64", 8) != 0))
-		return;
-
-	/* prefer dmidecode (if installed) as only lscpu newer than 2.37 gets dmi info */
-	if (stat(DMIDECODE_CMD, &st) == 0)
-		rc = system(DMIDECODE_CMD" -t 4 | /usr/bin/grep "
-		    "'Ampere(R) Altra(R)' > /dev/null");
-	else
-		rc = system("/usr/bin/lscpu | /usr/bin/grep "
-		    "'Ampere(R) Altra(R)' > /dev/null");
-	if (rc == -1 || !WIFEXITED(rc) || WEXITSTATUS(rc))
-		return;
-
-	ampere_ipmitool = true;
+	if (is_ampere_altra()) {
+		if (stat(IPMITOOL_CMD, &st) != 0)
+			log(TERM, LOG_WARNING, "%s command missing on Altra Platform\n", IPMITOOL_CMD);
+		else
+			ampere_ipmitool = true;
+	}
 }
 
 static void ras_report_aer_ipmi(int severity_val, struct ras_aer_event *ev)
 {
-	char ipmi_add_sel[114];
+	char ipmi_add_sel[1024];
 	uint8_t sel_data[5];
 	int seg, bus, dev, fn, rc;
 
@@ -107,7 +100,7 @@ static void ras_report_aer_ipmi(int severity_val, struct ras_aer_event *ev)
 	 * Get PCIe AER error source seg/bus/dev/fn and save it into
 	 * BMC OEM SEL, ipmitool raw 0x0a 0x44 is IPMI command-Add SEL
 	 * entry, please refer IPMI specification chapter 31.6. 0xcd3a
-	 * is manufactuer ID(ampere),byte 12 is sensor num(CE is 0xBF,
+	 * is manufacturer ID(ampere),byte 12 is sensor num(CE is 0xBF,
 	 * UE is 0xCA), byte 13~14 is segment number, byte 15 is bus
 	 * number, byte 16[7:3] is device number, byte 16[2:0] is
 	 * function number.
@@ -138,7 +131,7 @@ static void ras_report_aer_ipmi(int severity_val, struct ras_aer_event *ev)
 	if (rc == -1 || !WIFEXITED(rc) || WEXITSTATUS(rc))
 		log(TERM, LOG_ERR, "ipmitool command failed [%d]", rc);
 }
-#endif
+#endif /* HAVE_AMP_NS_DECODE */
 
 #define BUF_LEN	1024
 
