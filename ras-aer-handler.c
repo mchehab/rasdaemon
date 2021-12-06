@@ -71,6 +71,9 @@ static void ras_report_aer_ipmi_init(void)
 	/*
 	 * Verify on startup if we are on an Ampere Altra or Altra Max
 	 * platform, to set the use of ipmitool (if installed).
+	 * This depends on BIOS implementation to provide the CPU information.
+	 * If the BIOS doesn't provide it or gives a different string, the
+	 * ipmitool use will be disabled.
 	 */
 	if (stat(IPMITOOL_CMD, &st) != 0)
 		return;
@@ -78,7 +81,7 @@ static void ras_report_aer_ipmi_init(void)
 	if ((uname(&unm) != 0) || (strncmp(unm.machine, "aarch64", 8) != 0))
 		return;
 
-	/* prefer dmidecode as lscpu may not have the necessary dmi info */
+	/* prefer dmidecode (if installed) as only lscpu newer than 2.37 gets dmi info */
 	if (stat(DMIDECODE_CMD, &st) == 0)
 		rc = system(DMIDECODE_CMD" -t 4 | /usr/bin/grep "
 		    "'Ampere(R) Altra(R)' > /dev/null");
