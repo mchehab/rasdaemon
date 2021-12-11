@@ -1,6 +1,7 @@
 [Unit]
 Description=RAS daemon to log the RAS events
-After=syslog.target
+# only needed when not running in foreground (--foreground | -f)
+#After=syslog.target
 
 [Service]
 EnvironmentFile=@SYSCONFDEFDIR@/rasdaemon
