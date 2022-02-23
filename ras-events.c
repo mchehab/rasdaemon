@@ -42,6 +42,7 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
+#include "ras-cpu-isolation.h"
 
 /*
  * Polling time, if read() doesn't block. Currently, trace_pipe_raw never
@@ -856,6 +857,10 @@ int handle_ras_events(int record_events)
 
 	cpus = get_num_cpus(ras);
 
+#ifdef HAVE_CPU_FAULT_ISOLATION
+	ras_cpu_isolation_init(cpus);
+#endif
+
 #ifdef HAVE_MCE
 	rc = register_mce_handler(ras, cpus);
 	if (rc)
@@ -982,6 +987,8 @@ err:
 		}
 		free(ras);
 	}
-
+#ifdef HAVE_CPU_FAULT_ISOLATION
+	cpu_infos_free();
+#endif
 	return rc;
 }
