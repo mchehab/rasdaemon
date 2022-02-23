@@ -22,6 +22,10 @@
 #include "ras-report.h"
 #include "ras-non-standard-handler.h"
 #include "non-standard-ampere.h"
+#include "ras-cpu-isolation.h"
+
+#define ARM_ERR_VALID_ERROR_COUNT BIT(0)
+#define ARM_ERR_VALID_FLAGS BIT(1)
 
 void display_raw_data(struct trace_seq *s,
 		const uint8_t *buf,
@@ -42,6 +46,93 @@ void display_raw_data(struct trace_seq *s,
 	}
 }
 
+#ifdef HAVE_CPU_FAULT_ISOLATION
+static int count_errors(struct ras_arm_event *ev)
+{
+	struct ras_arm_err_info *err_info;
+	int num_pei;
+	int err_info_size = sizeof(struct ras_arm_err_info);
+	int num = 0;
+	int i;
+	int error_count;
+
+	if (ev->pei_len % err_info_size != 0) {
+		log(TERM, LOG_ERR,
+			"The event data does not match to the ARM Processor Error Information Structure\n");
+		return num;
+	}
+	num_pei = ev->pei_len / err_info_size;
+	err_info = (struct ras_arm_err_info *)(ev->pei_error);
+
+	for (i = 0; i < num_pei; ++i) {
+		error_count = 1;
+		if (err_info->validation_bits & ARM_ERR_VALID_ERROR_COUNT) {
+			/*
+			 * The value of this field is defined as follows:
+			 * 0: Single Error
+			 * 1: Multiple Errors
+			 * 2-65535: Error Count
+			 */
+			error_count = err_info->multiple_error + 1;
+		}
+
+		num += error_count;
+		err_info += 1;
+	}
+	log(TERM, LOG_INFO, "%d error in cpu core catched\n", num);
+	return num;
+}
+
+static int ras_handle_cpu_error(struct trace_seq *s,
+			 struct pevent_record *record,
+			 struct event_format *event,
+			 struct ras_arm_event *ev, time_t now)
+{
+	unsigned long long val;
+	int cpu;
+	char *severity;
+	struct error_info err_info;
+
+	if (pevent_get_field_val(s, event, "cpu", record, &val, 1) < 0)
+		return -1;
+	cpu = val;
+	trace_seq_printf(s, "\n cpu: %d", cpu);
+
+	/* record cpu error */
+	if (pevent_get_field_val(s, event, "sev", record, &val, 1) < 0)
+		return -1;
+	/* refer to UEFI_2_9 specification chapter N2.2 Table N-5 */
+	switch (val) {
+	case GHES_SEV_NO:
+		severity = "Informational";
+		break;
+	case GHES_SEV_CORRECTED:
+		severity = "Corrected";
+		break;
+	case GHES_SEV_RECOVERABLE:
+		severity = "Recoverable";
+		break;
+	default:
+	case GHES_SEV_PANIC:
+		severity = "Fatal";
+	}
+	trace_seq_printf(s, "\n severity: %s", severity);
+
+	if (val == GHES_SEV_CORRECTED) {
+		int nums = count_errors(ev);
+
+		if (nums > 0) {
+			err_info.nums = nums;
+			err_info.time = now;
+			err_info.err_type = val;
+			ras_record_cpu_error(&err_info, cpu);
+		}
+	}
+
+	return 0;
+}
+#endif
+
 int ras_arm_event_handler(struct trace_seq *s,
 			 struct pevent_record *record,
 			 struct event_format *event, void *context)
@@ -52,6 +143,7 @@ int ras_arm_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct ras_arm_event ev;
 	int len = 0;
+
 	memset(&ev, 0, sizeof(ev));
 
 	/*
@@ -137,6 +229,11 @@ int ras_arm_event_handler(struct trace_seq *s,
 				(struct amp_payload0_type_sec *)ev.vsei_error);
 #else
 	display_raw_data(s, ev.vsei_error, ev.oem_len);
+#endif
+
+#ifdef HAVE_CPU_FAULT_ISOLATION
+	if (ras_handle_cpu_error(s, record, event, &ev, now) < 0)
+		return -1;
 #endif
 
 	/* Insert data into the SGBD */
