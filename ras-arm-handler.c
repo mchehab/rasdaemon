@@ -26,6 +26,7 @@
 
 #define ARM_ERR_VALID_ERROR_COUNT BIT(0)
 #define ARM_ERR_VALID_FLAGS BIT(1)
+#define BIT2 2
 
 void display_raw_data(struct trace_seq *s,
 		const uint8_t *buf,
@@ -47,7 +48,20 @@ void display_raw_data(struct trace_seq *s,
 }
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
-static int count_errors(struct ras_arm_event *ev)
+static int is_core_failure(struct ras_arm_err_info *err_info)
+{
+	if (err_info->validation_bits & ARM_ERR_VALID_FLAGS) {
+		/*
+		 * core failure:
+		 * Bit 0\1\3: (at lease 1)
+		 * Bit 2: 0
+		 */
+		return (err_info->flags & 0xf) && !(err_info->flags & (0x1 << BIT2));
+	}
+	return 0;
+}
+
+static int count_errors(struct ras_arm_event *ev, int sev)
 {
 	struct ras_arm_err_info *err_info;
 	int num_pei;
@@ -75,6 +89,8 @@ static int count_errors(struct ras_arm_event *ev)
 			 */
 			error_count = err_info->multiple_error + 1;
 		}
+		if (sev == GHES_SEV_RECOVERABLE && !is_core_failure(err_info))
+			error_count = 0;
 
 		num += error_count;
 		err_info += 1;
@@ -118,8 +134,8 @@ static int ras_handle_cpu_error(struct trace_seq *s,
 	}
 	trace_seq_printf(s, "\n severity: %s", severity);
 
-	if (val == GHES_SEV_CORRECTED) {
-		int nums = count_errors(ev);
+	if (val == GHES_SEV_CORRECTED || val == GHES_SEV_RECOVERABLE) {
+		int nums = count_errors(ev, val);
 
 		if (nums > 0) {
 			err_info.nums = nums;
