@@ -126,6 +126,7 @@ static int init_cpu_info(unsigned int cpus)
 
 	for (unsigned int i = 0; i < cpus; ++i) {
 		cpu_infos[i].ce_nums = 0;
+		cpu_infos[i].uce_nums = 0;
 		cpu_infos[i].state = get_cpu_status(i);
 		cpu_infos[i].ce_queue = init_queue();
 
@@ -306,6 +307,15 @@ static int do_ce_handler(unsigned int cpu)
 	return HANDLE_NOTHING;
 }
 
+static int do_uce_handler(unsigned int cpu)
+{
+	if (cpu_infos[cpu].uce_nums > 0) {
+		log(TERM, LOG_INFO, "Uncorrected Errors occurred, try to offline cpu%u\n", cpu);
+		return do_cpu_offline(cpu);
+	}
+	return HANDLE_NOTHING;
+}
+
 static int error_handler(unsigned int cpu, struct error_info *err_info)
 {
 	int ret = HANDLE_NOTHING;
@@ -313,6 +323,9 @@ static int error_handler(unsigned int cpu, struct error_info *err_info)
 	switch (err_info->err_type) {
 	case CE:
 		ret = do_ce_handler(cpu);
+		break;
+	case UCE:
+		ret = do_uce_handler(cpu);
 		break;
 	default:
 		break;
@@ -336,6 +349,9 @@ static void record_error_info(unsigned int cpu, struct error_info *err_info)
 		cpu_infos[cpu].ce_nums += err_info->nums;
 		break;
 	}
+	case UCE:
+		cpu_infos[cpu].uce_nums++;
+		break;
 	default:
 		break;
 	}
@@ -382,6 +398,7 @@ void ras_record_cpu_error(struct error_info *err_info, int cpu)
 			cpu, cpu_state[cpu_infos[cpu].state]);
 		clear_queue(cpu_infos[cpu].ce_queue);
 		cpu_infos[cpu].ce_nums = 0;
+		cpu_infos[cpu].uce_nums = 0;
 	} else
 		log(TERM, LOG_WARNING, "Offline cpu%d fail, the state is %s\n",
 			cpu, cpu_state[cpu_infos[cpu].state]);

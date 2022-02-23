@@ -45,10 +45,12 @@ enum error_handle_result {
 };
 
 enum error_type {
-	CE = 1
+	CE = 1,
+	UCE
 };
 
 struct cpu_info {
+	unsigned long uce_nums;
 	unsigned long ce_nums;
 	struct link_queue *ce_queue;
 	enum cpu_state state;
