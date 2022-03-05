@@ -1671,8 +1671,9 @@ sub vendor_errors
             $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
             $out .= "module_id=$module_id, " if ($module_id);
             $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-            $out .= "err_severity=$err_severity, \n" if ($err_severity);
-            $out .= "Error Registers: $regs\n\n" if ($regs);
+            $out .= "err_severity=$err_severity, " if ($err_severity);
+            $out .= "Error Registers: $regs " if ($regs);
+            $out .= "\n\n";
         }
         if ($out ne "") {
             print "HiSilicon Kunpeng920 OEM type1 error events:\n$out\n";
@@ -1694,8 +1695,9 @@ sub vendor_errors
             $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
             $out .= "module_id=$module_id, " if ($module_id);
             $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-            $out .= "err_severity=$err_severity, \n" if ($err_severity);
-            $out .= "Error Registers: $regs\n\n" if ($regs);
+            $out .= "err_severity=$err_severity, " if ($err_severity);
+            $out .= "Error Registers: $regs " if ($regs);
+            $out .= "\n\n";
         }
         if ($out ne "") {
             print "HiSilicon Kunpeng920 OEM type2 error events:\n$out\n";
@@ -1719,8 +1721,9 @@ sub vendor_errors
             $out .= "core_id=$core_id, " if ($core_id);
             $out .= "port_id=$port_id, " if ($port_id);
             $out .= "err_severity=$err_severity, " if ($err_severity);
-            $out .= "err_type=$err_type, \n" if ($err_type);
-            $out .= "Error Registers: $regs\n\n" if ($regs);
+            $out .= "err_type=$err_type, " if ($err_type);
+            $out .= "Error Registers: $regs " if ($regs);
+            $out .= "\n\n";
         }
         if ($out ne "") {
             print "HiSilicon Kunpeng920 PCIe controller error events:\n$out\n";
