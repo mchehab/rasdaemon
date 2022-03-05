@@ -1544,6 +1544,7 @@ sub vendor_errors_summary
     if ($num_args ne 0) {
         $platform_id = $ARGV[0];
     } else {
+        usage(1);
         return;
     }
 
@@ -1651,6 +1652,7 @@ sub vendor_errors
     if ($num_args ne 0) {
         $platform_id = $ARGV[0];
     } else {
+        usage(1);
         return;
     }
 
