@@ -1529,7 +1529,6 @@ sub errors
 
 # Definitions of the vendor platform IDs.
 use constant {
-    HISILICON_KUNPENG_920 => "Kunpeng920",
     HISILICON_KUNPENG_9XX => "Kunpeng9xx",
 };
 
@@ -1553,8 +1552,8 @@ sub vendor_errors_summary
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
-    # HiSilicon Kunpeng920 errors
-    if ($platform_id eq HISILICON_KUNPENG_920) {
+    # HiSilicon Kunpeng9xx errors
+    if ($platform_id eq HISILICON_KUNPENG_9XX) {
 	$found_platform = 1;
         $query = "select err_severity, module_id, count(*) from hip08_oem_type1_event_v2 group by err_severity, module_id";
         $query_handle = $dbh->prepare($query);
@@ -1570,9 +1569,7 @@ sub vendor_errors_summary
             $out .= "\t$module_id: $count\n";
         }
         if ($out ne "") {
-            print "HiSilicon Kunpeng920 OEM type1 error events summary:\n$out\n";
-        } else {
-            print "No HiSilicon Kunpeng920 OEM type1 errors.\n\n";
+            print "HiSilicon Kunpeng9xx OEM type1 error events summary:\n$out\n";
         }
         $query_handle->finish;
 
@@ -1590,9 +1587,7 @@ sub vendor_errors_summary
             $out .= "\t$module_id: $count\n";
         }
         if ($out ne "") {
-            print "HiSilicon Kunpeng920 OEM type2 error events summary:\n$out\n";
-        } else {
-            print "No HiSilicon Kunpeng920 OEM type2 errors.\n\n";
+            print "HiSilicon Kunpeng9xx OEM type2 error events summary:\n$out\n";
         }
         $query_handle->finish;
 
@@ -1610,16 +1605,10 @@ sub vendor_errors_summary
             $out .= "\t$sub_module_id: $count\n";
         }
         if ($out ne "") {
-            print "HiSilicon Kunpeng920 PCIe controller error events summary:\n$out\n";
-        } else {
-            print "No HiSilicon Kunpeng920 PCIe controller errors.\n\n";
+            print "HiSilicon Kunpeng9xx PCIe controller error events summary:\n$out\n";
         }
         $query_handle->finish;
-    }
 
-    # HiSilicon Kunpeng9xx common errors
-    if ($platform_id eq HISILICON_KUNPENG_9XX) {
-	$found_platform = 1;
         $query = "select err_severity, module_id, count(*) from hisi_common_section_v2 group by err_severity, module_id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
@@ -1635,8 +1624,6 @@ sub vendor_errors_summary
         }
         if ($out ne "") {
             print "HiSilicon Kunpeng9xx common error events summary:\n$out\n";
-        } else {
-            print "No HiSilicon Kunpeng9xx common errors.\n\n";
         }
         $query_handle->finish;
     }
@@ -1673,8 +1660,8 @@ sub vendor_errors
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
-    # HiSilicon Kunpeng920 errors
-    if ($platform_id eq HISILICON_KUNPENG_920) {
+    # HiSilicon Kunpeng9xx errors
+    if ($platform_id eq HISILICON_KUNPENG_9XX) {
 	$found_platform = 1;
         $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2 order by id, module_id, err_severity";
         $query_handle = $dbh->prepare($query);
@@ -1697,7 +1684,7 @@ sub vendor_errors
 	    }
         }
         if ($out ne "") {
-            print "HiSilicon Kunpeng920 OEM type1 error events:\n$out\n";
+            print "HiSilicon Kunpeng9xx OEM type1 error events:\n$out\n";
         }
         $query_handle->finish;
 
@@ -1722,7 +1709,7 @@ sub vendor_errors
 	    }
         }
         if ($out ne "") {
-            print "HiSilicon Kunpeng920 OEM type2 error events:\n$out\n";
+            print "HiSilicon Kunpeng9xx OEM type2 error events:\n$out\n";
         }
         $query_handle->finish;
 
@@ -1749,14 +1736,10 @@ sub vendor_errors
 	    }
         }
         if ($out ne "") {
-            print "HiSilicon Kunpeng920 PCIe controller error events:\n$out\n";
+            print "HiSilicon Kunpeng9xx PCIe controller error events:\n$out\n";
         }
         $query_handle->finish;
-    }
 
-    # HiSilicon Kunpeng9xx common errors
-    if ($platform_id eq HISILICON_KUNPENG_9XX) {
-	$found_platform = 1;
         $query = "select id, timestamp, version, soc_id, socket_id, totem_id, nimbus_id, sub_system_id, module_id, sub_module_id, core_id, port_id, err_type, pcie_info, err_severity, regs_dump from hisi_common_section_v2 order by id, module_id, err_severity";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
@@ -1785,8 +1768,6 @@ sub vendor_errors
         }
         if ($out ne "") {
             print "HiSilicon Kunpeng9xx common error events:\n$out\n";
-        } else {
-            print "No HiSilicon Kunpeng9xx common errors.\n";
         }
         $query_handle->finish;
     }
@@ -1803,7 +1784,6 @@ sub vendor_errors
 sub vendor_platforms
 {
         print "\nSupported platforms for the vendor-specific errors:\n";
-        print "\tHiSilicon Kunpeng920, platform-id=\"", HISILICON_KUNPENG_920, "\"\n";
         print "\tHiSilicon Kunpeng9xx, platform-id=\"", HISILICON_KUNPENG_9XX, "\"\n";
         print "\n";
 }
