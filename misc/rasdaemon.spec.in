@@ -8,6 +8,7 @@ URL:			http://git.infradead.org/users/mchehab/rasdaemon.git
 Source0:		http://www.infradead.org/~mchehab/rasdaemon/%{name}-%{version}.tar.bz2
 
 ExcludeArch:		s390 s390x
+BuildRequires:		make
 BuildRequires:		gcc
 BuildRequires:		gettext-devel
 BuildRequires:		perl-generators
@@ -38,14 +39,15 @@ an utility for reporting current error counts from the EDAC sysfs files.
 %setup -q
 
 %build
-%configure --enable-all
+%configure --enable-all --with-sysconfdefdir=%{_sysconfdir}/sysconfig
 
 make %{?_smp_mflags}
 
 %install
 make install DESTDIR=%{buildroot}
-install -D -p -m 0644 misc/rasdaemon.service %{buildroot}/%{_unitdir}/rasdaemon.service
+install -D -p -m 0644 misc/rasdaemon.service %{buildroot}%{_unitdir}/rasdaemon.service
 install -D -p -m 0644 misc/ras-mc-ctl.service %{buildroot}%{_unitdir}/ras-mc-ctl.service
+install -D -p -m 0655 misc/rasdaemon.env %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 rm INSTALL %{buildroot}/usr/include/*.h
 
 %files
@@ -55,10 +57,12 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_mandir}/*/*
 %{_unitdir}/*.service
 %{_sysconfdir}/ras/dimm_labels.d
-@SYSCONFDEFDIR@/%{name}
-%config(noreplace) @SYSCONFDEFDIR@/%{name}
+%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 
 %changelog
+
+* Fri Apr 01 2022 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>  0.6.7-3
+- Fix sysconfdir issues
 
 * Wed May 26 2021 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>  0.6.7-1
 - Bump to version 0.6.7 with several fixes and additions
@@ -105,17 +109,26 @@ rm INSTALL %{buildroot}/usr/include/*.h
 * Sun Aug 10 2014 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.5.3-1
 - Bump to version 0.5.3 and enable ABRT and ExtLog
 
+* Thu Apr 03 2014 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.5.2-1
+- fix and enable ABRT report support
+
+* Fri Mar 28 2014 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.5.1-1
+- Do some fixes at the service files and add some documentation for --record
+
+* Sun Feb 16 2014  Mauro Carvalho Chehab <m.chehab@samsung.com> 0.5.0-1
+- Add experimental ABRT support
+
 * Tue Sep 10 2013 Mauro Carvalho Chehab <m.chehab@samsung.com> 0.4.2-1
 - Fix ras-mc-ctl layout filling
 
-* Wed May 29 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org> 0.4.1-2
+* Wed May 29 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.1-2
 - Fix the name of perl-DBD-SQLite package
 
-* Wed May 29 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org> 0.4.1-1
+* Wed May 29 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.1-1
 - Updated to version 0.4.1 with contains some bug fixes
 
-* Tue May 28 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org> 0.4.0-1
+* Tue May 28 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.4.0-1
 - Updated to version 0.4.0 and added support for mce, aer and sqlite3 storage
 
-* Mon May 20 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org> 0.3.0-1
+* Mon May 20 2013 Mauro Carvalho Chehab <mchehab@redhat.com> 0.3.0-1
 - Package created
