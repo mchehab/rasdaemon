@@ -4,6 +4,12 @@ SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in misc/ras-mc-ctl.service.in
 SYSTEMD_SERVICES = $(SYSTEMD_SERVICES_IN:.service.in=.service)
 EXTRA_DIST = $(SYSTEMD_SERVICES_IN) misc/rasdaemon.env
 
+CLEANFILES= \
+	misc/ras-mc-ctl.service	\
+	misc/rasdaemon.service
+
+DISTCLEANFILES = misc/rasdaemon.spec
+
 # This rule is needed because \@sbindir\@ is expanded to \${exec_prefix\}/sbin
 # during ./configure phase, therefore it is not possible to add .service.in
 # files to AC_CONFIG_FILES in configure.ac
