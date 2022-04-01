@@ -1,3 +1,17 @@
+2021-05-26	Mauro Carvalho Chehab <mchehab@kernel.org>
+	- Version 0.6.8
+
+	* Fix some issues related to sysconfigdir
+	* Some fixes for hisi boards
+	* Update ras-mc-ctl manpage to match current options
+	* Fix ras-mc-ctl when parsing some dimm sizes
+	* New asrock x570 motherboard label
+	* New Supermicro labels
+	* Support MCE for AMD CPU family 19h
+	* Add new SMCA bank types with error decoding
+	* Add error handling for Ampere-specific errors.
+	* Add support for multi-arch builds
+
 2021-05-26	Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 	- Version 0.6.7
 
