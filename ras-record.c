@@ -456,7 +456,7 @@ int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 #endif
 
 /*
- * Table and functions to handle block:block_rq_complete
+ * Table and functions to handle block:block_rq_{complete|error}
  */
 
 #ifdef HAVE_DISKERROR
