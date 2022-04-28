@@ -387,7 +387,7 @@ static int decode_hisi_common_section(struct ras_events *ras,
 
 static struct ras_ns_ev_decoder hisi_section_ns_ev_decoder[]  = {
 	{
-		.sec_type = "c8b328a899174af69a132e08ab2e7586",
+		.sec_type = "c8b328a8-9917-4af6-9a13-2e08ab2e7586",
 		.decode = decode_hisi_common_section,
 	},
 };
