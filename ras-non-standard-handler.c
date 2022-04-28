@@ -52,20 +52,6 @@ static char *uuid_le(const char *uu)
 	return uuid;
 }
 
-static int uuid_le_cmp(const char *sec_type, const char *uuid2)
-{
-	static char uuid1[32];
-	char *p = uuid1;
-	int i;
-	static const unsigned char le[16] = {
-			3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15};
-
-	for (i = 0; i < 16; i++)
-		p += sprintf(p, "%.2x", (unsigned char) sec_type[le[i]]);
-	*p = 0;
-	return strncmp(uuid1, uuid2, 32);
-}
-
 int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 {
 	struct ras_ns_ev_decoder *list;
@@ -96,7 +82,7 @@ static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p
 
 	ns_ev_decoder = ras_ns_ev_dec_list;
 	while (ns_ev_decoder) {
-		if (uuid_le_cmp(sec_type, ns_ev_decoder->sec_type) == 0) {
+		if (strcmp(uuid_le(sec_type), ns_ev_decoder->sec_type) == 0) {
 			*p_ns_ev_dec = ns_ev_decoder;
 			match  = 1;
 			break;

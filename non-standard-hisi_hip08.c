@@ -1014,15 +1014,15 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 
 static struct ras_ns_ev_decoder hip08_ns_ev_decoder[] = {
 	{
-		.sec_type = "1f8161e155d641e6bd107afd1dc5f7c5",
+		.sec_type = "1f8161e1-55d6-41e6-bd10-7afd1dc5f7c5",
 		.decode = decode_hip08_oem_type1_error,
 	},
 	{
-		.sec_type = "45534ea6ce2341158535e07ab3aef91d",
+		.sec_type = "45534ea6-ce23-4115-8535-e07ab3aef91d",
 		.decode = decode_hip08_oem_type2_error,
 	},
 	{
-		.sec_type = "b2889fc9e7d74f9da867af42e98be772",
+		.sec_type = "b2889fc9-e7d7-4f9d-a867-af42e98be772",
 		.decode = decode_hip08_pcie_local_error,
 	},
 };
