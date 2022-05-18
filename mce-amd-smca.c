@@ -790,6 +790,10 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 	const struct smca_hwid *s_hwid;
 	uint32_t mcatype_hwid = EXTRACT(e->ipid, 32, 63);
 	uint8_t mcatype_instancehi = EXTRACT(e->ipid, 44, 47);
+	/* MCA_IPID[43:32] HardwareID of IP associated with MCA bank */
+	uint16_t ipid_hwid = EXTRACT(e->ipid, 32, 43);
+	/* MCA_IPID[63:48] McaType of the MCA bank within the IP */
+	uint16_t ipid_mcatype = EXTRACT(e->ipid, 48, 63);
 	unsigned int csrow = -1, channel = -1;
 	unsigned int i;
 
@@ -798,6 +802,11 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 	for (i = 0; i < ARRAY_SIZE(smca_hwid_mcatypes); i++) {
 		s_hwid = &smca_hwid_mcatypes[i];
 		if (mcatype_hwid == s_hwid->mcatype_hwid) {
+			bank_type = s_hwid->bank_type;
+			break;
+		} else if ((mcatype_instancehi == e->socketid) &&
+			(ipid_hwid == EXTRACT(s_hwid->mcatype_hwid, 0, 11)) &&
+			(ipid_mcatype == EXTRACT(s_hwid->mcatype_hwid, 16, 31))) {
 			bank_type = s_hwid->bank_type;
 			break;
 		}
