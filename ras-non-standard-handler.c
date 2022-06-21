@@ -54,7 +54,7 @@ static char *uuid_le(const char *uu)
 
 static int uuid_le_cmp(const char *sec_type, const char *uuid2)
 {
-	static char uuid1[32];
+	static char uuid1[33];
 	char *p = uuid1;
 	int i;
 	static const unsigned char le[16] = {
