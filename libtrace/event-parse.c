@@ -5071,7 +5071,13 @@ int pevent_strerror(struct pevent *pevent, enum pevent_errno errnum,
 	const char *msg;
 
 	if (errnum >= 0) {
+#if defined(__GLIBC__)
 		msg = strerror_r(errnum, buf, buflen);
+#else
+		if (strerror_r(errnum, buf, buflen) != 0)
+			snprintf(buf, buflen, "unknown error %i", errnum);
+		msg = buf;
+#endif
 		if (msg != buf) {
 			size_t len = strlen(msg);
 			memcpy(buf, msg, min(buflen - 1, len));
