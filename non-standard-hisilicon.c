@@ -214,7 +214,11 @@ static const char* module_name[] = {
 	"Tsensor",
 	"ROH",
 	"BTC",
-	"HILINK"
+	"HILINK",
+	"STARS",
+	"SDMA",
+	"UC",
+	"HBMC",
 };
 
 static const char* get_soc_desc(uint8_t soc_id)
