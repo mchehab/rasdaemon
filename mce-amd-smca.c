@@ -584,7 +584,7 @@ static void decode_smca_error(struct mce_event *e)
 		return;
 	}
 
-	if (bank_type >= MAX_NR_BANKS) {
+	if (bank_type >= N_SMCA_BANK_TYPES) {
 		strcpy(e->mcastatus_msg, "Don't know how to decode this bank");
 		return;
 	}
