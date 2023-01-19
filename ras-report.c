@@ -434,7 +434,7 @@ int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev){
 
 mc_fail:
 
-	if(sockfd > 0){
+	if(sockfd >= 0){
 		close(sockfd);
 	}
 
@@ -484,7 +484,7 @@ int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev){
 
 aer_fail:
 
-	if(sockfd > 0){
+	if(sockfd >= 0){
 		close(sockfd);
 	}
 
@@ -533,7 +533,7 @@ int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standar
 
 non_standard_fail:
 
-	if(sockfd > 0){
+	if(sockfd >= 0){
 		close(sockfd);
 	}
 
@@ -578,7 +578,7 @@ int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev){
 
 arm_fail:
 
-	if(sockfd > 0){
+	if(sockfd >= 0){
 		close(sockfd);
 	}
 
@@ -624,7 +624,7 @@ int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev){
 
 mce_fail:
 
-	if(sockfd > 0){
+	if(sockfd >= 0){
 		close(sockfd);
 	}
 
@@ -674,7 +674,7 @@ int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev){
 
 devlink_fail:
 
-	if(sockfd > 0){
+	if(sockfd >= 0){
 		close(sockfd);
 	}
 
@@ -723,7 +723,7 @@ int ras_report_diskerror_event(struct ras_events *ras, struct diskerror_event *e
 	done = 1;
 
 diskerror_fail:
-	if(sockfd > 0){
+	if(sockfd >= 0){
 		close(sockfd);
 	}
 
@@ -768,7 +768,7 @@ int ras_report_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 	done = 1;
 
 mf_fail:
-	if (sockfd > 0)
+	if (sockfd >= 0)
 		close(sockfd);
 
 	if (done)
