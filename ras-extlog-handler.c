@@ -184,8 +184,8 @@ static void report_extlog_mem_event(struct ras_events *ras,
 }
 
 int ras_extlog_mem_event_handler(struct trace_seq *s,
-			  struct tep_record *record,
-			  struct tep_event *event, void *context)
+				 struct tep_record *record,
+				 struct tep_event *event, void *context)
 {
 	int len;
 	unsigned long long val;
@@ -231,12 +231,12 @@ int ras_extlog_mem_event_handler(struct trace_seq *s,
 	ev.pa_mask_lsb = val;
 
 	ev.cper_data = tep_get_field_raw(s, event, "data",
-					   record, &len, 1);
+					 record, &len, 1);
 	ev.cper_data_length = len;
 	ev.fru_text = tep_get_field_raw(s, event, "fru_text",
-					   record, &len, 1);
+					record, &len, 1);
 	ev.fru_id = tep_get_field_raw(s, event, "fru_id",
-					   record, &len, 1);
+				      record, &len, 1);
 
 	report_extlog_mem_event(ras, record, s, &ev);
 

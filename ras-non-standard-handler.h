@@ -32,8 +32,8 @@ struct ras_ns_ev_decoder {
 };
 
 int ras_non_standard_event_handler(struct trace_seq *s,
-			 struct tep_record *record,
-			 struct tep_event *event, void *context);
+				   struct tep_record *record,
+				   struct tep_event *event, void *context);
 
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index);
 

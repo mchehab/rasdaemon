@@ -52,7 +52,7 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 	ev.reporter_name = "";
 
 	ev.dev_name = tep_get_field_raw(s, event, "name",
-					   record, &len, 1);
+					record, &len, 1);
 	if (!ev.dev_name)
 		return -1;
 
@@ -115,22 +115,22 @@ int ras_devlink_event_handler(struct trace_seq *s,
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
 	ev.bus_name = tep_get_field_raw(s, event, "bus_name",
-					   record, &len, 1);
+					record, &len, 1);
 	if (!ev.bus_name)
 		return -1;
 
 	ev.dev_name = tep_get_field_raw(s, event, "dev_name",
-					   record, &len, 1);
+					record, &len, 1);
 	if (!ev.dev_name)
 		return -1;
 
 	ev.driver_name = tep_get_field_raw(s, event, "driver_name",
-					   record, &len, 1);
+					record, &len, 1);
 	if (!ev.driver_name)
 		return -1;
 
 	ev.reporter_name = tep_get_field_raw(s, event, "reporter_name",
-					   record, &len, 1);
+					     record, &len, 1);
 	if (!ev.reporter_name)
 		return -1;
 

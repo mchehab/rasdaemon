@@ -55,8 +55,8 @@ static const char *aer_uncor_errors[32] = {
 #define BUF_LEN	1024
 
 int ras_aer_event_handler(struct trace_seq *s,
-			 struct tep_record *record,
-			 struct tep_event *event, void *context)
+			  struct tep_record *record,
+			  struct tep_event *event, void *context)
 {
 	int len;
 	unsigned long long severity_val;
@@ -92,7 +92,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
 	ev.dev_name = tep_get_field_raw(s, event, "dev_name",
-					   record, &len, 1);
+					record, &len, 1);
 	if (!ev.dev_name)
 		return -1;
 	trace_seq_printf(s, "%s ", ev.dev_name);
@@ -113,13 +113,13 @@ int ras_aer_event_handler(struct trace_seq *s,
 	ev.msg = buf;
 
 	if (tep_get_field_val(s, event, "tlp_header_valid",
-				record, &val, 1) < 0)
+			      record, &val, 1) < 0)
 		return -1;
 
 	ev.tlp_header_valid = val;
 	if (ev.tlp_header_valid) {
 		ev.tlp_header = tep_get_field_raw(s, event, "tlp_header",
-						     record, &len, 1);
+						  record, &len, 1);
 		snprintf((buf + strlen(ev.msg)), BUF_LEN - strlen(ev.msg),
 			 " TLP Header: %08x %08x %08x %08x",
 			 ev.tlp_header[0], ev.tlp_header[1],
