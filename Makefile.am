@@ -1,3 +1,4 @@
+AM_DISTCHECK_CONFIGURE_FLAGS = --enable-all
 ACLOCAL_AMFLAGS=-I m4
 SUBDIRS = util man
 SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in misc/ras-mc-ctl.service.in
