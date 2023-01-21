@@ -5,6 +5,7 @@ misc/ras-mc-ctl.service
 misc/rasdaemon.service
 Makefile
 Makefile.in
+compile
 config.h
 config.h.in
 config.h.in~
