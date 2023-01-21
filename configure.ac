@@ -1,12 +1,12 @@
-AC_INIT([RASdaemon], 0.7.0)
+AC_INIT([RASdaemon],[0.7.0])
 AM_SILENT_RULES([yes])
-AC_CANONICAL_SYSTEM
+AC_CANONICAL_TARGET
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PROG_LIBTOOL
+LT_INIT
 
 X_AC_META
 
@@ -186,7 +186,7 @@ AC_DEFINE_DIR([RASSTATEDIR], [rasstatedir], [rasdaemon db store state dir])
 AC_SUBST([RASSTATEDIR])
 
 AC_ARG_WITH(sysconfdefdir,
-    AC_HELP_STRING([--with-sysconfdefdir=DIR], [rasdaemon environment file dir]),
+    AS_HELP_STRING([--with-sysconfdefdir=DIR],[rasdaemon environment file dir]),
     [SYSCONFDEFDIR=$withval],
     [SYSCONFDEFDIR=/etc/sysconfig])
 AC_SUBST([SYSCONFDEFDIR])
