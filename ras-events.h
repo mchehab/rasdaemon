@@ -45,8 +45,8 @@ enum {
 struct ras_events {
 	char debugfs[MAX_PATH + 1];
 	char tracing[MAX_PATH + 1];
-	struct tep_handle	*pevent;
-	int		page_size;
+	struct tep_handle *pevent;
+	int page_size;
 
 	/* Booleans */
 	unsigned	use_uptime: 1;
@@ -69,7 +69,7 @@ struct ras_events {
 
 struct pthread_data {
 	pthread_t		thread;
-	struct tep_handle		*pevent;
+	struct tep_handle	*pevent;
 	struct ras_events	*ras;
 	int			cpu;
 };

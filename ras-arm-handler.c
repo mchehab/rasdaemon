@@ -100,9 +100,9 @@ static int count_errors(struct ras_arm_event *ev, int sev)
 }
 
 static int ras_handle_cpu_error(struct trace_seq *s,
-			 struct tep_record *record,
-			 struct tep_event *event,
-			 struct ras_arm_event *ev, time_t now)
+				struct tep_record *record,
+				struct tep_event *event,
+				struct ras_arm_event *ev, time_t now)
 {
 	unsigned long long val;
 	int cpu;
@@ -150,8 +150,8 @@ static int ras_handle_cpu_error(struct trace_seq *s,
 #endif
 
 int ras_arm_event_handler(struct trace_seq *s,
-			 struct tep_record *record,
-			 struct tep_event *event, void *context)
+			  struct tep_record *record,
+			  struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	struct ras_events *ras = context;
