@@ -22,7 +22,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
-#include "libtrace/kbuffer.h"
+#include <traceevent/kbuffer.h>
 #include "ras-extlog-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
@@ -170,7 +170,7 @@ static char *uuid_le(const char *uu)
 
 
 static void report_extlog_mem_event(struct ras_events *ras,
-				    struct pevent_record *record,
+				    struct tep_record *record,
 				    struct trace_seq *s,
 				    struct ras_extlog_event *ev)
 {
@@ -184,8 +184,8 @@ static void report_extlog_mem_event(struct ras_events *ras,
 }
 
 int ras_extlog_mem_event_handler(struct trace_seq *s,
-			  struct pevent_record *record,
-			  struct event_format *event, void *context)
+			  struct tep_record *record,
+			  struct tep_event *event, void *context)
 {
 	int len;
 	unsigned long long val;
@@ -214,28 +214,28 @@ int ras_extlog_mem_event_handler(struct trace_seq *s,
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
-	if (pevent_get_field_val(s,  event, "etype", record, &val, 1) < 0)
+	if (tep_get_field_val(s,  event, "etype", record, &val, 1) < 0)
 		return -1;
 	ev.etype = val;
-	if (pevent_get_field_val(s,  event, "err_seq", record, &val, 1) < 0)
+	if (tep_get_field_val(s,  event, "err_seq", record, &val, 1) < 0)
 		return -1;
 	ev.error_seq = val;
-	if (pevent_get_field_val(s,  event, "sev", record, &val, 1) < 0)
+	if (tep_get_field_val(s,  event, "sev", record, &val, 1) < 0)
 		return -1;
 	ev.severity = val;
-	if (pevent_get_field_val(s,  event, "pa", record, &val, 1) < 0)
+	if (tep_get_field_val(s,  event, "pa", record, &val, 1) < 0)
 		return -1;
 	ev.address = val;
-	if (pevent_get_field_val(s,  event, "pa_mask_lsb", record, &val, 1) < 0)
+	if (tep_get_field_val(s,  event, "pa_mask_lsb", record, &val, 1) < 0)
 		return -1;
 	ev.pa_mask_lsb = val;
 
-	ev.cper_data = pevent_get_field_raw(s, event, "data",
+	ev.cper_data = tep_get_field_raw(s, event, "data",
 					   record, &len, 1);
 	ev.cper_data_length = len;
-	ev.fru_text = pevent_get_field_raw(s, event, "fru_text",
+	ev.fru_text = tep_get_field_raw(s, event, "fru_text",
 					   record, &len, 1);
-	ev.fru_id = pevent_get_field_raw(s, event, "fru_id",
+	ev.fru_id = tep_get_field_raw(s, event, "fru_id",
 					   record, &len, 1);
 
 	report_extlog_mem_event(ras, record, s, &ev);

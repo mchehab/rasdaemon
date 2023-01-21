@@ -24,7 +24,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/sysmacros.h>
-#include "libtrace/kbuffer.h"
+#include <traceevent/kbuffer.h>
 #include "ras-diskerror-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
@@ -61,8 +61,8 @@ static const char *get_blk_error(int err)
 }
 
 int ras_diskerror_event_handler(struct trace_seq *s,
-				struct pevent_record *record,
-				struct event_format *event, void *context)
+				struct tep_record *record,
+				struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	int len;
@@ -92,29 +92,29 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
-	if (pevent_get_field_val(s, event, "dev", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "dev", record, &val, 1) < 0)
 		return -1;
 	dev = (dev_t)val;
 	if (asprintf(&ev.dev, "%u:%u", major(dev), minor(dev)) < 0)
 		return -1;
 
-	if (pevent_get_field_val(s, event, "sector", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "sector", record, &val, 1) < 0)
 		return -1;
 	ev.sector = val;
 
-	if (pevent_get_field_val(s, event, "nr_sector", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "nr_sector", record, &val, 1) < 0)
 		return -1;
 	ev.nr_sector = (unsigned int)val;
 
-	if (pevent_get_field_val(s, event, "error", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "error", record, &val, 1) < 0)
 		return -1;
 	ev.error = get_blk_error((int)val);
 
-	ev.rwbs = pevent_get_field_raw(s, event, "rwbs", record, &len, 1);
+	ev.rwbs = tep_get_field_raw(s, event, "rwbs", record, &len, 1);
 	if (!ev.rwbs)
 		return -1;
 
-	ev.cmd = pevent_get_field_raw(s, event, "cmd", record, &len, 1);
+	ev.cmd = tep_get_field_raw(s, event, "cmd", record, &len, 1);
 	if (!ev.cmd)
 		return -1;
 

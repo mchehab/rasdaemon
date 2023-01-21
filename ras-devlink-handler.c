@@ -20,15 +20,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "libtrace/kbuffer.h"
+#include <traceevent/kbuffer.h>
 #include "ras-devlink-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
-				 struct pevent_record *record,
-				 struct event_format *event, void *context)
+				 struct tep_record *record,
+				 struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	int len;
@@ -51,17 +51,17 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 	ev.bus_name = "";
 	ev.reporter_name = "";
 
-	ev.dev_name = pevent_get_field_raw(s, event, "name",
+	ev.dev_name = tep_get_field_raw(s, event, "name",
 					   record, &len, 1);
 	if (!ev.dev_name)
 		return -1;
 
-	ev.driver_name = pevent_get_field_raw(s, event, "driver",
+	ev.driver_name = tep_get_field_raw(s, event, "driver",
 					   record, &len, 1);
 	if (!ev.driver_name)
 		return -1;
 
-	if (pevent_get_field_val(s, event, "queue_index", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "queue_index", record, &val, 1) < 0)
 		return -1;
 	if (asprintf(&ev.msg, "TX timeout on queue: %d\n", (int)val) < 0)
 		return -1;
@@ -82,8 +82,8 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 }
 
 int ras_devlink_event_handler(struct trace_seq *s,
-			      struct pevent_record *record,
-			      struct event_format *event, void *context)
+			      struct tep_record *record,
+			      struct tep_event *event, void *context)
 {
 	int len;
 	struct ras_events *ras = context;
@@ -92,7 +92,7 @@ int ras_devlink_event_handler(struct trace_seq *s,
 	struct devlink_event ev;
 
 	if (ras->filters[DEVLINK_EVENT] &&
-	    pevent_filter_match(ras->filters[DEVLINK_EVENT], record) == FILTER_MATCH)
+	    tep_filter_match(ras->filters[DEVLINK_EVENT], record) == FILTER_MATCH)
 		return 0;
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -114,27 +114,27 @@ int ras_devlink_event_handler(struct trace_seq *s,
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
-	ev.bus_name = pevent_get_field_raw(s, event, "bus_name",
+	ev.bus_name = tep_get_field_raw(s, event, "bus_name",
 					   record, &len, 1);
 	if (!ev.bus_name)
 		return -1;
 
-	ev.dev_name = pevent_get_field_raw(s, event, "dev_name",
+	ev.dev_name = tep_get_field_raw(s, event, "dev_name",
 					   record, &len, 1);
 	if (!ev.dev_name)
 		return -1;
 
-	ev.driver_name = pevent_get_field_raw(s, event, "driver_name",
+	ev.driver_name = tep_get_field_raw(s, event, "driver_name",
 					   record, &len, 1);
 	if (!ev.driver_name)
 		return -1;
 
-	ev.reporter_name = pevent_get_field_raw(s, event, "reporter_name",
+	ev.reporter_name = tep_get_field_raw(s, event, "reporter_name",
 					   record, &len, 1);
 	if (!ev.reporter_name)
 		return -1;
 
-	ev.msg = pevent_get_field_raw(s, event, "msg", record, &len, 1);
+	ev.msg = tep_get_field_raw(s, event, "msg", record, &len, 1);
 	if (!ev.msg)
 		return -1;
 

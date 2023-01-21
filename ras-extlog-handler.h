@@ -22,10 +22,10 @@
 #include <stdint.h>
 
 #include "ras-events.h"
-#include "libtrace/event-parse.h"
+#include <traceevent/event-parse.h>
 
 extern int ras_extlog_mem_event_handler(struct trace_seq *s,
-			  struct pevent_record *record,
-			  struct event_format *event, void *context);
+			  struct tep_record *record,
+			  struct tep_event *event, void *context);
 
 #endif

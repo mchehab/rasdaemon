@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "libtrace/kbuffer.h"
+#include <traceevent/kbuffer.h>
 #include "ras-arm-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
@@ -100,8 +100,8 @@ static int count_errors(struct ras_arm_event *ev, int sev)
 }
 
 static int ras_handle_cpu_error(struct trace_seq *s,
-			 struct pevent_record *record,
-			 struct event_format *event,
+			 struct tep_record *record,
+			 struct tep_event *event,
 			 struct ras_arm_event *ev, time_t now)
 {
 	unsigned long long val;
@@ -109,13 +109,13 @@ static int ras_handle_cpu_error(struct trace_seq *s,
 	char *severity;
 	struct error_info err_info;
 
-	if (pevent_get_field_val(s, event, "cpu", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "cpu", record, &val, 1) < 0)
 		return -1;
 	cpu = val;
 	trace_seq_printf(s, "\n cpu: %d", cpu);
 
 	/* record cpu error */
-	if (pevent_get_field_val(s, event, "sev", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "sev", record, &val, 1) < 0)
 		return -1;
 	/* refer to UEFI_2_9 specification chapter N2.2 Table N-5 */
 	switch (val) {
@@ -150,8 +150,8 @@ static int ras_handle_cpu_error(struct trace_seq *s,
 #endif
 
 int ras_arm_event_handler(struct trace_seq *s,
-			 struct pevent_record *record,
-			 struct event_format *event, void *context)
+			 struct tep_record *record,
+			 struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	struct ras_events *ras = context;
@@ -182,60 +182,60 @@ int ras_arm_event_handler(struct trace_seq *s,
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	trace_seq_printf(s, "%s\n", ev.timestamp);
 
-	if (pevent_get_field_val(s, event, "affinity", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "affinity", record, &val, 1) < 0)
 		return -1;
 	ev.affinity = val;
 	trace_seq_printf(s, " affinity: %d", ev.affinity);
 
-	if (pevent_get_field_val(s, event, "mpidr", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "mpidr", record, &val, 1) < 0)
 		return -1;
 	ev.mpidr = val;
 	trace_seq_printf(s, "\n MPIDR: 0x%llx", (unsigned long long)ev.mpidr);
 
-	if (pevent_get_field_val(s, event, "midr", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "midr", record, &val, 1) < 0)
 		return -1;
 	ev.midr = val;
 	trace_seq_printf(s, "\n MIDR: 0x%llx", (unsigned long long)ev.midr);
 
-	if (pevent_get_field_val(s, event, "running_state", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "running_state", record, &val, 1) < 0)
 		return -1;
 	ev.running_state = val;
 	trace_seq_printf(s, "\n running_state: %d", ev.running_state);
 
-	if (pevent_get_field_val(s, event, "psci_state", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "psci_state", record, &val, 1) < 0)
 		return -1;
 	ev.psci_state = val;
 	trace_seq_printf(s, "\n psci_state: %d", ev.psci_state);
 
-	if (pevent_get_field_val(s, event, "pei_len", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "pei_len", record, &val, 1) < 0)
 		return -1;
 	ev.pei_len = val;
 	trace_seq_printf(s, "\n ARM Processor Err Info data len: %d\n",
 			 ev.pei_len);
 
-	ev.pei_error = pevent_get_field_raw(s, event, "buf", record, &len, 1);
+	ev.pei_error = tep_get_field_raw(s, event, "buf", record, &len, 1);
 	if (!ev.pei_error)
 		return -1;
 	display_raw_data(s, ev.pei_error, ev.pei_len);
 
-	if (pevent_get_field_val(s, event, "ctx_len", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "ctx_len", record, &val, 1) < 0)
 		return -1;
 	ev.ctx_len = val;
 	trace_seq_printf(s, "\n ARM Processor Err Context Info data len: %d\n",
 			 ev.ctx_len);
 
-	ev.ctx_error = pevent_get_field_raw(s, event, "buf1", record, &len, 1);
+	ev.ctx_error = tep_get_field_raw(s, event, "buf1", record, &len, 1);
 	if (!ev.ctx_error)
 		return -1;
 	display_raw_data(s, ev.ctx_error, ev.ctx_len);
 
-	if (pevent_get_field_val(s, event, "oem_len", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "oem_len", record, &val, 1) < 0)
 		return -1;
 	ev.oem_len = val;
 	trace_seq_printf(s, "\n Vendor Specific Err Info data len: %d\n",
 			 ev.oem_len);
 
-	ev.vsei_error = pevent_get_field_raw(s, event, "buf2", record, &len, 1);
+	ev.vsei_error = tep_get_field_raw(s, event, "buf2", record, &len, 1);
 	if (!ev.vsei_error)
 		return -1;
 

@@ -13,7 +13,7 @@
 #define __NON_STANDARD_AMPERE_H
 
 #include "ras-events.h"
-#include "libtrace/event-parse.h"
+#include <traceevent/event-parse.h>
 
 #define SOCKET_NUM(x) ((x >> 14) & 0x3)
 #define PAYLOAD_TYPE(x) ((x >> 6) & 0x3)

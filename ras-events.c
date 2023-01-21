@@ -29,8 +29,8 @@
 #include <signal.h>
 #include <sys/signalfd.h>
 #include <linux/version.h>
-#include "libtrace/kbuffer.h"
-#include "libtrace/event-parse.h"
+#include <traceevent/kbuffer.h>
+#include <traceevent/event-parse.h>
 #include "ras-mc-handler.h"
 #include "ras-aer-handler.h"
 #include "ras-non-standard-handler.h"
@@ -286,7 +286,7 @@ static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
  * Tracing read code
  */
 
-static int get_pagesize(struct ras_events *ras, struct pevent *pevent)
+static int get_pagesize(struct ras_events *ras, struct tep_handle *pevent)
 {
 	int fd, len, page_size = 4096;
 	char buf[page_size];
@@ -298,10 +298,8 @@ static int get_pagesize(struct ras_events *ras, struct pevent *pevent)
 	len = read(fd, buf, page_size);
 	if (len <= 0)
 		goto error;
-	if (pevent_parse_header_page(pevent, buf, len, sizeof(long)))
+	if (tep_parse_header_page(pevent, buf, len, sizeof(long)))
 		goto error;
-
-	page_size = pevent->header_page_data_offset + pevent->header_page_data_size;
 
 error:
 	close(fd);
@@ -312,7 +310,7 @@ error:
 static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 			   void *data, unsigned long long time_stamp)
 {
-	struct pevent_record record;
+	struct tep_record record;
 	struct trace_seq s;
 
 	record.ts = time_stamp;
@@ -327,7 +325,11 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 	/* TODO - logging */
 	trace_seq_init(&s);
-	pevent_print_event(pdata->ras->pevent, &s, &record);
+	tep_print_event(pdata->ras->pevent, &s, &record,
+			"%16s-%-5d [%03d] %s %6.1000d %s %s",
+                        TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
+                        TEP_PRINT_LATENCY, TEP_PRINT_TIME, TEP_PRINT_NAME,
+                        TEP_PRINT_INFO);
 	trace_seq_do_printf(&s);
 	printf("\n");
 	fflush(stdout);
@@ -688,13 +690,13 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	return 0;
 }
 
-static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
+static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 			     unsigned page_size, char *group, char *event,
-			     pevent_event_handler_func func, char *filter_str, int id)
+			     tep_event_handler_func func, char *filter_str, int id)
 {
 	int fd, size, rc;
 	char *page, fname[MAX_PATH + 1];
-	struct event_filter * filter = NULL;
+	struct tep_event_filter * filter = NULL;
 
 	snprintf(fname, sizeof(fname), "events/%s/%s/format", group, event);
 
@@ -724,15 +726,15 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 	}
 
 	/* Registers the special event handlers */
-	rc = pevent_register_event_handler(pevent, -1, group, event, func, ras);
-	if (rc == PEVENT_ERRNO__MEM_ALLOC_FAILED) {
+	rc = tep_register_event_handler(pevent, -1, group, event, func, ras);
+	if (rc == TEP_ERRNO__MEM_ALLOC_FAILED) {
 		log(TERM, LOG_ERR, "Can't register event handler for %s:%s\n",
 		    group, event);
 		free(page);
 		return EINVAL;
 	}
 
-	rc = pevent_parse_event(pevent, page, size, group);
+	rc = tep_parse_event(pevent, page, size, group);
 	if (rc) {
 		log(TERM, LOG_ERR, "Can't parse event %s:%s\n", group, event);
 		free(page);
@@ -740,20 +742,21 @@ static int add_event_handler(struct ras_events *ras, struct pevent *pevent,
 	}
 
 	if (filter_str) {
-		char *error;
+		char error[255];
 
-		filter = pevent_filter_alloc(pevent);
+		filter = tep_filter_alloc(pevent);
 		if (!filter) {
 			log(TERM, LOG_ERR,
 			    "Failed to allocate filter for %s/%s.\n", group, event);
 			free(page);
 			return EINVAL;
 		}
-		rc = pevent_filter_add_filter_str(filter, filter_str, &error);
-		if (rc) {
+		rc = tep_filter_add_filter_str(filter, filter_str);
+		if (rc < 0) {
+			tep_filter_strerror(filter, rc, error, sizeof(error));
 			log(TERM, LOG_ERR,
 			    "Failed to install filter for %s/%s: %s\n", group, event, error);
-			pevent_filter_free(filter);
+			tep_filter_free(filter);
 			free(page);
 			return rc;
 		}
@@ -781,7 +784,7 @@ int handle_ras_events(int record_events)
 	int rc, page_size, i;
 	int num_events = 0;
 	unsigned cpus;
-	struct pevent *pevent = NULL;
+	struct tep_handle *pevent = NULL;
 	struct pthread_data *data = NULL;
 	struct ras_events *ras = NULL;
 #ifdef HAVE_DEVLINK
@@ -806,7 +809,7 @@ int handle_ras_events(int record_events)
 		goto err;
 	}
 
-	pevent = pevent_alloc();
+	pevent = tep_alloc();
 	if (!pevent) {
 		log(TERM, LOG_ERR, "Can't allocate pevent\n");
 		rc = errno;
@@ -996,12 +999,12 @@ err:
 		free(data);
 
 	if (pevent)
-		pevent_free(pevent);
+		tep_free(pevent);
 
 	if (ras) {
 		for (i = 0; i < NR_EVENTS; i++) {
 			if (ras->filters[i])
-				pevent_filter_free(ras->filters[i]);
+				tep_filter_free(ras->filters[i]);
 		}
 		free(ras);
 	}

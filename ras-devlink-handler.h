@@ -20,14 +20,14 @@
 #define __RAS_DEVLINK_HANDLER_H
 
 #include "ras-events.h"
-#include "libtrace/event-parse.h"
+#include <traceevent/event-parse.h>
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
-				 struct pevent_record *record,
-				 struct event_format *event, void *context);
+				 struct tep_record *record,
+				 struct tep_event *event, void *context);
 
 int ras_devlink_event_handler(struct trace_seq *s,
-			      struct pevent_record *record,
-			      struct event_format *event, void *context);
+			      struct tep_record *record,
+			      struct tep_event *event, void *context);
 
 #endif
