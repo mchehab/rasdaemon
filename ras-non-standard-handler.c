@@ -16,7 +16,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include "libtrace/kbuffer.h"
+#include <traceevent/kbuffer.h>
 #include "ras-non-standard-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
@@ -113,8 +113,8 @@ static void unregister_ns_ev_decoder(void)
 }
 
 int ras_non_standard_event_handler(struct trace_seq *s,
-			 struct pevent_record *record,
-			 struct event_format *event, void *context)
+			 struct tep_record *record,
+			 struct tep_event *event, void *context)
 {
 	int len, i, line_count;
 	unsigned long long val;
@@ -144,7 +144,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
-	if (pevent_get_field_val(s, event, "sev", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "sev", record, &val, 1) < 0)
 		return -1;
 	switch (val) {
 	case GHES_SEV_NO:
@@ -162,7 +162,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	}
 	trace_seq_printf(s, "\n %s", ev.severity);
 
-	ev.sec_type = pevent_get_field_raw(s, event, "sec_type",
+	ev.sec_type = tep_get_field_raw(s, event, "sec_type",
 					   record, &len, 1);
 	if(!ev.sec_type)
 		return -1;
@@ -173,20 +173,20 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	else
 		trace_seq_printf(s, "\n section type: %s",
 				 uuid_le(ev.sec_type));
-	ev.fru_text = pevent_get_field_raw(s, event, "fru_text",
+	ev.fru_text = tep_get_field_raw(s, event, "fru_text",
 						record, &len, 1);
-	ev.fru_id = pevent_get_field_raw(s, event, "fru_id",
+	ev.fru_id = tep_get_field_raw(s, event, "fru_id",
 						record, &len, 1);
 	trace_seq_printf(s, " fru text: %s fru id: %s ",
 				ev.fru_text,
 				uuid_le(ev.fru_id));
 
-	if (pevent_get_field_val(s, event, "len", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "len", record, &val, 1) < 0)
 		return -1;
 	ev.length = val;
 	trace_seq_printf(s, "\n length: %d\n", ev.length);
 
-	ev.error = pevent_get_field_raw(s, event, "buf", record, &len, 1);
+	ev.error = tep_get_field_raw(s, event, "buf", record, &len, 1);
 	if(!ev.error)
 		return -1;
 

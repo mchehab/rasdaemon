@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "libtrace/kbuffer.h"
+#include <traceevent/kbuffer.h>
 #include "ras-memory-failure-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
@@ -121,8 +121,8 @@ static const char *get_action_result(int result)
 
 
 int ras_memory_failure_event_handler(struct trace_seq *s,
-				     struct pevent_record *record,
-				     struct event_format *event, void *context)
+				     struct tep_record *record,
+				     struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	struct ras_events *ras = context;
@@ -152,17 +152,17 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 		strncpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
-	if (pevent_get_field_val(s,  event, "pfn", record, &val, 1) < 0)
+	if (tep_get_field_val(s,  event, "pfn", record, &val, 1) < 0)
 		return -1;
 	sprintf(ev.pfn, "0x%llx", val);
 	trace_seq_printf(s, "pfn=0x%llx ", val);
 
-	if (pevent_get_field_val(s, event, "type", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "type", record, &val, 1) < 0)
 		return -1;
 	ev.page_type = get_page_type(val);
 	trace_seq_printf(s, "page_type=%s ", ev.page_type);
 
-	if (pevent_get_field_val(s, event, "result", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "result", record, &val, 1) < 0)
 		return -1;
 	ev.action_result = get_action_result(val);
 	trace_seq_printf(s, "action_result=%s ", ev.action_result);

@@ -15,7 +15,7 @@
 #define __RAS_NON_STANDARD_HANDLER_H
 
 #include "ras-events.h"
-#include "libtrace/event-parse.h"
+#include <traceevent/event-parse.h>
 
 #define BIT(nr)                 (1UL << (nr))
 #define BIT_ULL(nr)             (1ULL << (nr))
@@ -32,8 +32,8 @@ struct ras_ns_ev_decoder {
 };
 
 int ras_non_standard_event_handler(struct trace_seq *s,
-			 struct pevent_record *record,
-			 struct event_format *event, void *context);
+			 struct tep_record *record,
+			 struct tep_event *event, void *context);
 
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index);
 

@@ -22,7 +22,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
-#include "libtrace/kbuffer.h"
+#include <traceevent/kbuffer.h>
 #include "ras-mce-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
@@ -273,7 +273,7 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
  */
 
 static void report_mce_event(struct ras_events *ras,
-			     struct pevent_record *record,
+			     struct tep_record *record,
 			     struct trace_seq *s, struct mce_event *e)
 {
 	time_t now;
@@ -384,8 +384,8 @@ static void report_mce_event(struct ras_events *ras,
 }
 
 int ras_mce_event_handler(struct trace_seq *s,
-			  struct pevent_record *record,
-			  struct event_format *event, void *context)
+			  struct tep_record *record,
+			  struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	struct ras_events *ras = context;
@@ -396,56 +396,56 @@ int ras_mce_event_handler(struct trace_seq *s,
 	memset(&e, 0, sizeof(e));
 
 	/* Parse the MCE error data */
-	if (pevent_get_field_val(s, event, "mcgcap", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "mcgcap", record, &val, 1) < 0)
 		return -1;
 	e.mcgcap = val;
-	if (pevent_get_field_val(s, event, "mcgstatus", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "mcgstatus", record, &val, 1) < 0)
 		return -1;
 	e.mcgstatus = val;
-	if (pevent_get_field_val(s, event, "status", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "status", record, &val, 1) < 0)
 		return -1;
 	e.status = val;
-	if (pevent_get_field_val(s, event, "addr", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "addr", record, &val, 1) < 0)
 		return -1;
 	e.addr = val;
-	if (pevent_get_field_val(s, event, "misc", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "misc", record, &val, 1) < 0)
 		return -1;
 	e.misc = val;
-	if (pevent_get_field_val(s, event, "ip", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "ip", record, &val, 1) < 0)
 		return -1;
 	e.ip = val;
-	if (pevent_get_field_val(s, event, "tsc", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "tsc", record, &val, 1) < 0)
 		return -1;
 	e.tsc = val;
-	if (pevent_get_field_val(s, event, "walltime", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "walltime", record, &val, 1) < 0)
 		return -1;
 	e.walltime = val;
-	if (pevent_get_field_val(s, event, "cpu", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "cpu", record, &val, 1) < 0)
 		return -1;
 	e.cpu = val;
-	if (pevent_get_field_val(s, event, "cpuid", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "cpuid", record, &val, 1) < 0)
 		return -1;
 	e.cpuid = val;
-	if (pevent_get_field_val(s, event, "apicid", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "apicid", record, &val, 1) < 0)
 		return -1;
 	e.apicid = val;
-	if (pevent_get_field_val(s, event, "socketid", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "socketid", record, &val, 1) < 0)
 		return -1;
 	e.socketid = val;
-	if (pevent_get_field_val(s, event, "cs", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "cs", record, &val, 1) < 0)
 		return -1;
 	e.cs = val;
-	if (pevent_get_field_val(s, event, "bank", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "bank", record, &val, 1) < 0)
 		return -1;
 	e.bank = val;
-	if (pevent_get_field_val(s, event, "cpuvendor", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "cpuvendor", record, &val, 1) < 0)
 		return -1;
 	e.cpuvendor = val;
 	/* Get New entries */
-	if (pevent_get_field_val(s, event, "synd", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "synd", record, &val, 1) < 0)
 		return -1;
 	e.synd = val;
-	if (pevent_get_field_val(s, event, "ipid", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "ipid", record, &val, 1) < 0)
 		return -1;
 	e.ipid = val;
 

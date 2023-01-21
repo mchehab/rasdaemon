@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "libtrace/kbuffer.h"
+#include <traceevent/kbuffer.h>
 #include "ras-aer-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
@@ -55,8 +55,8 @@ static const char *aer_uncor_errors[32] = {
 #define BUF_LEN	1024
 
 int ras_aer_event_handler(struct trace_seq *s,
-			 struct pevent_record *record,
-			 struct event_format *event, void *context)
+			 struct tep_record *record,
+			 struct tep_event *event, void *context)
 {
 	int len;
 	unsigned long long severity_val;
@@ -91,16 +91,16 @@ int ras_aer_event_handler(struct trace_seq *s,
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
-	ev.dev_name = pevent_get_field_raw(s, event, "dev_name",
+	ev.dev_name = tep_get_field_raw(s, event, "dev_name",
 					   record, &len, 1);
 	if (!ev.dev_name)
 		return -1;
 	trace_seq_printf(s, "%s ", ev.dev_name);
 
-	if (pevent_get_field_val(s,  event, "status", record, &status_val, 1) < 0)
+	if (tep_get_field_val(s,  event, "status", record, &status_val, 1) < 0)
 		return -1;
 
-	if (pevent_get_field_val(s, event, "severity", record, &severity_val, 1) < 0)
+	if (tep_get_field_val(s, event, "severity", record, &severity_val, 1) < 0)
 		return -1;
 
 	/* Fills the error buffer. If it is a correctable error then use the
@@ -112,13 +112,13 @@ int ras_aer_event_handler(struct trace_seq *s,
 		bitfield_msg(buf, sizeof(buf), aer_uncor_errors, 32, 0, 0, status_val);
 	ev.msg = buf;
 
-	if (pevent_get_field_val(s, event, "tlp_header_valid",
+	if (tep_get_field_val(s, event, "tlp_header_valid",
 				record, &val, 1) < 0)
 		return -1;
 
 	ev.tlp_header_valid = val;
 	if (ev.tlp_header_valid) {
-		ev.tlp_header = pevent_get_field_raw(s, event, "tlp_header",
+		ev.tlp_header = tep_get_field_raw(s, event, "tlp_header",
 						     record, &len, 1);
 		snprintf((buf + strlen(ev.msg)), BUF_LEN - strlen(ev.msg),
 			 " TLP Header: %08x %08x %08x %08x",

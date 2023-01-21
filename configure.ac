@@ -12,7 +12,6 @@ X_AC_META
 
 AC_CONFIG_FILES([
 	Makefile
-	libtrace/Makefile
 	man/Makefile
 	man/ras-mc-ctl.8
 	man/rasdaemon.1
@@ -39,6 +38,13 @@ AM_COND_IF([WITH_SQLITE3], [USE_SQLITE3="yes"], [USE_SQLITE3="no"])
 
 AC_SUBST([SQLITE3_LIBS])
 
+has_libtraceevent_ver=0
+dnl check for tracevent library
+PKG_CHECK_MODULES([LIBTRACEEVENT], [libtraceevent], [has_libtraceevent_ver=1])
+
+AS_IF([test "$has_libtraceevent_ver" -eq 0], [
+	AC_MSG_ERROR([libtraceevent is required but were not found])
+])
 
 AC_ARG_ENABLE([aer],
     AS_HELP_STRING([--enable-aer], [enable PCIe AER events (currently experimental)]))

@@ -45,7 +45,7 @@ enum {
 struct ras_events {
 	char debugfs[MAX_PATH + 1];
 	char tracing[MAX_PATH + 1];
-	struct pevent	*pevent;
+	struct tep_handle	*pevent;
 	int		page_size;
 
 	/* Booleans */
@@ -64,12 +64,12 @@ struct ras_events {
 	/* For ABRT socket*/
 	int socketfd;
 
-	struct event_filter *filters[NR_EVENTS];
+	struct tep_event_filter *filters[NR_EVENTS];
 };
 
 struct pthread_data {
 	pthread_t		thread;
-	struct pevent		*pevent;
+	struct tep_handle		*pevent;
 	struct ras_events	*ras;
 	int			cpu;
 };
