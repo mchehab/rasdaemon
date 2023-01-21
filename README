@@ -88,15 +88,16 @@ by installing the following packages:
 	autoconf
 	automake
 	libtool
+	libtraceevent-devel
 	tar
 	sqlite-devel	(if sqlite3 will be used)
 	perl-DBD-SQLite	(if sqlite3 will be used)
 
 To install then on Fedora, run:
-	yum install -y make gcc autoconf automake libtool tar perl-dbd-sqlite
+	dnf install -y make gcc autoconf automake libtool tar perl-dbd-sqlite libtraceevent-devel
 
 Or, if sqlite3 database will be used to store data:
-	yum install -y make gcc autoconf automake libtool tar sqlite-devel
+	dnf install -y make gcc autoconf automake libtool tar sqlite-devel libtraceevent-devel
 
 There are currently 3 features that are enabled optionally, via
 ./configure parameters:

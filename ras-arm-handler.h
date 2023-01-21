@@ -15,7 +15,7 @@
 #define __RAS_ARM_HANDLER_H
 
 #include "ras-events.h"
-#include "libtrace/event-parse.h"
+#include <traceevent/event-parse.h>
 
 /*
  * ARM Processor Error Information Structure, According to
@@ -36,8 +36,8 @@ struct ras_arm_err_info {
 #pragma pack()
 
 int ras_arm_event_handler(struct trace_seq *s,
-			 struct pevent_record *record,
-			 struct event_format *event, void *context);
+			 struct tep_record *record,
+			 struct tep_event *event, void *context);
 void display_raw_data(struct trace_seq *s,
 		const uint8_t *buf,
 		uint32_t datalen);
