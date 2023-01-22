@@ -18,6 +18,7 @@ jobs:
       - name: Release changelog
         run: |
           .github/workflows/gen_release.pl body_file.tmp > version
+          echo "version=$(cat version)" >> $GITHUB_ENV
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -29,16 +30,17 @@ jobs:
           body_path: body_file.tmp
           draft: false
           prerelease: true
-      - name: Create Source Package
+      - name: Create Source Package for version ${{ env.version }}
         run: |
           autoreconf -vfi
           ./configure --enable-all
           make dist-bzip2
-          mkdir artifacts
-          mv rasdaemon-$(cat version).tar.bz2 artifacts
-      - name: Archive package
-        uses: actions/upload-artifact@v1
+      - name: upload
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: mchehab/upload-release-asset@v1.0.3
         with:
-          name: rasdaemon-source-package
-          path: artifacts/
-
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: rasdaemon-${{ env.version }}.tar.bz2
+          asset_name: rasdaemon-${{ env.version }}.tar.bz2
+          asset_content_type: application/bzip2
