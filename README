@@ -186,9 +186,18 @@ SUBMITTING PATCHES
 ==================
 
 If you want to help improving this tool, be my guest! We try to follow
-the Kernel's CodingStyle and submission rules as a reference. 
+the Kernel's CodingStyle and submission rules as a reference.
 
-Please send patches enclosed in an email, in plain text, to:
+In order to contribute with rasdaemon, please send a Merge Request via
+github repository at:
+
+	https://github.com/mchehab/rasdaemon
+
+Or, alternatively, send a pull request against gitlab repository at:
+
+	https://gitlab.com/mchehab_kernel/rasdaemon
+
+Or send patches enclosed in an email, in plain text, to:
 
 	linux-edac@vger.kernel.org
 
@@ -196,12 +205,9 @@ With a copy to:
 
 	Mauro Carvalho Chehab <mchehab@kernel.org>
 
-Or, alternatively, send a pull request against github or gitlab repositories at:
-
-	https://github.com/mchehab/rasdaemon
-	https://gitlab.com/mchehab_kernel/rasdaemon
-
-(github preferred)
+Please notice that github is the preferred way. If you're not using
+it, please be kind enough to add an issue there for us to track the
+patch series.
 
 Don't foget to add a description of the patch in the body of the email, adding
 a Signed-off-by: at the end of the patch description (before the unified diff
