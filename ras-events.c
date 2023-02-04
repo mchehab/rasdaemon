@@ -376,6 +376,8 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
 	int legacy_kernel = 0;
+	int fd;
+	char buf[16];
 #if 0
 	int need_sleep = 0;
 #endif
@@ -394,6 +396,26 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		free(page);
 		return -ENOMEM;
 	}
+
+	/* Fix for poll() on the per_cpu trace_pipe and trace_pipe_raw blocks
+	 * indefinitely with the default buffer_percent in the kernel trace system,
+	 * which is introduced by the following change in the kernel.
+	 * https://lore.kernel.org/all/20221020231427.41be3f26@gandalf.local.home/T/#u.
+	 * Set buffer_percent to 0 so that poll() will return immediately
+	 * when the trace data is available in the ras per_cpu trace pipe_raw
+	 */
+	fd = open_trace(pdata[0].ras, "buffer_percent", O_WRONLY);
+	if (fd >= 0) {
+		/* For the backward compatibility to the old kernels, do not return
+		 * if fail to set the buffer_percent.
+		 */
+		snprintf(buf, sizeof(buf), "0");
+		size = write(fd, buf, strlen(buf));
+		if (size <= 0)
+			log(TERM, LOG_WARNING, "can't write to buffer_percent\n");
+		close(fd);
+	} else
+		log(TERM, LOG_WARNING, "Can't open buffer_percent\n");
 
 	for (i = 0; i < (n_cpus + 1); i++)
 		fds[i].fd = -1;
