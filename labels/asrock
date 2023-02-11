@@ -18,3 +18,10 @@ Vendor: ASRock
   Model: X570 Phantom Gaming X
     DIMM_A1:  0.0.1, 0.1.1;    DIMM_A2:   0.2.1, 0.3.1;
     DIMM_B1:  0.0.0, 0.1.0;    DIMM_B2:   0.2.0, 0.3.0;
+
+Vendor: ASRockRack
+  Model: X399D8A-2T
+    DIMM_A1:  0.2.0, 0.3.0;    DIMM_A2: 0.0.0, 0.1.0;
+    DIMM_B1:  0.2.1, 0.3.1;    DIMM_B2: 0.0.1, 0.1.1;
+    DIMM_C1:  2.2.0, 2.3.0;    DIMM_C2: 2.0.0, 2.1.0;
+    DIMM_D1:  2.2.1, 2.3.1;    DIMM_D2: 2.0.1, 2.1.1;
