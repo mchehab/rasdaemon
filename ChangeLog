@@ -1,5 +1,5 @@
 2023-02-18      Mauro Carvalho Chehab <mchehab@kernel.org>
-- Version 0.8.0
+	- Version 0.8.0
 
 	* This version now uses libtraceevent. Since its beginning,
 	  rasdaemon came with an early version of this library. Now,
@@ -10,6 +10,7 @@
 	  convert to markdown
 	* Fix a regression with Kernel 6.1-rc6
 	* make distcheck now works
+	* Add labels for ASRockRack model X399D8A-2T
 
 2023-01-21	Mauro Carvalho Chehab <mchehab@kernel.org>
 	- Version 0.7.0
