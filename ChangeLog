@@ -1,3 +1,16 @@
+2023-02-18      Mauro Carvalho Chehab <mchehab@kernel.org>
+- Version 0.8.0
+
+	* This version now uses libtraceevent. Since its beginning,
+	  rasdaemon came with an early version of this library. Now,
+	  instead of keeping it embedded, use it from the system's
+	  package.
+	* Fix mock build target and rasdaemon.spec.in
+	* Update README with instructions about contributing and
+	  convert to markdown
+	* Fix a regression with Kernel 6.1-rc6
+	* make distcheck now works
+
 2023-01-21	Mauro Carvalho Chehab <mchehab@kernel.org>
 	- Version 0.7.0
 
