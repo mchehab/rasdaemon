@@ -53,7 +53,7 @@ install -D -p -m 0655 misc/rasdaemon.env %{buildroot}%{_sysconfdir}/sysconfig/%{
 rm INSTALL %{buildroot}/usr/include/*.h
 
 %files
-%doc AUTHORS ChangeLog COPYING README TODO
+%doc AUTHORS ChangeLog COPYING README.md TODO
 %{_sbindir}/rasdaemon
 %{_sbindir}/ras-mc-ctl
 %{_mandir}/*/*
