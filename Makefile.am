@@ -97,7 +97,7 @@ srpm: dist-bzip2
 	rpmbuild -bs misc/@PACKAGE@.spec
 
 mock: srpm
-	mock `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm
+	mock --resultdir="./SRPMS" `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm
 
 rpmlint:
 	rpmlint misc/@PACKAGE@.spec `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm `rpm --eval %{_topdir}`/RPMS/*/@PACKAGE@-@PACKAGE_VERSION@*.rpm
