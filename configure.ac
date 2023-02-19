@@ -170,11 +170,11 @@ AM_COND_IF([WITH_AMP_NS_DECODE], [USE_AMP_NS_DECODE="yes"], [USE_AMP_NS_DECODE="
 AC_ARG_ENABLE([cpu_fault_isolation],
     AS_HELP_STRING([--enable-cpu-fault-isolation], [enable cpu online fault isolation]))
 
-AS_IF([test "x$enable_cpu_fault_isolation" = "xyes" || test "x$enable_all" == "xyes"], [
+AS_IF([test "x$enable_cpu_fault_isolation" = "xyes" || test "x$enable_all" = "xyes"], [
   AC_DEFINE(HAVE_CPU_FAULT_ISOLATION,1,"have cpu online fault isolation")
   AC_SUBST([WITH_CPU_FAULT_ISOLATION])
 ])
-AM_CONDITIONAL([WITH_CPU_FAULT_ISOLATION], [test x$enable_cpu_fault_isolation = xyes || test x$enable_all == xyes])
+AM_CONDITIONAL([WITH_CPU_FAULT_ISOLATION], [test x$enable_cpu_fault_isolation = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_CPU_FAULT_ISOLATION], [USE_CPU_FAULT_ISOLATION="yes"], [USE_CPU_FAULT_ISOLATION="no"])
 
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
