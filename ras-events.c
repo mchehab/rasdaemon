@@ -625,19 +625,25 @@ static void *handle_ras_events_cpu(void *priv)
 
 	log(TERM, LOG_INFO, "Listening to events on cpu %d\n", pdata->cpu);
 	if (pdata->ras->record_events) {
+		pthread_mutex_lock(&pdata->ras->db_lock);
 		if (ras_mc_event_opendb(pdata->cpu, pdata->ras)) {
 			log(TERM, LOG_ERR, "Can't open database\n");
 			close(fd);
 			kbuffer_free(kbuf);
 			free(page);
+			pthread_mutex_unlock(&pdata->ras->db_lock);
 			return 0;
 		}
+		pthread_mutex_unlock(&pdata->ras->db_lock);
 	}
 
 	read_ras_event(fd, pdata, kbuf, page);
 
-	if (pdata->ras->record_events)
+	if (pdata->ras->record_events) {
+		pthread_mutex_lock(&pdata->ras->db_lock);
 		ras_mc_event_closedb(pdata->cpu, pdata->ras);
+		pthread_mutex_unlock(&pdata->ras->db_lock);
+	}
 
 	close(fd);
 	kbuffer_free(kbuf);
@@ -993,6 +999,11 @@ int handle_ras_events(int record_events)
 
 	/* Poll doesn't work on this kernel. Fallback to pthread way */
 	if (rc == -255) {
+		if (pthread_mutex_init(&ras->db_lock, NULL) != 0) {
+			log(SYSLOG, LOG_INFO, "sqlite db lock init has failed\n");
+			goto err;
+		}
+
 		log(SYSLOG, LOG_INFO,
 		"Opening one thread per cpu (%d threads)\n", cpus);
 		for (i = 0; i < cpus; i++) {
@@ -1005,6 +1016,8 @@ int handle_ras_events(int record_events)
 				i);
 				while (--i)
 					pthread_cancel(data[i].thread);
+
+				pthread_mutex_destroy(&ras->db_lock);
 				goto err;
 			}
 		}
@@ -1012,6 +1025,7 @@ int handle_ras_events(int record_events)
 		/* Wait for all threads to complete */
 		for (i = 0; i < cpus; i++)
 			pthread_join(data[i].thread, NULL);
+		pthread_mutex_destroy(&ras->db_lock);
 	}
 
 	log(SYSLOG, LOG_INFO, "Huh! something got wrong. Aborting.\n");
