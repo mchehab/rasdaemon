@@ -56,7 +56,9 @@ struct ras_events {
 	time_t		uptime_diff;
 
 	/* For ras-record */
-	void		*db_priv;
+	void	*db_priv;
+	int	db_ref_count;
+	pthread_mutex_t db_mutex;
 
 	/* For the mce handler */
 	struct mce_priv	*mce_priv;
