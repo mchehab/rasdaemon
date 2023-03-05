@@ -763,6 +763,10 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 
 	printf("Calling %s()\n", __FUNCTION__);
 
+	ras->db_ref_count++;
+	if (ras->db_ref_count > 1)
+		return 0;
+
 	ras->db_priv = NULL;
 
 	priv = calloc(1, sizeof(*priv));
@@ -912,6 +916,13 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 
 	printf("Calling %s()\n", __func__);
 
+	if (ras->db_ref_count > 0)
+		ras->db_ref_count--;
+	else
+		return -1;
+	if (ras->db_ref_count > 0)
+		return 0;
+
 	if (!priv)
 		return -1;
 
@@ -1018,6 +1029,7 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		log(TERM, LOG_ERR,
 		    "cpu %u: Failed to shutdown sqlite: error = %d\n", cpu, rc);
 	free(priv);
+	ras->db_priv = NULL;
 
 	return 0;
 }
