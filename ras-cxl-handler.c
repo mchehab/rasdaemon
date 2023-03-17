@@ -21,6 +21,7 @@
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include <endian.h>
 
 /* Poison List: Payload out flags */
 #define CXL_POISON_FLAG_MORE            BIT(0)
@@ -196,6 +197,156 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_cxl_poison_event(ras, &ev);
+#endif
+
+	return 0;
+}
+
+/* CXL AER Errors */
+
+#define CXL_AER_UE_CACHE_DATA_PARITY	BIT(0)
+#define CXL_AER_UE_CACHE_ADDR_PARITY	BIT(1)
+#define CXL_AER_UE_CACHE_BE_PARITY	BIT(2)
+#define CXL_AER_UE_CACHE_DATA_ECC	BIT(3)
+#define CXL_AER_UE_MEM_DATA_PARITY	BIT(4)
+#define CXL_AER_UE_MEM_ADDR_PARITY	BIT(5)
+#define CXL_AER_UE_MEM_BE_PARITY	BIT(6)
+#define CXL_AER_UE_MEM_DATA_ECC		BIT(7)
+#define CXL_AER_UE_REINIT_THRESH	BIT(8)
+#define CXL_AER_UE_RSVD_ENCODE		BIT(9)
+#define CXL_AER_UE_POISON		BIT(10)
+#define CXL_AER_UE_RECV_OVERFLOW	BIT(11)
+#define CXL_AER_UE_INTERNAL_ERR		BIT(14)
+#define CXL_AER_UE_IDE_TX_ERR		BIT(15)
+#define CXL_AER_UE_IDE_RX_ERR		BIT(16)
+
+struct cxl_error_list {
+	uint32_t bit;
+	const char *error;
+};
+
+static const struct cxl_error_list cxl_aer_ue[] = {
+	{ .bit = CXL_AER_UE_CACHE_DATA_PARITY, .error = "Cache Data Parity Error" },
+	{ .bit = CXL_AER_UE_CACHE_ADDR_PARITY, .error = "Cache Address Parity Error" },
+	{ .bit = CXL_AER_UE_CACHE_BE_PARITY, .error = "Cache Byte Enable Parity Error" },
+	{ .bit = CXL_AER_UE_CACHE_DATA_ECC, .error = "Cache Data ECC Error" },
+	{ .bit = CXL_AER_UE_MEM_DATA_PARITY, .error = "Memory Data Parity Error" },
+	{ .bit = CXL_AER_UE_MEM_ADDR_PARITY, .error = "Memory Address Parity Error" },
+	{ .bit = CXL_AER_UE_MEM_BE_PARITY, .error = "Memory Byte Enable Parity Error" },
+	{ .bit = CXL_AER_UE_MEM_DATA_ECC, .error = "Memory Data ECC Error" },
+	{ .bit = CXL_AER_UE_REINIT_THRESH, .error = "REINIT Threshold Hit" },
+	{ .bit = CXL_AER_UE_RSVD_ENCODE, .error = "Received Unrecognized Encoding" },
+	{ .bit = CXL_AER_UE_POISON, .error = "Received Poison From Peer" },
+	{ .bit = CXL_AER_UE_RECV_OVERFLOW, .error = "Receiver Overflow" },
+	{ .bit = CXL_AER_UE_INTERNAL_ERR, .error = "Component Specific Error" },
+	{ .bit = CXL_AER_UE_IDE_TX_ERR, .error = "IDE Tx Error" },
+	{ .bit = CXL_AER_UE_IDE_RX_ERR, .error = "IDE Rx Error" },
+};
+
+static int decode_cxl_error_status(struct trace_seq *s, uint32_t status,
+				   const struct cxl_error_list *cxl_error_list,
+				   uint8_t num_elems)
+{
+	int i;
+
+	for (i = 0; i < num_elems; i++) {
+		if (status & cxl_error_list[i].bit)
+			if (trace_seq_printf(s, "\'%s\' ", cxl_error_list[i].error) <= 0)
+				return -1;
+	}
+	return 0;
+}
+
+int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context)
+{
+	int len, i;
+	unsigned long long val;
+	time_t now;
+	struct tm *tm;
+	struct ras_events *ras = context;
+	struct ras_cxl_aer_ue_event ev;
+
+	memset(&ev, 0, sizeof(ev));
+	now = record->ts / user_hz + ras->uptime_diff;
+	tm = localtime(&now);
+	if (tm)
+		strftime(ev.timestamp, sizeof(ev.timestamp),
+			 "%Y-%m-%d %H:%M:%S %z", tm);
+	else
+		strncpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
+	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
+		return -1;
+
+	ev.memdev = tep_get_field_raw(s, event, "memdev",
+				      record, &len, 1);
+	if (!ev.memdev)
+		return -1;
+	if (trace_seq_printf(s, "memdev:%s ", ev.memdev) <= 0)
+		return -1;
+
+	ev.host = tep_get_field_raw(s, event, "host",
+				    record, &len, 1);
+	if (!ev.host)
+		return -1;
+	if (trace_seq_printf(s, "host:%s ", ev.host) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "serial", record, &val, 1) < 0)
+		return -1;
+	ev.serial = val;
+	if (trace_seq_printf(s, "serial:0x%llx ", (unsigned long long)ev.serial) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "status", record, &val, 1) < 0)
+		return -1;
+	ev.error_status = val;
+
+	if (trace_seq_printf(s, "error status:") <= 0)
+		return -1;
+	if (decode_cxl_error_status(s, ev.error_status,
+				    cxl_aer_ue, ARRAY_SIZE(cxl_aer_ue)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "first_error", record, &val, 1) < 0)
+		return -1;
+	ev.first_error = val;
+
+	if (trace_seq_printf(s, "first error:") <= 0)
+		return -1;
+	if (decode_cxl_error_status(s, ev.first_error,
+				    cxl_aer_ue, ARRAY_SIZE(cxl_aer_ue)) < 0)
+		return -1;
+
+	ev.header_log = tep_get_field_raw(s, event, "header_log",
+					  record, &len, 1);
+	if (!ev.header_log)
+		return -1;
+	if (trace_seq_printf(s, "header log:\n") <= 0)
+		return -1;
+	for (i = 0; i < CXL_HEADERLOG_SIZE_U32; i++) {
+		if (trace_seq_printf(s, "%08x ", ev.header_log[i]) <= 0)
+			break;
+		if ((i > 0) && ((i % 20) == 0))
+			if (trace_seq_printf(s, "\n") <= 0)
+				break;
+		/* Convert header log data to the big-endian format because
+		 * the SQLite database seems uses the big-endian storage.
+		 */
+		ev.header_log[i] = htobe32(ev.header_log[i]);
+	}
+	if (i < CXL_HEADERLOG_SIZE_U32)
+		return -1;
+
+	/* Insert data into the SGBD */
+#ifdef HAVE_SQLITE3
+	ras_store_cxl_aer_ue_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_cxl_aer_ue_event(ras, &ev);
 #endif
 
 	return 0;
