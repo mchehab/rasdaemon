@@ -246,6 +246,7 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_CXL
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_poison", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_aer_uncorrectable_error", enable);
 #endif
 
 free_ras:
@@ -993,6 +994,14 @@ int handle_ras_events(int record_events)
 	else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_poison");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_aer_uncorrectable_error",
+			       ras_cxl_aer_ue_event_handler, NULL, CXL_AER_UE_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "cxl_aer_uncorrectable_error");
 #endif
 
 	if (!num_events) {
