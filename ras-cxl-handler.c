@@ -220,6 +220,14 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 #define CXL_AER_UE_IDE_TX_ERR		BIT(15)
 #define CXL_AER_UE_IDE_RX_ERR		BIT(16)
 
+#define CXL_AER_CE_CACHE_DATA_ECC	BIT(0)
+#define CXL_AER_CE_MEM_DATA_ECC		BIT(1)
+#define CXL_AER_CE_CRC_THRESH		BIT(2)
+#define CXL_AER_CE_RETRY_THRESH		BIT(3)
+#define CXL_AER_CE_CACHE_POISON		BIT(4)
+#define CXL_AER_CE_MEM_POISON		BIT(5)
+#define CXL_AER_CE_PHYS_LAYER_ERR	BIT(6)
+
 struct cxl_error_list {
 	uint32_t bit;
 	const char *error;
@@ -241,6 +249,16 @@ static const struct cxl_error_list cxl_aer_ue[] = {
 	{ .bit = CXL_AER_UE_INTERNAL_ERR, .error = "Component Specific Error" },
 	{ .bit = CXL_AER_UE_IDE_TX_ERR, .error = "IDE Tx Error" },
 	{ .bit = CXL_AER_UE_IDE_RX_ERR, .error = "IDE Rx Error" },
+};
+
+static const struct cxl_error_list cxl_aer_ce[] = {
+	{ .bit = CXL_AER_CE_CACHE_DATA_ECC, .error = "Cache Data ECC Error" },
+	{ .bit = CXL_AER_CE_MEM_DATA_ECC, .error = "Memory Data ECC Error" },
+	{ .bit = CXL_AER_CE_CRC_THRESH, .error = "CRC Threshold Hit" },
+	{ .bit = CXL_AER_CE_RETRY_THRESH, .error = "Retry Threshold" },
+	{ .bit = CXL_AER_CE_CACHE_POISON, .error = "Received Cache Poison From Peer" },
+	{ .bit = CXL_AER_CE_MEM_POISON, .error = "Received Memory Poison From Peer" },
+	{ .bit = CXL_AER_CE_PHYS_LAYER_ERR, .error = "Received Error From Physical Layer" },
 };
 
 static int decode_cxl_error_status(struct trace_seq *s, uint32_t status,
@@ -347,6 +365,69 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_cxl_aer_ue_event(ras, &ev);
+#endif
+
+	return 0;
+}
+
+int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context)
+{
+	int len;
+	unsigned long long val;
+	time_t now;
+	struct tm *tm;
+	struct ras_events *ras = context;
+	struct ras_cxl_aer_ce_event ev;
+
+	now = record->ts / user_hz + ras->uptime_diff;
+	tm = localtime(&now);
+	if (tm)
+		strftime(ev.timestamp, sizeof(ev.timestamp),
+			 "%Y-%m-%d %H:%M:%S %z", tm);
+	else
+		strncpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
+	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
+		return -1;
+
+	ev.memdev = tep_get_field_raw(s, event, "memdev",
+				      record, &len, 1);
+	if (!ev.memdev)
+		return -1;
+	if (trace_seq_printf(s, "memdev:%s ", ev.memdev) <= 0)
+		return -1;
+
+	ev.host = tep_get_field_raw(s, event, "host",
+				    record, &len, 1);
+	if (!ev.host)
+		return -1;
+	if (trace_seq_printf(s, "host:%s ", ev.host) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "serial", record, &val, 1) < 0)
+		return -1;
+	ev.serial = val;
+	if (trace_seq_printf(s, "serial:0x%llx ", (unsigned long long)ev.serial) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "status", record, &val, 1) < 0)
+		return -1;
+	ev.error_status = val;
+	if (trace_seq_printf(s, "error status:") <= 0)
+		return -1;
+	if (decode_cxl_error_status(s, ev.error_status,
+				    cxl_aer_ce, ARRAY_SIZE(cxl_aer_ce)) < 0)
+		return -1;
+
+	/* Insert data into the SGBD */
+#ifdef HAVE_SQLITE3
+	ras_store_cxl_aer_ce_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_cxl_aer_ce_event(ras, &ev);
 #endif
 
 	return 0;

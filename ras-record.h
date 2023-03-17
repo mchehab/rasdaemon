@@ -144,6 +144,14 @@ struct ras_cxl_aer_ue_event {
 	uint32_t *header_log;
 };
 
+struct ras_cxl_aer_ce_event {
+	char timestamp[64];
+	const char *memdev;
+	const char *host;
+	uint64_t serial;
+	uint32_t error_status;
+};
+
 struct ras_mc_event;
 struct ras_aer_event;
 struct ras_extlog_event;
@@ -155,6 +163,7 @@ struct diskerror_event;
 struct ras_mf_event;
 struct ras_cxl_poison_event;
 struct ras_cxl_aer_ue_event;
+struct ras_cxl_aer_ce_event;
 
 #ifdef HAVE_SQLITE3
 
@@ -190,6 +199,7 @@ struct sqlite3_priv {
 #ifdef HAVE_CXL
 	sqlite3_stmt	*stmt_cxl_poison_event;
 	sqlite3_stmt	*stmt_cxl_aer_ue_event;
+	sqlite3_stmt	*stmt_cxl_aer_ce_event;
 #endif
 };
 
@@ -220,6 +230,7 @@ int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev
 int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev);
 int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev);
 int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev);
+int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
@@ -235,6 +246,7 @@ static inline int ras_store_diskerror_event(struct ras_events *ras, struct diske
 static inline int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev) { return 0; };
 static inline int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev) { return 0; };
 static inline int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev) { return 0; };
+static inline int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev) { return 0; };
 
 #endif
 
