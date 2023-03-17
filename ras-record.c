@@ -673,6 +673,53 @@ int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_eve
 
 	return rc;
 }
+
+/*
+ * Table and functions to handle cxl:cxl_aer_correctable_error
+ */
+static const struct db_fields cxl_aer_ce_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "error_status",	.type = "INTEGER" },
+};
+
+static const struct db_table_descriptor cxl_aer_ce_event_tab = {
+	.name = "cxl_aer_ce_event",
+	.fields = cxl_aer_ce_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_aer_ce_event_fields),
+};
+
+int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_aer_ce_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_aer_ce_event store: %p\n", priv->stmt_cxl_aer_ce_event);
+
+	sqlite3_bind_text(priv->stmt_cxl_aer_ce_event, 1, ev->timestamp, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_aer_ce_event, 2, ev->memdev, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_aer_ce_event, 3, ev->host, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_aer_ce_event, 4, ev->serial);
+	sqlite3_bind_int(priv->stmt_cxl_aer_ce_event, 5, ev->error_status);
+
+	rc = sqlite3_step(priv->stmt_cxl_aer_ce_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do cxl_aer_ce_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_aer_ce_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset cxl_aer_ce_event on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
 #endif
 
 /*
@@ -1028,6 +1075,14 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			goto error;
 	}
+
+	rc = ras_mc_create_table(priv, &cxl_aer_ce_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_aer_ce_event,
+					 &cxl_aer_ce_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 	ras->db_priv = priv;
@@ -1156,6 +1211,14 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			log(TERM, LOG_ERR,
 			    "cpu %u: Failed to finalize cxl_aer_ue_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_aer_ce_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_aer_ce_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_aer_ce_event sqlite: error = %d\n",
 			    cpu, rc);
 	}
 #endif
