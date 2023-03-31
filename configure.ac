@@ -127,6 +127,16 @@ AS_IF([test "x$enable_memory_failure" = "xyes" || test "x$enable_all" = "xyes"],
 AM_CONDITIONAL([WITH_MEMORY_FAILURE], [test x$enable_memory_failure = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_MEMORY_FAILURE], [USE_MEMORY_FAILURE="yes"], [USE_MEMORY_FAILURE="no"])
 
+AC_ARG_ENABLE([cxl],
+    AS_HELP_STRING([--enable-cxl], [enable CXL events (currently experimental)]))
+
+AS_IF([test "x$enable_cxl" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_CXL,1,"have CXL events collect")
+  AC_SUBST([WITH_CXL])
+])
+AM_CONDITIONAL([WITH_CXL], [test x$enable_cxl = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_CXL], [USE_CXL="yes"], [USE_CXL="no"])
+
 AC_ARG_ENABLE([abrt_report],
     AS_HELP_STRING([--enable-abrt-report], [enable report event to ABRT (currently experimental)]))
 
@@ -215,6 +225,7 @@ compile time options summary
     DEVLINK             : $USE_DEVLINK
     Disk I/O errors     : $USE_DISKERROR
     Memory Failure      : $USE_MEMORY_FAILURE
+    CXL events          : $USE_CXL
     Memory CE PFA       : $USE_MEMORY_CE_PFA
     AMP RAS errors      : $USE_AMP_NS_DECODE
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION

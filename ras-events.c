@@ -40,6 +40,7 @@
 #include "ras-devlink-handler.h"
 #include "ras-diskerror-handler.h"
 #include "ras-memory-failure-handler.h"
+#include "ras-cxl-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
@@ -241,6 +242,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_MEMORY_FAILURE
 	rc |= __toggle_ras_mc_event(ras, "ras", "memory_failure_event", enable);
+#endif
+
+#ifdef HAVE_CXL
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_poison", enable);
 #endif
 
 free_ras:
@@ -978,6 +983,16 @@ int handle_ras_events(int record_events)
 	else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "memory_failure_event");
+#endif
+
+#ifdef HAVE_CXL
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_poison",
+			       ras_cxl_poison_event_handler, NULL, CXL_POISON_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "cxl_poison");
 #endif
 
 	if (!num_events) {

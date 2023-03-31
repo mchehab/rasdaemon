@@ -331,6 +331,46 @@ static int set_mf_event_backtrace(char *buf, struct ras_mf_event *ev)
 	return 0;
 }
 
+static int set_cxl_poison_event_backtrace(char *buf, struct ras_cxl_poison_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"memdev=%s\n"		\
+						"host=%s\n"		\
+						"serial=0x%lx\n"	\
+						"trace_type=%s\n"	\
+						"region=%s\n"		\
+						"region_uuid=%s\n"	\
+						"hpa=0x%lx\n"		\
+						"dpa=0x%lx\n"		\
+						"dpa_length=0x%x\n"	\
+						"source=%s\n"		\
+						"flags=%u\n"		\
+						"overflow_timestamp=%s\n", \
+						ev->timestamp,		\
+						ev->memdev,		\
+						ev->host,		\
+						ev->serial,		\
+						ev->trace_type,		\
+						ev->region,		\
+						ev->uuid,		\
+						ev->hpa,		\
+						ev->dpa,		\
+						ev->dpa_length,		\
+						ev->source,		\
+						ev->flags,		\
+						ev->overflow_ts);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
 static int commit_report_backtrace(int sockfd, int type, void *ev){
 	char buf[MAX_BACKTRACE_SIZE];
 	char *pbuf = buf;
@@ -367,6 +407,9 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 		break;
 	case MF_EVENT:
 		rc = set_mf_event_backtrace(buf, (struct ras_mf_event *)ev);
+		break;
+	case CXL_POISON_EVENT:
+		rc = set_cxl_poison_event_backtrace(buf, (struct ras_cxl_poison_event *)ev);
 		break;
 	default:
 		return -1;
@@ -768,6 +811,50 @@ int ras_report_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 	done = 1;
 
 mf_fail:
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
+}
+
+int ras_report_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto cxl_poison_fail;
+
+	rc = commit_report_backtrace(sockfd, CXL_POISON_EVENT, ev);
+	if (rc < 0)
+		goto cxl_poison_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl-poison");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_poison_fail;
+
+	sprintf(buf, "REASON=%s", "CXL poison");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_poison_fail;
+
+	done = 1;
+
+cxl_poison_fail:
+
 	if (sockfd >= 0)
 		close(sockfd);
 
