@@ -559,6 +559,71 @@ int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 }
 #endif
 
+#ifdef HAVE_CXL
+/*
+ * Table and functions to handle cxl:cxl_poison
+ */
+static const struct db_fields cxl_poison_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "trace_type",		.type = "TEXT" },
+	{ .name = "region",		.type = "TEXT" },
+	{ .name = "region_uuid",	.type = "TEXT" },
+	{ .name = "hpa",		.type = "INTEGER" },
+	{ .name = "dpa",		.type = "INTEGER" },
+	{ .name = "dpa_length",		.type = "INTEGER" },
+	{ .name = "source",		.type = "TEXT" },
+	{ .name = "flags",		.type = "INTEGER" },
+	{ .name = "overflow_ts",	.type = "TEXT" },
+};
+
+static const struct db_table_descriptor cxl_poison_event_tab = {
+	.name = "cxl_poison_event",
+	.fields = cxl_poison_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_poison_event_fields),
+};
+
+int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_poison_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_poison_event store: %p\n", priv->stmt_cxl_poison_event);
+
+	sqlite3_bind_text(priv->stmt_cxl_poison_event, 1, ev->timestamp, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_poison_event, 2, ev->memdev, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_poison_event, 3, ev->host, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_poison_event, 4, ev->serial);
+	sqlite3_bind_text(priv->stmt_cxl_poison_event, 5, ev->trace_type, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_poison_event, 6, ev->region, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_poison_event, 7, ev->uuid, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_poison_event, 8, ev->hpa);
+	sqlite3_bind_int64(priv->stmt_cxl_poison_event, 9, ev->dpa);
+	sqlite3_bind_int(priv->stmt_cxl_poison_event, 10, ev->dpa_length);
+	sqlite3_bind_text(priv->stmt_cxl_poison_event, 11, ev->source, -1, NULL);
+	sqlite3_bind_int(priv->stmt_cxl_poison_event, 12, ev->flags);
+	sqlite3_bind_text(priv->stmt_cxl_poison_event, 13, ev->overflow_ts, -1, NULL);
+
+	rc = sqlite3_step(priv->stmt_cxl_poison_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do cxl_poison_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_poison_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset cxl_poison_event on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+#endif
+
 /*
  * Generic code
  */
@@ -896,6 +961,16 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 	}
 #endif
 
+#ifdef HAVE_CXL
+	rc = ras_mc_create_table(priv, &cxl_poison_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_poison_event,
+					 &cxl_poison_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
+#endif
+
 	ras->db_priv = priv;
 	return 0;
 
@@ -1004,6 +1079,16 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			log(TERM, LOG_ERR,
 			    "cpu %u: Failed to finalize mf_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+#ifdef HAVE_CXL
+	if (priv->stmt_cxl_poison_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_poison_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_poison_event sqlite: error = %d\n",
 			    cpu, rc);
 	}
 #endif
