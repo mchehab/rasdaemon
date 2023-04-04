@@ -426,3 +426,101 @@ int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
+/*
+ * CXL rev 3.0 section 8.2.9.2.2; Table 8-49
+ */
+enum cxl_event_log_type {
+	CXL_EVENT_TYPE_INFO = 0x00,
+	CXL_EVENT_TYPE_WARN,
+	CXL_EVENT_TYPE_FAIL,
+	CXL_EVENT_TYPE_FATAL,
+	CXL_EVENT_TYPE_UNKNOWN
+};
+
+static char *cxl_event_log_type_str(uint32_t log_type)
+{
+
+	switch (log_type) {
+	case CXL_EVENT_TYPE_INFO:
+		return "Informational";
+	case CXL_EVENT_TYPE_WARN:
+		return "Warning";
+	case CXL_EVENT_TYPE_FAIL:
+		return "Failure";
+	case CXL_EVENT_TYPE_FATAL:
+		return "Fatal";
+	default:
+		break;
+	}
+
+	return "Unknown";
+}
+
+int ras_cxl_overflow_event_handler(struct trace_seq *s,
+				   struct tep_record *record,
+				   struct tep_event *event, void *context)
+{
+	int len;
+	unsigned long long val;
+	struct ras_events *ras = context;
+	struct ras_cxl_overflow_event ev;
+
+	memset(&ev, 0, sizeof(ev));
+	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
+	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
+		return -1;
+
+	ev.memdev = tep_get_field_raw(s, event, "memdev", record, &len, 1);
+	if (!ev.memdev)
+		return -1;
+	if (trace_seq_printf(s, "memdev:%s ", ev.memdev) <= 0)
+		return -1;
+
+	ev.host = tep_get_field_raw(s, event, "host", record, &len, 1);
+	if (!ev.host)
+		return -1;
+	if (trace_seq_printf(s, "host:%s ", ev.host) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "serial", record, &val, 1) < 0)
+		return -1;
+	ev.serial = val;
+	if (trace_seq_printf(s, "serial:0x%llx ", (unsigned long long)ev.serial) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "log", record, &val, 1) < 0)
+		return -1;
+	ev.log_type = cxl_event_log_type_str(val);
+	if (trace_seq_printf(s, "log type:%s ", ev.log_type) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "count", record, &val, 1) < 0)
+		return -1;
+	ev.count = val;
+
+	if (tep_get_field_val(s,  event, "first_ts", record, &val, 1) < 0)
+		return -1;
+	convert_timestamp(val, ev.first_ts, sizeof(ev.first_ts));
+
+	if (tep_get_field_val(s,  event, "last_ts", record, &val, 1) < 0)
+		return -1;
+	convert_timestamp(val, ev.last_ts, sizeof(ev.last_ts));
+
+	if (ev.count) {
+		if (trace_seq_printf(s, "%u errors from %s to %s\n",
+				     ev.count, ev.first_ts, ev.last_ts) <= 0)
+			return -1;
+	}
+	/* Insert data into the SGBD */
+#ifdef HAVE_SQLITE3
+	ras_store_cxl_overflow_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_cxl_overflow_event(ras, &ev);
+#endif
+
+	return 0;
+}

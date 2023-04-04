@@ -720,6 +720,59 @@ int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_eve
 
 	return rc;
 }
+
+/*
+ * Table and functions to handle cxl:cxl_overflow
+ */
+static const struct db_fields cxl_overflow_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "log_type",		.type = "TEXT" },
+	{ .name = "count",		.type = "INTEGER" },
+	{ .name = "first_ts",		.type = "TEXT" },
+	{ .name = "last_ts",		.type = "TEXT" },
+};
+
+static const struct db_table_descriptor cxl_overflow_event_tab = {
+	.name = "cxl_overflow_event",
+	.fields = cxl_overflow_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_overflow_event_fields),
+};
+
+int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_overflow_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_overflow_event store: %p\n", priv->stmt_cxl_overflow_event);
+
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 1, ev->timestamp, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 2, ev->memdev, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 3, ev->host, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_overflow_event, 4, ev->serial);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 5, ev->log_type, -1, NULL);
+	sqlite3_bind_int(priv->stmt_cxl_overflow_event, 6, ev->count);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 7, ev->first_ts, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 8, ev->last_ts, -1, NULL);
+
+	rc = sqlite3_step(priv->stmt_cxl_overflow_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do cxl_overflow_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_overflow_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset cxl_overflow_event on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
 #endif
 
 /*
@@ -1087,6 +1140,14 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			goto error;
 	}
+
+	rc = ras_mc_create_table(priv, &cxl_overflow_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_overflow_event,
+					 &cxl_overflow_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 	ras->db_priv = priv;
@@ -1230,6 +1291,14 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			log(TERM, LOG_ERR,
 			    "cpu %u: Failed to finalize cxl_aer_ce_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_overflow_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_overflow_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_overflow_event sqlite: error = %d\n",
 			    cpu, rc);
 	}
 #endif
