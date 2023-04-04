@@ -43,6 +43,7 @@ int ras_report_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_ev
 int ras_report_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev);
 int ras_report_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev);
 int ras_report_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev);
+int ras_report_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev);
 
 #else
 
@@ -58,6 +59,7 @@ static inline int ras_report_cxl_poison_event(struct ras_events *ras, struct ras
 static inline int ras_report_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev) { return 0; };
 static inline int ras_report_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev) { return 0; };
 static inline int ras_report_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev) { return 0; };
+static inline int ras_report_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev) { return 0; };
 
 #endif
 

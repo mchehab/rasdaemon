@@ -773,6 +773,79 @@ int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow
 
 	return rc;
 }
+
+static int ras_store_cxl_common_hdr(sqlite3_stmt *stmt, struct ras_cxl_event_common_hdr *hdr)
+{
+	if (!stmt || !hdr)
+		return 0;
+
+	sqlite3_bind_text(stmt, 1, hdr->timestamp, -1, NULL);
+	sqlite3_bind_text(stmt, 2, hdr->memdev, -1, NULL);
+	sqlite3_bind_text(stmt, 3, hdr->host, -1, NULL);
+	sqlite3_bind_int64(stmt, 4, hdr->serial);
+	sqlite3_bind_text(stmt, 5, hdr->log_type, -1, NULL);
+	sqlite3_bind_text(stmt, 6, hdr->hdr_uuid, -1, NULL);
+	sqlite3_bind_int(stmt, 7, hdr->hdr_flags);
+	sqlite3_bind_int(stmt, 8, hdr->hdr_handle);
+	sqlite3_bind_int(stmt, 9, hdr->hdr_related_handle);
+	sqlite3_bind_text(stmt, 10, hdr->hdr_timestamp, -1, NULL);
+	sqlite3_bind_int(stmt, 11, hdr->hdr_length);
+	sqlite3_bind_int(stmt, 12, hdr->hdr_maint_op_class);
+
+	return 0;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_generic_event
+ */
+static const struct db_fields cxl_generic_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "log_type",		.type = "TEXT" },
+	{ .name = "hdr_uuid",		.type = "TEXT" },
+	{ .name = "hdr_flags",		.type = "INTEGER" },
+	{ .name = "hdr_handle",		.type = "INTEGER" },
+	{ .name = "hdr_related_handle",	.type = "INTEGER" },
+	{ .name = "hdr_ts",		.type = "TEXT" },
+	{ .name = "hdr_length",		.type = "INTEGER" },
+	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
+	{ .name = "data",		.type = "BLOB" },
+};
+
+static const struct db_table_descriptor cxl_generic_event_tab = {
+	.name = "cxl_generic_event",
+	.fields = cxl_generic_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_generic_event_fields),
+};
+
+int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_generic_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_generic_event store: %p\n", priv->stmt_cxl_generic_event);
+
+	ras_store_cxl_common_hdr(priv->stmt_cxl_generic_event, &ev->hdr);
+	sqlite3_bind_blob(priv->stmt_cxl_generic_event, 13, ev->data,
+			  CXL_EVENT_RECORD_DATA_LENGTH, NULL);
+
+	rc = sqlite3_step(priv->stmt_cxl_generic_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do stmt_cxl_generic_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_generic_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset stmt_cxl_generic_event on sqlite: error = %d\n", rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
 #endif
 
 /*
@@ -1148,6 +1221,14 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			goto error;
 	}
+
+	rc = ras_mc_create_table(priv, &cxl_generic_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_generic_event,
+					 &cxl_generic_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 	ras->db_priv = priv;
@@ -1299,6 +1380,14 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			log(TERM, LOG_ERR,
 			    "cpu %u: Failed to finalize cxl_overflow_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_generic_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_generic_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_generic_event sqlite: error = %d\n",
 			    cpu, rc);
 	}
 #endif

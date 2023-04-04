@@ -56,6 +56,49 @@ static void get_timestamp(struct trace_seq *s, struct tep_record *record,
 		strncpy(ts_ptr, "1970-01-01 00:00:00 +0000", size);
 }
 
+struct cxl_event_flags {
+	uint32_t bit;
+	const char *flag;
+};
+
+static int decode_cxl_event_flags(struct trace_seq *s, uint32_t flags,
+				  const struct cxl_event_flags *cxl_ev_flags,
+				  uint8_t num_elems)
+{
+	int i;
+
+	for (i = 0; i < num_elems; i++) {
+		if (flags & cxl_ev_flags[i].bit)
+			if (trace_seq_printf(s, "\'%s\' ", cxl_ev_flags[i].flag) <= 0)
+				return -1;
+	}
+	return 0;
+}
+
+static char *uuid_be(const char *uu)
+{
+	static char uuid[sizeof("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")];
+	char *p = uuid;
+	int i;
+	static const unsigned char be[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+
+	for (i = 0; i < 16; i++) {
+		p += sprintf(p, "%.2x", (unsigned char) uu[be[i]]);
+		switch (i) {
+		case 3:
+		case 5:
+		case 7:
+		case 9:
+			*p++ = '-';
+			break;
+		}
+	}
+
+	*p = 0;
+
+	return uuid;
+}
+
 /* Poison List: Payload out flags */
 #define CXL_POISON_FLAG_MORE            BIT(0)
 #define CXL_POISON_FLAG_OVERFLOW        BIT(1)
@@ -520,6 +563,148 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_cxl_overflow_event(ras, &ev);
+#endif
+
+	return 0;
+}
+
+/*
+ * Common Event Record Format
+ * CXL 3.0 section 8.2.9.2.1; Table 8-42
+ */
+#define CXL_EVENT_RECORD_FLAG_PERMANENT		BIT(2)
+#define CXL_EVENT_RECORD_FLAG_MAINT_NEEDED	BIT(3)
+#define CXL_EVENT_RECORD_FLAG_PERF_DEGRADED	BIT(4)
+#define CXL_EVENT_RECORD_FLAG_HW_REPLACE	BIT(5)
+
+static const struct  cxl_event_flags cxl_hdr_flags[] = {
+	{ .bit = CXL_EVENT_RECORD_FLAG_PERMANENT, .flag = "PERMANENT_CONDITION" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_MAINT_NEEDED, .flag = "MAINTENANCE_NEEDED" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_PERF_DEGRADED, .flag = "PERFORMANCE_DEGRADED" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_HW_REPLACE, .flag = "HARDWARE_REPLACEMENT_NEEDED" },
+};
+
+static int handle_ras_cxl_common_hdr(struct trace_seq *s,
+				     struct tep_record *record,
+				     struct tep_event *event, void *context,
+				     struct ras_cxl_event_common_hdr *hdr)
+{
+	int len;
+	unsigned long long val;
+	struct ras_events *ras = context;
+
+	get_timestamp(s, record, ras, (char *)&hdr->timestamp, sizeof(hdr->timestamp));
+	if (trace_seq_printf(s, "%s ", hdr->timestamp) <= 0)
+		return -1;
+
+	hdr->memdev = tep_get_field_raw(s, event, "memdev", record, &len, 1);
+	if (!hdr->memdev)
+		return -1;
+	if (trace_seq_printf(s, "memdev:%s ", hdr->memdev) <= 0)
+		return -1;
+
+	hdr->host = tep_get_field_raw(s, event, "host", record, &len, 1);
+	if (!hdr->host)
+		return -1;
+	if (trace_seq_printf(s, "host:%s ", hdr->host) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "serial", record, &val, 1) < 0)
+		return -1;
+	hdr->serial = val;
+	if (trace_seq_printf(s, "serial:0x%llx ", (unsigned long long)hdr->serial) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "log", record, &val, 1) < 0)
+		return -1;
+	hdr->log_type = cxl_event_log_type_str(val);
+	if (trace_seq_printf(s, "log type:%s ", hdr->log_type) <= 0)
+		return -1;
+
+	hdr->hdr_uuid = tep_get_field_raw(s, event, "hdr_uuid", record, &len, 1);
+	if (!hdr->hdr_uuid)
+		return -1;
+	hdr->hdr_uuid = uuid_be(hdr->hdr_uuid);
+	if (trace_seq_printf(s, "hdr_uuid:%s ", hdr->hdr_uuid) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hdr_flags", record, &val, 1) < 0)
+		return -1;
+	hdr->hdr_flags = val;
+	if (decode_cxl_event_flags(s, hdr->hdr_flags, cxl_hdr_flags,
+				   ARRAY_SIZE(cxl_hdr_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hdr_handle", record, &val, 1) < 0)
+		return -1;
+	hdr->hdr_handle = val;
+	if (trace_seq_printf(s, "hdr_handle:0x%x ", hdr->hdr_handle) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hdr_related_handle", record, &val, 1) < 0)
+		return -1;
+	hdr->hdr_related_handle = val;
+	if (trace_seq_printf(s, "hdr_related_handle:0x%x ", hdr->hdr_related_handle) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "hdr_timestamp", record, &val, 1) < 0)
+		return -1;
+	convert_timestamp(val, hdr->hdr_timestamp, sizeof(hdr->hdr_timestamp));
+	if (trace_seq_printf(s, "hdr_timestamp:%s ", hdr->hdr_timestamp) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "hdr_length", record, &val, 1) < 0)
+		return -1;
+	hdr->hdr_length = val;
+	if (trace_seq_printf(s, "hdr_length:%u ", hdr->hdr_length) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "hdr_maint_op_class", record, &val, 1) < 0)
+		return -1;
+	hdr->hdr_maint_op_class = val;
+	if (trace_seq_printf(s, "hdr_maint_op_class:%u ", hdr->hdr_maint_op_class) <= 0)
+		return -1;
+
+	return 0;
+}
+
+int ras_cxl_generic_event_handler(struct trace_seq *s,
+				  struct tep_record *record,
+				  struct tep_event *event, void *context)
+{
+	int len, i;
+	struct ras_events *ras = context;
+	struct ras_cxl_generic_event ev;
+	const uint8_t *buf;
+
+	memset(&ev, 0, sizeof(ev));
+	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
+		return -1;
+
+	ev.data = tep_get_field_raw(s, event, "data", record, &len, 1);
+	if (!ev.data)
+		return -1;
+	i = 0;
+	buf = ev.data;
+	if (trace_seq_printf(s, "\ndata:\n  %08x: ", i) <= 0)
+		return -1;
+	for (i = 0; i < CXL_EVENT_RECORD_DATA_LENGTH; i += 4) {
+		if ((i > 0) && ((i % 16) == 0))
+			if (trace_seq_printf(s, "\n  %08x: ", i) <= 0)
+				break;
+		if (trace_seq_printf(s, "%02x%02x%02x%02x ",
+				     buf[i], buf[i+1], buf[i+2], buf[i+3]) <= 0)
+			break;
+	}
+
+	/* Insert data into the SGBD */
+#ifdef HAVE_SQLITE3
+	ras_store_cxl_generic_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_cxl_generic_event(ras, &ev);
 #endif
 
 	return 0;
