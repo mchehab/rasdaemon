@@ -23,6 +23,25 @@
 #include "ras-report.h"
 #include <endian.h>
 
+/* Common Functions */
+static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size)
+{
+	/* CXL Specification 3.0
+	 * Overflow timestamp - The number of unsigned nanoseconds
+	 * that have elapsed since midnight, 01-Jan-1970 UTC
+	 */
+	time_t ts_secs = ts / 1000000000ULL;
+	struct tm *tm;
+
+	tm = localtime(&ts_secs);
+	if (tm)
+		strftime(ts_ptr, size, "%Y-%m-%d %H:%M:%S %z", tm);
+
+	if (!ts || !tm)
+		strncpy(ts_ptr, "1970-01-01 00:00:00 +0000",
+			size);
+}
+
 /* Poison List: Payload out flags */
 #define CXL_POISON_FLAG_MORE            BIT(0)
 #define CXL_POISON_FLAG_OVERFLOW        BIT(1)
@@ -168,22 +187,7 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	if (ev.flags & CXL_POISON_FLAG_OVERFLOW) {
 		if (tep_get_field_val(s,  event, "overflow_ts", record, &val, 1) < 0)
 			return -1;
-		if (val) {
-			/* CXL Specification 3.0
-			 * Overflow timestamp - The number of unsigned nanoseconds
-			 * that have elapsed since midnight, 01-Jan-1970 UTC
-			 */
-			time_t ovf_ts_secs = val / 1000000000ULL;
-
-			tm = localtime(&ovf_ts_secs);
-			if (tm) {
-				strftime(ev.overflow_ts, sizeof(ev.overflow_ts),
-					 "%Y-%m-%d %H:%M:%S %z", tm);
-			}
-		}
-		if (!val || !tm)
-			strncpy(ev.overflow_ts, "1970-01-01 00:00:00 +0000",
-				sizeof(ev.overflow_ts));
+		convert_timestamp(val, ev.overflow_ts, sizeof(ev.overflow_ts));		
 	} else
 		strncpy(ev.overflow_ts, "1970-01-01 00:00:00 +0000", sizeof(ev.overflow_ts));
 	if (trace_seq_printf(s, "overflow timestamp:%s\n", ev.overflow_ts) <= 0)
