@@ -421,6 +421,36 @@ static int set_cxl_aer_ce_event_backtrace(char *buf, struct ras_cxl_aer_ce_event
 	return 0;
 }
 
+static int set_cxl_overflow_event_backtrace(char *buf, struct ras_cxl_overflow_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"memdev=%s\n"		\
+						"host=%s\n"		\
+						"serial=0x%lx\n"	\
+						"log_type=%s\n"		\
+						"count=%u\n"		\
+						"first_ts=%s\n"		\
+						"last_ts=%s\n",		\
+						ev->timestamp,		\
+						ev->memdev,		\
+						ev->host,		\
+						ev->serial,		\
+						ev->log_type,		\
+						ev->count,		\
+						ev->first_ts,		\
+						ev->last_ts);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
 static int commit_report_backtrace(int sockfd, int type, void *ev){
 	char buf[MAX_BACKTRACE_SIZE];
 	char *pbuf = buf;
@@ -466,6 +496,9 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 		break;
 	case CXL_AER_CE_EVENT:
 		rc = set_cxl_aer_ce_event_backtrace(buf, (struct ras_cxl_aer_ce_event *)ev);
+		break;
+	case CXL_OVERFLOW_EVENT:
+		rc = set_cxl_overflow_event_backtrace(buf, (struct ras_cxl_overflow_event *)ev);
 		break;
 	default:
 		return -1;
@@ -998,6 +1031,50 @@ int ras_report_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_ev
 	done = 1;
 
 cxl_aer_ce_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
+}
+
+int ras_report_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto cxl_overflow_fail;
+
+	rc = commit_report_backtrace(sockfd, CXL_OVERFLOW_EVENT, ev);
+	if (rc < 0)
+		goto cxl_overflow_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl-overflow");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_overflow_fail;
+
+	sprintf(buf, "REASON=%s", "CXL overflow");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_overflow_fail;
+
+	done = 1;
+
+cxl_overflow_fail:
 
 	if (sockfd >= 0)
 		close(sockfd);

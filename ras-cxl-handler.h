@@ -29,4 +29,7 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
 				 struct tep_record *record,
 				 struct tep_event *event, void *context);
+int ras_cxl_overflow_event_handler(struct trace_seq *s,
+				   struct tep_record *record,
+				   struct tep_event *event, void *context);
 #endif
