@@ -42,6 +42,20 @@ static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size
 			size);
 }
 
+static void get_timestamp(struct trace_seq *s, struct tep_record *record,
+			  struct ras_events *ras, char *ts_ptr, uint16_t size)
+{
+	time_t now;
+	struct tm *tm;
+
+	now = record->ts / user_hz + ras->uptime_diff;
+	tm = localtime(&now);
+	if (tm)
+		strftime(ts_ptr, size, "%Y-%m-%d %H:%M:%S %z", tm);
+	else
+		strncpy(ts_ptr, "1970-01-01 00:00:00 +0000", size);
+}
+
 /* Poison List: Payload out flags */
 #define CXL_POISON_FLAG_MORE            BIT(0)
 #define CXL_POISON_FLAG_OVERFLOW        BIT(1)
@@ -70,17 +84,9 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	int len;
 	unsigned long long val;
 	struct ras_events *ras = context;
-	time_t now;
-	struct tm *tm;
 	struct ras_cxl_poison_event ev;
 
-	now = record->ts / user_hz + ras->uptime_diff;
-	tm = localtime(&now);
-	if (tm)
-		strftime(ev.timestamp, sizeof(ev.timestamp),
-			 "%Y-%m-%d %H:%M:%S %z", tm);
-	else
-		strncpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
+	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
 
@@ -285,19 +291,11 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 {
 	int len, i;
 	unsigned long long val;
-	time_t now;
-	struct tm *tm;
 	struct ras_events *ras = context;
 	struct ras_cxl_aer_ue_event ev;
 
 	memset(&ev, 0, sizeof(ev));
-	now = record->ts / user_hz + ras->uptime_diff;
-	tm = localtime(&now);
-	if (tm)
-		strftime(ev.timestamp, sizeof(ev.timestamp),
-			 "%Y-%m-%d %H:%M:%S %z", tm);
-	else
-		strncpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
+	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
 
@@ -380,18 +378,10 @@ int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
 {
 	int len;
 	unsigned long long val;
-	time_t now;
-	struct tm *tm;
 	struct ras_events *ras = context;
 	struct ras_cxl_aer_ce_event ev;
 
-	now = record->ts / user_hz + ras->uptime_diff;
-	tm = localtime(&now);
-	if (tm)
-		strftime(ev.timestamp, sizeof(ev.timestamp),
-			 "%Y-%m-%d %H:%M:%S %z", tm);
-	else
-		strncpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
+	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
 
