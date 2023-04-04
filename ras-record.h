@@ -133,6 +133,7 @@ struct ras_cxl_poison_event {
 #define SZ_512                          0x200
 #define CXL_HEADERLOG_SIZE              SZ_512
 #define CXL_HEADERLOG_SIZE_U32          (SZ_512 / sizeof(uint32_t))
+#define CXL_EVENT_RECORD_DATA_LENGTH	0x50
 
 struct ras_cxl_aer_ue_event {
 	char timestamp[64];
@@ -163,6 +164,26 @@ struct ras_cxl_overflow_event {
 	uint16_t count;
 };
 
+struct ras_cxl_event_common_hdr {
+	char timestamp[64];
+	const char *memdev;
+	const char *host;
+	uint64_t serial;
+	const char *log_type;
+	const char *hdr_uuid;
+	uint32_t hdr_flags;
+	uint16_t hdr_handle;
+	uint16_t hdr_related_handle;
+	char hdr_timestamp[64];
+	uint8_t hdr_length;
+	uint8_t hdr_maint_op_class;
+};
+
+struct ras_cxl_generic_event {
+	struct ras_cxl_event_common_hdr hdr;
+	uint8_t *data;
+};
+
 struct ras_mc_event;
 struct ras_aer_event;
 struct ras_extlog_event;
@@ -176,6 +197,7 @@ struct ras_cxl_poison_event;
 struct ras_cxl_aer_ue_event;
 struct ras_cxl_aer_ce_event;
 struct ras_cxl_overflow_event;
+struct ras_cxl_generic_event;
 
 #ifdef HAVE_SQLITE3
 
@@ -213,6 +235,7 @@ struct sqlite3_priv {
 	sqlite3_stmt	*stmt_cxl_aer_ue_event;
 	sqlite3_stmt	*stmt_cxl_aer_ce_event;
 	sqlite3_stmt	*stmt_cxl_overflow_event;
+	sqlite3_stmt	*stmt_cxl_generic_event;
 #endif
 };
 
@@ -245,6 +268,7 @@ int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_eve
 int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev);
 int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev);
 int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev);
+int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
@@ -262,6 +286,7 @@ static inline int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_
 static inline int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev) { return 0; };
 static inline int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev) { return 0; };
 static inline int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev) { return 0; };
+static inline int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev) { return 0; };
 
 #endif
 
