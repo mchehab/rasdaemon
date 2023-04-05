@@ -99,6 +99,14 @@ static char *uuid_be(const char *uu)
 	return uuid;
 }
 
+static const char* get_cxl_type_str(const char** type_array, uint8_t num_elems, uint8_t type)
+{
+	if (type >= num_elems)
+		return "Unknown";
+
+	return type_array[type];
+}
+
 /* Poison List: Payload out flags */
 #define CXL_POISON_FLAG_MORE            BIT(0)
 #define CXL_POISON_FLAG_OVERFLOW        BIT(1)
@@ -705,6 +713,154 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_cxl_generic_event(ras, &ev);
+#endif
+
+	return 0;
+}
+
+#define CXL_DPA_VOLATILE		BIT(0)
+#define CXL_DPA_NOT_REPAIRABLE		BIT(1)
+
+static const struct cxl_event_flags cxl_dpa_flags[] = {
+	{ .bit = CXL_DPA_VOLATILE, .flag = "VOLATILE" },
+	{ .bit = CXL_DPA_NOT_REPAIRABLE, .flag = "NOT_REPAIRABLE" },
+};
+
+/*
+ * General Media Event Record - GMER
+ * CXL rev 3.0 Section 8.2.9.2.1.1; Table 8-43
+ */
+#define CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT		BIT(0)
+#define CXL_GMER_EVT_DESC_THRESHOLD_EVENT		BIT(1)
+#define CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW		BIT(2)
+
+static const struct cxl_event_flags cxl_gmer_event_desc_flags[] = {
+	{ .bit = CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT, .flag = "UNCORRECTABLE EVENT" },
+	{ .bit = CXL_GMER_EVT_DESC_THRESHOLD_EVENT, .flag = "THRESHOLD EVENT" },
+	{ .bit = CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW, .flag = "POISON LIST OVERFLOW" },
+};
+
+#define CXL_GMER_VALID_CHANNEL			BIT(0)
+#define CXL_GMER_VALID_RANK			BIT(1)
+#define CXL_GMER_VALID_DEVICE			BIT(2)
+#define CXL_GMER_VALID_COMPONENT		BIT(3)
+
+static const char* cxl_gmer_mem_event_type[] = {
+	"ECC Error",
+	"Invalid Address",
+	"Data Path Error",
+};
+
+static const char* cxl_gmer_trans_type[] = {
+	"Unknown",
+	"Host Read",
+	"Host Write",
+	"Host Scan Media",
+	"Host Inject Poison",
+	"Internal Media Scrub",
+	"Internal Media Management",
+};
+
+int ras_cxl_general_media_event_handler(struct trace_seq *s,
+					struct tep_record *record,
+					struct tep_event *event, void *context)
+{
+	int len, i;
+	unsigned long long val;
+	struct ras_events *ras = context;
+	struct ras_cxl_general_media_event ev;
+
+	memset(&ev, 0, sizeof(ev));
+	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "dpa", record, &val, 1) < 0)
+		return -1;
+	ev.dpa = val;
+	if (trace_seq_printf(s, "dpa:0x%llx ", (unsigned long long)ev.dpa) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "dpa_flags", record, &val, 1) < 0)
+		return -1;
+	ev.dpa_flags = val;
+	if (trace_seq_printf(s, "dpa_flags:") <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.dpa_flags, cxl_dpa_flags, ARRAY_SIZE(cxl_dpa_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "descriptor", record, &val, 1) < 0)
+		return -1;
+	ev.descriptor = val;
+	if (trace_seq_printf(s, "descriptor:") <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.descriptor, cxl_gmer_event_desc_flags,
+				   ARRAY_SIZE(cxl_gmer_event_desc_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "type", record, &val, 1) < 0)
+		return -1;
+	ev.type = val;
+	if (trace_seq_printf(s, "type:%s ", get_cxl_type_str(cxl_gmer_mem_event_type,
+			     ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
+		return -1;
+	ev.transaction_type = val;
+	if (trace_seq_printf(s, "transaction_type:%s ",
+			     get_cxl_type_str(cxl_gmer_trans_type,
+					      ARRAY_SIZE(cxl_gmer_trans_type),
+					      ev.transaction_type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
+		return -1;
+	ev.validity_flags = val;
+
+	if (ev.validity_flags & CXL_GMER_VALID_CHANNEL) {
+		if (tep_get_field_val(s,  event, "channel", record, &val, 1) < 0)
+			return -1;
+		ev.channel = val;
+		if (trace_seq_printf(s, "channel:%u ", ev.channel) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_GMER_VALID_RANK) {
+		if (tep_get_field_val(s,  event, "rank", record, &val, 1) < 0)
+			return -1;
+		ev.rank = val;
+		if (trace_seq_printf(s, "rank:%u ", ev.rank) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_GMER_VALID_DEVICE) {
+		if (tep_get_field_val(s,  event, "device", record, &val, 1) < 0)
+			return -1;
+		ev.device = val;
+		if (trace_seq_printf(s, "device:%x ", ev.device) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_GMER_VALID_COMPONENT) {
+		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
+		if (!ev.comp_id)
+			return -1;
+		if (trace_seq_printf(s, "comp_id:") <= 0)
+			return -1;
+		for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++) {
+			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
+				break;
+		}
+	}
+
+	/* Insert data into the SGBD */
+#ifdef HAVE_SQLITE3
+	ras_store_cxl_general_media_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_cxl_general_media_event(ras, &ev);
 #endif
 
 	return 0;

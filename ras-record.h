@@ -134,6 +134,7 @@ struct ras_cxl_poison_event {
 #define CXL_HEADERLOG_SIZE              SZ_512
 #define CXL_HEADERLOG_SIZE_U32          (SZ_512 / sizeof(uint32_t))
 #define CXL_EVENT_RECORD_DATA_LENGTH	0x50
+#define CXL_EVENT_GEN_MED_COMP_ID_SIZE	0x10
 
 struct ras_cxl_aer_ue_event {
 	char timestamp[64];
@@ -184,6 +185,20 @@ struct ras_cxl_generic_event {
 	uint8_t *data;
 };
 
+struct ras_cxl_general_media_event {
+	struct ras_cxl_event_common_hdr hdr;
+	uint64_t dpa;
+	uint8_t dpa_flags;
+	uint8_t descriptor;
+	uint8_t type;
+	uint8_t transaction_type;
+	uint8_t channel;
+	uint8_t rank;
+	uint32_t device;
+	uint8_t *comp_id;
+	uint16_t validity_flags;
+};
+
 struct ras_mc_event;
 struct ras_aer_event;
 struct ras_extlog_event;
@@ -198,6 +213,7 @@ struct ras_cxl_aer_ue_event;
 struct ras_cxl_aer_ce_event;
 struct ras_cxl_overflow_event;
 struct ras_cxl_generic_event;
+struct ras_cxl_general_media_event;
 
 #ifdef HAVE_SQLITE3
 
@@ -236,6 +252,7 @@ struct sqlite3_priv {
 	sqlite3_stmt	*stmt_cxl_aer_ce_event;
 	sqlite3_stmt	*stmt_cxl_overflow_event;
 	sqlite3_stmt	*stmt_cxl_generic_event;
+	sqlite3_stmt	*stmt_cxl_general_media_event;
 #endif
 };
 
@@ -269,6 +286,7 @@ int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_eve
 int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev);
 int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev);
 int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev);
+int ras_store_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
@@ -287,6 +305,7 @@ static inline int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_
 static inline int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev) { return 0; };
 static inline int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev) { return 0; };
 static inline int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev) { return 0; };
+static inline int ras_store_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev) { return 0; };
 
 #endif
 

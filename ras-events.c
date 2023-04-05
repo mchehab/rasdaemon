@@ -250,6 +250,7 @@ int toggle_ras_mc_event(int enable)
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_aer_correctable_error", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_overflow", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_generic_event", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_general_media", enable);
 #endif
 
 free_ras:
@@ -1063,6 +1064,14 @@ int handle_ras_events(int record_events)
 	else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_generic_event");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_general_media",
+			       ras_cxl_general_media_event_handler, NULL, CXL_GENERAL_MEDIA_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "cxl_general_media");
 #endif
 
 	if (!num_events) {
