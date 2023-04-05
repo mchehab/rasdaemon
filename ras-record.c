@@ -846,6 +846,75 @@ int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_e
 
 	return rc;
 }
+
+/*
+ * Table and functions to handle cxl:cxl_general_media_event
+ */
+static const struct db_fields cxl_general_media_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "log_type",		.type = "TEXT" },
+	{ .name = "hdr_uuid",		.type = "TEXT" },
+	{ .name = "hdr_flags",		.type = "INTEGER" },
+	{ .name = "hdr_handle",		.type = "INTEGER" },
+	{ .name = "hdr_related_handle",	.type = "INTEGER" },
+	{ .name = "hdr_ts",		.type = "TEXT" },
+	{ .name = "hdr_length",		.type = "INTEGER" },
+	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
+	{ .name = "dpa",		.type = "INTEGER" },
+	{ .name = "dpa_flags",		.type = "INTEGER" },
+	{ .name = "descriptor",		.type = "INTEGER" },
+	{ .name = "type",		.type = "INTEGER" },
+	{ .name = "transaction_type",	.type = "INTEGER" },
+	{ .name = "channel",		.type = "INTEGER" },
+	{ .name = "rank",		.type = "INTEGER" },
+	{ .name = "device",		.type = "INTEGER" },
+	{ .name = "comp_id",		.type = "BLOB" },
+};
+
+static const struct db_table_descriptor cxl_general_media_event_tab = {
+	.name = "cxl_general_media_event",
+	.fields = cxl_general_media_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_general_media_event_fields),
+};
+
+int ras_store_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_general_media_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_general_media_event store: %p\n",
+	    priv->stmt_cxl_general_media_event);
+
+	ras_store_cxl_common_hdr(priv->stmt_cxl_general_media_event, &ev->hdr);
+	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, 13, ev->dpa);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 14, ev->dpa_flags);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 15, ev->descriptor);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 16, ev->type);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 17, ev->transaction_type);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 18, ev->channel);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 19, ev->rank);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 20, ev->device);
+	sqlite3_bind_blob(priv->stmt_cxl_general_media_event, 21, ev->comp_id,
+			  CXL_EVENT_GEN_MED_COMP_ID_SIZE, NULL);
+
+	rc = sqlite3_step(priv->stmt_cxl_general_media_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do stmt_cxl_general_media_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_general_media_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset stmt_cxl_general_media_event on sqlite: error = %d\n", rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
 #endif
 
 /*
@@ -1229,6 +1298,14 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			goto error;
 	}
+
+	rc = ras_mc_create_table(priv, &cxl_general_media_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_general_media_event,
+					 &cxl_general_media_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 	ras->db_priv = priv;
@@ -1388,6 +1465,14 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			log(TERM, LOG_ERR,
 			    "cpu %u: Failed to finalize cxl_generic_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_general_media_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_general_media_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_general_media_event sqlite: error = %d\n",
 			    cpu, rc);
 	}
 #endif

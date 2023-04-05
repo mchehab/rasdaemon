@@ -489,6 +489,60 @@ static int set_cxl_generic_event_backtrace(char *buf, struct ras_cxl_generic_eve
 	return 0;
 }
 
+static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_general_media_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"memdev=%s\n"		\
+						"host=%s\n"		\
+						"serial=0x%lx\n"	\
+						"log_type=%s\n"		\
+						"hdr_uuid=%s\n"		\
+						"hdr_flags=0x%x\n"	\
+						"hdr_handle=0x%x\n"	\
+						"hdr_related_handle=0x%x\n"	\
+						"hdr_timestamp=%s\n"	\
+						"hdr_length=%u\n"	\
+						"hdr_maint_op_class=%u\n"	\
+						"dpa=0x%lx\n"		\
+						"dpa_flags=%u\n"	\
+						"descriptor=%u\n"	\
+						"type=%u\n"		\
+						"transaction_type=%u\n"	\
+						"channel=%u\n"		\
+						"rank=%u\n"		\
+						"device=0x%x\n",	\
+						ev->hdr.timestamp,	\
+						ev->hdr.memdev,		\
+						ev->hdr.host,		\
+						ev->hdr.serial,		\
+						ev->hdr.log_type,	\
+						ev->hdr.hdr_uuid,	\
+						ev->hdr.hdr_flags,	\
+						ev->hdr.hdr_handle,	\
+						ev->hdr.hdr_related_handle,	\
+						ev->hdr.hdr_timestamp,	\
+						ev->hdr.hdr_length,	\
+						ev->hdr.hdr_maint_op_class,	\
+						ev->dpa,		\
+						ev->dpa_flags,		\
+						ev->descriptor,		\
+						ev->type,		\
+						ev->transaction_type,	\
+						ev->channel,		\
+						ev->rank,		\
+						ev->device);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
 static int commit_report_backtrace(int sockfd, int type, void *ev){
 	char buf[MAX_BACKTRACE_SIZE];
 	char *pbuf = buf;
@@ -540,6 +594,9 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 		break;
 	case CXL_GENERIC_EVENT:
 		rc = set_cxl_generic_event_backtrace(buf, (struct ras_cxl_generic_event *)ev);
+		break;
+	case CXL_GENERAL_MEDIA_EVENT:
+		rc = set_cxl_general_media_event_backtrace(buf, (struct ras_cxl_general_media_event *)ev);
 		break;
 	default:
 		return -1;
@@ -1169,4 +1226,48 @@ cxl_generic_fail:
 	else
 		return -1;
 
+}
+
+int ras_report_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto cxl_general_media_fail;
+
+	rc = commit_report_backtrace(sockfd, CXL_GENERAL_MEDIA_EVENT, ev);
+	if (rc < 0)
+		goto cxl_general_media_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_general_media_event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_general_media_fail;
+
+	sprintf(buf, "REASON=%s", "CXL General Media Event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_general_media_fail;
+
+	done = 1;
+
+cxl_general_media_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
 }
