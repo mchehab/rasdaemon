@@ -41,4 +41,7 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 int ras_cxl_dram_event_handler(struct trace_seq *s,
 			       struct tep_record *record,
 			       struct tep_event *event, void *context);
+int ras_cxl_memory_module_event_handler(struct trace_seq *s,
+					struct tep_record *record,
+					struct tep_event *event, void *context);
 #endif

@@ -218,6 +218,19 @@ struct ras_cxl_dram_event {
 	uint16_t validity_flags;
 };
 
+struct ras_cxl_memory_module_event {
+	struct ras_cxl_event_common_hdr hdr;
+	uint8_t event_type;
+	uint8_t health_status;
+	uint8_t media_status;
+	uint8_t life_used;
+	uint32_t dirty_shutdown_cnt;
+	uint32_t cor_vol_err_cnt;
+	uint32_t cor_per_err_cnt;
+	int16_t device_temp;
+	uint8_t add_status;
+};
+
 struct ras_mc_event;
 struct ras_aer_event;
 struct ras_extlog_event;
@@ -234,6 +247,7 @@ struct ras_cxl_overflow_event;
 struct ras_cxl_generic_event;
 struct ras_cxl_general_media_event;
 struct ras_cxl_dram_event;
+struct ras_cxl_memory_module_event;
 
 #ifdef HAVE_SQLITE3
 
@@ -274,6 +288,7 @@ struct sqlite3_priv {
 	sqlite3_stmt	*stmt_cxl_generic_event;
 	sqlite3_stmt	*stmt_cxl_general_media_event;
 	sqlite3_stmt	*stmt_cxl_dram_event;
+	sqlite3_stmt	*stmt_cxl_memory_module_event;
 #endif
 };
 
@@ -309,6 +324,7 @@ int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow
 int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev);
 int ras_store_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev);
 int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev);
+int ras_store_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
@@ -329,6 +345,7 @@ static inline int ras_store_cxl_overflow_event(struct ras_events *ras, struct ra
 static inline int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev) { return 0; };
 static inline int ras_store_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev) { return 0; };
 static inline int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev) { return 0; };
+static inline int ras_store_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev) { return 0; };
 
 #endif
 

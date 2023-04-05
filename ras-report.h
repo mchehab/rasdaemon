@@ -46,6 +46,7 @@ int ras_report_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflo
 int ras_report_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev);
 int ras_report_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev);
 int ras_report_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev);
+int ras_report_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev);
 
 #else
 
@@ -64,6 +65,7 @@ static inline int ras_report_cxl_overflow_event(struct ras_events *ras, struct r
 static inline int ras_report_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev) { return 0; };
 static inline int ras_report_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev) { return 0; };
 static inline int ras_report_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev) { return 0; };
+static inline int ras_report_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev) { return 0; };
 
 #endif
 

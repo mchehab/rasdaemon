@@ -1016,3 +1016,159 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
+/*
+ * Memory Module Event Record - MMER
+ *
+ * CXL res 3.0 section 8.2.9.2.1.3; Table 8-45
+ */
+static const char* cxl_dev_evt_type[] = {
+	"Health Status Change",
+	"Media Status Change",
+	"Life Used Change",
+	"Temperature Change",
+	"Data Path Error",
+	"LSA Error",
+};
+
+/*
+ * Device Health Information - DHI
+ *
+ * CXL res 3.0 section 8.2.9.8.3.1; Table 8-100
+ */
+#define CXL_DHI_HS_MAINTENANCE_NEEDED				BIT(0)
+#define CXL_DHI_HS_PERFORMANCE_DEGRADED				BIT(1)
+#define CXL_DHI_HS_HW_REPLACEMENT_NEEDED			BIT(2)
+
+static const struct cxl_event_flags cxl_health_status[] = {
+	{ .bit = CXL_DHI_HS_MAINTENANCE_NEEDED, .flag = "MAINTENANCE_NEEDED" },
+	{ .bit = CXL_DHI_HS_PERFORMANCE_DEGRADED, .flag = "PERFORMANCE_DEGRADED" },
+	{ .bit = CXL_DHI_HS_HW_REPLACEMENT_NEEDED, .flag = "REPLACEMENT_NEEDED" },
+};
+
+static const char* cxl_media_status[] = {
+	"Normal",
+	"Not Ready",
+	"Write Persistency Lost",
+	"All Data Lost",
+	"Write Persistency Loss in the Event of Power Loss",
+	"Write Persistency Loss in Event of Shutdown",
+	"Write Persistency Loss Imminent",
+	"All Data Loss in Event of Power Loss",
+	"All Data loss in the Event of Shutdown",
+	"All Data Loss Imminent",
+};
+
+static const char* cxl_two_bit_status[] = {
+	"Normal",
+	"Warning",
+	"Critical",
+};
+
+static const char* cxl_one_bit_status[] = {
+	"Normal",
+	"Warning",
+};
+
+#define CXL_DHI_AS_LIFE_USED(as)	(as & 0x3)
+#define CXL_DHI_AS_DEV_TEMP(as)		((as & 0xC) >> 2)
+#define CXL_DHI_AS_COR_VOL_ERR_CNT(as)	((as & 0x10) >> 4)
+#define CXL_DHI_AS_COR_PER_ERR_CNT(as)	((as & 0x20) >> 5)
+
+int ras_cxl_memory_module_event_handler(struct trace_seq *s,
+					struct tep_record *record,
+					struct tep_event *event, void *context)
+{
+	unsigned long long val;
+	struct ras_events *ras = context;
+	struct ras_cxl_memory_module_event ev;
+
+	memset(&ev, 0, sizeof(ev));
+	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "event_type", record, &val, 1) < 0)
+		return -1;
+	ev.event_type = val;
+	if (trace_seq_printf(s, "event_type:%s ", get_cxl_type_str(cxl_dev_evt_type,
+			     ARRAY_SIZE(cxl_dev_evt_type), ev.event_type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "health_status", record, &val, 1) < 0)
+		return -1;
+	ev.health_status = val;
+	if (trace_seq_printf(s, "health_status:") <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.health_status, cxl_health_status,
+				   ARRAY_SIZE(cxl_health_status)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "media_status", record, &val, 1) < 0)
+		return -1;
+	ev.media_status = val;
+	if (trace_seq_printf(s, "media_status:%s ", get_cxl_type_str(cxl_media_status,
+			     ARRAY_SIZE(cxl_media_status), ev.media_status)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "add_status", record, &val, 1) < 0)
+		return -1;
+	ev.add_status = val;
+	if (trace_seq_printf(s, "as_life_used:%s ", get_cxl_type_str(cxl_two_bit_status,
+			     ARRAY_SIZE(cxl_two_bit_status),
+			     CXL_DHI_AS_LIFE_USED(ev.add_status))) <= 0)
+		return -1;
+	if (trace_seq_printf(s, "as_dev_temp:%s ", get_cxl_type_str(cxl_two_bit_status,
+			     ARRAY_SIZE(cxl_two_bit_status),
+			     CXL_DHI_AS_DEV_TEMP(ev.add_status))) <= 0)
+		return -1;
+	if (trace_seq_printf(s, "as_cor_vol_err_cnt:%s ", get_cxl_type_str(cxl_one_bit_status,
+			     ARRAY_SIZE(cxl_one_bit_status),
+			     CXL_DHI_AS_COR_VOL_ERR_CNT(ev.add_status))) <= 0)
+		return -1;
+	if (trace_seq_printf(s, "as_cor_per_err_cnt:%s ", get_cxl_type_str(cxl_one_bit_status,
+			     ARRAY_SIZE(cxl_one_bit_status),
+			     CXL_DHI_AS_COR_PER_ERR_CNT(ev.add_status))) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "life_used", record, &val, 1) < 0)
+		return -1;
+	ev.life_used = val;
+	if (trace_seq_printf(s, "life_used:%u ", ev.life_used) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "device_temp", record, &val, 1) < 0)
+		return -1;
+	ev.device_temp = val;
+	if (trace_seq_printf(s, "device_temp:%u ", ev.device_temp) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "dirty_shutdown_cnt", record, &val, 1) < 0)
+		return -1;
+	ev.dirty_shutdown_cnt = val;
+	if (trace_seq_printf(s, "dirty_shutdown_cnt:%u ", ev.dirty_shutdown_cnt) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "cor_vol_err_cnt", record, &val, 1) < 0)
+		return -1;
+	ev.cor_vol_err_cnt = val;
+	if (trace_seq_printf(s, "cor_vol_err_cnt:%u ", ev.cor_vol_err_cnt) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "cor_per_err_cnt", record, &val, 1) < 0)
+		return -1;
+	ev.cor_per_err_cnt = val;
+	if (trace_seq_printf(s, "cor_per_err_cnt:%u ", ev.cor_per_err_cnt) <= 0)
+		return -1;
+
+	/* Insert data into the SGBD */
+#ifdef HAVE_SQLITE3
+	ras_store_cxl_memory_module_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_cxl_memory_module_event(ras, &ev);
+#endif
+
+	return 0;
+}
