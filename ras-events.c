@@ -252,6 +252,7 @@ int toggle_ras_mc_event(int enable)
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_generic_event", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_general_media", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_dram", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_module", enable);
 #endif
 
 free_ras:
@@ -1081,6 +1082,14 @@ int handle_ras_events(int record_events)
 	else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_dram");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_memory_module",
+			       ras_cxl_memory_module_event_handler, NULL, CXL_MEMORY_MODULE_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "memory_module");
 #endif
 
 	if (!num_events) {
