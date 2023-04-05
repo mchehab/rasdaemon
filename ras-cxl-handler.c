@@ -865,3 +865,154 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
+/*
+ * DRAM Event Record - DER
+ *
+ * CXL rev 3.0 section 8.2.9.2.1.2; Table 8-44
+ */
+#define CXL_DER_VALID_CHANNEL			BIT(0)
+#define CXL_DER_VALID_RANK			BIT(1)
+#define CXL_DER_VALID_NIBBLE			BIT(2)
+#define CXL_DER_VALID_BANK_GROUP		BIT(3)
+#define CXL_DER_VALID_BANK			BIT(4)
+#define CXL_DER_VALID_ROW			BIT(5)
+#define CXL_DER_VALID_COLUMN			BIT(6)
+#define CXL_DER_VALID_CORRECTION_MASK		BIT(7)
+
+int ras_cxl_dram_event_handler(struct trace_seq *s,
+			       struct tep_record *record,
+			       struct tep_event *event, void *context)
+{
+	int len, i;
+	unsigned long long val;
+	struct ras_events *ras = context;
+	struct ras_cxl_dram_event ev;
+
+	memset(&ev, 0, sizeof(ev));
+	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "dpa", record, &val, 1) < 0)
+		return -1;
+	ev.dpa = val;
+	if (trace_seq_printf(s, "dpa:0x%llx ", (unsigned long long)ev.dpa) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "dpa_flags", record, &val, 1) < 0)
+		return -1;
+	ev.dpa_flags = val;
+	if (trace_seq_printf(s, "dpa_flags:") <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.dpa_flags, cxl_dpa_flags, ARRAY_SIZE(cxl_dpa_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "descriptor", record, &val, 1) < 0)
+		return -1;
+	ev.descriptor = val;
+	if (trace_seq_printf(s, "descriptor:") <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.descriptor, cxl_gmer_event_desc_flags,
+				   ARRAY_SIZE(cxl_gmer_event_desc_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "type", record, &val, 1) < 0)
+		return -1;
+	ev.type = val;
+	if (trace_seq_printf(s, "type:%s ", get_cxl_type_str(cxl_gmer_mem_event_type,
+			     ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
+		return -1;
+	ev.transaction_type = val;
+	if (trace_seq_printf(s, "transaction_type:%s ",
+			     get_cxl_type_str(cxl_gmer_trans_type,
+					      ARRAY_SIZE(cxl_gmer_trans_type),
+					      ev.transaction_type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
+		return -1;
+	ev.validity_flags = val;
+
+	if (ev.validity_flags & CXL_DER_VALID_CHANNEL) {
+		if (tep_get_field_val(s,  event, "channel", record, &val, 1) < 0)
+			return -1;
+		ev.channel = val;
+		if (trace_seq_printf(s, "channel:%u ", ev.channel) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_RANK) {
+		if (tep_get_field_val(s,  event, "rank", record, &val, 1) < 0)
+			return -1;
+		ev.rank = val;
+		if (trace_seq_printf(s, "rank:%u ", ev.rank) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_NIBBLE) {
+		if (tep_get_field_val(s,  event, "nibble_mask", record, &val, 1) < 0)
+			return -1;
+		ev.nibble_mask = val;
+		if (trace_seq_printf(s, "nibble_mask:%u ", ev.nibble_mask) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_BANK_GROUP) {
+		if (tep_get_field_val(s,  event, "bank_group", record, &val, 1) < 0)
+			return -1;
+		ev.bank_group = val;
+		if (trace_seq_printf(s, "bank_group:%u ", ev.bank_group) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_BANK) {
+		if (tep_get_field_val(s,  event, "bank", record, &val, 1) < 0)
+			return -1;
+		ev.bank = val;
+		if (trace_seq_printf(s, "bank:%u ", ev.bank) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_ROW) {
+		if (tep_get_field_val(s,  event, "row", record, &val, 1) < 0)
+			return -1;
+		ev.row = val;
+		if (trace_seq_printf(s, "row:%u ", ev.row) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_COLUMN) {
+		if (tep_get_field_val(s,  event, "column", record, &val, 1) < 0)
+			return -1;
+		ev.column = val;
+		if (trace_seq_printf(s, "column:%u ", ev.column) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_CORRECTION_MASK) {
+		ev.cor_mask = tep_get_field_raw(s, event, "cor_mask", record, &len, 1);
+		if (!ev.cor_mask)
+			return -1;
+		if (trace_seq_printf(s, "correction_mask:") <= 0)
+			return -1;
+		for (i = 0; i < CXL_EVENT_DER_CORRECTION_MASK_SIZE; i++) {
+			if (trace_seq_printf(s, "%02x ", ev.cor_mask[i]) <= 0)
+				break;
+		}
+	}
+
+	/* Insert data into the SGBD */
+#ifdef HAVE_SQLITE3
+	ras_store_cxl_dram_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_cxl_dram_event(ras, &ev);
+#endif
+
+	return 0;
+}
