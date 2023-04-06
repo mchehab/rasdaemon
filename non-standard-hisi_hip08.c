@@ -1029,7 +1029,7 @@ static struct ras_ns_ev_decoder hip08_ns_ev_decoder[] = {
 
 static void __attribute__((constructor)) hip08_init(void)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(hip08_ns_ev_decoder); i++)
 		register_ns_ev_decoder(&hip08_ns_ev_decoder[i]);
