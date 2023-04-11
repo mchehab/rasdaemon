@@ -370,9 +370,9 @@ static int decode_hisi_common_section(struct ras_events *ras,
 
 		trace_seq_printf(s, "Register Dump:\n");
 		for (i = 0; i < err->reg_array_size / sizeof(uint32_t); i++) {
-			trace_seq_printf(s, "reg%02d=0x%08x\n", i,
+			trace_seq_printf(s, "reg%02u=0x%08x\n", i,
 					 err->reg_array[i]);
-			HISI_SNPRINTF(hevent.reg_msg, "reg%02d=0x%08x",
+			HISI_SNPRINTF(hevent.reg_msg, "reg%02u=0x%08x",
 				      i, err->reg_array[i]);
 		}
 	}
