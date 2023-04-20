@@ -95,6 +95,7 @@ Usage: $prog [OPTIONS...]
  --summary          Presents a summary of the logged errors.
  --errors           Shows the errors stored at the error database.
  --error-count      Shows the corrected and uncorrected error counts using sysfs.
+ --since=YYYY-MM-DD Only include events since the date YYYY-MM-DD.
  --vendor-errors-summary <platform-id>    Presents a summary of the vendor-specific logged errors.
  --vendor-errors    <platform-id>    Shows the vendor-specific errors stored in the error database.
  --vendor-errors    <platform-id> <module-name>    Shows the vendor-specific errors for a specific module stored in the error database.
@@ -175,6 +176,7 @@ sub parse_cmdline
     $conf{opt}{error_count} = 0;
     $conf{opt}{vendor_errors_summary} = 0;
     $conf{opt}{vendor_errors} = 0;
+    $conf{opt}{since} = '';
     $conf{opt}{vendor_platforms} = 0;
 
     my $rref = \$conf{opt}{report};
@@ -196,6 +198,7 @@ sub parse_cmdline
                          "error-count" =>     \$conf{opt}{error_count},
                          "vendor-errors-summary" =>    \$conf{opt}{vendor_errors_summary},
                          "vendor-errors" =>   \$conf{opt}{vendor_errors},
+                         "since=s" =>         \$conf{opt}{since},
                          "vendor-platforms" =>    \$conf{opt}{vendor_platforms},
             );
 
@@ -206,6 +209,14 @@ sub parse_cmdline
     if ($conf{opt}{delay} && !$conf{opt}{register_labels}) {
         log_error ("Only use --delay with --register-labels\n");
         exit (1);
+    }
+
+    if ($conf{opt}{since}) {
+        if ($conf{opt}{since} !~ /^20\d\d-[01]\d-[0-3]\d/) {
+            log_error ("--since requires a date like yyyy-mm-dd where yyyy is the year, mm the month, and dd the day\n");
+            exit (1);
+        }
+        $conf{opt}{since} = " where timestamp>='$conf{opt}{since}'";
     }
 }
 
@@ -1168,7 +1179,7 @@ sub summary
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
     # Memory controller mc_event errors
-    $query = "select err_type, label, mc, top_layer,middle_layer,lower_layer, count(*) from mc_event group by err_type, label, mc, top_layer, middle_layer, lower_layer";
+    $query = "select err_type, label, mc, top_layer,middle_layer,lower_layer, count(*) from mc_event$conf{opt}{since} group by err_type, label, mc, top_layer, middle_layer, lower_layer";
     $query_handle = $dbh->prepare($query);
     $query_handle->execute();
     $query_handle->bind_columns(\($err_type, $label, $mc, $top, $mid, $low, $count));
@@ -1185,7 +1196,7 @@ sub summary
 
     # PCIe AER aer_event errors
     if ($has_aer == 1) {
-        $query = "select err_type, err_msg, count(*) from aer_event group by err_type, err_msg";
+        $query = "select err_type, err_msg, count(*) from aer_event$conf{opt}{since} group by err_type, err_msg";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($err_type, $msg, $count));
@@ -1203,7 +1214,7 @@ sub summary
 
     # ARM processor arm_event errors
     if ($has_arm == 1) {
-        $query = "select mpidr, count(*) from arm_event group by mpidr";
+        $query = "select mpidr, count(*) from arm_event$conf{opt}{since} group by mpidr";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($mpidr, $count));
@@ -1221,7 +1232,7 @@ sub summary
 
     # extlog errors
     if ($has_extlog == 1) {
-        $query = "select etype, severity, count(*) from extlog_event group by etype, severity";
+        $query = "select etype, severity, count(*) from extlog_event$conf{opt}{since} group by etype, severity";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($etype, $severity, $count));
@@ -1241,7 +1252,7 @@ sub summary
 
     # devlink errors
     if ($has_devlink == 1) {
-        $query = "select dev_name, count(*) from devlink_event group by dev_name";
+        $query = "select dev_name, count(*) from devlink_event$conf{opt}{since} group by dev_name";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($dev_name, $count));
@@ -1259,7 +1270,7 @@ sub summary
 
     # Disk errors
     if ($has_disk_errors == 1) {
-        $query = "select dev, count(*) from disk_errors group by dev";
+        $query = "select dev, count(*) from disk_errors$conf{opt}{since} group by dev";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($dev, $count));
@@ -1277,7 +1288,7 @@ sub summary
 
     # Memory failure errors
     if ($has_mem_failure == 1) {
-        $query = "select action_result, count(*) from memory_failure_event group by action_result";
+        $query = "select action_result, count(*) from memory_failure_event$conf{opt}{since} group by action_result";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($action_result, $count));
@@ -1295,7 +1306,7 @@ sub summary
 
     # MCE mce_record errors
     if ($has_mce == 1) {
-        $query = "select error_msg, count(*) from mce_record group by error_msg";
+        $query = "select error_msg, count(*) from mce_record$conf{opt}{since} group by error_msg";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($msg, $count));
@@ -1328,7 +1339,7 @@ sub errors
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
     # Memory controller mc_event errors
-    $query = "select id, timestamp, err_count, err_type, err_msg, label, mc, top_layer,middle_layer,lower_layer, address, grain, syndrome, driver_detail from mc_event order by id";
+    $query = "select id, timestamp, err_count, err_type, err_msg, label, mc, top_layer,middle_layer,lower_layer, address, grain, syndrome, driver_detail from mc_event$conf{opt}{since} order by id";
     $query_handle = $dbh->prepare($query);
     if (!$query_handle) {
         log_error ("mc_event table missing from $dbname. Run 'rasdaemon --record'.\n");
@@ -1349,7 +1360,7 @@ sub errors
 
     # PCIe AER aer_event errors
     if ($has_aer == 1) {
-        $query = "select id, timestamp, dev_name, err_type, err_msg from aer_event order by id";
+        $query = "select id, timestamp, dev_name, err_type, err_msg from aer_event$conf{opt}{since} order by id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $time, $devname, $type, $msg));
@@ -1367,7 +1378,7 @@ sub errors
 
     # ARM processor arm_event errors
     if ($has_arm == 1) {
-        $query = "select id, timestamp, error_count, affinity, mpidr, running_state, psci_state from arm_event order by id";
+        $query = "select id, timestamp, error_count, affinity, mpidr, running_state, psci_state from arm_event$conf{opt}{since} order by id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $error_count, $affinity, $mpidr, $r_state, $psci_state));
@@ -1391,7 +1402,7 @@ sub errors
 
     # Extlog errors
     if ($has_extlog == 1) {
-        $query = "select id, timestamp, etype, severity, address, fru_id, fru_text, cper_data from extlog_event order by id";
+        $query = "select id, timestamp, etype, severity, address, fru_id, fru_text, cper_data from extlog_event$conf{opt}{since} order by id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $etype, $severity, $addr, $fru_id, $fru_text, $cper_data));
@@ -1418,7 +1429,7 @@ sub errors
 
     # devlink errors
     if ($has_devlink == 1) {
-        $query = "select id, timestamp, bus_name, dev_name, driver_name, reporter_name, msg from devlink_event order by id";
+        $query = "select id, timestamp, bus_name, dev_name, driver_name, reporter_name, msg from devlink_event$conf{opt}{since} order by id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $bus_name, $dev_name, $driver_name, $reporter_name, $msg));
@@ -1442,7 +1453,7 @@ sub errors
 
     # Disk errors
     if ($has_disk_errors == 1) {
-        $query = "select id, timestamp, dev, sector, nr_sector, error, rwbs, cmd from disk_errors order by id";
+        $query = "select id, timestamp, dev, sector, nr_sector, error, rwbs, cmd from disk_errors$conf{opt}{since} order by id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $dev, $sector, $nr_sector, $error, $rwbs, $cmd));
@@ -1467,7 +1478,7 @@ sub errors
 
     # Memory failure errors
     if ($has_mem_failure == 1) {
-        $query = "select id, timestamp, pfn, page_type, action_result from memory_failure_event order by id";
+        $query = "select id, timestamp, pfn, page_type, action_result from memory_failure_event$conf{opt}{since} order by id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $pfn, $page_type, $action_result));
@@ -1486,7 +1497,7 @@ sub errors
 
     # MCE mce_record errors
     if ($has_mce == 1) {
-        $query = "select id, timestamp, mcgcap, mcgstatus, status, addr, misc, ip, tsc, walltime, cpu, cpuid, apicid, socketid, cs, bank, cpuvendor, bank_name, error_msg, mcgstatus_msg, mcistatus_msg, user_action, mc_location from mce_record order by id";
+        $query = "select id, timestamp, mcgcap, mcgstatus, status, addr, misc, ip, tsc, walltime, cpu, cpuid, apicid, socketid, cs, bank, cpuvendor, bank_name, error_msg, mcgstatus_msg, mcistatus_msg, user_action, mc_location from mce_record$conf{opt}{since} order by id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $time, $mcgcap,$mcgstatus, $status, $addr, $misc, $ip, $tsc, $walltime, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $msg, $mcgstatus_msg, $mcistatus_msg, $user_action, $mc_location));
@@ -1555,7 +1566,7 @@ sub vendor_errors_summary
     # HiSilicon KunPeng9xx errors
     if ($platform_id eq HISILICON_KUNPENG_9XX) {
 	$found_platform = 1;
-        $query = "select err_severity, module_id, count(*) from hip08_oem_type1_event_v2 group by err_severity, module_id";
+        $query = "select err_severity, module_id, count(*) from hip08_oem_type1_event_v2$conf{opt}{since} group by err_severity, module_id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($err_severity, $module_id, $count));
@@ -1573,7 +1584,7 @@ sub vendor_errors_summary
         }
         $query_handle->finish;
 
-        $query = "select err_severity, module_id, count(*) from hip08_oem_type2_event_v2 group by err_severity, module_id";
+        $query = "select err_severity, module_id, count(*) from hip08_oem_type2_event_v2$conf{opt}{since} group by err_severity, module_id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($err_severity, $module_id, $count));
@@ -1591,7 +1602,7 @@ sub vendor_errors_summary
         }
         $query_handle->finish;
 
-        $query = "select err_severity, sub_module_id, count(*) from hip08_pcie_local_event_v2 group by err_severity, sub_module_id";
+        $query = "select err_severity, sub_module_id, count(*) from hip08_pcie_local_event_v2$conf{opt}{since} group by err_severity, sub_module_id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($err_severity, $sub_module_id, $count));
@@ -1609,7 +1620,7 @@ sub vendor_errors_summary
         }
         $query_handle->finish;
 
-        $query = "select err_severity, module_id, count(*) from hisi_common_section_v2 group by err_severity, module_id";
+        $query = "select err_severity, module_id, count(*) from hisi_common_section_v2$conf{opt}{since} group by err_severity, module_id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($err_severity, $module_id, $count));
@@ -1663,7 +1674,7 @@ sub vendor_errors
     # HiSilicon KunPeng9xx errors
     if ($platform_id eq HISILICON_KUNPENG_9XX) {
 	$found_platform = 1;
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2 order by id, module_id, err_severity";
+        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2$conf{opt}{since} order by id, module_id, err_severity";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
@@ -1688,7 +1699,7 @@ sub vendor_errors
         }
         $query_handle->finish;
 
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type2_event_v2 order by id, module_id, err_severity";
+        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type2_event_v2$conf{opt}{since} order by id, module_id, err_severity";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
@@ -1713,7 +1724,7 @@ sub vendor_errors
         }
         $query_handle->finish;
 
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, sub_module_id, core_id, port_id, err_severity, err_type, regs_dump from hip08_pcie_local_event_v2 order by id, sub_module_id, err_severity";
+        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, sub_module_id, core_id, port_id, err_severity, err_type, regs_dump from hip08_pcie_local_event_v2$conf{opt}{since} order by id, sub_module_id, err_severity";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $sub_module_id, $core_id, $port_id, $err_severity, $err_type, $regs));
@@ -1740,7 +1751,7 @@ sub vendor_errors
         }
         $query_handle->finish;
 
-        $query = "select id, timestamp, version, soc_id, socket_id, totem_id, nimbus_id, sub_system_id, module_id, sub_module_id, core_id, port_id, err_type, pcie_info, err_severity, regs_dump from hisi_common_section_v2 order by id, module_id, err_severity";
+        $query = "select id, timestamp, version, soc_id, socket_id, totem_id, nimbus_id, sub_system_id, module_id, sub_module_id, core_id, port_id, err_type, pcie_info, err_severity, regs_dump from hisi_common_section_v2$conf{opt}{since} order by id, module_id, err_severity";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
         $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $module_id, $sub_module_id, $core_id, $port_id, $err_type, $pcie_info, $err_severity, $regs));
