@@ -57,6 +57,7 @@ enum smca_bank_types {
 	SMCA_L3_CACHE,  /* L3 Cache */
 	SMCA_CS,        /* Coherent Slave */
 	SMCA_CS_V2,
+	SMCA_CS_V2_QUIRK,
 	SMCA_PIE,       /* Power, Interrupts, etc. */
 	SMCA_UMC,       /* Unified Memory Controller */
 	SMCA_UMC_V2,
@@ -253,6 +254,31 @@ static const char * const smca_cs2_mce_desc[] = {
 	"SDP read response had an unexpected RETRY error",
 	"Counter overflow error",
 	"Counter underflow error",
+	"Illegal Request on the no data channel",
+	"Address Violation on the no data channel",
+	"Security Violation on the no data channel",
+	"Hardware Assert Error",
+};
+
+/*
+ * Per Genoa's revision guide, erratum 1384, existing bit definitions
+ * are reassigned for SMCA CS bank type.
+ */
+static const char * const smca_cs2_quirk_mce_desc[] = {
+	"Illegal Request",
+	"Address Violation",
+	"Security Violation",
+	"Illegal Response",
+	"Unexpected Response",
+	"Request or Probe Parity Error",
+	"Read Response Parity Error",
+	"Atomic Request Parity Error",
+	"SDP read response had no match in the CS queue",
+	"SDP read response had an unexpected RETRY error",
+	"Counter overflow error",
+	"Counter underflow error",
+	"Probe Filter Protocol Error",
+	"Probe Filter ECC Error",
 	"Illegal Request on the no data channel",
 	"Address Violation on the no data channel",
 	"Security Violation on the no data channel",
@@ -549,6 +575,7 @@ static struct smca_mce_desc smca_mce_descs[] = {
 	[SMCA_L3_CACHE] = { smca_l3_mce_desc,   ARRAY_SIZE(smca_l3_mce_desc)  },
 	[SMCA_CS]       = { smca_cs_mce_desc,   ARRAY_SIZE(smca_cs_mce_desc)  },
 	[SMCA_CS_V2]    = { smca_cs2_mce_desc,  ARRAY_SIZE(smca_cs2_mce_desc) },
+	[SMCA_CS_V2_QUIRK] = { smca_cs2_quirk_mce_desc, ARRAY_SIZE(smca_cs2_quirk_mce_desc)},
 	[SMCA_PIE]      = { smca_pie_mce_desc,  ARRAY_SIZE(smca_pie_mce_desc) },
 	[SMCA_UMC]      = { smca_umc_mce_desc,  ARRAY_SIZE(smca_umc_mce_desc) },
 	[SMCA_UMC_V2]	= { smca_umc2_mce_desc,	ARRAY_SIZE(smca_umc2_mce_desc)	},
@@ -597,6 +624,7 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 	/* Data Fabric MCA types */
 	{ SMCA_CS,       0x0000002E },
 	{ SMCA_CS_V2,    0x0002002E },
+	{SMCA_CS_V2_QUIRK, 0x00010000 },
 	{ SMCA_PIE,      0x0001002E },
 
 	/* Unified Memory Controller MCA type */
@@ -660,7 +688,7 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_EX]			= { "Execution Unit" },
 	[SMCA_FP]			= { "Floating Point Unit" },
 	[SMCA_L3_CACHE]			= { "L3 Cache" },
-	[SMCA_CS ... SMCA_CS_V2]	= { "Coherent Slave" },
+	[SMCA_CS ... SMCA_CS_V2_QUIRK]	= { "Coherent Slave" },
 	[SMCA_PIE]			= { "Power, Interrupts, etc." },
 	[SMCA_UMC]			= { "Unified Memory Controller" },
 	[SMCA_UMC_V2]			= { "Unified Memory Controller V2" },
@@ -723,8 +751,38 @@ static int find_hbm_channel(struct mce_event *e)
 	return (umc % 2) ? tmp + 4 : tmp;
 }
 
+static inline void fixup_hwid(struct mce_priv* m, uint32_t *hwid_mcatype)
+{
+	if (m->family == 0x19) {
+		switch (m->model) {
+		/*
+		 * Per Genoa's revision guide, erratum 1384, some SMCA Extended
+		 * Error Codes and SMCA Control bits are incorrect for SMCA CS
+		 * bank type.
+		 */
+		case 0x10 ... 0x1F:
+		case 0x60 ... 0x7B:
+		case 0xA0 ... 0xAF:
+			if (*hwid_mcatype == 0x0002002E)
+				*hwid_mcatype = 0x00010000;
+			break;
+		default:
+			break;
+		}
+	} else if (m->family == 0x1A) {
+		switch (m->model) {
+		case 0x40 ... 0x4F:
+			if (*hwid_mcatype == 0x0002002E)
+				*hwid_mcatype = 0x00010000;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
 /* Decode extended errors according to Scalable MCA specification */
-static void decode_smca_error(struct mce_event *e)
+static void decode_smca_error(struct mce_event *e, struct mce_priv* m)
 {
 	enum smca_bank_types bank_type;
 	const char *ip_name;
@@ -734,6 +792,8 @@ static void decode_smca_error(struct mce_event *e)
 	uint8_t mcatype_instancehi = EXTRACT(e->ipid, 44, 47);
 	unsigned int csrow = -1, channel = -1;
 	unsigned int i;
+
+	fixup_hwid(m, &mcatype_hwid);
 
 	for (i = 0; i < ARRAY_SIZE(smca_hwid_mcatypes); i++) {
 		s_hwid = &smca_hwid_mcatypes[i];
@@ -801,7 +861,7 @@ int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e)
 	if (mcgstatus & MCG_STATUS_MCIP)
 		mce_snprintf(e->mcgstatus_msg, "MCIP");
 
-	decode_smca_error(e);
+	decode_smca_error(e, ras->mce_priv);
 	amd_decode_errcode(e);
 	return 0;
 }
