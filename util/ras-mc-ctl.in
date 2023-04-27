@@ -34,6 +34,7 @@ use File::Basename;
 use File::Find;
 use Getopt::Long;
 use POSIX;
+use Try::Tiny;
 
 my $dbname      = "@RASSTATEDIR@/@RAS_DB_FNAME@";
 my $prefix      = "@prefix@";
@@ -1562,81 +1563,115 @@ sub vendor_errors_summary
     }
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
+    # Disable the DBI automatic error log
+    $dbh->{PrintError} = 0;
 
     # HiSilicon KunPeng9xx errors
     if ($platform_id eq HISILICON_KUNPENG_9XX) {
-	$found_platform = 1;
-        $query = "select err_severity, module_id, count(*) from hip08_oem_type1_event_v2$conf{opt}{since} group by err_severity, module_id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_severity, $module_id, $count));
-        $out = "";
-        $err_sev = "";
-        while($query_handle->fetch()) {
-            if ($err_severity ne $err_sev) {
-                $out .= "$err_severity errors:\n";
-                $err_sev = $err_severity;
+        $found_platform = 1;
+        try {
+            $query = "select err_severity, module_id, count(*) from hip08_oem_type1_event_v2$conf{opt}{since} group by err_severity, module_id";
+            $query_handle = $dbh->prepare($query);
+            $query_handle->execute();
+            $query_handle->bind_columns(\($err_severity, $module_id, $count));
+            $out = "";
+            $err_sev = "";
+            while($query_handle->fetch()) {
+                if ($err_severity ne $err_sev) {
+                    $out .= "$err_severity errors:\n";
+                    $err_sev = $err_severity;
+                }
+                $out .= "\t$module_id: $count\n";
             }
-            $out .= "\t$module_id: $count\n";
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx OEM type1 error events summary:\n$out\n";
-        }
-        $query_handle->finish;
+            if ($out ne "") {
+                print "HiSilicon KunPeng9xx OEM type1 error events summary:\n$out\n";
+            }
+            $query_handle->finish;
+        } catch {
+            if ($DBI::errstr =~ "no such table") {
+                print "No HiSilicon KunPeng9xx OEM type1 errors\n\n";
+            }  else {
+                print "Warning: $DBI::errstr when querying HiSilicon KunPeng9xx OEM type1 errors\n\n";
+            }
+        };
 
-        $query = "select err_severity, module_id, count(*) from hip08_oem_type2_event_v2$conf{opt}{since} group by err_severity, module_id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_severity, $module_id, $count));
-        $out = "";
-        $err_sev = "";
-        while($query_handle->fetch()) {
-            if ($err_severity ne $err_sev) {
-                $out .= "$err_severity errors:\n";
-                $err_sev = $err_severity;
+        try {
+	    $query = "select err_severity, module_id, count(*) from hip08_oem_type2_event_v2$conf{opt}{since} group by err_severity, module_id";
+            $query_handle = $dbh->prepare($query);
+            $query_handle->execute();
+            $query_handle->bind_columns(\($err_severity, $module_id, $count));
+            $out = "";
+            $err_sev = "";
+            while($query_handle->fetch()) {
+                if ($err_severity ne $err_sev) {
+                    $out .= "$err_severity errors:\n";
+                    $err_sev = $err_severity;
+                }
+                $out .= "\t$module_id: $count\n";
             }
-            $out .= "\t$module_id: $count\n";
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx OEM type2 error events summary:\n$out\n";
-        }
-        $query_handle->finish;
+            if ($out ne "") {
+                print "HiSilicon KunPeng9xx OEM type2 error events summary:\n$out\n";
+            }
+            $query_handle->finish;
+        } catch {
+            if ($DBI::errstr =~ "no such table") {
+                print "No HiSilicon KunPeng9xx OEM type2 errors\n\n";
+            }  else {
+                print "Warning: $DBI::errstr when querying HiSilicon KunPeng9xx OEM type2 errors\n\n";
+            }
+        };
 
-        $query = "select err_severity, sub_module_id, count(*) from hip08_pcie_local_event_v2$conf{opt}{since} group by err_severity, sub_module_id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_severity, $sub_module_id, $count));
-        $out = "";
-        $err_sev = "";
-        while($query_handle->fetch()) {
-            if ($err_severity ne $err_sev) {
-                $out .= "$err_severity errors:\n";
-                $err_sev = $err_severity;
+        try {
+            $query = "select err_severity, sub_module_id, count(*) from hip08_pcie_local_event_v2$conf{opt}{since} group by err_severity, sub_module_id";
+            $query_handle = $dbh->prepare($query);
+            $query_handle->execute();
+            $query_handle->bind_columns(\($err_severity, $sub_module_id, $count));
+            $out = "";
+            $err_sev = "";
+            while($query_handle->fetch()) {
+                if ($err_severity ne $err_sev) {
+                    $out .= "$err_severity errors:\n";
+                    $err_sev = $err_severity;
+                }
+                $out .= "\t$sub_module_id: $count\n";
             }
-            $out .= "\t$sub_module_id: $count\n";
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx PCIe controller error events summary:\n$out\n";
-        }
-        $query_handle->finish;
+            if ($out ne "") {
+                print "HiSilicon KunPeng9xx PCIe controller error events summary:\n$out\n";
+            }
+            $query_handle->finish;
+        } catch {
+            if ($DBI::errstr =~ "no such table") {
+                print "No HiSilicon KunPeng9xx PCIe controller errors\n\n";
+            }  else {
+                print "Warning: $DBI::errstr when querying HiSilicon KunPeng9xx PCIe controller errors\n\n";
+            }
+        };
 
-        $query = "select err_severity, module_id, count(*) from hisi_common_section_v2$conf{opt}{since} group by err_severity, module_id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_severity, $module_id, $count));
-        $out = "";
-        $err_sev = "";
-        while($query_handle->fetch()) {
-            if ($err_severity ne $err_sev) {
-                $out .= "$err_severity errors:\n";
-                $err_sev = $err_severity;
+        try {
+            $query = "select err_severity, module_id, count(*) from hisi_common_section_v2$conf{opt}{since} group by err_severity, module_id";
+            $query_handle = $dbh->prepare($query);
+            $query_handle->execute();
+            $query_handle->bind_columns(\($err_severity, $module_id, $count));
+            $out = "";
+            $err_sev = "";
+            while($query_handle->fetch()) {
+                if ($err_severity ne $err_sev) {
+                    $out .= "$err_severity errors:\n";
+                    $err_sev = $err_severity;
+                }
+                $out .= "\t$module_id: $count\n";
             }
-            $out .= "\t$module_id: $count\n";
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx common error events summary:\n$out\n";
-        }
-        $query_handle->finish;
+            if ($out ne "") {
+                print "HiSilicon KunPeng9xx common error events summary:\n$out\n";
+            }
+            $query_handle->finish;
+        } catch {
+            if ($DBI::errstr =~ "no such table") {
+                print "No HiSilicon KunPeng9xx common errors\n\n";
+            }  else {
+                print "Warning: $DBI::errstr when querying HiSilicon KunPeng9xx common errors\n\n";
+            }
+        };
     }
 
     if ($platform_id && !($found_platform)) {
@@ -1670,117 +1705,151 @@ sub vendor_errors
     }
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
+    # Disable the DBI automatic error log
+    $dbh->{PrintError} = 0;
 
     # HiSilicon KunPeng9xx errors
     if ($platform_id eq HISILICON_KUNPENG_9XX) {
-	$found_platform = 1;
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2$conf{opt}{since} order by id, module_id, err_severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
-        $out = "";
-        while($query_handle->fetch()) {
-            if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
-                $out .= "$id. $timestamp Error Info: ";
-                $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs " if ($regs);
-                $out .= "\n\n";
-                $found_module = 1;
-	    }
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx OEM type1 error events:\n$out\n";
-        }
-        $query_handle->finish;
+        $found_platform = 1;
+        try {
+	    $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2$conf{opt}{since} order by id, module_id, err_severity";
+            $query_handle = $dbh->prepare($query);
+            $query_handle->execute();
+            $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
+            $out = "";
+            while($query_handle->fetch()) {
+                if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
+                    $out .= "$id. $timestamp Error Info: ";
+                    $out .= "version=$version, ";
+                    $out .= "soc_id=$soc_id, " if ($soc_id);
+                    $out .= "socket_id=$socket_id, " if ($socket_id);
+                    $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
+                    $out .= "module_id=$module_id, " if ($module_id);
+                    $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
+                    $out .= "err_severity=$err_severity, " if ($err_severity);
+                    $out .= "Error Registers: $regs " if ($regs);
+                    $out .= "\n\n";
+                    $found_module = 1;
+	        }
+            }
+            if ($out ne "") {
+                print "HiSilicon KunPeng9xx OEM type1 error events:\n$out\n";
+            }
+            $query_handle->finish;
+        } catch {
+            if ($DBI::errstr =~ "no such table") {
+                print "No HiSilicon KunPeng9xx OEM type1 errors\n\n";
+            }  else {
+                print "Warning: $DBI::errstr when querying HiSilicon KunPeng9xx OEM type1 errors\n\n";
+            }
+        };
 
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type2_event_v2$conf{opt}{since} order by id, module_id, err_severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
-        $out = "";
-        while($query_handle->fetch()) {
-            if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
-                $out .= "$id. $timestamp Error Info: ";
-                $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs " if ($regs);
-                $out .= "\n\n";
-                $found_module = 1;
-	    }
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx OEM type2 error events:\n$out\n";
-        }
-        $query_handle->finish;
+        try {
+            $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type2_event_v2$conf{opt}{since} order by id, module_id, err_severity";
+            $query_handle = $dbh->prepare($query);
+            $query_handle->execute();
+            $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
+            $out = "";
+            while($query_handle->fetch()) {
+                if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
+                    $out .= "$id. $timestamp Error Info: ";
+                    $out .= "version=$version, ";
+                    $out .= "soc_id=$soc_id, " if ($soc_id);
+                    $out .= "socket_id=$socket_id, " if ($socket_id);
+                    $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
+                    $out .= "module_id=$module_id, " if ($module_id);
+                    $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
+                    $out .= "err_severity=$err_severity, " if ($err_severity);
+                    $out .= "Error Registers: $regs " if ($regs);
+                    $out .= "\n\n";
+                    $found_module = 1;
+	        }
+            }
+            if ($out ne "") {
+                print "HiSilicon KunPeng9xx OEM type2 error events:\n$out\n";
+            }
+            $query_handle->finish;
+        } catch {
+            if ($DBI::errstr =~ "no such table") {
+                print "No HiSilicon KunPeng9xx OEM type2 errors\n\n";
+            }  else {
+                print "Warning: $DBI::errstr when querying HiSilicon KunPeng9xx OEM type2 errors\n\n";
+            }
+        };
 
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, sub_module_id, core_id, port_id, err_severity, err_type, regs_dump from hip08_pcie_local_event_v2$conf{opt}{since} order by id, sub_module_id, err_severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $sub_module_id, $core_id, $port_id, $err_severity, $err_type, $regs));
-        $out = "";
-        while($query_handle->fetch()) {
-            if ($module eq 0 || ($sub_module_id && uc($module) eq uc($sub_module_id))) {
-                $out .= "$id. $timestamp Error Info: ";
-                $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "core_id=$core_id, " if ($core_id);
-                $out .= "port_id=$port_id, " if ($port_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "err_type=$err_type, " if ($err_type);
-                $out .= "Error Registers: $regs " if ($regs);
-                $out .= "\n\n";
-                $found_module = 1;
-	    }
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx PCIe controller error events:\n$out\n";
-        }
-        $query_handle->finish;
+        try {
+            $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, sub_module_id, core_id, port_id, err_severity, err_type, regs_dump from hip08_pcie_local_event_v2$conf{opt}{since} order by id, sub_module_id, err_severity";
+            $query_handle = $dbh->prepare($query);
+            $query_handle->execute();
+            $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $sub_module_id, $core_id, $port_id, $err_severity, $err_type, $regs));
+            $out = "";
+            while($query_handle->fetch()) {
+                if ($module eq 0 || ($sub_module_id && uc($module) eq uc($sub_module_id))) {
+                    $out .= "$id. $timestamp Error Info: ";
+                    $out .= "version=$version, ";
+                    $out .= "soc_id=$soc_id, " if ($soc_id);
+                    $out .= "socket_id=$socket_id, " if ($socket_id);
+                    $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
+                    $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
+                    $out .= "core_id=$core_id, " if ($core_id);
+                    $out .= "port_id=$port_id, " if ($port_id);
+                    $out .= "err_severity=$err_severity, " if ($err_severity);
+                    $out .= "err_type=$err_type, " if ($err_type);
+                    $out .= "Error Registers: $regs " if ($regs);
+                    $out .= "\n\n";
+                    $found_module = 1;
+	        }
+            }
+            if ($out ne "") {
+                print "HiSilicon KunPeng9xx PCIe controller error events:\n$out\n";
+            }
+            $query_handle->finish;
+        } catch {
+            if ($DBI::errstr =~ "no such table") {
+                print "No HiSilicon KunPeng9xx PCIe controller errors\n\n";
+            }  else {
+                print "Warning: $DBI::errstr when querying HiSilicon KunPeng9xx PCIe controller errors\n\n";
+            }
+        };
 
-        $query = "select id, timestamp, version, soc_id, socket_id, totem_id, nimbus_id, sub_system_id, module_id, sub_module_id, core_id, port_id, err_type, pcie_info, err_severity, regs_dump from hisi_common_section_v2$conf{opt}{since} order by id, module_id, err_severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $module_id, $sub_module_id, $core_id, $port_id, $err_type, $pcie_info, $err_severity, $regs));
-        $out = "";
-        while($query_handle->fetch()) {
-            if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
-                $out .= "$id. $timestamp Error Info: ";
-                $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "totem_id=$totem_id, " if ($totem_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "sub_system_id=$sub_system_id, " if ($sub_system_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "core_id=$core_id, " if ($core_id);
-                $out .= "port_id=$port_id, " if ($port_id);
-                $out .= "err_type=$err_type, " if ($err_type);
-                $out .= "pcie_info=$pcie_info, " if ($pcie_info);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs" if ($regs);
-                $out .= "\n\n";
-                $found_module = 1;
-	    }
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx common error events:\n$out\n";
-        }
-        $query_handle->finish;
+        try {
+            $query = "select id, timestamp, version, soc_id, socket_id, totem_id, nimbus_id, sub_system_id, module_id, sub_module_id, core_id, port_id, err_type, pcie_info, err_severity, regs_dump from hisi_common_section_v2$conf{opt}{since} order by id, module_id, err_severity";
+            $query_handle = $dbh->prepare($query);
+            $query_handle->execute();
+            $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $module_id, $sub_module_id, $core_id, $port_id, $err_type, $pcie_info, $err_severity, $regs));
+            $out = "";
+            while($query_handle->fetch()) {
+                if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
+                    $out .= "$id. $timestamp Error Info: ";
+                    $out .= "version=$version, ";
+                    $out .= "soc_id=$soc_id, " if ($soc_id);
+                    $out .= "socket_id=$socket_id, " if ($socket_id);
+                    $out .= "totem_id=$totem_id, " if ($totem_id);
+                    $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
+                    $out .= "sub_system_id=$sub_system_id, " if ($sub_system_id);
+                    $out .= "module_id=$module_id, " if ($module_id);
+                    $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
+                    $out .= "core_id=$core_id, " if ($core_id);
+                    $out .= "port_id=$port_id, " if ($port_id);
+                    $out .= "err_type=$err_type, " if ($err_type);
+                    $out .= "pcie_info=$pcie_info, " if ($pcie_info);
+                    $out .= "err_severity=$err_severity, " if ($err_severity);
+                    $out .= "Error Registers: $regs" if ($regs);
+                    $out .= "\n\n";
+                    $found_module = 1;
+	        }
+            }
+            if ($out ne "") {
+                print "HiSilicon KunPeng9xx common error events:\n$out\n";
+            }
+            $query_handle->finish;
+        } catch {
+            if ($DBI::errstr =~ "no such table") {
+                print "No HiSilicon KunPeng9xx common errors\n\n";
+            }  else {
+                print "Warning: $DBI::errstr when querying HiSilicon KunPeng9xx common errors\n\n";
+            }
+        };
     }
 
     if ($platform_id && !($found_platform)) {
