@@ -78,9 +78,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 	struct ras_aer_event ev;
 	char buf[BUF_LEN];
 	char ipmi_add_sel[105];
-	char openbmc_ipmi_add_sel[105];
 	uint8_t sel_data[5];
-	uint8_t openbmc_sel_data[2];
 	int seg, bus, dev, fn;
 
 	/*
