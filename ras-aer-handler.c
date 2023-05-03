@@ -68,7 +68,9 @@ int ras_aer_event_handler(struct trace_seq *s,
 	struct ras_aer_event ev;
 	char buf[BUF_LEN];
 	char ipmi_add_sel[105];
+	char openbmc_ipmi_add_sel[105];
 	uint8_t sel_data[5];
+	uint8_t openbmc_sel_data[2];
 	int seg, bus, dev, fn;
 
 	/*
@@ -180,6 +182,38 @@ int ras_aer_event_handler(struct trace_seq *s,
 	  sel_data[0], sel_data[1], sel_data[2], sel_data[3], sel_data[4]);
 
 	system(ipmi_add_sel);
+#endif
+
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+	/*
+	 * Get PCIe AER error source bus/dev/fn and save it to the BMC SEL
+	 * as a OpenBMC unified SEL record type.
+	 * The IPMI command and record fields are defined in IPMI Specification v2.0 (IPMI Spec)
+	 * ipmitool raw 0x0a 0x44 is "Add SEL Entry Command" defined in IPMI spec chapter 31.6
+	 * The 16 byte that follow form the SEL Record
+	 * defined in IPMI spec chapter 32.1 "SEL Event Records"
+	 * Byte 1~2 are Record ID = 0x00 0x00, unused
+	 * Byte 3 is Record Type = 0xFB, OEM non-timestamped record type for OpenBMC unified SEL
+	 * Byte 4~16 are OEM defined
+	 * Byte 11:
+	   * Byte11[7:3] Device#
+	   * Byte11[2:0] Function#
+	 * Byte 12: Bus number
+	 */
+	sscanf(ev.dev_name, "%*x:%x:%x.%x", &bus, &dev, &fn);
+
+	openbmc_sel_data[0] = (((dev & 0x1f) << 3) | (fn & 0x7));
+	openbmc_sel_data[1] = bus;
+	sprintf(openbmc_ipmi_add_sel,
+	  "ipmitool raw 0x0a 0x44 0x00 0x00 0xFB 0x20 0x00 0x00 0x00 0x00 0x01 0x00 0x%02x 0x%02x 0x01 0x00 0xff 0x00",
+	  openbmc_sel_data[0], openbmc_sel_data[1]);
+
+	/*
+	 * Use MSI and kernel logging only for CEs since they are high fidelity errors.
+	 * Whereas for all UEs, stick to using the firmware-first reporting route.
+	 */
+	if (severity_val == HW_EVENT_AER_CORRECTED)
+	  system(openbmc_ipmi_add_sel);
 #endif
 
 	return 0;
