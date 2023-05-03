@@ -73,7 +73,9 @@ endif
 if WITH_CPU_FAULT_ISOLATION
    rasdaemon_SOURCES += ras-cpu-isolation.c queue.c
 endif
-
+if WITH_OPENBMC_UNIFIED_SEL
+   rasdaemon_SOURCES += unified-sel.c
+endif
 if WITH_CXL
    rasdaemon_SOURCES += ras-cxl-handler.c
 endif
@@ -86,7 +88,7 @@ include_HEADERS = config.h  ras-events.h  ras-logger.h  ras-mc-handler.h \
 		  ras-extlog-handler.h ras-arm-handler.h ras-non-standard-handler.h \
 		  ras-devlink-handler.h ras-diskerror-handler.h rbtree.h ras-page-isolation.h \
 		  non-standard-hisilicon.h non-standard-ampere.h ras-memory-failure-handler.h \
-		  ras-cxl-handler.h ras-cpu-isolation.h queue.h
+		  ras-cxl-handler.h ras-cpu-isolation.h queue.h unified-sel.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that
