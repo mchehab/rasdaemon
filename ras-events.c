@@ -368,10 +368,37 @@ static int get_num_cpus(struct ras_events *ras)
 #endif
 }
 
+static int set_buffer_percent(struct ras_events *ras, int percent)
+{
+	char buf[16];
+	ssize_t size;
+	int res = 0;
+	int fd;
+
+	fd = open_trace(ras, "buffer_percent", O_WRONLY);
+	if (fd >= 0) {
+		/* For the backward compatibility to the old kernels, do not return
+		 * if fail to set the buffer_percent.
+		 */
+		snprintf(buf, sizeof(buf), "%d", percent);
+		size = write(fd, buf, strlen(buf));
+		if (size <= 0) {
+			log(TERM, LOG_WARNING, "can't write to buffer_percent\n");
+			res = -1;
+		}
+		close(fd);
+	} else {
+		log(TERM, LOG_WARNING, "Can't open buffer_percent\n");
+		res = -1;
+	}
+
+	return res;
+}
+
 static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				   unsigned n_cpus)
 {
-	unsigned size;
+	ssize_t size;
 	unsigned long long time_stamp;
 	void *data;
 	int ready, i, count_nready;
@@ -383,8 +410,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
 	int legacy_kernel = 0;
-	int fd;
-	char buf[16];
 #if 0
 	int need_sleep = 0;
 #endif
@@ -411,18 +436,8 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	 * Set buffer_percent to 0 so that poll() will return immediately
 	 * when the trace data is available in the ras per_cpu trace pipe_raw
 	 */
-	fd = open_trace(pdata[0].ras, "buffer_percent", O_WRONLY);
-	if (fd >= 0) {
-		/* For the backward compatibility to the old kernels, do not return
-		 * if fail to set the buffer_percent.
-		 */
-		snprintf(buf, sizeof(buf), "0");
-		size = write(fd, buf, strlen(buf));
-		if (size <= 0)
-			log(TERM, LOG_WARNING, "can't write to buffer_percent\n");
-		close(fd);
-	} else
-		log(TERM, LOG_WARNING, "Can't open buffer_percent\n");
+	if (set_buffer_percent(pdata[0].ras, 0))
+		log(TERM, LOG_WARNING, "Set buffer_percent failed\n");
 
 	for (i = 0; i < (n_cpus + 1); i++)
 		fds[i].fd = -1;
