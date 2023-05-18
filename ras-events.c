@@ -512,6 +512,11 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				kbuffer_load_subbuffer(kbuf, page);
 
 				while ((data = kbuffer_read_event(kbuf, &time_stamp))) {
+					if (kbuffer_curr_size(kbuf) < 0) {
+						log(TERM, LOG_ERR, "invalid kbuf data, discard\n");
+						break;
+					}
+
 					parse_ras_data(&pdata[i],
 						       kbuf, data, time_stamp);
 
