@@ -710,7 +710,7 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_GMI_PHY]          = { "Global Memory Interconnect PHY Unit" },
 };
 
-static void amd_decode_errcode(struct mce_event *e)
+void amd_decode_errcode(struct mce_event *e)
 {
 
 	decode_amd_errcode(e);
@@ -782,7 +782,7 @@ static inline void fixup_hwid(struct mce_priv* m, uint32_t *hwid_mcatype)
 }
 
 /* Decode extended errors according to Scalable MCA specification */
-static void decode_smca_error(struct mce_event *e, struct mce_priv* m)
+void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 {
 	enum smca_bank_types bank_type;
 	const char *ip_name;
@@ -827,7 +827,9 @@ static void decode_smca_error(struct mce_event *e, struct mce_priv* m)
 	/* Only print the descriptor of valid extended error code */
 	if (xec < smca_mce_descs[bank_type].num_descs)
 		mce_snprintf(e->mcastatus_msg,
-			     " %s.\n", smca_mce_descs[bank_type].descs[xec]);
+			     "%s. Ext Err Code: %d",
+			     smca_mce_descs[bank_type].descs[xec],
+			     xec);
 
 	if (bank_type == SMCA_UMC && xec == 0) {
 		channel = find_umc_channel(e);
