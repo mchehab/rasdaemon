@@ -41,7 +41,19 @@ struct arguments {
 	int record_events;
 	int enable_ras;
 	int foreground;
+	int offline;
 };
+
+enum OFFLINE_ARG_KEYS {
+	SMCA = 0x100,
+	MODEL,
+	FAMILY,
+	BANK_NUM,
+	IPID_REG,
+	STATUS_REG,
+};
+
+struct ras_mc_offline_event event;
 
 static error_t parse_opt(int k, char *arg, struct argp_state *state)
 {
@@ -62,6 +74,39 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'f':
 		args->foreground++;
 		break;
+	case 'p':
+		if (state->argc < 4)
+			argp_state_help(state, stdout, ARGP_HELP_LONG | ARGP_HELP_EXIT_ERR);
+		args->offline++;
+		break;
+	default:
+		return ARGP_ERR_UNKNOWN;
+	}
+	return 0;
+}
+
+static error_t parse_opt_offline(int key, char *arg,
+				 struct argp_state *state)
+{
+	switch (key) {
+	case SMCA:
+		event.smca = true;
+		break;
+	case MODEL:
+		event.model = strtoul(state->argv[state->next], NULL, 0);
+		break;
+	case FAMILY:
+		event.family = strtoul(state->argv[state->next], NULL, 0);
+		break;
+	case BANK_NUM:
+		event.bank = atoi(state->argv[state->next]);
+		break;
+	case IPID_REG:
+		event.ipid = strtoull(state->argv[state->next], NULL, 0);
+		break;
+	case STATUS_REG:
+		event.status = strtoull(state->argv[state->next], NULL, 0);
+		break;
 	default:
 		return ARGP_ERR_UNKNOWN;
 	}
@@ -74,6 +119,29 @@ int main(int argc, char *argv[])
 {
 	struct arguments args;
 	int idx = -1;
+
+	const struct argp_option offline_options[] = {
+		{"smca", SMCA, 0, 0, "AMD SMCA Error Decoding"},
+		{"model", MODEL, 0, 0, "CPU Model"},
+		{"family", FAMILY, 0, 0, "CPU Family"},
+		{"bank", BANK_NUM, 0, 0, "Bank Number"},
+		{"ipid", IPID_REG, 0, 0, "IPID Register (for SMCA systems only)"},
+		{"status", STATUS_REG, 0, 0, "Status Register"},
+		{0, 0, 0, 0, 0, 0},
+	};
+
+	struct argp offline_argp = {
+		.options = offline_options,
+		.parser = parse_opt_offline,
+		.doc = TOOL_DESCRIPTION,
+		.args_doc = ARGS_DOC,
+	};
+
+	struct argp_child offline_parser[] = {
+		{&offline_argp, 0, "Post-Processing Options:", 0},
+		{0, 0, 0, 0},
+	};
+
 	const struct argp_option options[] = {
 		{"enable",  'e', 0, 0, "enable RAS events and exit", 0},
 		{"disable", 'd', 0, 0, "disable RAS events and exit", 0},
@@ -81,6 +149,8 @@ int main(int argc, char *argv[])
 		{"record",  'r', 0, 0, "record events via sqlite3", 0},
 #endif
 		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},
+		{"post-processing", 'p', 0, 0,
+		"Post-processing MCE's with raw register values"},
 
 		{ 0, 0, 0, 0, 0, 0 }
 	};
@@ -89,6 +159,7 @@ int main(int argc, char *argv[])
 		.parser = parse_opt,
 		.doc = TOOL_DESCRIPTION,
 		.args_doc = ARGS_DOC,
+		.children = offline_parser,
 
 	};
 	memset (&args, 0, sizeof(args));
@@ -108,6 +179,11 @@ int main(int argc, char *argv[])
 		enable = (args.enable_ras > 0) ? 1 : 0;
 		toggle_ras_mc_event(enable);
 
+		return 0;
+	}
+
+	if (args.offline) {
+		ras_offline_mc_event(&event);
 		return 0;
 	}
 

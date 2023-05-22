@@ -118,6 +118,10 @@ int ras_mce_event_handler(struct trace_seq *s,
 /* enables intel iMC logs */
 int set_intel_imc_log(enum cputype cputype, unsigned ncpus);
 
+/* Undertake AMD SMCA Error Decoding */
+void decode_smca_error(struct mce_event *e, struct mce_priv *m);
+void amd_decode_errcode(struct mce_event *e);
+
 /* Per-CPU-type decoders for Intel CPUs */
 void p4_decode_model(struct mce_event *e);
 void core2_decode_model(struct mce_event *e);
@@ -164,6 +168,8 @@ void decode_amd_errcode(struct mce_event *e);
 #define MCG_STATUS_EIPV  (1ULL<<1)   /* eip points to correct instruction */
 #define MCG_STATUS_MCIP  (1ULL<<2)   /* machine check in progress */
 #define MCG_STATUS_LMCE  (1ULL<<3)   /* local machine check signaled */
+
+int detect_cpu(struct mce_priv *mce);
 
 /* Those functions are defined on per-cpu vendor C files */
 int parse_intel_event(struct ras_events *ras, struct mce_event *e);

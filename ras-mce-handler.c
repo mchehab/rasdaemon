@@ -63,10 +63,8 @@ static char *cputype_name[] = {
 	[CPU_SAPPHIRERAPIDS] = "Sapphirerapids server",
 };
 
-static enum cputype select_intel_cputype(struct ras_events *ras)
+static enum cputype select_intel_cputype(struct mce_priv *mce)
 {
-	struct mce_priv *mce = ras->mce_priv;
-
 	if (mce->family == 15) {
 		if (mce->model == 6)
 			return CPU_TULSA;
@@ -140,9 +138,8 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
 	return mce->family == 6 ? CPU_P6OLD : CPU_GENERIC;
 }
 
-static int detect_cpu(struct ras_events *ras)
+int detect_cpu(struct mce_priv *mce)
 {
-	struct mce_priv *mce = ras->mce_priv;
 	FILE *f;
 	int ret = 0;
 	char *line = NULL;
@@ -221,7 +218,7 @@ static int detect_cpu(struct ras_events *ras)
 		}
 		goto ret;
 	} else if (!strcmp(mce->vendor,"GenuineIntel")) {
-		mce->cputype = select_intel_cputype(ras);
+		mce->cputype = select_intel_cputype(mce);
 	} else {
 		ret = EINVAL;
 	}
@@ -246,7 +243,7 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 
 	mce = ras->mce_priv;
 
-	rc = detect_cpu(ras);
+	rc = detect_cpu(mce);
 	if (rc) {
 		if (mce->processor_flags)
 			free (mce->processor_flags);

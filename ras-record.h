@@ -21,6 +21,7 @@
 #define __RAS_RECORD_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "config.h"
 
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
@@ -40,6 +41,14 @@ struct ras_mc_event {
 	signed char top_layer, middle_layer, lower_layer;
 	unsigned long long address, grain, syndrome;
 	const char *driver_detail;
+};
+
+struct ras_mc_offline_event {
+	unsigned int family, model;
+	bool smca;
+	uint8_t bank;
+	uint64_t ipid;
+	uint64_t status;
 };
 
 struct ras_aer_event {

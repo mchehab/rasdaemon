@@ -814,6 +814,85 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 	return 0;
 }
 
+static int report_mce_offline(struct trace_seq *s,
+			      struct mce_event *mce,
+			      struct mce_priv *priv)
+{
+	time_t now;
+	struct tm *tm;
+
+	time(&now);
+	tm = localtime(&now);
+
+	if (tm)
+		strftime(mce->timestamp, sizeof(mce->timestamp),
+			 "%Y-%m-%d %H:%M:%S %z", tm);
+	trace_seq_printf(s, "%s,", mce->timestamp);
+
+	if (*mce->bank_name)
+		trace_seq_printf(s, " %s,", mce->bank_name);
+	else
+		trace_seq_printf(s, " bank=%x,", mce->bank);
+
+	if (*mce->mcastatus_msg)
+		trace_seq_printf(s, " mca: %s,", mce->mcastatus_msg);
+
+	if (*mce->mcistatus_msg)
+		trace_seq_printf(s, " mci: %s,", mce->mcistatus_msg);
+
+	if (*mce->mc_location)
+		trace_seq_printf(s, " Locn: %s,", mce->mc_location);
+
+	if (*mce->error_msg)
+		trace_seq_printf(s, " Error Msg: %s\n", mce->error_msg);
+
+	return 0;
+}
+
+int ras_offline_mc_event(struct ras_mc_offline_event *event)
+{
+	int rc = 0;
+	struct trace_seq s;
+	struct mce_event *mce = (struct mce_event *)calloc(1, sizeof(struct mce_event));
+	struct mce_priv *priv = (struct mce_priv *)calloc(1, sizeof(struct mce_priv));
+
+	trace_seq_init(&s);
+
+	if (event->smca) {
+		priv->cputype = CPU_AMD_SMCA;
+		priv->family = event->family;
+		priv->model = event->model;
+	} else {
+		rc = detect_cpu(priv);
+		if (rc)
+			return -EINVAL;
+	}
+
+	mce->status = event->status;
+	mce->bank = event->bank;
+
+	switch (priv->cputype) {
+	case CPU_AMD_SMCA:
+		mce->ipid = event->ipid;
+		if (!mce->ipid || !mce->status) {
+			printf("%s MSR required.\n", mce->ipid ? "Status" : "Ipid");
+			return -EINVAL;
+		}
+		decode_smca_error(mce, priv);
+		amd_decode_errcode(mce);
+		break;
+	default:
+		break;
+	}
+
+	report_mce_offline(&s, mce, priv);
+	trace_seq_do_printf(&s);
+	fflush(stdout);
+	trace_seq_destroy(&s);
+
+	return 0;
+}
+
 int handle_ras_events(int record_events)
 {
 	int rc, page_size, i;
