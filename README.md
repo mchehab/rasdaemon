@@ -188,6 +188,16 @@ required):
     # rasdaemon -f -r
 ```
 
+To post-process and decode received MCA errors on AMD SMCA systems, run:
+
+```
+	# rasdaemon -p --status <STATUS_reg> --ipid <IPID_reg> --smca --family <CPU Family> --model <CPU Model> --bank <BANK_NUM>
+```
+
+Status and IPID Register values (in hex) are mandatory. The `smca` flag
+with `family` and `model` are required if not decoding locally. `Bank`
+parameter is optional.
+
 You may also start it via systemd:
 
 ```
