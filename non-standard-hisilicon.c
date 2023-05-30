@@ -366,13 +366,13 @@ static int decode_hisi_common_section(struct ras_events *ras,
 	trace_seq_printf(s, "%s\n", hevent.error_msg);
 
 	if (err->val_bits & BIT(HISI_COMMON_VALID_REG_ARRAY_SIZE) && err->reg_array_size > 0) {
-		int i;
+		unsigned int i;
 
 		trace_seq_printf(s, "Register Dump:\n");
 		for (i = 0; i < err->reg_array_size / sizeof(uint32_t); i++) {
-			trace_seq_printf(s, "reg%02d=0x%08x\n", i,
+			trace_seq_printf(s, "reg%02u=0x%08x\n", i,
 					 err->reg_array[i]);
-			HISI_SNPRINTF(hevent.reg_msg, "reg%02d=0x%08x",
+			HISI_SNPRINTF(hevent.reg_msg, "reg%02u=0x%08x",
 				      i, err->reg_array[i]);
 		}
 	}
@@ -398,7 +398,7 @@ static struct ras_ns_ev_decoder hisi_section_ns_ev_decoder[]  = {
 
 static void __attribute__((constructor)) hisi_ns_init(void)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(hisi_section_ns_ev_decoder); i++)
 		register_ns_ev_decoder(&hisi_section_ns_ev_decoder[i]);

@@ -15,11 +15,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <traceevent/kbuffer.h>
-#include "ras-memory-failure-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include "ras-memory-failure-handler.h"
 
 /* Memory failure - various types of pages */
 enum mf_action_page_type {
@@ -99,7 +98,7 @@ static const struct {
 
 static const char *get_page_type(int page_type)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(mf_page_type); i++)
 		if (mf_page_type[i].type == page_type)
@@ -110,7 +109,7 @@ static const char *get_page_type(int page_type)
 
 static const char *get_action_result(int result)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(mf_action_result); i++)
 		if (mf_action_result[i].result == result)
