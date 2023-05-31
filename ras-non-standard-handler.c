@@ -75,6 +75,32 @@ int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 	return 0;
 }
 
+int ras_ns_add_vendor_tables(struct ras_events *ras)
+{
+	struct ras_ns_ev_decoder *ns_ev_decoder;
+	int error = 0;
+
+#ifdef HAVE_SQLITE3
+	if (!ras)
+		return -1;
+
+	ns_ev_decoder = ras_ns_ev_dec_list;
+	while (ns_ev_decoder) {
+		if (ns_ev_decoder->add_table && !ns_ev_decoder->stmt_dec_record) {
+			error = ns_ev_decoder->add_table(ras, ns_ev_decoder);
+			if (error)
+				break;
+		}
+		ns_ev_decoder = ns_ev_decoder->next;
+	}
+
+	if (error)
+		return -1;
+#endif
+
+	return 0;
+}
+
 static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p_ns_ev_dec)
 {
 	struct ras_ns_ev_decoder *ns_ev_decoder;
@@ -96,7 +122,7 @@ static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p
 	return 0;
 }
 
-static void unregister_ns_ev_decoder(void)
+void ras_ns_finalize_vendor_tables(void)
 {
 #ifdef HAVE_SQLITE3
 	struct ras_ns_ev_decoder *ns_ev_decoder = ras_ns_ev_dec_list;
@@ -108,6 +134,13 @@ static void unregister_ns_ev_decoder(void)
 		}
 		ns_ev_decoder = ns_ev_decoder->next;
 	}
+#endif
+}
+
+static void unregister_ns_ev_decoder(void)
+{
+#ifdef HAVE_SQLITE3
+	ras_ns_finalize_vendor_tables();
 #endif
 	ras_ns_ev_dec_list = NULL;
 }

@@ -341,6 +341,23 @@ static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
 	HISI_SNPRINTF(event->error_msg, "]");
 }
 
+static int add_hisi_common_table(struct ras_events *ras,
+				 struct ras_ns_ev_decoder *ev_decoder)
+{
+#ifdef HAVE_SQLITE3
+	if (ras->record_events &&
+	    !ev_decoder->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+					    &hisi_common_section_tab) != SQLITE_OK) {
+			log(TERM, LOG_WARNING, "Failed to create sql hisi_common_section_tab\n");
+			return -1;
+		}
+	}
+#endif
+
+	return 0;
+}
+
 static int decode_hisi_common_section(struct ras_events *ras,
 				      struct ras_ns_ev_decoder *ev_decoder,
 				      struct trace_seq *s,
@@ -349,16 +366,6 @@ static int decode_hisi_common_section(struct ras_events *ras,
 	const struct hisi_common_error_section *err =
 			(struct hisi_common_error_section *)event->error;
 	struct hisi_event hevent;
-
-#ifdef HAVE_SQLITE3
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-				&hisi_common_section_tab) != SQLITE_OK) {
-			trace_seq_printf(s, "create sql hisi_common_section_tab fail\n");
-			return -1;
-		}
-	}
-#endif
 
 	memset(&hevent, 0, sizeof(struct hisi_event));
 	trace_seq_printf(s, "\nHisilicon Common Error Section:\n");
@@ -392,6 +399,7 @@ static int decode_hisi_common_section(struct ras_events *ras,
 static struct ras_ns_ev_decoder hisi_section_ns_ev_decoder[]  = {
 	{
 		.sec_type = "c8b328a8-9917-4af6-9a13-2e08ab2e7586",
+		.add_table = add_hisi_common_table,
 		.decode = decode_hisi_common_section,
 	},
 };

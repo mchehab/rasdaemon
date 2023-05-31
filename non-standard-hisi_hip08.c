@@ -654,6 +654,20 @@ static void decode_oem_type1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	step_vendor_data_tab(ev_decoder, "hip08_oem_type1_event_tab");
 }
 
+static int add_hip08_oem_type1_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
+{
+#ifdef HAVE_SQLITE3
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+					    &hip08_oem_type1_event_tab) != SQLITE_OK) {
+			log(TERM, LOG_WARNING, "Failed to create sql hip08_oem_type1_event_tab\n");
+			return -1;
+		}
+	}
+#endif
+	return 0;
+}
+
 /* error data decoding functions */
 static int decode_hip08_oem_type1_error(struct ras_events *ras,
 					struct ras_ns_ev_decoder *ev_decoder,
@@ -669,17 +683,6 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 		return -1;
 	}
 
-#ifdef HAVE_SQLITE3
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &hip08_oem_type1_event_tab)
-			!= SQLITE_OK) {
-			trace_seq_printf(s,
-					"create sql hip08_oem_type1_event_tab fail\n");
-			return -1;
-		}
-	}
-#endif
 	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 			   HIP08_OEM_TYPE1_FIELD_TIMESTAMP,
 			   0, event->timestamp);
@@ -827,6 +830,20 @@ static void decode_oem_type2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	step_vendor_data_tab(ev_decoder, "hip08_oem_type2_event_tab");
 }
 
+static int add_hip08_oem_type2_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
+{
+#ifdef HAVE_SQLITE3
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+					    &hip08_oem_type2_event_tab) != SQLITE_OK) {
+			log(TERM, LOG_WARNING, "Failed to create sql hip08_oem_type2_event_tab\n");
+			return -1;
+		}
+	}
+#endif
+	return 0;
+}
+
 static int decode_hip08_oem_type2_error(struct ras_events *ras,
 					struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
@@ -841,16 +858,6 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 		return -1;
 	}
 
-#ifdef HAVE_SQLITE3
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-			&hip08_oem_type2_event_tab) != SQLITE_OK) {
-			trace_seq_printf(s,
-				"create sql hip08_oem_type2_event_tab fail\n");
-			return -1;
-		}
-	}
-#endif
 	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 			   HIP08_OEM_TYPE2_FIELD_TIMESTAMP,
 			   0, event->timestamp);
@@ -977,6 +984,20 @@ static void decode_pcie_local_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	step_vendor_data_tab(ev_decoder, "hip08_pcie_local_event_tab");
 }
 
+static int add_hip08_pcie_local_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
+{
+#ifdef HAVE_SQLITE3
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+					    &hip08_pcie_local_event_tab) != SQLITE_OK) {
+			log(TERM, LOG_WARNING, "Failed to create sql hip08_pcie_local_event_tab\n");
+			return -1;
+		}
+	}
+#endif
+	return 0;
+}
+
 static int decode_hip08_pcie_local_error(struct ras_events *ras,
 					 struct ras_ns_ev_decoder *ev_decoder,
 					 struct trace_seq *s,
@@ -991,16 +1012,6 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 		return -1;
 	}
 
-#ifdef HAVE_SQLITE3
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-				&hip08_pcie_local_event_tab) != SQLITE_OK) {
-			trace_seq_printf(s,
-				"create sql hip08_pcie_local_event_tab fail\n");
-			return -1;
-		}
-	}
-#endif
 	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 			   HIP08_PCIE_LOCAL_FIELD_TIMESTAMP,
 			   0, event->timestamp);
@@ -1015,14 +1026,17 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 static struct ras_ns_ev_decoder hip08_ns_ev_decoder[] = {
 	{
 		.sec_type = "1f8161e1-55d6-41e6-bd10-7afd1dc5f7c5",
+		.add_table = add_hip08_oem_type1_table,
 		.decode = decode_hip08_oem_type1_error,
 	},
 	{
 		.sec_type = "45534ea6-ce23-4115-8535-e07ab3aef91d",
+		.add_table = add_hip08_oem_type2_table,
 		.decode = decode_hip08_oem_type2_error,
 	},
 	{
 		.sec_type = "b2889fc9-e7d7-4f9d-a867-af42e98be772",
+		.add_table = add_hip08_pcie_local_table,
 		.decode = decode_hip08_pcie_local_error,
 	},
 };
