@@ -474,6 +474,10 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	if (pdata[0].ras->record_events) {
 		if (ras_mc_event_opendb(pdata[0].cpu, pdata[0].ras))
 			goto error;
+#ifdef HAVE_NON_STANDARD
+		if (ras_ns_add_vendor_tables(pdata[0].ras))
+			log(TERM, LOG_ERR, "Can't add vendor table\n");
+#endif
 	}
 
 	do {
@@ -563,8 +567,12 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	    "Old kernel detected. Stop listening and fall back to pthread way.\n");
 
 cleanup:
-	if (pdata[0].ras->record_events)
+	if (pdata[0].ras->record_events) {
+#ifdef HAVE_NON_STANDARD
+		ras_ns_finalize_vendor_tables();
+#endif
 		ras_mc_event_closedb(pdata[0].cpu, pdata[0].ras);
+	}
 
 error:
 	kbuffer_free(kbuf);
@@ -661,6 +669,10 @@ static void *handle_ras_events_cpu(void *priv)
 			free(page);
 			return 0;
 		}
+#ifdef HAVE_NON_STANDARD
+		if (ras_ns_add_vendor_tables(pdata->ras))
+			log(TERM, LOG_ERR, "Can't add vendor table\n");
+#endif
 		pthread_mutex_unlock(&pdata->ras->db_lock);
 	}
 
@@ -668,6 +680,9 @@ static void *handle_ras_events_cpu(void *priv)
 
 	if (pdata->ras->record_events) {
 		pthread_mutex_lock(&pdata->ras->db_lock);
+#ifdef HAVE_NON_STANDARD
+		ras_ns_finalize_vendor_tables();
+#endif
 		ras_mc_event_closedb(pdata->cpu, pdata->ras);
 		pthread_mutex_unlock(&pdata->ras->db_lock);
 	}
