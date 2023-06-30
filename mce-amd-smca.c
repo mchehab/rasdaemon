@@ -61,6 +61,7 @@ enum smca_bank_types {
 	SMCA_PIE,       /* Power, Interrupts, etc. */
 	SMCA_UMC,       /* Unified Memory Controller */
 	SMCA_UMC_V2,
+	SMCA_MA_LLC,	/* Memory Attached Last Level Cache */
 	SMCA_PB,        /* Parameter Block */
 	SMCA_PSP,       /* Platform Security Processor */
 	SMCA_PSP_V2,
@@ -76,6 +77,8 @@ enum smca_bank_types {
 	SMCA_SHUB,		/* System Hub Unit */
 	SMCA_SATA,		/* SATA Unit */
 	SMCA_USB,		/* USB Unit */
+	SMCA_USR_DP,	/* Ultra Short Reach Data Plane Controller */
+	SMCA_USR_CP,	/* Ultra Short Reach Control Plane Controller */
 	SMCA_GMI_PCS,	/* GMI PCS Unit */
 	SMCA_XGMI_PHY,	/* xGMI PHY Unit */
 	SMCA_WAFL_PHY,	/* WAFL PHY Unit */
@@ -325,6 +328,16 @@ static const char * const smca_umc2_mce_desc[] = {
 	"LM32 MP errors",
 };
 
+static const char * const smca_mall_mce_desc[] = {
+	"Counter overflow error",
+	"Counter underflow error",
+	"Write Data Parity Error",
+	"Read Response Parity Error",
+	"Cache Tag ECC Error Macro 0",
+	"Cache Tag ECC Error Macro 1",
+	"Cache Data ECC Error"
+};
+
 static const char * const smca_pb_mce_desc[] = {
 	"An ECC error in the Parameter Block RAM array"
 };
@@ -524,6 +537,57 @@ static const char * const smca_usb_mce_desc[] = {
 	"AXI Slave Response error",
 };
 
+static const char * const smca_usrdp_mce_desc[] = {
+	"Mst CMD Error",
+	"Mst Rx FIFO Error",
+	"Mst Deskew Error",
+	"Mst Detect Timeout Error",
+	"Mst FlowControl Error",
+	"Mst DataValid FIFO Error",
+	"Mac LinkState Error",
+	"Deskew Error",
+	"Init Timeout Error",
+	"Init Attempt Error",
+	"Recovery Timeout Error",
+	"Recovery Attempt Error",
+	"Eye Training Timeout Error",
+	"Data Startup Limit Error",
+	"LS0 Exit Error",
+	"PLL powerState Update Timeout Error",
+	"Rx FIFO Error",
+	"Lcu Error",
+	"Conv CECC Error",
+	"Conv UECC Error",
+	"Reserved",
+	"Rx DataLoss Error",
+	"Replay CECC Error",
+	"Replay UECC Error",
+	"CRC Error",
+	"BER Exceeded Error",
+	"FC Init Timeout Error",
+	"FC Init Attempt Error",
+	"Replay Timeout Error",
+	"Replay Attempt Error",
+	"Replay Underflow Error",
+	"Replay Overflow Error",
+};
+
+static const char * const smca_usrcp_mce_desc[] = {
+	"Packet Type Error",
+	"Rx FIFO Error",
+	"Deskew Error",
+	"Rx Detect Timeout Error",
+	"Data Parity Error",
+	"Data Loss Error",
+	"Lcu Error",
+	"HB1 Handshake Timeout Error",
+	"HB2 Handshake Timeout Error",
+	"Clk Sleep Rsp Timeout Error",
+	"Clk Wake Rsp Timeout Error",
+	"Reset Attack Error",
+	"Remote Link Fatal Error",
+};
+
 static const char * const smca_gmipcs_mce_desc[] = {
 	"Data Loss Error",
 	"Training Error",
@@ -579,6 +643,7 @@ static struct smca_mce_desc smca_mce_descs[] = {
 	[SMCA_PIE]      = { smca_pie_mce_desc,  ARRAY_SIZE(smca_pie_mce_desc) },
 	[SMCA_UMC]      = { smca_umc_mce_desc,  ARRAY_SIZE(smca_umc_mce_desc) },
 	[SMCA_UMC_V2]	= { smca_umc2_mce_desc,	ARRAY_SIZE(smca_umc2_mce_desc)	},
+	[SMCA_MA_LLC]	= { smca_mall_mce_desc, ARRAY_SIZE(smca_mall_mce_desc)	},
 	[SMCA_PB]       = { smca_pb_mce_desc,   ARRAY_SIZE(smca_pb_mce_desc)  },
 	[SMCA_PSP]      = { smca_psp_mce_desc,  ARRAY_SIZE(smca_psp_mce_desc) },
 	[SMCA_PSP_V2]   = { smca_psp2_mce_desc, ARRAY_SIZE(smca_psp2_mce_desc)},
@@ -595,6 +660,8 @@ static struct smca_mce_desc smca_mce_descs[] = {
 	[SMCA_SHUB] = { smca_nbif_mce_desc, ARRAY_SIZE(smca_nbif_mce_desc)  },
 	[SMCA_SATA] = { smca_sata_mce_desc, ARRAY_SIZE(smca_sata_mce_desc)  },
 	[SMCA_USB]  = { smca_usb_mce_desc,  ARRAY_SIZE(smca_usb_mce_desc)   },
+	[SMCA_USR_DP]	= { smca_usrdp_mce_desc,  ARRAY_SIZE(smca_usrdp_mce_desc)   },
+	[SMCA_USR_CP]	= { smca_usrcp_mce_desc,  ARRAY_SIZE(smca_usrcp_mce_desc)   },
 	[SMCA_GMI_PCS]  = { smca_gmipcs_mce_desc,  ARRAY_SIZE(smca_gmipcs_mce_desc) },
 	/* All the PHY bank types have the same error descriptions, for now. */
 	[SMCA_XGMI_PHY]	= { smca_xgmiphy_mce_desc, ARRAY_SIZE(smca_xgmiphy_mce_desc)	},
@@ -631,6 +698,8 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 	{ SMCA_UMC,      0x00000096 },
 	/* Heterogeneous systems may have both UMC and UMC_v2 types on the same node. */
 	{ SMCA_UMC_V2,   0x00010096 },
+	/* Memory Attached Last Level Cache */
+	{ SMCA_MA_LLC,   0x0004002E },
 
 	/* Parameter Block MCA type */
 	{ SMCA_PB,       0x00000005 },
@@ -664,6 +733,11 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 	{ SMCA_SHUB,	 0x00000080 },
 	{ SMCA_SATA,     0x000000A8 },
 	{ SMCA_USB,		 0x000000AA },
+
+	/* Ultra Short Reach Data and Control Plane Controller */
+	{ SMCA_USR_DP,  0x00000170 },
+	{ SMCA_USR_CP,  0x00000180 },
+
 	{ SMCA_GMI_PCS,  0x00000241 },
 
 	/* Ext Global Memory Interconnect PHY MCA type */
@@ -692,6 +766,7 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_PIE]			= { "Power, Interrupts, etc." },
 	[SMCA_UMC]			= { "Unified Memory Controller" },
 	[SMCA_UMC_V2]			= { "Unified Memory Controller V2" },
+	[SMCA_MA_LLC]			= { "Memory Attached Last Level Cache" },
 	[SMCA_PB]			= { "Parameter Block" },
 	[SMCA_PSP ... SMCA_PSP_V2]	= { "Platform Security Processor" },
 	[SMCA_SMU ... SMCA_SMU_V2]	= { "System Management Unit" },
@@ -704,6 +779,8 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_SHUB]         = { "System Hub Unit" },
 	[SMCA_SATA]         = { "SATA Unit" },
 	[SMCA_USB]          = { "USB Unit" },
+	[SMCA_USR_DP]			= { "Ultra Short Reach Data Plane Controller" },
+	[SMCA_USR_CP]			= { "Ultra Short Reach Control Plane Controller" },
 	[SMCA_GMI_PCS]          = { "Global Memory Interconnect PCS Unit" },
 	[SMCA_XGMI_PHY]			= { "Ext Global Memory Interconnect PHY Unit" },
 	[SMCA_WAFL_PHY]			= { "WAFL PHY Unit" },
