@@ -60,6 +60,7 @@ enum smca_bank_types {
 	SMCA_CS_V2_QUIRK,
 	SMCA_PIE,       /* Power, Interrupts, etc. */
 	SMCA_UMC,       /* Unified Memory Controller */
+	SMCA_UMC_QUIRK,
 	SMCA_UMC_V2,
 	SMCA_MA_LLC,	/* Memory Attached Last Level Cache */
 	SMCA_PB,        /* Parameter Block */
@@ -311,6 +312,25 @@ static const char * const smca_umc_mce_desc[] = {
 	"ECS Error",
 	"UMC Throttling Error",
 	"Read CRC Error",
+};
+
+static const char * const smca_umc_quirk_mce_desc[] = {
+	"DRAM On Die ECC error",
+	"Data poison error",
+	"SDP parity error",
+	"Reserved",
+	"Address/Command parity error",
+	"HBM Write data parity error",
+	"Consolidated SRAM ECC error",
+	"Reserved",
+	"Reserved",
+	"Rdb SRAM ECC error",
+	"Thermal throttling",
+	"HBM Read Data Parity error",
+	"Reserved",
+	"UMC FW Error",
+	"SRAM Parity Error",
+	"HBM CRC Error",
 };
 
 static const char * const smca_umc2_mce_desc[] = {
@@ -642,6 +662,7 @@ static struct smca_mce_desc smca_mce_descs[] = {
 	[SMCA_CS_V2_QUIRK] = { smca_cs2_quirk_mce_desc, ARRAY_SIZE(smca_cs2_quirk_mce_desc)},
 	[SMCA_PIE]      = { smca_pie_mce_desc,  ARRAY_SIZE(smca_pie_mce_desc) },
 	[SMCA_UMC]      = { smca_umc_mce_desc,  ARRAY_SIZE(smca_umc_mce_desc) },
+	[SMCA_UMC_QUIRK] = { smca_umc_quirk_mce_desc,  ARRAY_SIZE(smca_umc_quirk_mce_desc) },
 	[SMCA_UMC_V2]	= { smca_umc2_mce_desc,	ARRAY_SIZE(smca_umc2_mce_desc)	},
 	[SMCA_MA_LLC]	= { smca_mall_mce_desc, ARRAY_SIZE(smca_mall_mce_desc)	},
 	[SMCA_PB]       = { smca_pb_mce_desc,   ARRAY_SIZE(smca_pb_mce_desc)  },
@@ -696,6 +717,7 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 
 	/* Unified Memory Controller MCA type */
 	{ SMCA_UMC,      0x00000096 },
+	{ SMCA_UMC_QUIRK, 0x00020000 },
 	/* Heterogeneous systems may have both UMC and UMC_v2 types on the same node. */
 	{ SMCA_UMC_V2,   0x00010096 },
 	/* Memory Attached Last Level Cache */
@@ -764,7 +786,7 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_L3_CACHE]			= { "L3 Cache" },
 	[SMCA_CS ... SMCA_CS_V2_QUIRK]	= { "Coherent Slave" },
 	[SMCA_PIE]			= { "Power, Interrupts, etc." },
-	[SMCA_UMC]			= { "Unified Memory Controller" },
+	[SMCA_UMC ... SMCA_UMC_QUIRK]	= { "Unified Memory Controller" },
 	[SMCA_UMC_V2]			= { "Unified Memory Controller V2" },
 	[SMCA_MA_LLC]			= { "Memory Attached Last Level Cache" },
 	[SMCA_PB]			= { "Parameter Block" },
@@ -843,6 +865,10 @@ static inline void fixup_hwid(struct mce_priv* m, uint32_t *hwid_mcatype)
 			if (*hwid_mcatype == 0x0002002E)
 				*hwid_mcatype = 0x00010000;
 			break;
+		case 0x90 ... 0x9F:
+			if ((*hwid_mcatype & 0xFF) == 0x00000096)
+				*hwid_mcatype = 0x00020000;
+			break;
 		default:
 			break;
 		}
@@ -908,7 +934,7 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 			     smca_mce_descs[bank_type].descs[xec],
 			     xec);
 
-	if (bank_type == SMCA_UMC && xec == 0) {
+	if ((bank_type == SMCA_UMC || bank_type == SMCA_UMC_QUIRK) && xec == 0) {
 		channel = find_umc_channel(e);
 		csrow = e->synd & 0x7; /* Bit 0, 1 ,2 */
 		mce_snprintf(e->mc_location, "memory_channel=%d,csrow=%d",
