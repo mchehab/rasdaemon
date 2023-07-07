@@ -68,7 +68,7 @@ if WITH_MEMORY_CE_PFA
    rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
 endif
 if WITH_AMP_NS_DECODE
-   rasdaemon_SOURCES += non-standard-ampere.c
+   rasdaemon_SOURCES += non-standard-ampere.c dmi_processor_info.c
 endif
 if WITH_CPU_FAULT_ISOLATION
    rasdaemon_SOURCES += ras-cpu-isolation.c queue.c

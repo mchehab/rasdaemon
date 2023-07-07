@@ -871,6 +871,7 @@ int handle_ras_events(int record_events)
 		    "ras", "mc_event");
 
 #ifdef HAVE_AER
+	ras_aer_handler_init();
 	rc = add_event_handler(ras, pevent, page_size, "ras", "aer_event",
 			       ras_aer_event_handler, NULL, AER_EVENT);
 	if (!rc)

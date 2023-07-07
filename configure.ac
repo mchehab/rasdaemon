@@ -201,6 +201,11 @@ AC_ARG_WITH(sysconfdefdir,
     [SYSCONFDEFDIR=/etc/sysconfig])
 AC_SUBST([SYSCONFDEFDIR])
 
+AC_ARG_VAR([IPMITOOL], [location of the ipmitool command used on Ampere Altra])
+AS_IF([test "x$IPMITOOL" != "x"], [
+    AC_DEFINE_UNQUOTED([IPMITOOL_CMD], ["${IPMITOOL}"], "ipmitool cmd path")
+])
+
 AC_DEFINE([RAS_DB_FNAME], ["ras-mc_event.db"], [ras events database])
 AC_SUBST([RAS_DB_FNAME], ["ras-mc_event.db"])
 
