@@ -345,7 +345,7 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 static int get_num_cpus(struct ras_events *ras)
 {
-	return sysconf(_SC_NPROCESSORS_CONF);
+	return sysconf(_SC_NPROCESSORS_ONLN);
 #if 0
 	char fname[MAX_PATH + 1];
 	int num_cpus = 0;
