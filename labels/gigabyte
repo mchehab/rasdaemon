@@ -3,7 +3,7 @@ vendor: GIGABYTE
   model: MZ62-HD0-00
 # Gigabyte schema:
 #
-#  <label>: <mc>.<row>.<schema>
+#  <label>: <mc>.<row>.<channel>
 #  ras-mc-ctl  --layout
 #          +---------------------------------------------------------------------------------------------------+
 #          |                      mc0                      |                      mc1                      |
