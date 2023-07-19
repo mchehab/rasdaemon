@@ -105,6 +105,6 @@ enum ghes_severity {
 
 /* Function prototypes */
 int toggle_ras_mc_event(int enable);
-int handle_ras_events(int record_events);
+int handle_ras_events(int record_events, int enable_ipmitool);
 
 #endif

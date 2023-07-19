@@ -62,6 +62,15 @@ static const char *aer_uncor_errors[32] = {
 	[26] = "Poisoned TLP Egrees Blocked",
 };
 
+static bool use_ipmitool = false;
+
+void ras_aer_handler_init(int enable_ipmitool)
+{
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+  use_ipmitool = (enable_ipmitool > 0) ? 1 : 0;
+#endif
+}
+
 #define BUF_LEN	1024
 
 int ras_aer_event_handler(struct trace_seq *s,
@@ -193,8 +202,9 @@ int ras_aer_event_handler(struct trace_seq *s,
 #endif
 
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
-	if (openbmc_unified_sel_log(severity_val, ev.dev_name, status_val) < 0)
-	  return -1;
+  if (use_ipmitool)
+    if (openbmc_unified_sel_log(severity_val, ev.dev_name, status_val) < 0)
+      return -1;
 #endif
 
 	return 0;

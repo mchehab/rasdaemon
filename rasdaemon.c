@@ -40,6 +40,7 @@ const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.or
 struct arguments {
 	int record_events;
 	int enable_ras;
+	int enable_ipmitool;
 	int foreground;
 };
 
@@ -58,6 +59,11 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'r':
 		args->record_events++;
 		break;
+#endif
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+  case 'i':
+    args->enable_ipmitool++;
+    break;
 #endif
 	case 'f':
 		args->foreground++;
@@ -81,6 +87,9 @@ int main(int argc, char *argv[])
 		{"record",  'r', 0, 0, "record events via sqlite3", 0},
 #endif
 		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+    {"ipmitool", 'i', 0, 0, "enable ipmitool logging", 0},
+#endif
 
 		{ 0, 0, 0, 0, 0, 0 }
 	};
@@ -116,7 +125,7 @@ int main(int argc, char *argv[])
 		if (daemon(0,0))
 			exit(EXIT_FAILURE);
 
-	handle_ras_events(args.record_events);
+	handle_ras_events(args.record_events, args.enable_ipmitool);
 
 	return 0;
 }
