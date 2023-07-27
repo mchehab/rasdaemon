@@ -935,10 +935,15 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 			     xec);
 
 	if ((bank_type == SMCA_UMC || bank_type == SMCA_UMC_QUIRK) && xec == 0) {
-		channel = find_umc_channel(e);
-		csrow = e->synd & 0x7; /* Bit 0, 1 ,2 */
-		mce_snprintf(e->mc_location, "memory_channel=%d,csrow=%d",
-			     channel, csrow);
+		if ((m->family == 0x19) && (m->model >= 0x90 && m->model <= 0x9f)) {
+			/* MCA_IPID[InstanceIdHi] give the AMD Node Die ID */
+			mce_snprintf(e->mc_location, "memory_die_id=%d", mcatype_instancehi / 4);
+		} else {
+			channel = find_umc_channel(e);
+			csrow = e->synd & 0x7; /* Bit 0, 1 ,2 */
+			mce_snprintf(e->mc_location, "memory_channel=%d,csrow=%d",
+				     channel, csrow);
+		}
 	}
 
 	if (bank_type == SMCA_UMC_V2 && xec == 0) {
