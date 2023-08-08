@@ -1469,7 +1469,7 @@ sub errors
             $out .= "\n";
         }
         if ($out ne "") {
-            print "Disk errors\n$out\n";
+            print "Disk errors:\n$out\n";
         } else {
             print "No disk errors.\n\n";
         }
