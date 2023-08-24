@@ -1705,13 +1705,13 @@ sub vendor_errors
             if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
                 $out .= "$id. $timestamp Error Info: ";
                 $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs " if ($regs);
+                $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                $out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+                $out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+                $out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+                $out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                $out .= "Error Registers: $regs " if (defined $regs && length $regs);
                 $out .= "\n\n";
                 $found_module = 1;
 	    }
@@ -1730,13 +1730,13 @@ sub vendor_errors
             if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
                 $out .= "$id. $timestamp Error Info: ";
                 $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs " if ($regs);
+                $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                $out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+                $out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+                $out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+                $out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                $out .= "Error Registers: $regs " if (defined $regs && length $regs);
                 $out .= "\n\n";
                 $found_module = 1;
 	    }
@@ -1755,15 +1755,15 @@ sub vendor_errors
             if ($module eq 0 || ($sub_module_id && uc($module) eq uc($sub_module_id))) {
                 $out .= "$id. $timestamp Error Info: ";
                 $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "core_id=$core_id, " if ($core_id);
-                $out .= "port_id=$port_id, " if ($port_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "err_type=$err_type, " if ($err_type);
-                $out .= "Error Registers: $regs " if ($regs);
+                $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                $out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+                $out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+                $out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                $out .= "core_id=$core_id, " if (defined $core_id && length $core_id);
+                $out .= "port_id=$port_id, " if (defined $port_id && length $port_id);
+                $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                $out .= "err_type=$err_type, " if (defined $err_type && length $err_type);
+                $out .= "Error Registers: $regs " if (defined $regs && length $regs);
                 $out .= "\n\n";
                 $found_module = 1;
 	    }
@@ -1782,19 +1782,19 @@ sub vendor_errors
             if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
                 $out .= "$id. $timestamp Error Info: ";
                 $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "totem_id=$totem_id, " if ($totem_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "sub_system_id=$sub_system_id, " if ($sub_system_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "core_id=$core_id, " if ($core_id);
-                $out .= "port_id=$port_id, " if ($port_id);
-                $out .= "err_type=$err_type, " if ($err_type);
-                $out .= "pcie_info=$pcie_info, " if ($pcie_info);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs" if ($regs);
+                $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                $out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+                $out .= "totem_id=$totem_id, " if (defined $totem_id && length $totem_id);
+                $out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+                $out .= "sub_system_id=$sub_system_id, " if (defined $sub_system_id && length $sub_system_id);
+                $out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+                $out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                $out .= "core_id=$core_id, " if (defined $core_id && length $core_id );
+                $out .= "port_id=$port_id, " if (defined $port_id && length $port_id);
+                $out .= "err_type=$err_type, " if (defined $err_type && length $err_type);
+                $out .= "pcie_info=$pcie_info, " if (defined $pcie_info && length $pcie_info);
+                $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                $out .= "Error Registers: $regs" if (defined $regs && length $regs);
                 $out .= "\n\n";
                 $found_module = 1;
 	    }
