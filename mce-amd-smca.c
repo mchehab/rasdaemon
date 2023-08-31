@@ -90,6 +90,12 @@ enum smca_bank_types {
 /* Maximum number of MCA banks per CPU. */
 #define MAX_NR_BANKS	64
 
+#define MCI_IPID_MCATYPE    0xFFFF0000
+#define MCI_IPID_HWID       0xFFF
+
+/* Obtain HWID_MCATYPE Tuple on SMCA Systems */
+#define HWID_MCATYPE(hwid, mcatype) (((hwid) << 16) | (mcatype))
+
 /*
  * On Newer heterogeneous systems from AMD with CPU and GPU nodes connected
  * via xGMI links, the NON CPU Nodes are enumerated from index 8
@@ -699,76 +705,76 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 	/* { bank_type, mcatype_hwid } */
 
 	/* ZN Core (HWID=0xB0) MCA types */
-	{ SMCA_LS,       0x000000B0 },
-	{ SMCA_LS_V2,    0x001000B0 },
-	{ SMCA_IF,       0x000100B0 },
-	{ SMCA_L2_CACHE, 0x000200B0 },
-	{ SMCA_DE,       0x000300B0 },
+	{ SMCA_LS,	 HWID_MCATYPE(0xB0, 0x0) },
+	{ SMCA_LS_V2,	 HWID_MCATYPE(0xB0, 0x10) },
+	{ SMCA_IF,	 HWID_MCATYPE(0xB0, 0x1) },
+	{ SMCA_L2_CACHE,	 HWID_MCATYPE(0xB0, 0x2) },
+	{ SMCA_DE,	 HWID_MCATYPE(0xB0, 0x3) },
 	/* HWID 0xB0 MCATYPE 0x4 is Reserved */
-	{ SMCA_EX,       0x000500B0 },
-	{ SMCA_FP,       0x000600B0 },
-	{ SMCA_L3_CACHE, 0x000700B0 },
+	{ SMCA_EX,	 HWID_MCATYPE(0xB0, 0x5) },
+	{ SMCA_FP,	 HWID_MCATYPE(0xB0, 0x6) },
+	{ SMCA_L3_CACHE,	 HWID_MCATYPE(0xB0, 0x7) },
 
 	/* Data Fabric MCA types */
-	{ SMCA_CS,       0x0000002E },
-	{ SMCA_CS_V2,    0x0002002E },
-	{SMCA_CS_V2_QUIRK, 0x00010000 },
-	{ SMCA_PIE,      0x0001002E },
+	{ SMCA_CS,	 HWID_MCATYPE(0x2E, 0x0) },
+	{ SMCA_PIE,	 HWID_MCATYPE(0x2E, 0x1) },
+	{ SMCA_CS_V2,	 HWID_MCATYPE(0x2E, 0x2) },
+	{ SMCA_CS_V2_QUIRK,	 HWID_MCATYPE(0x0, 0x1) },
 
 	/* Unified Memory Controller MCA type */
-	{ SMCA_UMC,      0x00000096 },
-	{ SMCA_UMC_QUIRK, 0x00020000 },
+	{ SMCA_UMC,	 HWID_MCATYPE(0x96, 0x0) },
+	{ SMCA_UMC_QUIRK,	 HWID_MCATYPE(0x0, 0x2) },
 	/* Heterogeneous systems may have both UMC and UMC_v2 types on the same node. */
-	{ SMCA_UMC_V2,   0x00010096 },
+	{ SMCA_UMC_V2,	 HWID_MCATYPE(0x96, 0x1) },
 	/* Memory Attached Last Level Cache */
-	{ SMCA_MA_LLC,   0x0004002E },
+	{ SMCA_MA_LLC,	 HWID_MCATYPE(0x2E, 0x4) },
 
 	/* Parameter Block MCA type */
-	{ SMCA_PB,       0x00000005 },
+	{ SMCA_PB,	 HWID_MCATYPE(0x05, 0x0) },
 
 	/* Platform Security Processor MCA type */
-	{ SMCA_PSP,      0x000000FF },
-	{ SMCA_PSP_V2,   0x000100FF },
+	{ SMCA_PSP,	 HWID_MCATYPE(0xFF, 0x0) },
+	{ SMCA_PSP_V2,	 HWID_MCATYPE(0xFF, 0x1) },
 
 	/* System Management Unit MCA type */
-	{ SMCA_SMU,      0x00000001 },
-	{ SMCA_SMU_V2,   0x00010001 },
+	{ SMCA_SMU,	 HWID_MCATYPE(0x01, 0x0) },
+	{ SMCA_SMU_V2,	 HWID_MCATYPE(0x01, 0x1) },
 
 	/* Microprocessor 5 Unit MCA type */
-	{ SMCA_MP5,      0x00020001 },
+	{ SMCA_MP5,	 HWID_MCATYPE(0x01, 0x2) },
 
 	/* MPDMA MCA Type */
-	{ SMCA_MPDMA,	 0x00030001 },
+	{ SMCA_MPDMA,	 HWID_MCATYPE(0x01, 0x3) },
 
 	/* Northbridge IO Unit MCA type */
-	{ SMCA_NBIO,     0x00000018 },
+	{ SMCA_NBIO,	 HWID_MCATYPE(0x18, 0x0) },
 
 	/* PCI Express Unit MCA type */
-	{ SMCA_PCIE,     0x00000046 },
-	{ SMCA_PCIE_V2,  0x00010046 },
+	{ SMCA_PCIE,	 HWID_MCATYPE(0x46, 0x0) },
+	{ SMCA_PCIE_V2,	 HWID_MCATYPE(0x46, 0x1) },
 
 	/* Ext Global Memory Interconnect PCS MCA type */
-	{ SMCA_XGMI_PCS, 0x00000050 },
+	{ SMCA_XGMI_PCS,	 HWID_MCATYPE(0x50, 0x0) },
 
-	{ SMCA_NBIF,     0x0000006C },
+	{ SMCA_NBIF,	 HWID_MCATYPE(0x6C, 0x0) },
 
-	{ SMCA_SHUB,	 0x00000080 },
-	{ SMCA_SATA,     0x000000A8 },
-	{ SMCA_USB,		 0x000000AA },
+	{ SMCA_SHUB,	 HWID_MCATYPE(0x80, 0x0) },
+	{ SMCA_SATA,	 HWID_MCATYPE(0xA8, 0x0) },
+	{ SMCA_USB,	 HWID_MCATYPE(0xAA, 0x0) },
 
 	/* Ultra Short Reach Data and Control Plane Controller */
-	{ SMCA_USR_DP,  0x00000170 },
-	{ SMCA_USR_CP,  0x00000180 },
+	{ SMCA_USR_DP,	 HWID_MCATYPE(0x170, 0x0) },
+	{ SMCA_USR_CP,	 HWID_MCATYPE(0x180, 0x0) },
 
-	{ SMCA_GMI_PCS,  0x00000241 },
+	{ SMCA_GMI_PCS,	 HWID_MCATYPE(0x241, 0x0) },
 
 	/* Ext Global Memory Interconnect PHY MCA type */
-	{ SMCA_XGMI_PHY, 0x00000259 },
+	{ SMCA_XGMI_PHY,	 HWID_MCATYPE(0x259, 0x0) },
 
 	/* WAFL PHY MCA type */
-	{ SMCA_WAFL_PHY, 0x00000267 },
+	{ SMCA_WAFL_PHY,	 HWID_MCATYPE(0x267, 0x0) },
 
-	{ SMCA_GMI_PHY,  0x00000269 },
+	{ SMCA_GMI_PHY,	 HWID_MCATYPE(0x269, 0x0) },
 };
 
 struct smca_bank_name {
@@ -862,12 +868,12 @@ static inline void fixup_hwid(struct mce_priv* m, uint32_t *hwid_mcatype)
 		case 0x10 ... 0x1F:
 		case 0x60 ... 0x7B:
 		case 0xA0 ... 0xAF:
-			if (*hwid_mcatype == 0x0002002E)
-				*hwid_mcatype = 0x00010000;
+			if (*hwid_mcatype == HWID_MCATYPE(0x2E, 0x2))
+				*hwid_mcatype = HWID_MCATYPE(0x0, 0x1);
 			break;
 		case 0x90 ... 0x9F:
-			if ((*hwid_mcatype & 0xFF) == 0x00000096)
-				*hwid_mcatype = 0x00020000;
+			if (*hwid_mcatype == HWID_MCATYPE(0x96, 0x0))
+				*hwid_mcatype = HWID_MCATYPE(0x0, 0x2);
 			break;
 		default:
 			break;
@@ -875,8 +881,8 @@ static inline void fixup_hwid(struct mce_priv* m, uint32_t *hwid_mcatype)
 	} else if (m->family == 0x1A) {
 		switch (m->model) {
 		case 0x40 ... 0x4F:
-			if (*hwid_mcatype == 0x0002002E)
-				*hwid_mcatype = 0x00010000;
+			if (*hwid_mcatype == HWID_MCATYPE(0x2E, 0x2))
+				*hwid_mcatype = HWID_MCATYPE(0x0, 0x1);
 			break;
 		default:
 			break;
@@ -889,12 +895,16 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 {
 	enum smca_bank_types bank_type;
 	const char *ip_name;
+	uint32_t mcatype_hwid = 0;
 	unsigned short xec = (e->status >> 16) & 0x3f;
 	const struct smca_hwid *s_hwid;
-	uint32_t mcatype_hwid = EXTRACT(e->ipid, 32, 63);
+	uint32_t ipid_high = EXTRACT(e->ipid, 32, 63);
 	uint8_t mcatype_instancehi = EXTRACT(e->ipid, 44, 47);
 	unsigned int csrow = -1, channel = -1;
 	unsigned int i;
+
+	mcatype_hwid = HWID_MCATYPE(ipid_high & MCI_IPID_HWID,
+				    (ipid_high & MCI_IPID_MCATYPE) >> 16);
 
 	fixup_hwid(m, &mcatype_hwid);
 
