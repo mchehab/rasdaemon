@@ -187,6 +187,16 @@ AS_IF([test "x$enable_cpu_fault_isolation" = "xyes" || test "x$enable_all" = "xy
 AM_CONDITIONAL([WITH_CPU_FAULT_ISOLATION], [test x$enable_cpu_fault_isolation = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_CPU_FAULT_ISOLATION], [USE_CPU_FAULT_ISOLATION="yes"], [USE_CPU_FAULT_ISOLATION="no"])
 
+AC_ARG_ENABLE([yitian_ns_decode],
+    AS_HELP_STRING([--enable-yitian-ns-decode], [enable YITIAN_NS_DECODE events (currently experimental)]))
+
+AS_IF([test "x$enable_yitian_ns_decode" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_YITIAN_NS_DECODE,1,"have YITIAN UNKNOWN_SEC events decode")
+  AC_SUBST([WITH_YITIAN_NS_DECODE])
+])
+AM_CONDITIONAL([WITH_YITIAN_NS_DECODE], [test x$enable_yitian_ns_decode = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_YITIAN_NS_DECODE], [USE_YITIAN_NS_DECODE="yes"], [USE_YITIAN_NS_DECODE="no"])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
@@ -229,4 +239,5 @@ compile time options summary
     Memory CE PFA       : $USE_MEMORY_CE_PFA
     AMP RAS errors      : $USE_AMP_NS_DECODE
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION
+    YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
 EOF
