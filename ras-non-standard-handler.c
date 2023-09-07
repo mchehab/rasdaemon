@@ -193,7 +193,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	case GHES_SEV_PANIC:
 		ev.severity = "Fatal";
 	}
-	trace_seq_printf(s, "\n %s", ev.severity);
+	trace_seq_printf(s, " %s", ev.severity);
 
 	ev.sec_type = tep_get_field_raw(s, event, "sec_type",
 					record, &len, 1);
@@ -204,7 +204,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 		trace_seq_printf(s, "\n section type: %s",
 		"Ampere Specific Error\n");
 	else
-		trace_seq_printf(s, "\n section type: %s",
+		trace_seq_printf(s, " section type: %s",
 				 uuid_le(ev.sec_type));
 	ev.fru_text = tep_get_field_raw(s, event, "fru_text",
 					record, &len, 1);
@@ -216,7 +216,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "len", record, &val, 1) < 0)
 		return -1;
 	ev.length = val;
-	trace_seq_printf(s, "\n length: %d\n", ev.length);
+	trace_seq_printf(s, " length: %d", ev.length);
 
 	ev.error = tep_get_field_raw(s, event, "buf", record, &len, 1);
 	if(!ev.error)
