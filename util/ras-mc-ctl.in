@@ -1541,6 +1541,7 @@ sub errors
 # Definitions of the vendor platform IDs.
 use constant {
     HISILICON_KUNPENG_9XX => "KunPeng9xx",
+    THEAD_YITIAN_7XX      => "YiTian7XX",
 };
 
 sub vendor_errors_summary
@@ -1549,6 +1550,7 @@ sub vendor_errors_summary
     my ($num_args, $platform_id, $found_platform);
     my ($query, $query_handle, $count, $out);
     my ($module_id, $sub_module_id, $err_severity, $err_sev);
+    my ($address);
 
     $num_args = $#ARGV + 1;
     $platform_id = 0;
@@ -1639,6 +1641,25 @@ sub vendor_errors_summary
         $query_handle->finish;
     }
 
+    # THead Yitian710 DDR errors
+    if ($platform_id eq THEAD_YITIAN_7XX) {
+		$found_platform = 1;
+        $query = "select address, count(*) from yitian_ddr_reg_dump_event";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($address, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\terrors: $count";
+        }
+        if ($out ne "") {
+            print "THead YiTian710 DDR error dump events summary:\n$out\n";
+        } else {
+            print "No THead YiTian710 DDR error dump errors.\n\n";
+        }
+        $query_handle->finish;
+    }
+
     if ($platform_id && !($found_platform)) {
         print "Platform ID $platform_id is not valid\n";
     }
@@ -1653,6 +1674,7 @@ sub vendor_errors
     my ($query, $query_handle, $id, $timestamp, $out);
     my ($version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $core_id, $port_id);
     my ($module_id, $sub_module_id, $err_severity, $err_type, $pcie_info, $regs);
+    my ($address, $regs_dump);
 
     $num_args = $#ARGV + 1;
     $platform_id = 0;
@@ -1673,7 +1695,7 @@ sub vendor_errors
 
     # HiSilicon KunPeng9xx errors
     if ($platform_id eq HISILICON_KUNPENG_9XX) {
-	$found_platform = 1;
+        $found_platform = 1;
         $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2$conf{opt}{since} order by id, module_id, err_severity";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
@@ -1783,12 +1805,33 @@ sub vendor_errors
         $query_handle->finish;
     }
 
+    # THead Yitian7xx ddr errors
+    if ($platform_id eq THEAD_YITIAN_7XX) {
+		$found_platform = 1;
+        $query = "select id, timestamp, address, regs_dump from yitian_ddr_reg_dump_event order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $address, $regs_dump));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id. $timestamp ";
+            $out .= "Error Address: $address ";
+            $out .= "Error Registers Dump: $regs_dump" if ($regs_dump);
+            $out .= "\n\n";
+        }
+        if ($out ne "") {
+            print "THead Yitian710 DDRC error events:\n$out\n";
+        } else {
+            print "No THead Yitian710 DDRC error events.\n";
+        }
+        $query_handle->finish;
+    }
+
     if ($platform_id && !($found_platform)) {
         print "Platform ID $platform_id is not valid\n";
     } elsif ($module && !($found_module)) {
         print "No error record for the module $module\n";
     }
-
     undef($dbh);
 }
 
@@ -1796,6 +1839,7 @@ sub vendor_platforms
 {
         print "\nSupported platforms for the vendor-specific errors:\n";
         print "\tHiSilicon KunPeng9xx, platform-id=\"", HISILICON_KUNPENG_9XX, "\"\n";
+        print "\tTHead Yitian7xx, platform-id=\"", THEAD_YITIAN_7XX, "\"\n";
         print "\n";
 }
 
