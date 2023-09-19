@@ -484,7 +484,7 @@ int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev
 
 	if (!priv || !priv->stmt_diskerror_event)
 		return 0;
-	log(TERM, LOG_INFO, "diskerror_eventstore: %p\n", priv->stmt_diskerror_event);
+	log(TERM, LOG_INFO, "diskerror_event store: %p\n", priv->stmt_diskerror_event);
 
 	sqlite3_bind_text(priv->stmt_diskerror_event,  1, ev->timestamp, -1, NULL);
 	sqlite3_bind_text(priv->stmt_diskerror_event,  2, ev->dev, -1, NULL);
