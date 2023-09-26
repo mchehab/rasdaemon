@@ -99,8 +99,8 @@ int openbmc_unified_sel_log(uint64_t severity, const char *dev_name, uint64_t st
   sscanf(dev_name, "%*x:%x:%x.%x", &bus, &dev, &fn);
   dev_fn = (((dev & 0x1f) << 3) | (fn & 0x7));
 
-  /* Use the appropriate correctable or uncorrectable error status ID
-   * for a gien severity level
+  /* Use the appropriate correctable error status ID
+   * for a given severity level
    */
   if (severity == HW_EVENT_AER_CORRECTED) {
       if (verify_id_log_sel(status, cor_error_ids, bus, dev_fn) < 0)
