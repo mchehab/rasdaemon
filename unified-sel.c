@@ -106,9 +106,5 @@ int openbmc_unified_sel_log(uint64_t severity, const char *dev_name, uint64_t st
       if (verify_id_log_sel(status, cor_error_ids, bus, dev_fn) < 0)
         return -1;
   }
-  else {
-      if (verify_id_log_sel(status, uncor_error_ids, bus, dev_fn) < 0)
-        return -1;
-  }
   return 0;
 }
