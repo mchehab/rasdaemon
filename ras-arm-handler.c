@@ -12,6 +12,7 @@
 
 #include "non-standard-ampere.h"
 #include "ras-arm-handler.h"
+#include "non-standard-ampereone.h"
 #include "ras-cpu-isolation.h"
 #include "ras-logger.h"
 #include "ras-non-standard-handler.h"
@@ -582,9 +583,18 @@ int ras_arm_event_handler(struct trace_seq *s,
 			return -1;
 
 #ifdef HAVE_AMP_NS_DECODE
-		//decode ampere specific error
-		decode_amp_payload0_err_regs(NULL, s,
-					     (struct amp_payload0_type_sec *)ev.vsei_error);
+		// Special case check for Altra. Altra is an ARM processor.
+		// So, if they compiled RASDAemon for Ampere, and we find
+		// an MIDR with ARM implementor, then assume Altra
+		if (((ev.midr >> 24) & 0xff) == 0x41) {
+			decode_amp_payload0_err_regs(NULL, s,
+					(struct amp_payload0_type_sec *)ev.vsei_error);
+		} else if (((ev.midr >> 24) & 0xff) == 0xC0 &&
+					(((ev.midr >> 4) & 0xfff) == 0xAC3 ||
+					 ((ev.midr >> 4) & 0xfff) == 0xAC4)) {
+			decode_ampereone_payload0_err_regs(NULL, s,
+					(struct ampereone_payload0_type_sec *)ev.vsei_error);
+		}
 #else
 		display_raw_data(s, ev.vsei_error, ev.oem_len);
 #endif
