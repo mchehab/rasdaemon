@@ -380,6 +380,7 @@ void i10nm_decode_model(enum cputype cputype, struct ras_events *ras,
 		banktype = tremont[e->bank];
 		break;
 	case CPU_SAPPHIRERAPIDS:
+	case CPU_EMERALDRAPIDS:
 		banktype = sapphire[e->bank];
 		break;
 	default:

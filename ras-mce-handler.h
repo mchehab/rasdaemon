@@ -53,6 +53,7 @@ enum cputype {
 	CPU_ICELAKE_DE,
 	CPU_TREMONT_D,
 	CPU_SAPPHIRERAPIDS,
+	CPU_EMERALDRAPIDS,
 };
 
 struct mce_event {
