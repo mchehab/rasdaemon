@@ -61,6 +61,7 @@ static char *cputype_name[] = {
 	[CPU_ICELAKE_DE] = "Icelake server D Family",
 	[CPU_TREMONT_D] = "Tremont microserver",
 	[CPU_SAPPHIRERAPIDS] = "Sapphirerapids server",
+	[CPU_EMERALDRAPIDS] = "Emeraldrapids server",
 };
 
 static enum cputype select_intel_cputype(struct ras_events *ras)
@@ -120,6 +121,8 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
                         return CPU_TREMONT_D;
 		else if (mce->model == 0x8f)
                         return CPU_SAPPHIRERAPIDS;
+		else if (mce->model == 0xcf)
+			return CPU_EMERALDRAPIDS;
 
 		if (mce->model > 0x1a) {
 			log(ALL, LOG_INFO,

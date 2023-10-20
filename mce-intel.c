@@ -415,6 +415,7 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_ICELAKE_DE:
 	case CPU_TREMONT_D:
 	case CPU_SAPPHIRERAPIDS:
+	case CPU_EMERALDRAPIDS:
 		i10nm_decode_model(mce->cputype, ras, e);
 	default:
 		break;
