@@ -25,6 +25,7 @@
 #include "ras-logger.h"
 #include "bitfield.h"
 #include "ras-report.h"
+#include "unified-sel.h"
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {
@@ -35,12 +36,15 @@ static const char *aer_cor_errors[32] = {
 	[8]  = "RELAY_NUM Rollover",
 	[12] = "Replay Timer Timeout",
 	[13] = "Advisory Non-Fatal",
+	[14] = "Corrected Internal",
+	[15] = "Header Log Overflow",
 };
 
 /* bit field meaning for uncorrectable error */
 static const char *aer_uncor_errors[32] = {
 	/* Uncorrectable errors */
 	[4]  = "Data Link Protocol",
+	[5]  = "Surprise Link Down",
 	[12] = "Poisoned TLP",
 	[13] = "Flow Control Protocol",
 	[14] = "Completion Timeout",
@@ -50,7 +54,22 @@ static const char *aer_uncor_errors[32] = {
 	[18] = "Malformed TLP",
 	[19] = "ECRC",
 	[20] = "Unsupported Request",
+	[21] = "ACS Violation",
+	[22] = "Uncorrected Internal",
+	[23] = "MC Blocked TLP",
+	[24] = "AtomicOp Egress Blocked",
+	[25] = "TLP Prefix Blocked",
+	[26] = "Poisoned TLP Egrees Blocked",
 };
+
+static bool use_ipmitool = false;
+
+void ras_aer_handler_init(int enable_ipmitool)
+{
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+  use_ipmitool = (enable_ipmitool > 0) ? 1 : 0;
+#endif
+}
 
 #define BUF_LEN	1024
 
@@ -180,6 +199,12 @@ int ras_aer_event_handler(struct trace_seq *s,
 	  sel_data[0], sel_data[1], sel_data[2], sel_data[3], sel_data[4]);
 
 	system(ipmi_add_sel);
+#endif
+
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+  if (use_ipmitool)
+    if (openbmc_unified_sel_log(severity_val, ev.dev_name, status_val) < 0)
+      return -1;
 #endif
 
 	return 0;
