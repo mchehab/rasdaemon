@@ -75,8 +75,11 @@ struct mce_event {
 	uint8_t		cpuvendor;
 	uint64_t        synd;   /* MCA_SYND MSR: only valid on SMCA systems */
 	uint64_t        ipid;   /* MCA_IPID MSR: only valid on SMCA systems */
+	int32_t		vdata_len;
+	const uint64_t	*vdata;
 
 	/* Parsed data */
+	char		frutext[17];
 	char		timestamp[64];
 	char		bank_name[64];
 	char		error_msg[4096];
