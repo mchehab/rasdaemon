@@ -965,6 +965,18 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 			     channel, csrow);
 	}
 
+
+	if (e->vdata_len) {
+		uint64_t smca_config = e->vdata[2];
+
+		/*
+		 * BIT 9 of the CONFIG register of a few SMCA Bank types indicates
+		 * presence of FRU Text in SYND 1 / 2 registers
+		 */
+		if (smca_config & BIT(9))
+			memcpy(e->frutext, e->vdata, 16);
+	}
+
 }
 
 int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e)

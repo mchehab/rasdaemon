@@ -372,6 +372,24 @@ static void report_mce_event(struct ras_events *ras,
 
 	trace_seq_printf(s, ", apicid= %x", e->apicid);
 
+	if (!e->vdata_len)
+		return;
+
+	if (strlen(e->frutext)) {
+		trace_seq_printf(s, ", FRU Text= %s", e->frutext);
+		trace_seq_printf(s, ", Vendor Data= ");
+		for (int i = 2; i < e->vdata_len/8; i++) {
+			trace_seq_printf(s, "0x%lx", e->vdata[i]);
+			trace_seq_printf(s, " ");
+		}
+	} else {
+		trace_seq_printf(s, ", Vendor Data= ");
+		for (int i = 0; i < e->vdata_len/8; i ++) {
+			trace_seq_printf(s, "0x%lx", e->vdata[i]);
+			trace_seq_printf(s, " ");
+		}
+	}
+
 	/*
 	 * FIXME: The original mcelog userspace tool uses DMI to map from
 	 * address to DIMM. From the comments there, the code there doesn't
@@ -547,6 +565,9 @@ int ras_mce_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "ipid", record, &val, 1) < 0)
 		return -1;
 	e.ipid = val;
+
+	/* Get Vendor-specfic Data, if any */
+	e.vdata = tep_get_field_raw(s, event, "v_data", record, &e.vdata_len, 1);
 
 	switch (mce->cputype) {
 	case CPU_GENERIC:
