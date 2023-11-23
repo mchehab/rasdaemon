@@ -1,0 +1,24 @@
+#!/bin/sh
+#  This shell script can be executed by rasdaemon in daemon mode when a
+#  mc_event is occured, environment variables include all information
+#  reported by tracepoint.
+#
+# environment:
+# TIMESTAMP     Timestamp when error occurred
+# COUNT         Number of errors of the same type
+# TYPE          Error type from Corrected/Uncorrected
+# MESSAGE       Error message
+# LABEL         Label of the affected DIMM(s)
+# MC_INDEX      DIMM identifier from DMI/SMBIOS if available
+# TOP_LAYER     Top layer of the error
+# MIDDLE_LAYER  Middle layer of the error
+# LOWER_LAYER   Low layer of the error
+# ADDRESS       Error address
+# GRAIN         Minimum granularity for an error report, in bytes
+# SYNDROME      Syndrome of the error (or 0 if unknown or if the syndrome is not applicable)
+# DRIVER_DETAIL Other driver-specific detail about the error
+#
+
+[ -x ./mc_event_trigger.local ] && . ./mc_event_trigger.local
+
+exit 0
