@@ -44,6 +44,7 @@
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
 #include "ras-cpu-isolation.h"
+#include "trigger.h"
 
 /*
  * Polling time, if read() doesn't block. Currently, trace_pipe_raw never
@@ -60,6 +61,10 @@
 #endif
 
 extern char *choices_disable;
+
+const static struct event_trigger event_triggers[] = {
+	{ "mc_event", &mc_event_trigger_setup },
+};
 
 static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
@@ -274,6 +279,16 @@ int toggle_ras_mc_event(int enable)
 free_ras:
 	free(ras);
 	return rc;
+}
+
+static void setup_event_trigger(char *event)
+{
+	struct event_trigger trigger;
+	for (int i = 0; i < ARRAY_SIZE(event_triggers); i++) {
+		trigger = event_triggers[i];
+		if (!strcmp(event, trigger.name))
+			trigger.setup();
+	}
 }
 
 #ifndef HAVE_BLK_RQ_ERROR
@@ -869,6 +884,8 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 
 		return EINVAL;
 	}
+
+	setup_event_trigger(event);
 
 	log(ALL, LOG_INFO, "Enabled event %s:%s\n", group, event);
 
