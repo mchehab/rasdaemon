@@ -60,6 +60,8 @@
 	#define ENDIAN KBUFFER_ENDIAN_BIG
 #endif
 
+extern char* choices_disable;
+
 static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
 	FILE *fp;
@@ -150,6 +152,18 @@ static int get_tracing_dir(struct ras_events *ras)
 	return 0;
 }
 
+int is_disabled_event(char *group, char *event) {
+	char ras_event_name[MAX_PATH + 1];
+
+	snprintf(ras_event_name, sizeof(ras_event_name), "%s:%s",
+			group, event);
+	
+	if (choices_disable != NULL && strlen(choices_disable) != 0 && strstr(choices_disable, ras_event_name)) {
+		return 1;
+	}
+	return 0;
+}
+
 /*
  * Tracing enable/disable code
  */
@@ -158,6 +172,7 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 {
 	int fd, rc;
 	char fname[MAX_PATH + 1];
+	enable = is_disabled_event(group, event) ? 0 : 1;
 
 	snprintf(fname, sizeof(fname), "%s%s:%s\n",
 		 enable ? "" : "!",
@@ -839,6 +854,12 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 
 	ras->filters[id] = filter;
 
+	if (is_disabled_event(group, event)) {
+		log(ALL, LOG_INFO, "Disabled %s:%s tracing from config\n",
+                    group, event);
+		return -EINVAL;
+	}
+
 	/* Enable RAS events */
 	rc = __toggle_ras_mc_event(ras, group, event, 1);
 	free(page);
@@ -906,7 +927,7 @@ int handle_ras_events(int record_events)
 			       ras_mc_event_handler, NULL, MC_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "mc_event");
 
@@ -915,7 +936,7 @@ int handle_ras_events(int record_events)
 			       ras_aer_event_handler, NULL, AER_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "aer_event");
 #endif
@@ -925,7 +946,7 @@ int handle_ras_events(int record_events)
 			       ras_non_standard_event_handler, NULL, NON_STANDARD_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "non_standard_event");
 #endif
@@ -935,7 +956,7 @@ int handle_ras_events(int record_events)
 			       ras_arm_event_handler, NULL, ARM_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "arm_event");
 #endif
@@ -969,7 +990,7 @@ int handle_ras_events(int record_events)
 		/* tell kernel we are listening, so don't printk to console */
 		(void)open("/sys/kernel/debug/ras/daemon_active", 0);
 		num_events++;
-	} else
+	} else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "extlog_mem_event");
 #endif
@@ -986,7 +1007,7 @@ int handle_ras_events(int record_events)
 			       ras_devlink_event_handler, filter_str, DEVLINK_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "devlink", "devlink_health_report");
 #endif
@@ -998,7 +1019,7 @@ int handle_ras_events(int record_events)
 				NULL, DISKERROR_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "block", "block_rq_error");
 #else
@@ -1009,7 +1030,7 @@ int handle_ras_events(int record_events)
 					NULL, DISKERROR_EVENT);
 		if (!rc)
 			num_events++;
-		else
+		else if (rc != -EINVAL)
 			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 			    "block", "block_rq_complete");
 	}
@@ -1021,7 +1042,7 @@ int handle_ras_events(int record_events)
 			       ras_memory_failure_event_handler, NULL, MF_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "memory_failure_event");
 #endif
@@ -1031,7 +1052,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_poison_event_handler, NULL, CXL_POISON_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_poison");
 
@@ -1039,7 +1060,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_aer_ue_event_handler, NULL, CXL_AER_UE_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_aer_uncorrectable_error");
 
@@ -1047,7 +1068,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_aer_ce_event_handler, NULL, CXL_AER_CE_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_aer_correctable_error");
 
@@ -1055,7 +1076,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_overflow_event_handler, NULL, CXL_OVERFLOW_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_overflow");
 
@@ -1063,7 +1084,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_generic_event_handler, NULL, CXL_GENERIC_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_generic_event");
 
@@ -1071,7 +1092,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_general_media_event_handler, NULL, CXL_GENERAL_MEDIA_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_general_media");
 
@@ -1079,7 +1100,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_dram_event_handler, NULL, CXL_DRAM_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_dram");
 
@@ -1087,7 +1108,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_memory_module_event_handler, NULL, CXL_MEMORY_MODULE_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != -EINVAL)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "memory_module");
 #endif
