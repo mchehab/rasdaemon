@@ -676,35 +676,30 @@ static void record_amp_data(struct ras_ns_ev_decoder *ev_decoder,
 			    enum amp_oem_data_type data_type,
 			    int id, int64_t data, const char *text)
 {
-	return 0;
 }
 
 static void record_amp_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
 				const char *type_str, const char *subtype_str,
 				const struct amp_payload0_type_sec *err)
 {
-	return 0;
 }
 
 static void record_amp_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 				const char *type_str, const char *subtype_str,
 				const struct amp_payload1_type_sec *err)
 {
-	return 0;
 }
 
 static void record_amp_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
 				const char *type_str, const char *subtype_str,
 				const struct amp_payload2_type_sec *err)
 {
-	return 0;
 }
 
 static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 				const char *type_str, const char *subtype_str,
 				const struct amp_payload3_type_sec *err)
 {
-	return 0;
 }
 
 static int store_amp_err_data(struct ras_ns_ev_decoder *ev_decoder, char *name)
