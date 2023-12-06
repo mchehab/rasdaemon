@@ -171,18 +171,18 @@ parse:
 	config->unit = no_unit ? config->unit : "";
 }
 
-static void parse_env_string(struct isolation *config, char *str)
+static void parse_env_string(struct isolation *config, char *str, unsigned int size)
 {
 	int i;
 
 	if (config->overflow) {
 		/* when overflow, use basic unit */
 		for (i = 0; config->units[i].name; i++) ;
-		sprintf(str, "%lu%s", config->val, config->units[i-1].name);
+		snprintf(str, size, "%lu%s", config->val, config->units[i-1].name);
 		log(TERM, LOG_INFO, "%s is set overflow(%s), truncate it\n",
 				config->name, config->env);
 	} else {
-		sprintf(str, "%s%s", config->env, config->unit);
+		snprintf(str, size, "%s%s", config->env, config->unit);
 	}
 }
 
@@ -199,8 +199,8 @@ static void page_isolation_init(void)
 
 	parse_isolation_env(&threshold);
 	parse_isolation_env(&cycle);
-	parse_env_string(&threshold, threshold_string);
-	parse_env_string(&cycle, cycle_string);
+	parse_env_string(&threshold, threshold_string, sizeof(threshold_string));
+	parse_env_string(&cycle, cycle_string, sizeof(cycle_string));
 	log(TERM, LOG_INFO, "Threshold of memory Corrected Errors is %s / %s\n",
 			threshold_string, cycle_string);
 }
