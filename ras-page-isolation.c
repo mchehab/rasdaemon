@@ -157,6 +157,17 @@ parse:
 			value *= units->val;
 			if (tmp != 0 && value / tmp != units->val)
 				config->overflow = true;
+			/**
+			 * if units->val is 1,  config->env is greater than ulong_max, so it is can strtoul
+			 * if failed, the value is greater than ulong_max, set config->overflow = true
+			 */
+			if (units->val == 1) {
+				char *endptr;
+				unsigned long converted_value = strtoul(config->env, &endptr, 10);
+				if (errno == ERANGE || *endptr != '\0')
+					config->overflow = true;
+			}
+			unit_matched = 0;
 		}
 	}
 	config->val = value;
