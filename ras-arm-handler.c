@@ -158,7 +158,6 @@ int ras_arm_event_handler(struct trace_seq *s,
 	time_t now;
 	struct tm *tm;
 	struct ras_arm_event ev;
-	int len = 0;
 
 	memset(&ev, 0, sizeof(ev));
 
@@ -207,6 +206,9 @@ int ras_arm_event_handler(struct trace_seq *s,
 	ev.psci_state = val;
 	trace_seq_printf(s, "\n psci_state: %d", ev.psci_state);
 
+#ifdef HAVE_AMP_NS_DECODE
+	int len = 0;
+
 	if (tep_get_field_val(s, event, "pei_len", record, &val, 1) < 0)
 		return -1;
 	ev.pei_len = val;
@@ -239,12 +241,9 @@ int ras_arm_event_handler(struct trace_seq *s,
 	if (!ev.vsei_error)
 		return -1;
 
-#ifdef HAVE_AMP_NS_DECODE
 	//decode ampere specific error
 	decode_amp_payload0_err_regs(NULL, s,
 				(struct amp_payload0_type_sec *)ev.vsei_error);
-#else
-	display_raw_data(s, ev.vsei_error, ev.oem_len);
 #endif
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
