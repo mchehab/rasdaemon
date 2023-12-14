@@ -53,6 +53,7 @@ enum cputype {
 	CPU_ICELAKE_DE,
 	CPU_TREMONT_D,
 	CPU_SAPPHIRERAPIDS,
+	CPU_EMERALDRAPIDS,
 };
 
 struct mce_event {
@@ -117,6 +118,10 @@ int ras_mce_event_handler(struct trace_seq *s,
 
 /* enables intel iMC logs */
 int set_intel_imc_log(enum cputype cputype, unsigned ncpus);
+
+/* Undertake AMD SMCA Error Decoding */
+void decode_smca_error(struct mce_event *e, struct mce_priv *m);
+void amd_decode_errcode(struct mce_event *e);
 
 /* Per-CPU-type decoders for Intel CPUs */
 void p4_decode_model(struct mce_event *e);

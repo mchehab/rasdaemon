@@ -75,6 +75,32 @@ int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 	return 0;
 }
 
+int ras_ns_add_vendor_tables(struct ras_events *ras)
+{
+	struct ras_ns_ev_decoder *ns_ev_decoder;
+	int error = 0;
+
+#ifdef HAVE_SQLITE3
+	if (!ras)
+		return -1;
+
+	ns_ev_decoder = ras_ns_ev_dec_list;
+	while (ns_ev_decoder) {
+		if (ns_ev_decoder->add_table && !ns_ev_decoder->stmt_dec_record) {
+			error = ns_ev_decoder->add_table(ras, ns_ev_decoder);
+			if (error)
+				break;
+		}
+		ns_ev_decoder = ns_ev_decoder->next;
+	}
+
+	if (error)
+		return -1;
+#endif
+
+	return 0;
+}
+
 static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p_ns_ev_dec)
 {
 	struct ras_ns_ev_decoder *ns_ev_decoder;
@@ -96,7 +122,7 @@ static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p
 	return 0;
 }
 
-static void unregister_ns_ev_decoder(void)
+void ras_ns_finalize_vendor_tables(void)
 {
 #ifdef HAVE_SQLITE3
 	struct ras_ns_ev_decoder *ns_ev_decoder = ras_ns_ev_dec_list;
@@ -108,6 +134,13 @@ static void unregister_ns_ev_decoder(void)
 		}
 		ns_ev_decoder = ns_ev_decoder->next;
 	}
+#endif
+}
+
+static void unregister_ns_ev_decoder(void)
+{
+#ifdef HAVE_SQLITE3
+	ras_ns_finalize_vendor_tables();
 #endif
 	ras_ns_ev_dec_list = NULL;
 }
@@ -160,7 +193,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	case GHES_SEV_PANIC:
 		ev.severity = "Fatal";
 	}
-	trace_seq_printf(s, "\n %s", ev.severity);
+	trace_seq_printf(s, " %s", ev.severity);
 
 	ev.sec_type = tep_get_field_raw(s, event, "sec_type",
 					record, &len, 1);
@@ -171,7 +204,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 		trace_seq_printf(s, "\n section type: %s",
 		"Ampere Specific Error\n");
 	else
-		trace_seq_printf(s, "\n section type: %s",
+		trace_seq_printf(s, " section type: %s",
 				 uuid_le(ev.sec_type));
 	ev.fru_text = tep_get_field_raw(s, event, "fru_text",
 					record, &len, 1);
@@ -183,7 +216,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "len", record, &val, 1) < 0)
 		return -1;
 	ev.length = val;
-	trace_seq_printf(s, "\n length: %d\n", ev.length);
+	trace_seq_printf(s, " length: %d", ev.length);
 
 	ev.error = tep_get_field_raw(s, event, "buf", record, &len, 1);
 	if(!ev.error)

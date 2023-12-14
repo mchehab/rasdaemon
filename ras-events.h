@@ -42,6 +42,11 @@ enum {
 	CXL_POISON_EVENT,
 	CXL_AER_UE_EVENT,
 	CXL_AER_CE_EVENT,
+	CXL_OVERFLOW_EVENT,
+	CXL_GENERIC_EVENT,
+	CXL_GENERAL_MEDIA_EVENT,
+	CXL_DRAM_EVENT,
+	CXL_MEMORY_MODULE_EVENT,
 	NR_EVENTS
 };
 
@@ -105,6 +110,7 @@ enum ghes_severity {
 
 /* Function prototypes */
 int toggle_ras_mc_event(int enable);
+int ras_offline_mce_event(struct ras_mc_offline_event *event);
 int handle_ras_events(int record_events);
 
 #endif

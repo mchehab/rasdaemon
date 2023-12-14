@@ -248,6 +248,11 @@ int toggle_ras_mc_event(int enable)
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_poison", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_aer_uncorrectable_error", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_aer_correctable_error", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_overflow", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_generic_event", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_general_media", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_dram", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_module", enable);
 #endif
 
 free_ras:
@@ -345,7 +350,7 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 static int get_num_cpus(struct ras_events *ras)
 {
-	return sysconf(_SC_NPROCESSORS_CONF);
+	return sysconf(_SC_NPROCESSORS_ONLN);
 #if 0
 	char fname[MAX_PATH + 1];
 	int num_cpus = 0;
@@ -368,10 +373,37 @@ static int get_num_cpus(struct ras_events *ras)
 #endif
 }
 
+static int set_buffer_percent(struct ras_events *ras, int percent)
+{
+	char buf[16];
+	ssize_t size;
+	int res = 0;
+	int fd;
+
+	fd = open_trace(ras, "buffer_percent", O_WRONLY);
+	if (fd >= 0) {
+		/* For the backward compatibility to the old kernels, do not return
+		 * if fail to set the buffer_percent.
+		 */
+		snprintf(buf, sizeof(buf), "%d", percent);
+		size = write(fd, buf, strlen(buf));
+		if (size <= 0) {
+			log(TERM, LOG_WARNING, "can't write to buffer_percent\n");
+			res = -1;
+		}
+		close(fd);
+	} else {
+		log(TERM, LOG_WARNING, "Can't open buffer_percent\n");
+		res = -1;
+	}
+
+	return res;
+}
+
 static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				   unsigned n_cpus)
 {
-	unsigned size;
+	ssize_t size;
 	unsigned long long time_stamp;
 	void *data;
 	int ready, i, count_nready;
@@ -383,8 +415,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
 	int legacy_kernel = 0;
-	int fd;
-	char buf[16];
 #if 0
 	int need_sleep = 0;
 #endif
@@ -411,18 +441,8 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	 * Set buffer_percent to 0 so that poll() will return immediately
 	 * when the trace data is available in the ras per_cpu trace pipe_raw
 	 */
-	fd = open_trace(pdata[0].ras, "buffer_percent", O_WRONLY);
-	if (fd >= 0) {
-		/* For the backward compatibility to the old kernels, do not return
-		 * if fail to set the buffer_percent.
-		 */
-		snprintf(buf, sizeof(buf), "0");
-		size = write(fd, buf, strlen(buf));
-		if (size <= 0)
-			log(TERM, LOG_WARNING, "can't write to buffer_percent\n");
-		close(fd);
-	} else
-		log(TERM, LOG_WARNING, "Can't open buffer_percent\n");
+	if (set_buffer_percent(pdata[0].ras, 0))
+		log(TERM, LOG_WARNING, "Set buffer_percent failed\n");
 
 	for (i = 0; i < (n_cpus + 1); i++)
 		fds[i].fd = -1;
@@ -459,6 +479,10 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	if (pdata[0].ras->record_events) {
 		if (ras_mc_event_opendb(pdata[0].cpu, pdata[0].ras))
 			goto error;
+#ifdef HAVE_NON_STANDARD
+		if (ras_ns_add_vendor_tables(pdata[0].ras))
+			log(TERM, LOG_ERR, "Can't add vendor table\n");
+#endif
 	}
 
 	do {
@@ -512,6 +536,11 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				kbuffer_load_subbuffer(kbuf, page);
 
 				while ((data = kbuffer_read_event(kbuf, &time_stamp))) {
+					if (kbuffer_curr_size(kbuf) < 0) {
+						log(TERM, LOG_ERR, "invalid kbuf data, discard\n");
+						break;
+					}
+
 					parse_ras_data(&pdata[i],
 						       kbuf, data, time_stamp);
 
@@ -543,8 +572,12 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	    "Old kernel detected. Stop listening and fall back to pthread way.\n");
 
 cleanup:
-	if (pdata[0].ras->record_events)
+	if (pdata[0].ras->record_events) {
+#ifdef HAVE_NON_STANDARD
+		ras_ns_finalize_vendor_tables();
+#endif
 		ras_mc_event_closedb(pdata[0].cpu, pdata[0].ras);
+	}
 
 error:
 	kbuffer_free(kbuf);
@@ -641,6 +674,10 @@ static void *handle_ras_events_cpu(void *priv)
 			free(page);
 			return 0;
 		}
+#ifdef HAVE_NON_STANDARD
+		if (ras_ns_add_vendor_tables(pdata->ras))
+			log(TERM, LOG_ERR, "Can't add vendor table\n");
+#endif
 		pthread_mutex_unlock(&pdata->ras->db_lock);
 	}
 
@@ -648,6 +685,9 @@ static void *handle_ras_events_cpu(void *priv)
 
 	if (pdata->ras->record_events) {
 		pthread_mutex_lock(&pdata->ras->db_lock);
+#ifdef HAVE_NON_STANDARD
+		ras_ns_finalize_vendor_tables();
+#endif
 		ras_mc_event_closedb(pdata->cpu, pdata->ras);
 		pthread_mutex_unlock(&pdata->ras->db_lock);
 	}
@@ -1010,6 +1050,46 @@ int handle_ras_events(int record_events)
 	else
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_aer_correctable_error");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_overflow",
+			       ras_cxl_overflow_event_handler, NULL, CXL_OVERFLOW_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "cxl_overflow");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_generic_event",
+			       ras_cxl_generic_event_handler, NULL, CXL_GENERIC_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "cxl_generic_event");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_general_media",
+			       ras_cxl_general_media_event_handler, NULL, CXL_GENERAL_MEDIA_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "cxl_general_media");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_dram",
+			       ras_cxl_dram_event_handler, NULL, CXL_DRAM_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "cxl_dram");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_memory_module",
+			       ras_cxl_memory_module_event_handler, NULL, CXL_MEMORY_MODULE_EVENT);
+	if (!rc)
+		num_events++;
+	else
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "memory_module");
 #endif
 
 	if (!num_events) {

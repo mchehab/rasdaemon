@@ -488,7 +488,7 @@ int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev
 
 	if (!priv || !priv->stmt_diskerror_event)
 		return 0;
-	log(TERM, LOG_INFO, "diskerror_eventstore: %p\n", priv->stmt_diskerror_event);
+	log(TERM, LOG_INFO, "diskerror_event store: %p\n", priv->stmt_diskerror_event);
 
 	sqlite3_bind_text(priv->stmt_diskerror_event,  1, ev->timestamp, -1, NULL);
 	sqlite3_bind_text(priv->stmt_diskerror_event,  2, ev->dev, -1, NULL);
@@ -720,6 +720,346 @@ int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_eve
 		log(TERM, LOG_ERR,
 		    "Failed reset cxl_aer_ce_event on sqlite: error = %d\n",
 		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_overflow
+ */
+static const struct db_fields cxl_overflow_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "log_type",		.type = "TEXT" },
+	{ .name = "count",		.type = "INTEGER" },
+	{ .name = "first_ts",		.type = "TEXT" },
+	{ .name = "last_ts",		.type = "TEXT" },
+};
+
+static const struct db_table_descriptor cxl_overflow_event_tab = {
+	.name = "cxl_overflow_event",
+	.fields = cxl_overflow_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_overflow_event_fields),
+};
+
+int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_overflow_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_overflow_event store: %p\n", priv->stmt_cxl_overflow_event);
+
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 1, ev->timestamp, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 2, ev->memdev, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 3, ev->host, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_overflow_event, 4, ev->serial);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 5, ev->log_type, -1, NULL);
+	sqlite3_bind_int(priv->stmt_cxl_overflow_event, 6, ev->count);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 7, ev->first_ts, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 8, ev->last_ts, -1, NULL);
+
+	rc = sqlite3_step(priv->stmt_cxl_overflow_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do cxl_overflow_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_overflow_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset cxl_overflow_event on sqlite: error = %d\n",
+		    rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_store_cxl_common_hdr(sqlite3_stmt *stmt, struct ras_cxl_event_common_hdr *hdr)
+{
+	if (!stmt || !hdr)
+		return 0;
+
+	sqlite3_bind_text(stmt, 1, hdr->timestamp, -1, NULL);
+	sqlite3_bind_text(stmt, 2, hdr->memdev, -1, NULL);
+	sqlite3_bind_text(stmt, 3, hdr->host, -1, NULL);
+	sqlite3_bind_int64(stmt, 4, hdr->serial);
+	sqlite3_bind_text(stmt, 5, hdr->log_type, -1, NULL);
+	sqlite3_bind_text(stmt, 6, hdr->hdr_uuid, -1, NULL);
+	sqlite3_bind_int(stmt, 7, hdr->hdr_flags);
+	sqlite3_bind_int(stmt, 8, hdr->hdr_handle);
+	sqlite3_bind_int(stmt, 9, hdr->hdr_related_handle);
+	sqlite3_bind_text(stmt, 10, hdr->hdr_timestamp, -1, NULL);
+	sqlite3_bind_int(stmt, 11, hdr->hdr_length);
+	sqlite3_bind_int(stmt, 12, hdr->hdr_maint_op_class);
+
+	return 0;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_generic_event
+ */
+static const struct db_fields cxl_generic_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "log_type",		.type = "TEXT" },
+	{ .name = "hdr_uuid",		.type = "TEXT" },
+	{ .name = "hdr_flags",		.type = "INTEGER" },
+	{ .name = "hdr_handle",		.type = "INTEGER" },
+	{ .name = "hdr_related_handle",	.type = "INTEGER" },
+	{ .name = "hdr_ts",		.type = "TEXT" },
+	{ .name = "hdr_length",		.type = "INTEGER" },
+	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
+	{ .name = "data",		.type = "BLOB" },
+};
+
+static const struct db_table_descriptor cxl_generic_event_tab = {
+	.name = "cxl_generic_event",
+	.fields = cxl_generic_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_generic_event_fields),
+};
+
+int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_generic_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_generic_event store: %p\n", priv->stmt_cxl_generic_event);
+
+	ras_store_cxl_common_hdr(priv->stmt_cxl_generic_event, &ev->hdr);
+	sqlite3_bind_blob(priv->stmt_cxl_generic_event, 13, ev->data,
+			  CXL_EVENT_RECORD_DATA_LENGTH, NULL);
+
+	rc = sqlite3_step(priv->stmt_cxl_generic_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do stmt_cxl_generic_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_generic_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset stmt_cxl_generic_event on sqlite: error = %d\n", rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_general_media_event
+ */
+static const struct db_fields cxl_general_media_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "log_type",		.type = "TEXT" },
+	{ .name = "hdr_uuid",		.type = "TEXT" },
+	{ .name = "hdr_flags",		.type = "INTEGER" },
+	{ .name = "hdr_handle",		.type = "INTEGER" },
+	{ .name = "hdr_related_handle",	.type = "INTEGER" },
+	{ .name = "hdr_ts",		.type = "TEXT" },
+	{ .name = "hdr_length",		.type = "INTEGER" },
+	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
+	{ .name = "dpa",		.type = "INTEGER" },
+	{ .name = "dpa_flags",		.type = "INTEGER" },
+	{ .name = "descriptor",		.type = "INTEGER" },
+	{ .name = "type",		.type = "INTEGER" },
+	{ .name = "transaction_type",	.type = "INTEGER" },
+	{ .name = "channel",		.type = "INTEGER" },
+	{ .name = "rank",		.type = "INTEGER" },
+	{ .name = "device",		.type = "INTEGER" },
+	{ .name = "comp_id",		.type = "BLOB" },
+};
+
+static const struct db_table_descriptor cxl_general_media_event_tab = {
+	.name = "cxl_general_media_event",
+	.fields = cxl_general_media_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_general_media_event_fields),
+};
+
+int ras_store_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_general_media_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_general_media_event store: %p\n",
+	    priv->stmt_cxl_general_media_event);
+
+	ras_store_cxl_common_hdr(priv->stmt_cxl_general_media_event, &ev->hdr);
+	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, 13, ev->dpa);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 14, ev->dpa_flags);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 15, ev->descriptor);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 16, ev->type);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 17, ev->transaction_type);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 18, ev->channel);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 19, ev->rank);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 20, ev->device);
+	sqlite3_bind_blob(priv->stmt_cxl_general_media_event, 21, ev->comp_id,
+			  CXL_EVENT_GEN_MED_COMP_ID_SIZE, NULL);
+
+	rc = sqlite3_step(priv->stmt_cxl_general_media_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do stmt_cxl_general_media_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_general_media_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset stmt_cxl_general_media_event on sqlite: error = %d\n", rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_dram_event
+ */
+static const struct db_fields cxl_dram_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "log_type",		.type = "TEXT" },
+	{ .name = "hdr_uuid",		.type = "TEXT" },
+	{ .name = "hdr_flags",		.type = "INTEGER" },
+	{ .name = "hdr_handle",		.type = "INTEGER" },
+	{ .name = "hdr_related_handle",	.type = "INTEGER" },
+	{ .name = "hdr_ts",		.type = "TEXT" },
+	{ .name = "hdr_length",		.type = "INTEGER" },
+	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
+	{ .name = "dpa",		.type = "INTEGER" },
+	{ .name = "dpa_flags",		.type = "INTEGER" },
+	{ .name = "descriptor",		.type = "INTEGER" },
+	{ .name = "type",		.type = "INTEGER" },
+	{ .name = "transaction_type",	.type = "INTEGER" },
+	{ .name = "channel",		.type = "INTEGER" },
+	{ .name = "rank",		.type = "INTEGER" },
+	{ .name = "nibble_mask",	.type = "INTEGER" },
+	{ .name = "bank_group",		.type = "INTEGER" },
+	{ .name = "bank",		.type = "INTEGER" },
+	{ .name = "row",		.type = "INTEGER" },
+	{ .name = "column",		.type = "INTEGER" },
+	{ .name = "cor_mask",		.type = "BLOB" },
+};
+
+static const struct db_table_descriptor cxl_dram_event_tab = {
+	.name = "cxl_dram_event",
+	.fields = cxl_dram_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_dram_event_fields),
+};
+
+int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_dram_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_dram_event store: %p\n",
+	    priv->stmt_cxl_dram_event);
+
+	ras_store_cxl_common_hdr(priv->stmt_cxl_dram_event, &ev->hdr);
+	sqlite3_bind_int64(priv->stmt_cxl_dram_event, 13, ev->dpa);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 14, ev->dpa_flags);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 15, ev->descriptor);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 16, ev->type);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 17, ev->transaction_type);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 18, ev->channel);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 19, ev->rank);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 20, ev->nibble_mask);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 21, ev->bank_group);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 22, ev->bank);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 23, ev->row);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, 24, ev->column);
+	sqlite3_bind_blob(priv->stmt_cxl_dram_event, 25, ev->cor_mask,
+			  CXL_EVENT_DER_CORRECTION_MASK_SIZE, NULL);
+
+	rc = sqlite3_step(priv->stmt_cxl_dram_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do stmt_cxl_dram_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_dram_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset stmt_cxl_dram_event on sqlite: error = %d\n", rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_memory_module_event
+ */
+static const struct db_fields cxl_memory_module_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "memdev",		.type = "TEXT" },
+	{ .name = "host",		.type = "TEXT" },
+	{ .name = "serial",		.type = "INTEGER" },
+	{ .name = "log_type",		.type = "TEXT" },
+	{ .name = "hdr_uuid",		.type = "TEXT" },
+	{ .name = "hdr_flags",		.type = "INTEGER" },
+	{ .name = "hdr_handle",		.type = "INTEGER" },
+	{ .name = "hdr_related_handle",	.type = "INTEGER" },
+	{ .name = "hdr_ts",		.type = "TEXT" },
+	{ .name = "hdr_length",		.type = "INTEGER" },
+	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
+	{ .name = "event_type",		.type = "INTEGER" },
+	{ .name = "health_status",	.type = "INTEGER" },
+	{ .name = "media_status",	.type = "INTEGER" },
+	{ .name = "life_used",		.type = "INTEGER" },
+	{ .name = "dirty_shutdown_cnt",	.type = "INTEGER" },
+	{ .name = "cor_vol_err_cnt",	.type = "INTEGER" },
+	{ .name = "cor_per_err_cnt",	.type = "INTEGER" },
+	{ .name = "device_temp",	.type = "INTEGER" },
+	{ .name = "add_status",		.type = "INTEGER" },
+};
+
+static const struct db_table_descriptor cxl_memory_module_event_tab = {
+	.name = "cxl_memory_module_event",
+	.fields = cxl_memory_module_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_memory_module_event_fields),
+};
+
+int ras_store_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_cxl_memory_module_event)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_memory_module_event store: %p\n",
+	    priv->stmt_cxl_memory_module_event);
+
+	ras_store_cxl_common_hdr(priv->stmt_cxl_memory_module_event, &ev->hdr);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 13, ev->event_type);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 14, ev->health_status);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 15, ev->media_status);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 16, ev->life_used);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 17, ev->dirty_shutdown_cnt);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 18, ev->cor_vol_err_cnt);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 19, ev->cor_per_err_cnt);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 20, ev->device_temp);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 21, ev->add_status);
+
+	rc = sqlite3_step(priv->stmt_cxl_memory_module_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do stmt_cxl_memory_module_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_cxl_memory_module_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset stmt_cxl_memory_module_event on sqlite: error = %d\n", rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");
 
 	return rc;
@@ -1091,6 +1431,46 @@ int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			goto error;
 	}
+
+	rc = ras_mc_create_table(priv, &cxl_overflow_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_overflow_event,
+					 &cxl_overflow_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
+
+	rc = ras_mc_create_table(priv, &cxl_generic_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_generic_event,
+					 &cxl_generic_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
+
+	rc = ras_mc_create_table(priv, &cxl_general_media_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_general_media_event,
+					 &cxl_general_media_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
+
+	rc = ras_mc_create_table(priv, &cxl_dram_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_dram_event,
+					 &cxl_dram_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
+
+	rc = ras_mc_create_table(priv, &cxl_memory_module_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_cxl_memory_module_event,
+					 &cxl_memory_module_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
 #endif
 
 	ras->db_priv = priv;
@@ -1234,6 +1614,46 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			log(TERM, LOG_ERR,
 			    "cpu %u: Failed to finalize cxl_aer_ce_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_overflow_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_overflow_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_overflow_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_generic_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_generic_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_generic_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_general_media_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_general_media_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_general_media_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_dram_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_dram_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize cxl_dram_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+
+	if (priv->stmt_cxl_memory_module_event) {
+		rc = sqlite3_finalize(priv->stmt_cxl_memory_module_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize stmt_cxl_memory_module_event sqlite: error = %d\n",
 			    cpu, rc);
 	}
 #endif

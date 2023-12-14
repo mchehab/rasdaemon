@@ -52,7 +52,7 @@ static const struct {
 
 static const char *get_blk_error(int err)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(blk_errors); i++)
 		if (blk_errors[i].error == err)

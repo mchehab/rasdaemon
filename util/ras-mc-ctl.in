@@ -1469,7 +1469,7 @@ sub errors
             $out .= "\n";
         }
         if ($out ne "") {
-            print "Disk errors\n$out\n";
+            print "Disk errors:\n$out\n";
         } else {
             print "No disk errors.\n\n";
         }
@@ -1541,6 +1541,7 @@ sub errors
 # Definitions of the vendor platform IDs.
 use constant {
     HISILICON_KUNPENG_9XX => "KunPeng9xx",
+    THEAD_YITIAN_7XX      => "YiTian7XX",
 };
 
 sub vendor_errors_summary
@@ -1549,6 +1550,7 @@ sub vendor_errors_summary
     my ($num_args, $platform_id, $found_platform);
     my ($query, $query_handle, $count, $out);
     my ($module_id, $sub_module_id, $err_severity, $err_sev);
+    my ($address);
 
     $num_args = $#ARGV + 1;
     $platform_id = 0;
@@ -1639,6 +1641,25 @@ sub vendor_errors_summary
         $query_handle->finish;
     }
 
+    # THead Yitian710 DDR errors
+    if ($platform_id eq THEAD_YITIAN_7XX) {
+		$found_platform = 1;
+        $query = "select address, count(*) from yitian_ddr_reg_dump_event";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($address, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\terrors: $count";
+        }
+        if ($out ne "") {
+            print "THead YiTian710 DDR error dump events summary:\n$out\n";
+        } else {
+            print "No THead YiTian710 DDR error dump errors.\n\n";
+        }
+        $query_handle->finish;
+    }
+
     if ($platform_id && !($found_platform)) {
         print "Platform ID $platform_id is not valid\n";
     }
@@ -1653,6 +1674,7 @@ sub vendor_errors
     my ($query, $query_handle, $id, $timestamp, $out);
     my ($version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $core_id, $port_id);
     my ($module_id, $sub_module_id, $err_severity, $err_type, $pcie_info, $regs);
+    my ($address, $regs_dump);
 
     $num_args = $#ARGV + 1;
     $platform_id = 0;
@@ -1673,7 +1695,7 @@ sub vendor_errors
 
     # HiSilicon KunPeng9xx errors
     if ($platform_id eq HISILICON_KUNPENG_9XX) {
-	$found_platform = 1;
+        $found_platform = 1;
         $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2$conf{opt}{since} order by id, module_id, err_severity";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
@@ -1683,13 +1705,13 @@ sub vendor_errors
             if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
                 $out .= "$id. $timestamp Error Info: ";
                 $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs " if ($regs);
+                $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                $out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+                $out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+                $out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+                $out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                $out .= "Error Registers: $regs " if (defined $regs && length $regs);
                 $out .= "\n\n";
                 $found_module = 1;
 	    }
@@ -1708,13 +1730,13 @@ sub vendor_errors
             if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
                 $out .= "$id. $timestamp Error Info: ";
                 $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs " if ($regs);
+                $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                $out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+                $out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+                $out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+                $out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                $out .= "Error Registers: $regs " if (defined $regs && length $regs);
                 $out .= "\n\n";
                 $found_module = 1;
 	    }
@@ -1733,15 +1755,15 @@ sub vendor_errors
             if ($module eq 0 || ($sub_module_id && uc($module) eq uc($sub_module_id))) {
                 $out .= "$id. $timestamp Error Info: ";
                 $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "core_id=$core_id, " if ($core_id);
-                $out .= "port_id=$port_id, " if ($port_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "err_type=$err_type, " if ($err_type);
-                $out .= "Error Registers: $regs " if ($regs);
+                $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                $out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+                $out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+                $out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                $out .= "core_id=$core_id, " if (defined $core_id && length $core_id);
+                $out .= "port_id=$port_id, " if (defined $port_id && length $port_id);
+                $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                $out .= "err_type=$err_type, " if (defined $err_type && length $err_type);
+                $out .= "Error Registers: $regs " if (defined $regs && length $regs);
                 $out .= "\n\n";
                 $found_module = 1;
 	    }
@@ -1760,19 +1782,19 @@ sub vendor_errors
             if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
                 $out .= "$id. $timestamp Error Info: ";
                 $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "totem_id=$totem_id, " if ($totem_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "sub_system_id=$sub_system_id, " if ($sub_system_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "core_id=$core_id, " if ($core_id);
-                $out .= "port_id=$port_id, " if ($port_id);
-                $out .= "err_type=$err_type, " if ($err_type);
-                $out .= "pcie_info=$pcie_info, " if ($pcie_info);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs" if ($regs);
+                $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                $out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+                $out .= "totem_id=$totem_id, " if (defined $totem_id && length $totem_id);
+                $out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+                $out .= "sub_system_id=$sub_system_id, " if (defined $sub_system_id && length $sub_system_id);
+                $out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+                $out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                $out .= "core_id=$core_id, " if (defined $core_id && length $core_id );
+                $out .= "port_id=$port_id, " if (defined $port_id && length $port_id);
+                $out .= "err_type=$err_type, " if (defined $err_type && length $err_type);
+                $out .= "pcie_info=$pcie_info, " if (defined $pcie_info && length $pcie_info);
+                $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                $out .= "Error Registers: $regs" if (defined $regs && length $regs);
                 $out .= "\n\n";
                 $found_module = 1;
 	    }
@@ -1783,12 +1805,33 @@ sub vendor_errors
         $query_handle->finish;
     }
 
+    # THead Yitian7xx ddr errors
+    if ($platform_id eq THEAD_YITIAN_7XX) {
+		$found_platform = 1;
+        $query = "select id, timestamp, address, regs_dump from yitian_ddr_reg_dump_event order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $address, $regs_dump));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id. $timestamp ";
+            $out .= "Error Address: $address ";
+            $out .= "Error Registers Dump: $regs_dump" if ($regs_dump);
+            $out .= "\n\n";
+        }
+        if ($out ne "") {
+            print "THead Yitian710 DDRC error events:\n$out\n";
+        } else {
+            print "No THead Yitian710 DDRC error events.\n";
+        }
+        $query_handle->finish;
+    }
+
     if ($platform_id && !($found_platform)) {
         print "Platform ID $platform_id is not valid\n";
     } elsif ($module && !($found_module)) {
         print "No error record for the module $module\n";
     }
-
     undef($dbh);
 }
 
@@ -1796,6 +1839,7 @@ sub vendor_platforms
 {
         print "\nSupported platforms for the vendor-specific errors:\n";
         print "\tHiSilicon KunPeng9xx, platform-id=\"", HISILICON_KUNPENG_9XX, "\"\n";
+        print "\tTHead Yitian7xx, platform-id=\"", THEAD_YITIAN_7XX, "\"\n";
         print "\n";
 }
 

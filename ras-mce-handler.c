@@ -61,12 +61,11 @@ static char *cputype_name[] = {
 	[CPU_ICELAKE_DE] = "Icelake server D Family",
 	[CPU_TREMONT_D] = "Tremont microserver",
 	[CPU_SAPPHIRERAPIDS] = "Sapphirerapids server",
+	[CPU_EMERALDRAPIDS] = "Emeraldrapids server",
 };
 
-static enum cputype select_intel_cputype(struct ras_events *ras)
+static enum cputype select_intel_cputype(struct mce_priv *mce)
 {
-	struct mce_priv *mce = ras->mce_priv;
-
 	if (mce->family == 15) {
 		if (mce->model == 6)
 			return CPU_TULSA;
@@ -120,6 +119,8 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
                         return CPU_TREMONT_D;
 		else if (mce->model == 0x8f)
                         return CPU_SAPPHIRERAPIDS;
+		else if (mce->model == 0xcf)
+			return CPU_EMERALDRAPIDS;
 
 		if (mce->model > 0x1a) {
 			log(ALL, LOG_INFO,
@@ -140,9 +141,8 @@ static enum cputype select_intel_cputype(struct ras_events *ras)
 	return mce->family == 6 ? CPU_P6OLD : CPU_GENERIC;
 }
 
-static int detect_cpu(struct ras_events *ras)
+static int detect_cpu(struct mce_priv *mce)
 {
-	struct mce_priv *mce = ras->mce_priv;
 	FILE *f;
 	int ret = 0;
 	char *line = NULL;
@@ -221,7 +221,7 @@ static int detect_cpu(struct ras_events *ras)
 		}
 		goto ret;
 	} else if (!strcmp(mce->vendor,"GenuineIntel")) {
-		mce->cputype = select_intel_cputype(ras);
+		mce->cputype = select_intel_cputype(mce);
 	} else {
 		ret = EINVAL;
 	}
@@ -246,7 +246,7 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 
 	mce = ras->mce_priv;
 
-	rc = detect_cpu(ras);
+	rc = detect_cpu(mce);
 	if (rc) {
 		if (mce->processor_flags)
 			free (mce->processor_flags);
@@ -381,6 +381,105 @@ static void report_mce_event(struct ras_events *ras,
 	 * As, in thesis, we shouldn't be receiving memory error reports via
 	 * MCE, as they should go via EDAC traces, let's not do it.
 	 */
+}
+
+static int report_mce_offline(struct trace_seq *s,
+			      struct mce_event *mce,
+			      struct mce_priv *priv)
+{
+	time_t now;
+	struct tm *tm;
+
+	time(&now);
+	tm = localtime(&now);
+
+	if (tm)
+		strftime(mce->timestamp, sizeof(mce->timestamp),
+			 "%Y-%m-%d %H:%M:%S %z", tm);
+	trace_seq_printf(s, "%s,", mce->timestamp);
+
+	if (*mce->bank_name)
+		trace_seq_printf(s, " %s,", mce->bank_name);
+	else
+		trace_seq_printf(s, " bank=%x,", mce->bank);
+
+	if (*mce->mcastatus_msg)
+		trace_seq_printf(s, " mca: %s,", mce->mcastatus_msg);
+
+	if (*mce->mcistatus_msg)
+		trace_seq_printf(s, " mci: %s,", mce->mcistatus_msg);
+
+	if (*mce->mc_location)
+		trace_seq_printf(s, " Locn: %s,", mce->mc_location);
+
+	if (*mce->error_msg)
+		trace_seq_printf(s, " Error Msg: %s\n", mce->error_msg);
+
+	return 0;
+}
+
+int ras_offline_mce_event(struct ras_mc_offline_event *event)
+{
+	int rc = 0;
+	struct trace_seq s;
+	struct mce_event *mce = NULL;
+	struct mce_priv *priv = NULL;
+
+	mce = (struct mce_event *)calloc(1, sizeof(struct mce_event));
+	if (!mce) {
+		log(TERM, LOG_ERR, "Can't allocate memory for mce struct\n");
+		return errno;
+	}
+
+	priv = (struct mce_priv *)calloc(1, sizeof(struct mce_priv));
+	if (!priv) {
+		log(TERM, LOG_ERR, "Can't allocate memory for mce_priv struct\n");
+		free(mce);
+		return errno;
+	}
+
+	if (event->smca) {
+		priv->cputype = CPU_AMD_SMCA;
+		priv->family = event->family;
+		priv->model = event->model;
+	} else {
+		rc = detect_cpu(priv);
+		if (rc) {
+			log(TERM, LOG_ERR, "Failed to detect CPU\n");
+			goto free_mce;
+		}
+	}
+
+	mce->status = event->status;
+	mce->bank = event->bank;
+
+	switch (priv->cputype) {
+	case CPU_AMD_SMCA:
+		mce->synd = event->synd;
+		mce->ipid = event->ipid;
+		if (!mce->ipid || !mce->status) {
+			log(TERM, LOG_ERR, "%s MSR required.\n",
+				    mce->ipid ? "Status" : "Ipid");
+			rc = -EINVAL;
+			goto free_mce;
+		}
+		decode_smca_error(mce, priv);
+		amd_decode_errcode(mce);
+	break;
+	default:
+		break;
+	}
+
+	trace_seq_init(&s);
+	report_mce_offline(&s, mce, priv);
+	trace_seq_do_printf(&s);
+	fflush(stdout);
+	trace_seq_destroy(&s);
+
+free_mce:
+	free(priv);
+	free(mce);
+	return rc;
 }
 
 int ras_mce_event_handler(struct trace_seq *s,

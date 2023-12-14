@@ -421,6 +421,246 @@ static int set_cxl_aer_ce_event_backtrace(char *buf, struct ras_cxl_aer_ce_event
 	return 0;
 }
 
+static int set_cxl_overflow_event_backtrace(char *buf, struct ras_cxl_overflow_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"memdev=%s\n"		\
+						"host=%s\n"		\
+						"serial=0x%lx\n"	\
+						"log_type=%s\n"		\
+						"count=%u\n"		\
+						"first_ts=%s\n"		\
+						"last_ts=%s\n",		\
+						ev->timestamp,		\
+						ev->memdev,		\
+						ev->host,		\
+						ev->serial,		\
+						ev->log_type,		\
+						ev->count,		\
+						ev->first_ts,		\
+						ev->last_ts);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
+static int set_cxl_generic_event_backtrace(char *buf, struct ras_cxl_generic_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"memdev=%s\n"		\
+						"host=%s\n"		\
+						"serial=0x%lx\n"	\
+						"log_type=%s\n"		\
+						"hdr_uuid=%s\n"		\
+						"hdr_flags=0x%x\n"	\
+						"hdr_handle=0x%x\n"	\
+						"hdr_related_handle=0x%x\n"	\
+						"hdr_timestamp=%s\n"	\
+						"hdr_length=%u\n"	\
+						"hdr_maint_op_class=%u\n",	\
+						ev->hdr.timestamp,	\
+						ev->hdr.memdev,		\
+						ev->hdr.host,		\
+						ev->hdr.serial,		\
+						ev->hdr.log_type,	\
+						ev->hdr.hdr_uuid,	\
+						ev->hdr.hdr_flags,	\
+						ev->hdr.hdr_handle,	\
+						ev->hdr.hdr_related_handle,	\
+						ev->hdr.hdr_timestamp,	\
+						ev->hdr.hdr_length,	\
+						ev->hdr.hdr_maint_op_class);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
+static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_general_media_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"memdev=%s\n"		\
+						"host=%s\n"		\
+						"serial=0x%lx\n"	\
+						"log_type=%s\n"		\
+						"hdr_uuid=%s\n"		\
+						"hdr_flags=0x%x\n"	\
+						"hdr_handle=0x%x\n"	\
+						"hdr_related_handle=0x%x\n"	\
+						"hdr_timestamp=%s\n"	\
+						"hdr_length=%u\n"	\
+						"hdr_maint_op_class=%u\n"	\
+						"dpa=0x%lx\n"		\
+						"dpa_flags=%u\n"	\
+						"descriptor=%u\n"	\
+						"type=%u\n"		\
+						"transaction_type=%u\n"	\
+						"channel=%u\n"		\
+						"rank=%u\n"		\
+						"device=0x%x\n",	\
+						ev->hdr.timestamp,	\
+						ev->hdr.memdev,		\
+						ev->hdr.host,		\
+						ev->hdr.serial,		\
+						ev->hdr.log_type,	\
+						ev->hdr.hdr_uuid,	\
+						ev->hdr.hdr_flags,	\
+						ev->hdr.hdr_handle,	\
+						ev->hdr.hdr_related_handle,	\
+						ev->hdr.hdr_timestamp,	\
+						ev->hdr.hdr_length,	\
+						ev->hdr.hdr_maint_op_class,	\
+						ev->dpa,		\
+						ev->dpa_flags,		\
+						ev->descriptor,		\
+						ev->type,		\
+						ev->transaction_type,	\
+						ev->channel,		\
+						ev->rank,		\
+						ev->device);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
+static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"memdev=%s\n"		\
+						"host=%s\n"		\
+						"serial=0x%lx\n"	\
+						"log_type=%s\n"		\
+						"hdr_uuid=%s\n"		\
+						"hdr_flags=0x%x\n"	\
+						"hdr_handle=0x%x\n"	\
+						"hdr_related_handle=0x%x\n"	\
+						"hdr_timestamp=%s\n"	\
+						"hdr_length=%u\n"	\
+						"hdr_maint_op_class=%u\n"	\
+						"dpa=0x%lx\n"		\
+						"dpa_flags=%u\n"	\
+						"descriptor=%u\n"	\
+						"type=%u\n"		\
+						"transaction_type=%u\n"	\
+						"channel=%u\n"		\
+						"rank=%u\n"		\
+						"nibble_mask=%u\n"	\
+						"bank_group=%u\n"	\
+						"bank=%u\n"		\
+						"row=%u\n"		\
+						"column=%u\n",		\
+						ev->hdr.timestamp,	\
+						ev->hdr.memdev,		\
+						ev->hdr.host,		\
+						ev->hdr.serial,		\
+						ev->hdr.log_type,	\
+						ev->hdr.hdr_uuid,	\
+						ev->hdr.hdr_flags,	\
+						ev->hdr.hdr_handle,	\
+						ev->hdr.hdr_related_handle,	\
+						ev->hdr.hdr_timestamp,	\
+						ev->hdr.hdr_length,	\
+						ev->hdr.hdr_maint_op_class,	\
+						ev->dpa,		\
+						ev->dpa_flags,		\
+						ev->descriptor,		\
+						ev->type,		\
+						ev->transaction_type,	\
+						ev->channel,		\
+						ev->rank,		\
+						ev->nibble_mask,	\
+						ev->bank_group,		\
+						ev->bank,		\
+						ev->row,		\
+						ev->column);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
+static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memory_module_event *ev)
+{
+	char bt_buf[MAX_BACKTRACE_SIZE];
+
+	if (!buf || !ev)
+		return -1;
+
+	sprintf(bt_buf, "BACKTRACE="	\
+						"timestamp=%s\n"	\
+						"memdev=%s\n"		\
+						"host=%s\n"		\
+						"serial=0x%lx\n"	\
+						"log_type=%s\n"		\
+						"hdr_uuid=%s\n"		\
+						"hdr_flags=0x%x\n"	\
+						"hdr_handle=0x%x\n"	\
+						"hdr_related_handle=0x%x\n"	\
+						"hdr_timestamp=%s\n"	\
+						"hdr_length=%u\n"	\
+						"hdr_maint_op_class=%u\n"	\
+						"event_type=%u\n"	\
+						"health_status=%u\n"	\
+						"media_status=%u\n"	\
+						"life_used=%u\n"	\
+						"dirty_shutdown_cnt=%u\n"	\
+						"cor_vol_err_cnt=%u\n"	\
+						"cor_per_err_cnt=%u\n"	\
+						"device_temp=%d\n"	\
+						"add_status=%u\n",	\
+						ev->hdr.timestamp,	\
+						ev->hdr.memdev,		\
+						ev->hdr.host,		\
+						ev->hdr.serial,		\
+						ev->hdr.log_type,	\
+						ev->hdr.hdr_uuid,	\
+						ev->hdr.hdr_flags,	\
+						ev->hdr.hdr_handle,	\
+						ev->hdr.hdr_related_handle,	\
+						ev->hdr.hdr_timestamp,	\
+						ev->hdr.hdr_length,	\
+						ev->hdr.hdr_maint_op_class,	\
+						ev->event_type,		\
+						ev->health_status,	\
+						ev->media_status,	\
+						ev->life_used,		\
+						ev->dirty_shutdown_cnt,	\
+						ev->cor_vol_err_cnt,	\
+						ev->cor_per_err_cnt,	\
+						ev->device_temp,	\
+						ev->add_status);
+
+	strcat(buf, bt_buf);
+
+	return 0;
+}
+
 static int commit_report_backtrace(int sockfd, int type, void *ev){
 	char buf[MAX_BACKTRACE_SIZE];
 	char *pbuf = buf;
@@ -466,6 +706,21 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 		break;
 	case CXL_AER_CE_EVENT:
 		rc = set_cxl_aer_ce_event_backtrace(buf, (struct ras_cxl_aer_ce_event *)ev);
+		break;
+	case CXL_OVERFLOW_EVENT:
+		rc = set_cxl_overflow_event_backtrace(buf, (struct ras_cxl_overflow_event *)ev);
+		break;
+	case CXL_GENERIC_EVENT:
+		rc = set_cxl_generic_event_backtrace(buf, (struct ras_cxl_generic_event *)ev);
+		break;
+	case CXL_GENERAL_MEDIA_EVENT:
+		rc = set_cxl_general_media_event_backtrace(buf, (struct ras_cxl_general_media_event *)ev);
+		break;
+	case CXL_DRAM_EVENT:
+		rc = set_cxl_dram_event_backtrace(buf, (struct ras_cxl_dram_event *)ev);
+		break;
+	case CXL_MEMORY_MODULE_EVENT:
+		rc = set_cxl_memory_module_event_backtrace(buf, (struct ras_cxl_memory_module_event *)ev);
 		break;
 	default:
 		return -1;
@@ -998,6 +1253,227 @@ int ras_report_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_ev
 	done = 1;
 
 cxl_aer_ce_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
+}
+
+int ras_report_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto cxl_overflow_fail;
+
+	rc = commit_report_backtrace(sockfd, CXL_OVERFLOW_EVENT, ev);
+	if (rc < 0)
+		goto cxl_overflow_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl-overflow");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_overflow_fail;
+
+	sprintf(buf, "REASON=%s", "CXL overflow");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_overflow_fail;
+
+	done = 1;
+
+cxl_overflow_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
+}
+
+int ras_report_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto cxl_generic_fail;
+
+	rc = commit_report_backtrace(sockfd, CXL_GENERIC_EVENT, ev);
+	if (rc < 0)
+		goto cxl_generic_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_generic_event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_generic_fail;
+
+	sprintf(buf, "REASON=%s", "CXL Generic Event ");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_generic_fail;
+
+	done = 1;
+
+cxl_generic_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
+
+}
+
+int ras_report_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto cxl_general_media_fail;
+
+	rc = commit_report_backtrace(sockfd, CXL_GENERAL_MEDIA_EVENT, ev);
+	if (rc < 0)
+		goto cxl_general_media_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_general_media_event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_general_media_fail;
+
+	sprintf(buf, "REASON=%s", "CXL General Media Event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_general_media_fail;
+
+	done = 1;
+
+cxl_general_media_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
+}
+
+int ras_report_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto cxl_dram_fail;
+
+	rc = commit_report_backtrace(sockfd, CXL_DRAM_EVENT, ev);
+	if (rc < 0)
+		goto cxl_dram_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_dram_event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_dram_fail;
+
+	sprintf(buf, "REASON=%s", "CXL DRAM Event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_dram_fail;
+
+	done = 1;
+
+cxl_dram_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+	else
+		return -1;
+}
+
+int ras_report_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto cxl_memory_module_fail;
+
+	rc = commit_report_backtrace(sockfd, CXL_MEMORY_MODULE_EVENT, ev);
+	if (rc < 0)
+		goto cxl_memory_module_fail;
+
+	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_memory_module_event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_memory_module_fail;
+
+	sprintf(buf, "REASON=%s", "CXL Memory Module Event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto cxl_memory_module_fail;
+
+	done = 1;
+
+cxl_memory_module_fail:
 
 	if (sockfd >= 0)
 		close(sockfd);
