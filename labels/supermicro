@@ -140,3 +140,40 @@ Vendor: Supermicro
     DIMMA2: 0.0.0;
     DIMMB1: 0.1.1;
     DIMMB2: 0.0.1;
+    
+# Intel Ice Lake-SP
+# Intel 3rd Generation Xeon Scalable CPU: 4 integrated Memory Controllers (iMC), 8 memory channels, and 16 DIMM slots
+
+  Model: X12DPU-6
+    P1-DIMMA1: 0.0.0
+    P1-DIMMA2: 0.0.1
+    P1-DIMMB1: 0.1.0
+    P1-DIMMB2: 0.1.1
+    P1-DIMMC1: 1.0.0
+    P1-DIMMC2: 1.0.1
+    P1-DIMMD1: 1.1.0
+    P1-DIMMD2: 1.1.1
+    P1-DIMME1: 2.0.0
+    P1-DIMME2: 2.0.1
+    P1-DIMMF1: 2.1.0
+    P1-DIMMF2: 2.1.1
+    P1-DIMMG1: 3.0.0
+    P1-DIMMG2: 3.0.1
+    P1-DIMMH1: 3.1.0
+    P1-DIMMH2: 3.1.1
+    P2-DIMMA1: 4.0.0
+    P2-DIMMA2: 4.0.1
+    P2-DIMMB1: 4.1.0
+    P2-DIMMB2: 4.1.1
+    P2-DIMMC1: 5.0.0
+    P2-DIMMC2: 5.0.1
+    P2-DIMMD1: 5.1.0
+    P2-DIMMD2: 5.1.1
+    P2-DIMME1: 6.0.0
+    P2-DIMME2: 6.0.1
+    P2-DIMMF1: 6.1.0
+    P2-DIMMF2: 6.1.1
+    P2-DIMMG1: 7.0.0
+    P2-DIMMG2: 7.0.1
+    P2-DIMMH1: 7.1.0
+    P2-DIMMH2: 7.1.1
