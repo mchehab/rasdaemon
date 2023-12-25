@@ -80,6 +80,9 @@ endif
 if WITH_YITIAN_NS_DECODE
    rasdaemon_SOURCES += non-standard-yitian.c
 endif
+if WITH_JAGUAR_NS_DECODE
+   rasdaemon_SOURCES += non-standard-jaguarmicro.c
+endif
 
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS)
 rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS)
@@ -89,7 +92,8 @@ include_HEADERS = config.h  ras-events.h  ras-logger.h  ras-mc-handler.h \
 		  ras-extlog-handler.h ras-arm-handler.h ras-non-standard-handler.h \
 		  ras-devlink-handler.h ras-diskerror-handler.h rbtree.h ras-page-isolation.h \
 		  non-standard-hisilicon.h non-standard-ampere.h ras-memory-failure-handler.h \
-		  ras-cxl-handler.h ras-cpu-isolation.h queue.h non-standard-yitian.h
+		  ras-cxl-handler.h ras-cpu-isolation.h queue.h non-standard-yitian.h \
+		  non-standard-jaguarmicro.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that

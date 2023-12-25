@@ -177,6 +177,16 @@ AS_IF([test "x$enable_amp_ns_decode" = "xyes" || test "x$enable_all" = "xyes"], 
 AM_CONDITIONAL([WITH_AMP_NS_DECODE], [test x$enable_amp_ns_decode = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_AMP_NS_DECODE], [USE_AMP_NS_DECODE="yes"], [USE_AMP_NS_DECODE="no"])
 
+AC_ARG_ENABLE([jaguar_ns_decode],
+    AS_HELP_STRING([--enable-jaguar-ns-decode], [enable JAGUAR_NS_DECODE events (currently experimental)]))
+
+AS_IF([test "x$enable_jaguar_ns_decode" = "xyes" || test "x$enable_all" = "xyes"], [
+  AC_DEFINE(HAVE_JAGUAR_NS_DECODE,1,"have JaguarMicro UNKNOWN_SEC events decode")
+  AC_SUBST([WITH_JAGUAR_NS_DECODE])
+])
+AM_CONDITIONAL([WITH_JAGUAR_NS_DECODE], [test x$enable_jaguar_ns_decode = xyes || test x$enable_all = xyes])
+AM_COND_IF([WITH_JAGUAR_NS_DECODE], [USE_JAGUAR_NS_DECODE="yes"], [USE_JAGUAR_NS_DECODE="no"])
+
 AC_ARG_ENABLE([cpu_fault_isolation],
     AS_HELP_STRING([--enable-cpu-fault-isolation], [enable cpu online fault isolation]))
 
@@ -240,4 +250,5 @@ compile time options summary
     AMP RAS errors      : $USE_AMP_NS_DECODE
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION
     YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
+    JAGUAR RAS errors   : $USE_JAGUAR_NS_DECODE
 EOF

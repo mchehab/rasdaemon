@@ -1542,6 +1542,7 @@ sub errors
 use constant {
     HISILICON_KUNPENG_9XX => "KunPeng9xx",
     THEAD_YITIAN_7XX      => "YiTian7XX",
+    JM_CORSICA_DPU1XX => "CorsicaDpu1xx",
 };
 
 sub vendor_errors_summary
@@ -1549,7 +1550,7 @@ sub vendor_errors_summary
     require DBI;
     my ($num_args, $platform_id, $found_platform);
     my ($query, $query_handle, $count, $out);
-    my ($module_id, $sub_module_id, $err_severity, $err_sev);
+    my ($module_id, $sub_module_id, $err_severity, $err_sev, $subsystem);
     my ($address);
 
     $num_args = $#ARGV + 1;
@@ -1659,7 +1660,29 @@ sub vendor_errors_summary
         }
         $query_handle->finish;
     }
-
+    # JaguarMicro CorsicaDpu1xx errors
+    if ($platform_id eq JM_CORSICA_DPU1XX) {
+    $found_platform = 1;
+        $query = "select err_severity, subsystem, count(*) from jm_payload0_event$conf{opt}{since} group by err_severity, subsystem";
+        $query_handle = $dbh->prepare($query);
+        if ($query_handle) {
+            $query_handle->execute();
+            $query_handle->bind_columns(\($err_severity, $subsystem, $count));
+            $out = "";
+            $err_sev = "";
+            while($query_handle->fetch()) {
+                if ($err_severity ne $err_sev) {
+                    $out .= "$err_severity errors:\n";
+                    $err_sev = $err_severity;
+                }
+                $out .= "\t$subsystem: $count\n";
+            }
+            if ($out ne "") {
+                print "JaguarMicro CorsicaDpu1xx OEM type0 error events summary:\n$out\n";
+            }
+            $query_handle->finish;
+        }
+    }
     if ($platform_id && !($found_platform)) {
         print "Platform ID $platform_id is not valid\n";
     }
@@ -1670,10 +1693,10 @@ sub vendor_errors_summary
 sub vendor_errors
 {
     require DBI;
-    my ($num_args, $platform_id, $found_platform, $module, $found_module);
+    my ($num_args, $platform_id, $found_platform, $module, $found_module, $module_name, $sub_module);
     my ($query, $query_handle, $id, $timestamp, $out);
     my ($version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $core_id, $port_id);
-    my ($module_id, $sub_module_id, $err_severity, $err_type, $pcie_info, $regs);
+    my ($module_id, $sub_module_id, $err_severity, $err_type, $pcie_info, $regs, $subsystem, $dev, $dev_id);
     my ($address, $regs_dump);
 
     $num_args = $#ARGV + 1;
@@ -1827,6 +1850,40 @@ sub vendor_errors
         $query_handle->finish;
     }
 
+    # JaguarMicro CorsicaDpu1xx errors
+    if ($platform_id eq JM_CORSICA_DPU1XX) {
+        $found_platform = 1;
+        $query = "select id, timestamp, version, soc_id, subsystem, module, module_id, sub_module, submodule_id, dev, dev_id, err_type, err_severity, regs_dump from jm_payload0_event$conf{opt}{since} order by id, module_id, err_severity";
+        $query_handle = $dbh->prepare($query);
+        if ($query_handle) {
+            $query_handle->execute();
+            $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $subsystem, $module_name, $module_id, $sub_module, $sub_module_id, $dev, $dev_id, $err_type, $err_severity, $regs));
+            $out = "";
+            while($query_handle->fetch()) {
+                if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
+                    $out .= "$id. $timestamp Error Info: ";
+                    $out .= "version=$version, ";
+                    $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+                    $out .= "subsystem=$subsystem, " if (defined $subsystem && length $subsystem);
+                    $out .= "module=$module_name, " if (defined $module_name && length $module_name);
+                    $out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+                    $out .= "sub_module=$sub_module, " if (defined $sub_module && length $sub_module);
+                    $out .= "submodule_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+                    $out .= "dev=$dev, " if (defined $dev && length $dev);
+                    $out .= "dev_id=$dev_id, " if (defined $dev_id && length $dev_id);
+                    $out .= "err_type=$err_type, " if (defined $err_type && length $err_type);
+                    $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+                    $out .= "Error Registers: $regs " if (defined $regs && length $regs);
+                    $out .= "\n\n";
+                    $found_module = 1;
+                }
+            }
+            if ($out ne "") {
+                print "JaguarMicro Corsica DPU1xx OEM type0 error events:\n$out\n";
+            }
+            $query_handle->finish;
+        }
+    }
     if ($platform_id && !($found_platform)) {
         print "Platform ID $platform_id is not valid\n";
     } elsif ($module && !($found_module)) {
@@ -1840,6 +1897,7 @@ sub vendor_platforms
         print "\nSupported platforms for the vendor-specific errors:\n";
         print "\tHiSilicon KunPeng9xx, platform-id=\"", HISILICON_KUNPENG_9XX, "\"\n";
         print "\tTHead Yitian7xx, platform-id=\"", THEAD_YITIAN_7XX, "\"\n";
+        print "\tJaguarMicro CorsicaDpu1xx, platform-id=\"", JM_CORSICA_DPU1XX, "\"\n";
         print "\n";
 }
 
