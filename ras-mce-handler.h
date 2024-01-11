@@ -125,6 +125,7 @@ int set_intel_imc_log(enum cputype cputype, unsigned ncpus);
 /* Undertake AMD SMCA Error Decoding */
 void decode_smca_error(struct mce_event *e, struct mce_priv *m);
 void amd_decode_errcode(struct mce_event *e);
+void smca_smu2_ext_err_desc(void);
 
 /* Per-CPU-type decoders for Intel CPUs */
 void p4_decode_model(struct mce_event *e);
