@@ -409,6 +409,13 @@ static const char * const smca_smu2_mce_desc[] = {
 	"Instruction Tag Cache Bank A ECC or parity error",
 	"Instruction Tag Cache Bank B ECC or parity error",
 	"System Hub Read Buffer ECC or parity error",
+	"PHY RAS ECC Error",
+	[12 ... 57] = "Reserved",
+	"A correctable error from a GFX Sub-IP",
+	"A fatal error from a GFX Sub-IP",
+	"Reserved",
+	"A poison error from a GFX Sub-IP",
+	"Reserved",
 };
 
 static const char * const smca_mp5_mce_desc[] = {
