@@ -29,7 +29,7 @@
 #define BIT2 2
 
 void display_raw_data(struct trace_seq *s,
-		const uint8_t *buf,
+		      const uint8_t *buf,
 		uint32_t datalen)
 {
 	int i = 0, line_count = 0;
@@ -72,7 +72,7 @@ static int count_errors(struct ras_arm_event *ev, int sev)
 
 	if (ev->pei_len % err_info_size != 0) {
 		log(TERM, LOG_ERR,
-			"The event data does not match to the ARM Processor Error Information Structure\n");
+		    "The event data does not match to the ARM Processor Error Information Structure\n");
 		return num;
 	}
 	num_pei = ev->pei_len / err_info_size;
@@ -172,7 +172,7 @@ int ras_arm_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -242,7 +242,7 @@ int ras_arm_event_handler(struct trace_seq *s,
 #ifdef HAVE_AMP_NS_DECODE
 	//decode ampere specific error
 	decode_amp_payload0_err_regs(NULL, s,
-				(struct amp_payload0_type_sec *)ev.vsei_error);
+				     (struct amp_payload0_type_sec *)ev.vsei_error);
 #else
 	display_raw_data(s, ev.vsei_error, ev.oem_len);
 #endif

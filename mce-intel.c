@@ -57,8 +57,7 @@
 #define BUS_PP_MASK      0x600 /*bit 9, bit 10*/
 #define BUS_PP_SHIFT     0x9
 
-#define MCG_TES_P       (1ULL<<11)   /* Yellow bit cache threshold supported */
-
+#define MCG_TES_P       BIT_ULL(11)   /* Yellow bit cache threshold supported */
 
 static char *TT[] = {
 	"Instruction",
@@ -76,8 +75,8 @@ static char *LL[] = {
 
 static struct {
 	uint8_t value;
-	char* str;
-} RRRR [] = {
+	char *str;
+} RRRR[] = {
 	{0, "Generic"},
 	{1, "Read"},
 	{2, "Write" },
@@ -121,7 +120,7 @@ static char *mca_msg[] = {
 static char *tracking_msg[] = {
 	[1] = "green",
 	[2] = "yellow",
-	[3] ="res3"
+	[3] = "res3"
 };
 
 static const char *arstate[4] = {
@@ -157,9 +156,9 @@ static void decode_memory_controller(struct mce_event *e, uint32_t status)
 		sprintf(channel, "%u", status & 0xf);
 
 	mce_snprintf(e->error_msg, "MEMORY CONTROLLER %s_CHANNEL%s_ERR",
-		    mmm_mnemonic[(status >> 4) & 7], channel);
+		     mmm_mnemonic[(status >> 4) & 7], channel);
 	mce_snprintf(e->error_msg, "Transaction: %s",
-		    mmm_desc[(status >> 4) & 7]);
+		     mmm_desc[(status >> 4) & 7]);
 }
 
 static void decode_termal_bank(struct mce_event *e)
@@ -207,7 +206,7 @@ static void bank_name(struct mce_event *e)
 
 static char *get_RRRR_str(uint8_t rrrr)
 {
-	unsigned i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(RRRR); i++) {
 		if (RRRR[i].value == rrrr) {
@@ -220,7 +219,7 @@ static char *get_RRRR_str(uint8_t rrrr)
 
 #define decode_attr(arr, val) ({				\
 	char *__str;						\
-	if ((unsigned)(val) >= ARRAY_SIZE(arr))			\
+	if ((unsigned int)(val) >= ARRAY_SIZE(arr))			\
 		__str = "UNKNOWN";				\
 	else							\
 		__str = (arr)[val];				\
@@ -248,17 +247,17 @@ static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 			     decode_attr(LL, mca & 3));
 	} else if (test_prefix(4, mca)) {
 		mce_snprintf(e->mcastatus_msg, "%s TLB %s Error",
-				decode_attr(TT, (mca & TLB_TT_MASK) >> TLB_TT_SHIFT),
-				decode_attr(LL, (mca & TLB_LL_MASK) >> TLB_LL_SHIFT));
+			     decode_attr(TT, (mca & TLB_TT_MASK) >> TLB_TT_SHIFT),
+			     decode_attr(LL, (mca & TLB_LL_MASK) >> TLB_LL_SHIFT));
 	} else if (test_prefix(8, mca)) {
-		unsigned typenum = (mca & CACHE_TT_MASK) >> CACHE_TT_SHIFT;
-		unsigned levelnum = (mca & CACHE_LL_MASK) >> CACHE_LL_SHIFT;
+		unsigned int typenum = (mca & CACHE_TT_MASK) >> CACHE_TT_SHIFT;
+		unsigned int levelnum = (mca & CACHE_LL_MASK) >> CACHE_LL_SHIFT;
 		char *type = decode_attr(TT, typenum);
 		char *level = decode_attr(LL, levelnum);
+
 		mce_snprintf(e->mcastatus_msg,
 			     "%s CACHE %s %s Error", type, level,
-			     get_RRRR_str((mca & CACHE_RRRR_MASK) >>
-					      CACHE_RRRR_SHIFT));
+			     get_RRRR_str((mca & CACHE_RRRR_MASK) >> CACHE_RRRR_SHIFT));
 #if 0
 		/* FIXME: We shouldn't mix parsing with actions */
 		if (track == 2)
@@ -313,15 +312,13 @@ static void decode_mci(struct mce_event *e, int *ismemerr)
 	else
 		mce_snprintf(e->mcistatus_msg, "Corrected_error");
 
-
 	if (e->status & MCI_STATUS_EN)
 		mce_snprintf(e->mcistatus_msg, "Error_enabled");
-
 
 	if (e->status & MCI_STATUS_PCC)
 		mce_snprintf(e->mcistatus_msg, "Processor_context_corrupt");
 
-	if (e->status & (MCI_STATUS_S|MCI_STATUS_AR))
+	if (e->status & (MCI_STATUS_S | MCI_STATUS_AR))
 		mce_snprintf(e->mcistatus_msg, "%s",
 			     arstate[(e->status >> 55) & 3]);
 
@@ -350,14 +347,14 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 
 	/* Check if the error is at the memory controller */
 	if (((e->status & 0xffff) >> 7) == 1) {
-		unsigned corr_err_cnt;
+		unsigned int corr_err_cnt;
 
 		corr_err_cnt = EXTRACT(e->status, 38, 52);
 		mce_snprintf(e->mc_location, "n_errors=%d", corr_err_cnt);
 	}
 
 	if (test_prefix(11, (e->status & 0xffffL))) {
-		switch(mce->cputype) {
+		switch (mce->cputype) {
 		case CPU_P6OLD:
 			p6old_decode_model(e);
 			break;
@@ -375,7 +372,7 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 			break;
 		}
 	}
-	switch(mce->cputype) {
+	switch (mce->cputype) {
 	case CPU_NEHALEM:
 		nehalem_decode_model(e);
 		break;
@@ -447,18 +444,18 @@ static int domsr(int cpu, int msr, int bit)
 			return -EINVAL;
 		}
 	}
-	if (pread(fd, &data, sizeof data, msr) != sizeof data) {
+	if (pread(fd, &data, sizeof(data), msr) != sizeof(data)) {
 		log(ALL, LOG_ERR,
 		    "Cannot read MSR_ERROR_CONTROL from %s\n", fpath);
 		return -EINVAL;
 	}
 	data |= bit;
-	if (pwrite(fd, &data, sizeof data, msr) != sizeof data) {
+	if (pwrite(fd, &data, sizeof(data), msr) != sizeof(data)) {
 		log(ALL, LOG_ERR,
 		    "Cannot write MSR_ERROR_CONTROL to %s\n", fpath);
 		return -EINVAL;
 	}
-	if (pread(fd, &data, sizeof data, msr) != sizeof data) {
+	if (pread(fd, &data, sizeof(data), msr) != sizeof(data)) {
 		log(ALL, LOG_ERR,
 		    "Cannot re-read MSR_ERROR_CONTROL from %s\n", fpath);
 		return -EINVAL;
@@ -472,7 +469,7 @@ static int domsr(int cpu, int msr, int bit)
 	return 0;
 }
 
-int set_intel_imc_log(enum cputype cputype, unsigned ncpus)
+int set_intel_imc_log(enum cputype cputype, unsigned int ncpus)
 {
 	int cpu, msr, bit, rc;
 

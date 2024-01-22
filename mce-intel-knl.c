@@ -36,7 +36,7 @@ void knl_decode_model(struct ras_events *ras, struct mce_event *e)
 {
 	uint64_t status = e->status;
 	uint32_t mca = status & 0xffff;
-	unsigned rank0 = -1, rank1 = -1, chan = 0;
+	unsigned int rank0 = -1, rank1 = -1, chan = 0;
 
 	switch (e->bank) {
 	case 5:

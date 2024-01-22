@@ -34,7 +34,7 @@
 #define TOOL_DESCRIPTION "RAS daemon to log the RAS events."
 #define ARGS_DOC "<options>"
 #define DISABLE "DISABLE"
-char *choices_disable = NULL;
+char *choices_disable;
 
 const char *argp_program_version = TOOL_NAME " " VERSION;
 const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.org>";
@@ -129,6 +129,7 @@ int main(int argc, char *argv[])
 {
 	struct arguments args;
 	int idx = -1;
+
 	choices_disable = getenv(DISABLE);
 
 #ifdef HAVE_MCE
@@ -179,7 +180,7 @@ int main(int argc, char *argv[])
 		.children = offline_parser,
 #endif
 	};
-	memset (&args, 0, sizeof(args));
+	memset(&args, 0, sizeof(args));
 
 	user_hz = sysconf(_SC_CLK_TCK);
 
@@ -208,7 +209,7 @@ int main(int argc, char *argv[])
 
 	openlog(TOOL_NAME, 0, LOG_DAEMON);
 	if (!args.foreground)
-		if (daemon(0,0))
+		if (daemon(0, 0))
 			exit(EXIT_FAILURE);
 
 	handle_ras_events(args.record_events);

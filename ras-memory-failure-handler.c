@@ -118,7 +118,6 @@ static const char *get_action_result(int result)
 	return "unknown";
 }
 
-
 int ras_memory_failure_event_handler(struct trace_seq *s,
 				     struct tep_record *record,
 				     struct tep_event *event, void *context)
@@ -139,7 +138,7 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 

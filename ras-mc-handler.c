@@ -48,7 +48,7 @@ int ras_mc_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -121,22 +121,22 @@ int ras_mc_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s,  event, "top_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
-	ev.top_layer = (signed char) val;
+	ev.top_layer = (signed char)val;
 
 	if (tep_get_field_val(s,  event, "middle_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
-	ev.middle_layer = (signed char) val;
+	ev.middle_layer = (signed char)val;
 
 	if (tep_get_field_val(s,  event, "lower_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
-	ev.lower_layer = (signed char) val;
+	ev.lower_layer = (signed char)val;
 
 	if (ev.top_layer >= 0 || ev.middle_layer >= 0 || ev.lower_layer >= 0) {
 		if (ev.lower_layer >= 0)
 			trace_seq_printf(s, " location: %d:%d:%d",
-					ev.top_layer, ev.middle_layer, ev.lower_layer);
+					 ev.top_layer, ev.middle_layer, ev.lower_layer);
 		else if (ev.middle_layer >= 0)
 			trace_seq_printf(s, " location: %d:%d",
 					 ev.top_layer, ev.middle_layer);
@@ -158,7 +158,6 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	ev.grain = val;
 	trace_seq_printf(s, " grain: %lld", ev.grain);
-
 
 	if (tep_get_field_val(s,  event, "syndrome", record, &val, 1) < 0)
 		goto parse_error;

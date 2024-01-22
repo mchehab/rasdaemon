@@ -66,8 +66,8 @@ static struct field p6_shared_status[] = {
 	FIELD(25, bus_queue_error_type),
 	SBITFIELD(30, "internal BINIT"),
 	SBITFIELD(36, "received parity error on response transaction"),
-	SBITFIELD(38, "timeout BINIT (ROB timeout)."
-		  " No micro-instruction retired for some time"),
+	SBITFIELD(38,
+		  "timeout BINIT (ROB timeout). No micro-instruction retired for some time"),
 	FIELD_NULL(39),
 	SBITFIELD(42, "bus transaction received hard error response"),
 	SBITFIELD(43, "failure that caused IERR"),
@@ -86,7 +86,7 @@ static struct field p6old_status[] = {
 	FIELD_NULL(31),
 	FIELD_NULL(32),
 	SBITFIELD(35, "BINIT received from external bus"),
-	SBITFIELD(37, "Received hard error reponse on split transaction (Bus BINIT)"),
+	SBITFIELD(37, "Received hard error response on split transaction (Bus BINIT)"),
 	{}
 };
 
@@ -109,7 +109,7 @@ static struct numfield p6old_status_numbers[] = {
 static struct {
 	int value;
 	char *str;
-} p4_model []= {
+} p4_model[] = {
 	{16, "FSB address parity"},
 	{17, "Response hard fail"},
 	{18, "Response parity"},
@@ -123,7 +123,7 @@ static struct {
 void p4_decode_model(struct mce_event *e)
 {
 	uint32_t model = e->status & 0xffff0000L;
-	unsigned i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(p4_model); i++) {
 		if (model & (1 << p4_model[i].value))

@@ -105,6 +105,7 @@ static void tulsa_decode_bus(struct mce_event *e, uint64_t status)
 static void tulsa_decode_internal(struct mce_event *e, uint64_t status)
 {
 	uint32_t mca = (status >> 16) & 0xffff;
+
 	if ((mca & 0xfff0) == 0)
 		decode_bitfield(e, mca, tls_front_status);
 	else if ((mca & 0xf0ff) == 0)

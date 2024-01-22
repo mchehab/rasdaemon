@@ -26,26 +26,31 @@
 static char *transaction[] = {
 	"instruction", "data", "generic", "reserved"
 };
+
 /* Error codes: cache level (LL) */
 static char *cachelevel[] = {
 	"reserved", "L1", "L2", "L3/generic"
 };
+
 /* Error codes: memory transaction type (RRRR) */
 static char *memtrans[] = {
 	"generic", "generic read", "generic write", "data read",
 	"data write", "instruction fetch", "prefetch", "evict", "snoop",
 	"?", "?", "?", "?", "?", "?", "?"
 };
+
 /* Participation Processor */
 static char *partproc[] = {
 	"local node origin", "local node response",
 	"local node observed", "generic participation"
 };
+
 /* Timeout */
 static char *timeout[] = {
 	"request didn't time out",
 	"request timed out"
 };
+
 /* internal unclassified error code */
 static char *internal[] = { "reserved",
 			    "reserved",
@@ -118,5 +123,4 @@ void decode_amd_errcode(struct mce_event *e)
 			     PP_MSG(ec), TO_MSG(ec),
 			     R4_MSG(ec), LL_MSG(ec));
 	return;
-
 }

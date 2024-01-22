@@ -82,7 +82,7 @@ void snb_decode_model(struct ras_events *ras, struct mce_event *e)
 {
 	struct mce_priv *mce = ras->mce_priv;
 	uint32_t mca = e->status & 0xffff;
-	unsigned rank0 = -1, rank1 = -1, chan;
+	unsigned int rank0 = -1, rank1 = -1, chan;
 
 	switch (e->bank) {
 	case 4:
@@ -113,7 +113,7 @@ void snb_decode_model(struct ras_events *ras, struct mce_event *e)
 
 	/* Ignore unless this is an corrected extended error from an iMC bank */
 	if (e->bank < 8 || e->bank > 11 || (e->status & MCI_STATUS_UC) ||
-		!test_prefix(7, e->status & 0xefff))
+	    !test_prefix(7, e->status & 0xefff))
 		return;
 
 	/*
@@ -138,7 +138,7 @@ void snb_decode_model(struct ras_events *ras, struct mce_event *e)
 	 */
 	if (rank0 >= 0 && rank1 >= 0)
 		mce_snprintf(e->mc_location, "ranks=%d and %d",
-				     rank0, rank1);
+			     rank0, rank1);
 	else if (rank0 >= 0)
 		mce_snprintf(e->mc_location, "rank=%d", rank0);
 	else
@@ -162,7 +162,7 @@ void snb_decode_model(struct ras_events *ras, struct mce_event *e)
  * can be converted to a DIMM number within a channel for systems with either
  * two or three DIMMs per channel.
  */
-static int failrank2dimm(unsigned failrank, int socket, int channel)
+static int failrank2dimm(unsigned int failrank, int socket, int channel)
 {
 	switch (failrank) {
 	case 0: case 1: case 2: case 3:

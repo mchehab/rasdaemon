@@ -38,7 +38,7 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 	struct devlink_event ev;
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -78,7 +78,6 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 
 	free(ev.msg);
 	return 0;
-
 }
 
 int ras_devlink_event_handler(struct trace_seq *s,
@@ -104,7 +103,7 @@ int ras_devlink_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -125,7 +124,7 @@ int ras_devlink_event_handler(struct trace_seq *s,
 		return -1;
 
 	ev.driver_name = tep_get_field_raw(s, event, "driver_name",
-					record, &len, 1);
+					   record, &len, 1);
 	if (!ev.driver_name)
 		return -1;
 

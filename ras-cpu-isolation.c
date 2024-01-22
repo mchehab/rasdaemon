@@ -120,7 +120,7 @@ static int init_cpu_info(unsigned int cpus)
 	cpu_infos = (struct cpu_info *)malloc(sizeof(*cpu_infos) * cpus);
 	if (!cpu_infos) {
 		log(TERM, LOG_ERR,
-			"Failed to allocate memory for cpu infos in %s.\n", __func__);
+		    "Failed to allocate memory for cpu infos in %s.\n", __func__);
 		return -1;
 	}
 
@@ -130,9 +130,9 @@ static int init_cpu_info(unsigned int cpus)
 		cpu_infos[i].state = get_cpu_status(i);
 		cpu_infos[i].ce_queue = init_queue();
 
-		if (cpu_infos[i].ce_queue == NULL) {
+		if (!cpu_infos[i].ce_queue) {
 			log(TERM, LOG_ERR,
-				"Failed to allocate memory for cpu ce queue in %s.\n", __func__);
+			    "Failed to allocate memory for cpu ce queue in %s.\n", __func__);
 			return -1;
 		}
 	}
@@ -147,7 +147,7 @@ static void check_config(struct isolation_param *config)
 {
 	if (config->value > config->limit) {
 		log(TERM, LOG_WARNING, "Value: %lu exceed limit: %lu, set to limit\n",
-			config->value, config->limit);
+		    config->value, config->limit);
 		config->value = config->limit;
 	}
 }
@@ -173,7 +173,7 @@ static int parse_ul_config(struct isolation_param *config, char *env, unsigned l
 	for (int i = 0; i < env_size; ++i) {
 		if (isdigit(env[i])) {
 			if (*value > ULONG_MAX / DEC_CHECK ||
-				(*value == ULONG_MAX / DEC_CHECK && env[i] - '0' > LAST_BIT_OF_UL)) {
+			    (*value == ULONG_MAX / DEC_CHECK && env[i] - '0' > LAST_BIT_OF_UL)) {
 				log(TERM, LOG_ERR, "%s is out of range: %lu\n", env, ULONG_MAX);
 				return -1;
 			}
@@ -208,7 +208,7 @@ static void init_config(struct isolation_param *config)
 
 	if (parse_ul_config(config, env, &value) < 0) {
 		log(TERM, LOG_ERR, "Invalid %s: %s! Use default value %lu.\n",
-			config->name, env, config->value);
+		    config->name, env, config->value);
 		return;
 	}
 
@@ -220,7 +220,7 @@ static int check_config_status(void)
 {
 	char *env = getenv("CPU_ISOLATION_ENABLE");
 
-	if (env == NULL || strcasecmp(env, "yes"))
+	if (!env || strcasecmp(env, "yes"))
 		return -1;
 
 	return 0;
@@ -295,12 +295,12 @@ static int do_ce_handler(unsigned int cpu)
 			cpu_infos[cpu].ce_nums -= tmp;
 	}
 	log(TERM, LOG_INFO,
-		"Current number of Corrected Errors in cpu%d in the cycle is %lu\n",
+	    "Current number of Corrected Errors in cpu%d in the cycle is %lu\n",
 		cpu, cpu_infos[cpu].ce_nums);
 
 	if (cpu_infos[cpu].ce_nums >= threshold.value) {
 		log(TERM, LOG_INFO,
-			"Corrected Errors exceeded threshold %lu, try to offline cpu%u\n",
+		    "Corrected Errors exceeded threshold %lu, try to offline cpu%u\n",
 			threshold.value, cpu);
 		return do_cpu_offline(cpu);
 	}
@@ -341,7 +341,7 @@ static void record_error_info(unsigned int cpu, struct error_info *err_info)
 	{
 		struct queue_node *node = node_create(err_info->time, err_info->nums);
 
-		if (node == NULL) {
+		if (!node) {
 			log(TERM, LOG_ERR, "Fail to allocate memory for queue node\n");
 			return;
 		}
@@ -366,7 +366,7 @@ void ras_record_cpu_error(struct error_info *err_info, int cpu)
 
 	if (cpu >= ncores || cpu < 0) {
 		log(TERM, LOG_ERR,
-			"The current cpu %d has exceed the total number of cpu:%u\n", cpu, ncores);
+		    "The current cpu %d has exceed the total number of cpu:%u\n", cpu, ncores);
 		return;
 	}
 
@@ -385,7 +385,7 @@ void ras_record_cpu_error(struct error_info *err_info, int cpu)
 	 */
 	if (ncores - sysconf(_SC_NPROCESSORS_ONLN) >= cpu_limit.value) {
 		log(TERM, LOG_WARNING,
-			"Offlined cpus have exceeded limit: %lu, choose to do nothing\n",
+		    "Offlined cpus have exceeded limit: %lu, choose to do nothing\n",
 			cpu_limit.value);
 		return;
 	}
@@ -395,11 +395,11 @@ void ras_record_cpu_error(struct error_info *err_info, int cpu)
 		log(TERM, LOG_WARNING, "Doing nothing in the cpu%d\n", cpu);
 	else if (ret == HANDLE_SUCCEED) {
 		log(TERM, LOG_INFO, "Offline cpu%d succeed, the state is %s\n",
-			cpu, cpu_state[cpu_infos[cpu].state]);
+		    cpu, cpu_state[cpu_infos[cpu].state]);
 		clear_queue(cpu_infos[cpu].ce_queue);
 		cpu_infos[cpu].ce_nums = 0;
 		cpu_infos[cpu].uce_nums = 0;
 	} else
 		log(TERM, LOG_WARNING, "Offline cpu%d fail, the state is %s\n",
-			cpu, cpu_state[cpu_infos[cpu].state]);
+		    cpu, cpu_state[cpu_infos[cpu].state]);
 }

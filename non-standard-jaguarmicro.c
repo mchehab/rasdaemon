@@ -24,7 +24,7 @@
 #define JM_SNPRINTF	mce_snprintf
 
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-				enum jm_oem_data_type data_type,
+			   enum jm_oem_data_type data_type,
 				int id, int64_t data, const char *text);
 
 struct jm_event {
@@ -168,7 +168,6 @@ static const char * const iosub_module_desc[] = {
 	"OTHER",
 };
 
-
 static const char * const scp_module_desc[] = {
 	"SRAM",
 	"WDT",
@@ -184,6 +183,7 @@ static const char * const imu_module_desc[] = {
 	"SRAM",
 	"WDT",
 };
+
 /* JaguarMicro DPE sub system module definitions */
 #define JM_SUBSYS_DPE_MOD_EPG		0
 #define JM_SUBSYS_DPE_MOD_PIPE		1
@@ -301,7 +301,7 @@ static const char * const default_dev_desc[] = {
 
 static const char *get_jm_soc_desc(uint8_t soc_id)
 {
-	if (soc_id >= sizeof(soc_desc)/sizeof(char *))
+	if (soc_id >= sizeof(soc_desc) / sizeof(char *))
 		return "unknown";
 
 	return soc_desc[soc_id];
@@ -309,7 +309,7 @@ static const char *get_jm_soc_desc(uint8_t soc_id)
 
 static const char *get_jm_subsystem_desc(uint8_t subsys_id)
 {
-	if (subsys_id >= sizeof(subsystem_desc)/sizeof(char *))
+	if (subsys_id >= sizeof(subsystem_desc) / sizeof(char *))
 		return "unknown";
 
 	return subsystem_desc[subsys_id];
@@ -323,54 +323,54 @@ static const char *get_jm_module_desc(uint8_t subsys_id, uint8_t mod_id)
 	switch (subsys_id) {
 	case JM_SUB_SYS_CMN:
 		module = cmn_module_desc;
-		tbl_size = sizeof(cmn_module_desc)/sizeof(char *);
+		tbl_size = sizeof(cmn_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_DDRH:
 	case JM_SUB_SYS_DDRV:
 		module = ddr_module_desc;
-		tbl_size = sizeof(ddr_module_desc)/sizeof(char *);
+		tbl_size = sizeof(ddr_module_desc) / sizeof(char *);
 		break;
 
 	case JM_SUB_SYS_GIC:
 		module = gic_module_desc;
-		tbl_size = sizeof(gic_module_desc)/sizeof(char *);
+		tbl_size = sizeof(gic_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_IOSUB:
 		module = iosub_module_desc;
-		tbl_size = sizeof(iosub_module_desc)/sizeof(char *);
+		tbl_size = sizeof(iosub_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_SCP:
 		module = scp_module_desc;
-		tbl_size = sizeof(scp_module_desc)/sizeof(char *);
+		tbl_size = sizeof(scp_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_MCP:
 		module = mcp_module_desc;
-		tbl_size = sizeof(mcp_module_desc)/sizeof(char *);
+		tbl_size = sizeof(mcp_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_IMU0:
 	case JM_SUB_SYS_IMU1:
 		module = imu_module_desc;
-		tbl_size = sizeof(imu_module_desc)/sizeof(char *);
+		tbl_size = sizeof(imu_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_DPE:
 		module = dpe_module_desc;
-		tbl_size = sizeof(dpe_module_desc)/sizeof(char *);
+		tbl_size = sizeof(dpe_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_RPE:
 		module = rpe_module_desc;
-		tbl_size = sizeof(rpe_module_desc)/sizeof(char *);
+		tbl_size = sizeof(rpe_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_PSUB:
 		module = psub_module_desc;
-		tbl_size = sizeof(psub_module_desc)/sizeof(char *);
+		tbl_size = sizeof(psub_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_HAC:
 		module = hac_module_desc;
-		tbl_size = sizeof(hac_module_desc)/sizeof(char *);
+		tbl_size = sizeof(hac_module_desc) / sizeof(char *);
 		break;
 	case JM_SUB_SYS_TCM:
 		module = tcm_module_desc;
-		tbl_size = sizeof(tcm_module_desc)/sizeof(char *);
+		tbl_size = sizeof(tcm_module_desc) / sizeof(char *);
 		break;
 
 	default:
@@ -378,7 +378,7 @@ static const char *get_jm_module_desc(uint8_t subsys_id, uint8_t mod_id)
 		break;
 	}
 
-	if ((module == NULL) || (mod_id >= tbl_size))
+	if ((!module) || (mod_id >= tbl_size))
 		return "unknown";
 
 	return module[mod_id];
@@ -391,42 +391,41 @@ static const char *get_jm_submod_desc(uint8_t subsys_id, uint8_t mod_id, uint8_t
 
 	if (subsys_id == JM_SUB_SYS_IOSUB && mod_id == JM_SUBSYS_IOSUB_MOD_SMMU) {
 		sub_module = iosub_smmu_sub_desc;
-		tbl_size = sizeof(iosub_smmu_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(iosub_smmu_sub_desc) / sizeof(char *);
 	} else if (subsys_id == JM_SUB_SYS_IOSUB && mod_id == JM_SUBSYS_IOSUB_MOD_OTHER) {
 		sub_module = iosub_other_sub_desc;
-		tbl_size = sizeof(iosub_other_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(iosub_other_sub_desc) / sizeof(char *);
 	} else if (subsys_id == JM_SUB_SYS_DPE && mod_id == JM_SUBSYS_DPE_MOD_SMMU) {
 		sub_module = smmu_sub_desc;
-		tbl_size = sizeof(smmu_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(smmu_sub_desc) / sizeof(char *);
 	} else if (subsys_id == JM_SUB_SYS_RPE && mod_id == JM_SUBSYS_RPE_MOD_SMMU) {
 		sub_module = smmu_sub_desc;
-		tbl_size = sizeof(smmu_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(smmu_sub_desc) / sizeof(char *);
 	} else if (subsys_id == JM_SUB_SYS_PSUB && mod_id == JM_SUBSYS_PSUB_MOD_PCIE0) {
 		sub_module = psub_pcie0_sub_desc;
-		tbl_size = sizeof(psub_pcie0_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(psub_pcie0_sub_desc) / sizeof(char *);
 	} else if (subsys_id == JM_SUB_SYS_PSUB && mod_id == JM_SUBSYS_PSUB_MOD_X2RC_SMMU) {
 		sub_module = smmu_sub_desc;
-		tbl_size = sizeof(smmu_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(smmu_sub_desc) / sizeof(char *);
 	} else if (subsys_id == JM_SUB_SYS_PSUB && mod_id == JM_SUBSYS_PSUB_MOD_X16RC_SMMU) {
 		sub_module = smmu_sub_desc;
-		tbl_size = sizeof(smmu_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(smmu_sub_desc) / sizeof(char *);
 	} else if (subsys_id == JM_SUB_SYS_PSUB && mod_id == JM_SUBSYS_PSUB_MOD_SDMA_SMMU) {
 		sub_module = smmu_sub_desc;
-		tbl_size = sizeof(smmu_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(smmu_sub_desc) / sizeof(char *);
 	} else if (subsys_id == JM_SUB_SYS_TCM && mod_id == JM_SUBSYS_TCM_MOD_SMMU) {
 		sub_module = smmu_sub_desc;
-		tbl_size = sizeof(smmu_sub_desc)/sizeof(char *);
+		tbl_size = sizeof(smmu_sub_desc) / sizeof(char *);
 	} else {
 		sub_module = NULL;
 		tbl_size = 0;
 	}
 
-	if ((sub_module == NULL) || (sub_id >= tbl_size))
+	if ((!sub_module) || (sub_id >= tbl_size))
 		return "unknown";
 
 	return sub_module[sub_id];
 }
-
 
 static const char *get_jm_dev_desc(uint8_t subsys_id, uint8_t mod_id, uint8_t sub_id)
 {
@@ -439,7 +438,6 @@ static const char *get_jm_dev_desc(uint8_t subsys_id, uint8_t mod_id, uint8_t su
 	else
 		return default_dev_desc[0];
 }
-
 
 #define JM_ERR_SEVERITY_NFE		0
 #define JM_ERR_SEVERITY_FE		1
@@ -461,82 +459,78 @@ static inline char *jm_err_severity(uint8_t err_sev)
 }
 
 static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
-					const struct jm_common_sec_head *err,
+				      const struct jm_common_sec_head *err,
 					struct jm_event *event)
 {
 	if (err->val_bits & BIT(JM_COMMON_VALID_SOC_ID)) {
 		JM_SNPRINTF(event->error_msg, "[ table_version=%hhu decode_version:%hhu",
-					err->version, PAYLOAD_VERSION);
+			    err->version, PAYLOAD_VERSION);
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
-					JM_PAYLOAD_FIELD_VERSION,
+			       JM_PAYLOAD_FIELD_VERSION,
 					err->version, NULL);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SOC_ID)) {
 		JM_SNPRINTF(event->error_msg, " soc=%s", get_jm_soc_desc(err->soc_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
-				JM_PAYLOAD_FIELD_SOC_ID,
+			       JM_PAYLOAD_FIELD_SOC_ID,
 				err->soc_id, NULL);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SUBSYSTEM_ID)) {
 		JM_SNPRINTF(event->error_msg, " sub system=%s",
-					get_jm_subsystem_desc(err->subsystem_id));
+			    get_jm_subsystem_desc(err->subsystem_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
-					JM_PAYLOAD_FIELD_SUB_SYS,
+			       JM_PAYLOAD_FIELD_SUB_SYS,
 					0, get_jm_subsystem_desc(err->subsystem_id));
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_MODULE_ID)) {
 		JM_SNPRINTF(event->error_msg, " module=%s",
-				get_jm_module_desc(err->subsystem_id, err->module_id));
+			    get_jm_module_desc(err->subsystem_id, err->module_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
-				JM_PAYLOAD_FIELD_MODULE,
+			       JM_PAYLOAD_FIELD_MODULE,
 				0, get_jm_module_desc(err->subsystem_id, err->module_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
-				JM_PAYLOAD_FIELD_MODULE_ID,
+			       JM_PAYLOAD_FIELD_MODULE_ID,
 				err->module_id, NULL);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SUBMODULE_ID)) {
 		JM_SNPRINTF(event->error_msg, " sub module=%s",
-			get_jm_submod_desc(err->subsystem_id, err->module_id, err->submodule_id));
+			    get_jm_submod_desc(err->subsystem_id, err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
-			JM_PAYLOAD_FIELD_SUB_MODULE,
+			       JM_PAYLOAD_FIELD_SUB_MODULE,
 			0,
 			get_jm_submod_desc(err->subsystem_id, err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
-			JM_PAYLOAD_FIELD_MODULE_ID,
+			       JM_PAYLOAD_FIELD_MODULE_ID,
 			err->submodule_id, NULL);
 	}
 
-
 	if (err->val_bits & BIT(JM_COMMON_VALID_DEV_ID)) {
 		JM_SNPRINTF(event->error_msg, " dev=%s",
-			get_jm_dev_desc(err->subsystem_id, err->module_id, err->submodule_id));
+			    get_jm_dev_desc(err->subsystem_id, err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
-			JM_PAYLOAD_FIELD_DEV,
+			       JM_PAYLOAD_FIELD_DEV,
 			0, get_jm_dev_desc(err->subsystem_id, err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
-					JM_PAYLOAD_FIELD_DEV_ID,
+			       JM_PAYLOAD_FIELD_DEV_ID,
 					err->dev_id, NULL);
-
 	}
-
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_ERR_TYPE)) {
 		JM_SNPRINTF(event->error_msg, " err_type=%hu", err->err_type);
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
-					JM_PAYLOAD_FIELD_ERR_TYPE,
+			       JM_PAYLOAD_FIELD_ERR_TYPE,
 					err->err_type, NULL);
 	}
 
-
 	if (err->val_bits & BIT(JM_COMMON_VALID_ERR_SEVERITY)) {
 		JM_SNPRINTF(event->error_msg, " err_severity=%s",
-					jm_err_severity(err->err_severity));
+			    jm_err_severity(err->err_severity));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
-					JM_PAYLOAD_FIELD_ERR_SEVERITY,
+			       JM_PAYLOAD_FIELD_ERR_SEVERITY,
 					0, jm_err_severity(err->err_severity));
 	}
 
@@ -544,7 +538,7 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 static void decode_jm_common_sec_tail(struct ras_ns_ev_decoder *ev_decoder,
-					const struct jm_common_sec_tail *err,
+				      const struct jm_common_sec_tail *err,
 					struct jm_event *event, uint32_t val_bits)
 {
 	if (val_bits & BIT(JM_COMMON_VALID_REG_ARRAY_SIZE) && err->reg_array_size > 0) {
@@ -553,7 +547,7 @@ static void decode_jm_common_sec_tail(struct ras_ns_ev_decoder *ev_decoder,
 		JM_SNPRINTF(event->reg_msg, "Extended Register Dump:");
 		for (i = 0; i < err->reg_array_size; i++) {
 			JM_SNPRINTF(event->reg_msg, "reg%02d=0x%08x",
-					i, err->reg_array[i]);
+				    i, err->reg_array[i]);
 		}
 	}
 }
@@ -586,7 +580,7 @@ static const struct db_table_descriptor jm_payload0_event_tab = {
 
 /*Save data with different type into sqlite3 db*/
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-				enum jm_oem_data_type data_type, int id,
+			   enum jm_oem_data_type data_type, int id,
 				int64_t data, const char *text)
 {
 	switch (data_type) {
@@ -598,7 +592,7 @@ static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 		break;
 	case JM_OEM_DATA_TYPE_TEXT:
 		sqlite3_bind_text(ev_decoder->stmt_dec_record, id, text,
-						-1, NULL);
+				  -1, NULL);
 		break;
 	default:
 		break;
@@ -606,62 +600,60 @@ static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 static int store_jm_err_data(struct ras_ns_ev_decoder *ev_decoder,
-				const char *tab_name)
+			     const char *tab_name)
 {
 	int rc;
 
 	rc = sqlite3_step(ev_decoder->stmt_dec_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
-			"Failed to do step on sqlite. Table = %s error = %d\n",
+		    "Failed to do step on sqlite. Table = %s error = %d\n",
 			tab_name, rc);
 
 	rc = sqlite3_reset(ev_decoder->stmt_dec_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
-			"Failed to reset on sqlite. Table = %s error = %d\n",
+		    "Failed to reset on sqlite. Table = %s error = %d\n",
 			tab_name, rc);
 
 	rc = sqlite3_clear_bindings(ev_decoder->stmt_dec_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
-			"Failed to clear bindings on sqlite. Table = %s error = %d\n",
+		    "Failed to clear bindings on sqlite. Table = %s error = %d\n",
 			tab_name, rc);
 
 	return rc;
 }
 
-
 /*save all JaguarMicro Specific Error Payload type 0 to sqlite3 database*/
 static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
-				const char *reg_str)
+				  const char *reg_str)
 {
-	if (ev_decoder != NULL) {
+	if (ev_decoder) {
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
-			JM_PAYLOAD_FIELD_REGS_DUMP, 0, reg_str);
+			       JM_PAYLOAD_FIELD_REGS_DUMP, 0, reg_str);
 		store_jm_err_data(ev_decoder, "jm_payload0_event_tab");
 	}
 }
 
 #else
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-				enum jm_oem_data_type data_type,
+			   enum jm_oem_data_type data_type,
 				int id, int64_t data, const char *text)
 {
 }
 
 static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
-				const char *reg_str)
+				  const char *reg_str)
 {
 }
 
 #endif
 
-
 /*decode JaguarMicro specific error payload type 0, the CPU's data is save*/
 /*to sqlite by ras-arm-handler, others are saved by this function.*/
 static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
+					struct trace_seq *s,
 				const struct jm_payload0_type_sec *err)
 {
 	int i = 0;
@@ -781,10 +773,8 @@ static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload1_err_reg_name[i++]);
 	JM_SNPRINTF(jmevent.reg_msg, " 0x%x\n", err->errgen);
 
-
 	trace_seq_printf(s, "Register Dump:\n");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
-
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
 
@@ -808,7 +798,6 @@ static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	decode_jm_common_sec_head(ev_decoder, common_head, &jmevent);
 	trace_seq_printf(s, "%s\n", jmevent.error_msg);
 
-
 	//display ecc_1bit_error_interrupt_low
 	JM_SNPRINTF(jmevent.reg_msg,  " %s", disp_payload2_err_reg_name[i++]);
 	JM_SNPRINTF(jmevent.reg_msg,  " 0x%x; ", err->ecc_1bit_int_low);
@@ -824,7 +813,6 @@ static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	//display ecc_2bit_error_interrupt_high
 	JM_SNPRINTF(jmevent.reg_msg,  " %s", disp_payload2_err_reg_name[i++]);
 	JM_SNPRINTF(jmevent.reg_msg,  " 0x%x\n", err->ecc_2bit_int_high);
-
 
 	trace_seq_printf(s, "Register Dump:\n");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
@@ -915,7 +903,6 @@ static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", jmevent.reg_msg);
 }
 
-
 /*decode JaguarMicro specific error payload type 6 and save to sqlite db*/
 static void decode_jm_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
@@ -973,7 +960,7 @@ static void decode_jm_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 /* error data decoding functions */
 static int decode_jm_oem_type_error(struct ras_events *ras,
-					struct ras_ns_ev_decoder *ev_decoder,
+				    struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					struct ras_non_standard_event *event,
 					int payload_type)
@@ -981,7 +968,7 @@ static int decode_jm_oem_type_error(struct ras_events *ras,
 	int id = JM_PAYLOAD_FIELD_TIMESTAMP;
 
 	record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
-			   id, 0, event->timestamp);
+		       id, 0, event->timestamp);
 
 	if (payload_type == PAYLOAD_TYPE_0) {
 		const struct jm_payload0_type_sec *err =
@@ -1013,7 +1000,7 @@ static int decode_jm_oem_type_error(struct ras_events *ras,
 
 /* error type0 data decoding functions */
 static int decode_jm_oem_type0_error(struct ras_events *ras,
-					struct ras_ns_ev_decoder *ev_decoder,
+				     struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					struct ras_non_standard_event *event)
 {
@@ -1022,15 +1009,16 @@ static int decode_jm_oem_type0_error(struct ras_events *ras,
 
 /* error type1 data decoding functions */
 static int decode_jm_oem_type1_error(struct ras_events *ras,
-					struct ras_ns_ev_decoder *ev_decoder,
+				     struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					struct ras_non_standard_event *event)
 {
 	return decode_jm_oem_type_error(ras, ev_decoder, s, event, PAYLOAD_TYPE_1);
 }
+
 /* error type2 data decoding functions */
 static int decode_jm_oem_type2_error(struct ras_events *ras,
-					struct ras_ns_ev_decoder *ev_decoder,
+				     struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					struct ras_non_standard_event *event)
 {
@@ -1039,7 +1027,7 @@ static int decode_jm_oem_type2_error(struct ras_events *ras,
 
 /* error type5 data decoding functions */
 static int decode_jm_oem_type5_error(struct ras_events *ras,
-					 struct ras_ns_ev_decoder *ev_decoder,
+				     struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					struct ras_non_standard_event *event)
 {
@@ -1048,7 +1036,7 @@ static int decode_jm_oem_type5_error(struct ras_events *ras,
 
 /* error type6 data decoding functions */
 static int decode_jm_oem_type6_error(struct ras_events *ras,
-					struct ras_ns_ev_decoder *ev_decoder,
+				     struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					struct ras_non_standard_event *event)
 {
@@ -1060,7 +1048,7 @@ static int add_jm_oem_type0_table(struct ras_events *ras, struct ras_ns_ev_decod
 #ifdef HAVE_SQLITE3
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-						&jm_payload0_event_tab) != SQLITE_OK) {
+					    &jm_payload0_event_tab) != SQLITE_OK) {
 			log(TERM, LOG_WARNING, "Failed to create sql jm_payload0_event_tab\n");
 			return -1;
 		}
@@ -1068,7 +1056,6 @@ static int add_jm_oem_type0_table(struct ras_events *ras, struct ras_ns_ev_decod
 #endif
 	return 0;
 }
-
 
 struct ras_ns_ev_decoder jm_ns_oem_type_decoder[] = {
 	{
@@ -1105,5 +1092,4 @@ static void __attribute__((constructor)) jm_init(void)
 	for (i = 0; i < ARRAY_SIZE(jm_ns_oem_type_decoder); i++)
 		register_ns_ev_decoder(&jm_ns_oem_type_decoder[i]);
 }
-
 

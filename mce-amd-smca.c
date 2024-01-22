@@ -74,10 +74,10 @@ enum smca_bank_types {
 	SMCA_PCIE,	/* PCI Express Unit */
 	SMCA_PCIE_V2,
 	SMCA_XGMI_PCS,	/* xGMI PCS Unit */
-	SMCA_NBIF,		/*NBIF Unit */
-	SMCA_SHUB,		/* System Hub Unit */
-	SMCA_SATA,		/* SATA Unit */
-	SMCA_USB,		/* USB Unit */
+	SMCA_NBIF,	/* NBIF Unit */
+	SMCA_SHUB,	/* System Hub Unit */
+	SMCA_SATA,	/* SATA Unit */
+	SMCA_USB,	/* USB Unit */
 	SMCA_USR_DP,	/* Ultra Short Reach Data Plane Controller */
 	SMCA_USR_CP,	/* Ultra Short Reach Control Plane Controller */
 	SMCA_GMI_PCS,	/* GMI PCS Unit */
@@ -799,7 +799,7 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_PSP ... SMCA_PSP_V2]	= { "Platform Security Processor" },
 	[SMCA_SMU ... SMCA_SMU_V2]	= { "System Management Unit" },
 	[SMCA_MP5]			= { "Microprocessor 5 Unit" },
-	[SMCA_MPDMA]		= { "MPDMA Unit" },
+	[SMCA_MPDMA]			= { "MPDMA Unit" },
 	[SMCA_NBIO]			= { "Northbridge IO Unit" },
 	[SMCA_PCIE ... SMCA_PCIE_V2]	= { "PCI Express Unit" },
 	[SMCA_XGMI_PCS]			= { "Ext Global Memory Interconnect PCS Unit" },
@@ -817,7 +817,6 @@ static struct smca_bank_name smca_names[] = {
 
 void amd_decode_errcode(struct mce_event *e)
 {
-
 	decode_amd_errcode(e);
 
 	if (e->status & MCI_STATUS_POISON)
@@ -825,8 +824,8 @@ void amd_decode_errcode(struct mce_event *e)
 
 	if (e->status & MCI_STATUS_TCC)
 		mce_snprintf(e->mcistatus_msg, "Task_context_corrupt");
-
 }
+
 /*
  * To find the UMC channel represented by this bank we need to match on its
  * instance_id. The instance_id of a bank is held in the lower 32 bits of its
@@ -856,7 +855,7 @@ static int find_hbm_channel(struct mce_event *e)
 	return (umc % 2) ? tmp + 4 : tmp;
 }
 
-static inline void fixup_hwid(struct mce_priv* m, uint32_t *hwid_mcatype)
+static inline void fixup_hwid(struct mce_priv *m, uint32_t *hwid_mcatype)
 {
 	if (m->family == 0x19) {
 		switch (m->model) {
@@ -965,7 +964,6 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 			     channel, csrow);
 	}
 
-
 	if (e->vdata_len) {
 		uint64_t smca_config = e->vdata[2];
 
@@ -976,7 +974,6 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 		if (smca_config & BIT(9))
 			memcpy(e->frutext, e->vdata, 16);
 	}
-
 }
 
 int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e)
@@ -984,7 +981,7 @@ int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e)
 	uint64_t mcgstatus = e->mcgstatus;
 
 	mce_snprintf(e->mcgstatus_msg, "mcgstatus=%lld",
-		    (long long)e->mcgstatus);
+		     (long long)e->mcgstatus);
 
 	if (mcgstatus & MCG_STATUS_RIPV)
 		mce_snprintf(e->mcgstatus_msg, "RIPV");

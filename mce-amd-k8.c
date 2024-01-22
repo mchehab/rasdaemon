@@ -43,7 +43,7 @@ static const char *k8bank[] = {
 };
 
 static const char *k8threshold[] = {
-	[0 ... K8_MCELOG_THRESHOLD_DRAM_ECC - 1] = "Unknow threshold counter",
+	[0 ... K8_MCELOG_THRESHOLD_DRAM_ECC - 1] = "Unknown threshold counter",
 	[K8_MCELOG_THRESHOLD_DRAM_ECC] = "MC4_MISC0 DRAM threshold",
 	[K8_MCELOG_THRESHOLD_LINK] = "MC4_MISC1 Link threshold",
 	[K8_MCELOG_THRESHOLD_L3_CACHE] = "MC4_MISC2 L3 Cache threshold",
@@ -56,25 +56,31 @@ static const char *k8threshold[] = {
 static const char *transaction[] = {
 	"instruction", "data", "generic", "reserved"
 };
+
 static const char *cachelevel[] = {
 	"0", "1", "2", "generic"
 };
+
 static const char *memtrans[] = {
 	"generic error", "generic read", "generic write", "data read",
 	"data write", "instruction fetch", "prefetch", "evict", "snoop",
 	"?", "?", "?", "?", "?", "?", "?"
 };
+
 static const char *partproc[] = {
 	"local node origin", "local node response",
 	"local node observed", "generic participation"
 };
+
 static const char *timeout[] = {
 	"request didn't time out",
 	"request timed out"
 };
+
 static const char *memoryio[] = {
 	"memory", "res.", "i/o", "generic"
 };
+
 static const char *nbextendederr[] = {
 	"RAM ECC error",
 	"CRC error",
@@ -96,6 +102,7 @@ static const char *nbextendederr[] = {
 	"L3 Cache Tag Error",
 	"L3 Cache LRU Error"
 };
+
 static const char *highbits[32] = {
 	[31] = "valid",
 	[30] = "error overflow (multiple errors)",
@@ -164,7 +171,7 @@ static void decode_k8_dc_mc(struct mce_event *e)
 	if (e->status & (3ULL << 45)) {
 		mce_snprintf(e->error_msg,
 			     "Data cache ECC error (syndrome %x)",
-			      (uint32_t) (e->status >> 47) & 0xff);
+			     (uint32_t)(e->status >> 47) & 0xff);
 		if (e->status & (1ULL << 40))
 			mce_snprintf(e->error_msg, "found by scrubber");
 	}
@@ -185,7 +192,7 @@ static void decode_k8_ic_mc(struct mce_event *e)
 
 	if ((errcode & 0xfff0) == 0x0010)
 		mce_snprintf(e->error_msg, "TLB parity error in %s array",
-			    (exterrcode == 0) ? "physical" : "virtual");
+			     (exterrcode == 0) ? "physical" : "virtual");
 }
 
 static void decode_k8_bu_mc(struct mce_event *e)
@@ -196,10 +203,10 @@ static void decode_k8_bu_mc(struct mce_event *e)
 		mce_snprintf(e->error_msg, "L2 cache ECC error");
 
 	mce_snprintf(e->error_msg, "%s array error",
-		    !exterrcode ? "Bus or cache" : "Cache tag");
+		     !exterrcode ? "Bus or cache" : "Cache tag");
 }
 
-static void decode_k8_nb_mc(struct mce_event *e, unsigned *memerr)
+static void decode_k8_nb_mc(struct mce_event *e, unsigned int *memerr)
 {
 	unsigned short exterrcode = (e->status >> 16) & 0x0f;
 
@@ -209,13 +216,13 @@ static void decode_k8_nb_mc(struct mce_event *e, unsigned *memerr)
 	case 0:
 		*memerr = 1;
 		mce_snprintf(e->error_msg, "ECC syndrome = %x",
-			    (uint32_t) (e->status >> 47) & 0xff);
+			     (uint32_t)(e->status >> 47) & 0xff);
 		break;
 	case 8:
 		*memerr = 1;
 		mce_snprintf(e->error_msg, "Chipkill ECC syndrome = %x",
-			    (uint32_t) ((((e->status >> 24) & 0xff) << 8)
-			    | ((e->status >> 47) & 0xff)));
+			     (uint32_t)((((e->status >> 24) & 0xff) << 8)
+			     | ((e->status >> 47) & 0xff)));
 		break;
 	case 1:
 	case 2:
@@ -223,7 +230,7 @@ static void decode_k8_nb_mc(struct mce_event *e, unsigned *memerr)
 	case 4:
 	case 6:
 		mce_snprintf(e->error_msg, "link number = %x",
-			     (uint32_t) (e->status >> 36) & 0xf);
+			     (uint32_t)(e->status >> 36) & 0xf);
 		break;
 	}
 }
@@ -251,11 +258,12 @@ static void bank_name(struct mce_event *e)
 
 int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
 {
-	unsigned ismemerr = 0;
+	unsigned int ismemerr = 0;
 
 	/* Don't handle GART errors */
 	if (e->bank == 4) {
 		unsigned short exterrcode = (e->status >> 16) & 0x0f;
+
 		if (exterrcode == 5 && (e->status & (1ULL << 61))) {
 			return -1;
 		}

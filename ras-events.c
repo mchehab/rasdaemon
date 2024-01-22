@@ -60,7 +60,7 @@
 	#define ENDIAN KBUFFER_ENDIAN_BIG
 #endif
 
-extern char* choices_disable;
+extern char *choices_disable;
 
 static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
@@ -68,7 +68,7 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 	char line[MAX_PATH + 1 + 256];
 	char *p, *type, *dir;
 
-	fp = fopen("/proc/mounts","r");
+	fp = fopen("/proc/mounts", "r");
 	if (!fp) {
 		log(ALL, LOG_INFO, "Can't open /proc/mounts");
 		return errno;
@@ -96,7 +96,7 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 			tracing_dir[len - 1] = '\0';
 			return 0;
 		}
-	} while(1);
+	} while (1);
 
 	fclose(fp);
 	log(ALL, LOG_INFO, "Can't find debugfs\n");
@@ -141,7 +141,7 @@ static int get_tracing_dir(struct ras_events *ras)
 	strcat(ras->tracing, "/tracing");
 	if (has_instances) {
 		strcat(ras->tracing, "/instances/" TOOL_NAME);
-		rc = mkdir(ras->tracing, S_IRWXU);
+		rc = mkdir(ras->tracing, 0700);
 		if (rc < 0 && errno != EEXIST) {
 			log(ALL, LOG_INFO,
 			    "Unable to create " TOOL_NAME " instance at %s\n",
@@ -152,13 +152,14 @@ static int get_tracing_dir(struct ras_events *ras)
 	return 0;
 }
 
-static int is_disabled_event(char *group, char *event) {
+static int is_disabled_event(char *group, char *event)
+{
 	char ras_event_name[MAX_PATH + 1];
 
 	snprintf(ras_event_name, sizeof(ras_event_name), "%s:%s",
-			group, event);
+		 group, event);
 
-	if (choices_disable != NULL && strlen(choices_disable) != 0 && strstr(choices_disable, ras_event_name)) {
+	if (choices_disable && strlen(choices_disable) != 0 && strstr(choices_disable, ras_event_name)) {
 		return 1;
 	}
 	return 0;
@@ -172,6 +173,7 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 {
 	int fd, rc;
 	char fname[MAX_PATH + 1];
+
 	enable = is_disabled_event(group, event) ? 0 : 1;
 
 	snprintf(fname, sizeof(fname), "%s%s:%s\n",
@@ -185,7 +187,7 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 		return errno;
 	}
 
-	rc = write(fd, fname,strlen(fname));
+	rc = write(fd, fname, strlen(fname));
 	if (rc < 0) {
 		log(ALL, LOG_WARNING, "Can't write to set_event\n");
 		close(fd);
@@ -248,7 +250,7 @@ int toggle_ras_mc_event(int enable)
 #endif
 
 #ifdef HAVE_DISKERROR
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,18,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_error", enable);
 #else
 	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_complete", enable);
@@ -275,7 +277,7 @@ free_ras:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 /*
  * Set kernel filter. libtrace doesn't provide an API for setting filters
  * in kernel, we have to implement it here.
@@ -293,7 +295,7 @@ static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
 		return errno;
 	}
 
-	rc = write(fd, filter_str ,strlen(filter_str));
+	rc = write(fd, filter_str, strlen(filter_str));
 	if (rc < 0) {
 		log(ALL, LOG_WARNING, "Can't write to filter file\n");
 		close(fd);
@@ -331,7 +333,6 @@ static int get_pagesize(struct ras_events *ras, struct tep_handle *pevent)
 error:
 	close(fd);
 	return page_size;
-
 }
 
 static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
@@ -354,9 +355,9 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 	trace_seq_init(&s);
 	tep_print_event(pdata->ras->pevent, &s, &record,
 			"%16s-%-5d [%03d] %s %6.1000d %s %s",
-                        TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
-                        TEP_PRINT_LATENCY, TEP_PRINT_TIME, TEP_PRINT_NAME,
-                        TEP_PRINT_INFO);
+			TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
+			TEP_PRINT_LATENCY, TEP_PRINT_TIME, TEP_PRINT_NAME,
+			TEP_PRINT_INFO);
 	trace_seq_do_printf(&s);
 	printf("\n");
 	fflush(stdout);
@@ -416,7 +417,7 @@ static int set_buffer_percent(struct ras_events *ras, int percent)
 }
 
 static int read_ras_event_all_cpus(struct pthread_data *pdata,
-				   unsigned n_cpus)
+				   unsigned int n_cpus)
 {
 	ssize_t size;
 	unsigned long long time_stamp;
@@ -467,7 +468,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 
 		/* FIXME: use select to open for all CPUs */
 		snprintf(pipe_raw, sizeof(pipe_raw),
-			"per_cpu/cpu%d/trace_pipe_raw", i);
+			 "per_cpu/cpu%d/trace_pipe_raw", i);
 
 		fds[i].fd = open_trace(pdata[0].ras, pipe_raw, O_RDONLY);
 		if (fds[i].fd < 0) {
@@ -517,7 +518,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			    fdsiginfo.ssi_signo == SIGTERM ||
 			    fdsiginfo.ssi_signo == SIGHUP ||
 			    fdsiginfo.ssi_signo == SIGQUIT) {
-				log(TERM, LOG_INFO, "Recevied signal=%d\n",
+				log(TERM, LOG_INFO, "Received signal=%d\n",
 				    fdsiginfo.ssi_signo);
 				goto  cleanup;
 			} else {
@@ -722,7 +723,7 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	int fd, rc;
 	time_t uptime, now;
 	size_t size;
-	unsigned j1;
+	unsigned int j1;
 	char buf[4096];
 
 	/* Check if uptime is supported (kernel 3.10-rc1 or upper) */
@@ -781,12 +782,12 @@ static int select_tracing_timestamp(struct ras_events *ras)
 }
 
 static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
-			     unsigned page_size, char *group, char *event,
+			     unsigned int page_size, char *group, char *event,
 			     tep_event_handler_func func, char *filter_str, int id)
 {
 	int fd, size, rc;
 	char *page, fname[MAX_PATH + 1];
-	struct tep_event_filter * filter = NULL;
+	struct tep_event_filter *filter = NULL;
 
 	snprintf(fname, sizeof(fname), "events/%s/%s/format", group, event);
 
@@ -856,7 +857,7 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 
 	if (is_disabled_event(group, event)) {
 		log(ALL, LOG_INFO, "Disabled %s:%s tracing from config\n",
-                    group, event);
+		    group, event);
 		return -EINVAL;
 	}
 
@@ -879,7 +880,7 @@ int handle_ras_events(int record_events)
 {
 	int rc, page_size, i;
 	int num_events = 0;
-	unsigned cpus;
+	unsigned int cpus;
 	struct tep_handle *pevent = NULL;
 	struct pthread_data *data = NULL;
 	struct ras_events *ras = NULL;
@@ -1013,7 +1014,7 @@ int handle_ras_events(int record_events)
 #endif
 
 #ifdef HAVE_DISKERROR
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,18,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 	rc = add_event_handler(ras, pevent, page_size, "block",
 			       "block_rq_error", ras_diskerror_event_handler,
 				NULL, DISKERROR_EVENT);
@@ -1124,7 +1125,6 @@ int handle_ras_events(int record_events)
 	if (!data)
 		goto err;
 
-
 	for (i = 0; i < cpus; i++) {
 		data[i].ras = ras;
 		data[i].cpu = i;
@@ -1139,14 +1139,14 @@ int handle_ras_events(int record_events)
 		}
 
 		log(SYSLOG, LOG_INFO,
-		"Opening one thread per cpu (%d threads)\n", cpus);
+		    "Opening one thread per cpu (%d threads)\n", cpus);
 		for (i = 0; i < cpus; i++) {
 			rc = pthread_create(&data[i].thread, NULL,
-					handle_ras_events_cpu,
+					    handle_ras_events_cpu,
 					(void *)&data[i]);
 			if (rc) {
 				log(SYSLOG, LOG_INFO,
-				"Failed to create thread for cpu %d. Aborting.\n",
+				    "Failed to create thread for cpu %d. Aborting.\n",
 				i);
 				while (--i)
 					pthread_cancel(data[i].thread);

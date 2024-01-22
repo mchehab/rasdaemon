@@ -114,11 +114,11 @@ static enum cputype select_intel_cputype(struct mce_priv *mce)
 		else if (mce->model == 0x6a)
 			return CPU_ICELAKE_XEON;
 		else if (mce->model == 0x6c)
-                        return CPU_ICELAKE_DE;
+			return CPU_ICELAKE_DE;
 		else if (mce->model == 0x86)
-                        return CPU_TREMONT_D;
+			return CPU_TREMONT_D;
 		else if (mce->model == 0x8f)
-                        return CPU_SAPPHIRERAPIDS;
+			return CPU_SAPPHIRERAPIDS;
 		else if (mce->model == 0xcf)
 			return CPU_EMERALDRAPIDS;
 
@@ -161,7 +161,7 @@ static int detect_cpu(struct mce_priv *mce)
 	mce->mhz = 0;
 	mce->vendor[0] = '\0';
 
-	f = fopen("/proc/cpuinfo","r");
+	f = fopen("/proc/cpuinfo", "r");
 	if (!f) {
 		log(ALL, LOG_INFO, "Can't open /proc/cpuinfo\n");
 		return errno;
@@ -169,7 +169,7 @@ static int detect_cpu(struct mce_priv *mce)
 
 	while (seen != CPU_ALL && getdelim(&line, &linelen, '\n', f) > 0) {
 		if (sscanf(line, "vendor_id : %63[^\n]",
-		    (char *)&mce->vendor) == 1)
+			   (char *)&mce->vendor) == 1)
 			seen |= CPU_VENDOR;
 		else if (sscanf(line, "cpu family : %d", &mce->family) == 1)
 			seen |= CPU_FAMILY;
@@ -189,7 +189,7 @@ static int detect_cpu(struct mce_priv *mce)
 
 	if (seen != CPU_ALL) {
 		log(ALL, LOG_INFO, "Can't parse /proc/cpuinfo: missing%s%s%s%s%s\n",
-			(seen & CPU_VENDOR) ? "" : " [vendor_id]",
+		    (seen & CPU_VENDOR) ? "" : " [vendor_id]",
 			(seen & CPU_FAMILY) ? "" : " [cpu family]",
 			(seen & CPU_MODEL)  ? "" : " [model]",
 			(seen & CPU_MHZ)    ? "" : " [cpu MHz]",
@@ -215,12 +215,12 @@ static int detect_cpu(struct mce_priv *mce)
 			ret = EINVAL;
 		}
 		goto ret;
-	} else if (!strcmp(mce->vendor,"HygonGenuine")) {
+	} else if (!strcmp(mce->vendor, "HygonGenuine")) {
 		if (mce->family == 24) {
 			mce->cputype = CPU_DHYANA;
 		}
 		goto ret;
-	} else if (!strcmp(mce->vendor,"GenuineIntel")) {
+	} else if (!strcmp(mce->vendor, "GenuineIntel")) {
 		mce->cputype = select_intel_cputype(mce);
 	} else {
 		ret = EINVAL;
@@ -233,7 +233,7 @@ ret:
 	return ret;
 }
 
-int register_mce_handler(struct ras_events *ras, unsigned ncpus)
+int register_mce_handler(struct ras_events *ras, unsigned int ncpus)
 {
 	int rc;
 	struct mce_priv *mce;
@@ -249,8 +249,8 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 	rc = detect_cpu(mce);
 	if (rc) {
 		if (mce->processor_flags)
-			free (mce->processor_flags);
-		free (ras->mce_priv);
+			free(mce->processor_flags);
+		free(ras->mce_priv);
 		ras->mce_priv = NULL;
 		return (rc);
 	}
@@ -290,7 +290,7 @@ static void report_mce_event(struct ras_events *ras,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -378,13 +378,13 @@ static void report_mce_event(struct ras_events *ras,
 	if (strlen(e->frutext)) {
 		trace_seq_printf(s, ", FRU Text= %s", e->frutext);
 		trace_seq_printf(s, ", Vendor Data= ");
-		for (int i = 2; i < e->vdata_len/8; i++) {
+		for (int i = 2; i < e->vdata_len / 8; i++) {
 			trace_seq_printf(s, "0x%lx", e->vdata[i]);
 			trace_seq_printf(s, " ");
 		}
 	} else {
 		trace_seq_printf(s, ", Vendor Data= ");
-		for (int i = 0; i < e->vdata_len/8; i ++) {
+		for (int i = 0; i < e->vdata_len / 8; i++) {
 			trace_seq_printf(s, "0x%lx", e->vdata[i]);
 			trace_seq_printf(s, " ");
 		}
@@ -477,7 +477,7 @@ int ras_offline_mce_event(struct ras_mc_offline_event *event)
 		mce->ipid = event->ipid;
 		if (!mce->ipid || !mce->status) {
 			log(TERM, LOG_ERR, "%s MSR required.\n",
-				    mce->ipid ? "Status" : "Ipid");
+			    mce->ipid ? "Status" : "Ipid");
 			rc = -EINVAL;
 			goto free_mce;
 		}

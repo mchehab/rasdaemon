@@ -25,10 +25,10 @@
 #include "ras-mce-handler.h"
 #include "bitfield.h"
 
-unsigned bitfield_msg(char *buf, size_t len, const char **bitarray,
-		      unsigned array_len,
-		      unsigned bit_offset, unsigned ignore_bits,
-		      uint64_t status)
+unsigned int bitfield_msg(char *buf, size_t len, const char **bitarray,
+			  unsigned int array_len,
+			  unsigned int bit_offset, unsigned int ignore_bits,
+			  uint64_t status)
 {
 	int i, n;
 	char *p = buf;
@@ -64,6 +64,7 @@ unsigned bitfield_msg(char *buf, size_t len, const char **bitarray,
 static uint64_t bitmask(uint64_t i)
 {
 	uint64_t mask = 1;
+
 	while (mask < i)
 		mask = (mask << 1) | 1;
 	return mask;
@@ -77,6 +78,7 @@ void decode_bitfield(struct mce_event *e, uint64_t status,
 	for (f = fields; f->str; f++) {
 		uint64_t v = (status >> f->start_bit) & bitmask(f->stringlen - 1);
 		char *s = NULL;
+
 		if (v < f->stringlen)
 			s = f->str[v];
 		if (!s) {
@@ -93,11 +95,14 @@ void decode_numfield(struct mce_event *e, uint64_t status,
 		     struct numfield *fields)
 {
 	struct numfield *f;
+
 	for (f = fields; f->name; f++) {
 		uint64_t mask = (1ULL << (f->end - f->start + 1)) - 1;
 		uint64_t v = (status >> f->start) & mask;
+
 		if (v > 0 || f->force) {
 			char fmt[32] = {0};
+
 			snprintf(fmt, 32, "%%s: %s\n", f->fmt ? f->fmt : "%Lu");
 			mce_snprintf(e->error_msg, fmt, f->name, v);
 		}

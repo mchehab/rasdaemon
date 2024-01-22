@@ -88,10 +88,10 @@ struct hisi_event {
 
 #ifdef HAVE_SQLITE3
 void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
-			       enum hisi_oem_data_type data_type,
+			enum hisi_oem_data_type data_type,
 			       int id, int64_t data, const char *text)
 {
-	if (ev_decoder->stmt_dec_record == NULL)
+	if (!ev_decoder->stmt_dec_record)
 		return;
 
 	switch (data_type) {
@@ -111,7 +111,7 @@ int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 {
 	int rc;
 
-	if (ev_decoder->stmt_dec_record == NULL)
+	if (!ev_decoder->stmt_dec_record)
 		return 0;
 
 	rc = sqlite3_step(ev_decoder->stmt_dec_record);
@@ -171,13 +171,13 @@ static const struct db_table_descriptor hisi_common_section_tab = {
 };
 #endif
 
-static const char* soc_desc[] = {
+static const char *soc_desc[] = {
 	"Kunpeng916",
 	"Kunpeng920",
 	"Kunpeng930",
 };
 
-static const char* module_name[] = {
+static const char *module_name[] = {
 	"MN",
 	"PLL",
 	"SLLC",
@@ -221,9 +221,9 @@ static const char* module_name[] = {
 	"HBMC",
 };
 
-static const char* get_soc_desc(uint8_t soc_id)
+static const char *get_soc_desc(uint8_t soc_id)
 {
-	if (soc_id >= sizeof(soc_desc)/sizeof(char *))
+	if (soc_id >= sizeof(soc_desc) / sizeof(char *))
 		return "unknown";
 
 	return soc_desc[soc_id];
@@ -232,7 +232,7 @@ static const char* get_soc_desc(uint8_t soc_id)
 static void decode_module(struct ras_ns_ev_decoder *ev_decoder,
 			  struct hisi_event *event, uint8_t module_id)
 {
-	if (module_id >= sizeof(module_name)/sizeof(char *)) {
+	if (module_id >= sizeof(module_name) / sizeof(char *)) {
 		HISI_SNPRINTF(event->error_msg, "module=unknown(id=%hhu) ", module_id);
 		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 				   HISI_COMMON_FIELD_MODULE_ID,
@@ -246,7 +246,7 @@ static void decode_module(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
-					  const struct hisi_common_error_section *err,
+					   const struct hisi_common_error_section *err,
 					  struct hisi_event *event)
 {
 	HISI_SNPRINTF(event->error_msg, "[ table_version=%hhu", err->version);

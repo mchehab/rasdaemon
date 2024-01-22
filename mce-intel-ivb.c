@@ -90,7 +90,7 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
 	struct mce_priv *mce = ras->mce_priv;
 	uint64_t status = e->status;
 	uint32_t mca    = status & 0xffff;
-	unsigned	rank0 = -1, rank1 = -1, chan;
+	unsigned int rank0 = -1, rank1 = -1, chan;
 
 	switch (e->bank) {
 	case 4:
@@ -121,7 +121,7 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
 
 	/* Ignore unless this is an corrected extended error from an iMC bank */
 	if (e->bank < 9 || e->bank > 16 || (status & MCI_STATUS_UC) ||
-		!test_prefix(7, status & 0xefff))
+	    !test_prefix(7, status & 0xefff))
 		return;
 
 	/*
@@ -146,7 +146,7 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
 	 */
 	if (rank0 >= 0 && rank1 >= 0)
 		mce_snprintf(e->mc_location, "ranks=%d and %d",
-				     rank0, rank1);
+			     rank0, rank1);
 	else if (rank0 >= 0)
 		mce_snprintf(e->mc_location, "rank=%d", rank0);
 	else
@@ -162,7 +162,7 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
  * faling rank to a DIMM slot.
  */
 #if 0
-static int failrank2dimm(unsigned failrank, int socket, int channel)
+static int failrank2dimm(unsigned int failrank, int socket, int channel)
 {
 	switch (failrank) {
 	case 0: case 1: case 2: case 3:

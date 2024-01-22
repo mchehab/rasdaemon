@@ -453,7 +453,7 @@ static const char *oem_submodule_name(const struct hisi_module_info *info,
 		if (module->id != module_id)
 			continue;
 
-		if (module->sub == NULL)
+		if (!module->sub)
 			return module->name;
 
 		if (sub_module_id >= module->sub_num)
@@ -675,7 +675,7 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 					struct ras_non_standard_event *event)
 {
 	const struct hisi_oem_type1_err_sec *err =
-			(struct hisi_oem_type1_err_sec*)event->error;
+			(struct hisi_oem_type1_err_sec *)event->error;
 
 	if (err->val_bits == 0) {
 		trace_seq_printf(s, "%s: no valid error information\n",

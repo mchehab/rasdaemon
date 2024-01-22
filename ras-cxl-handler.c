@@ -83,7 +83,7 @@ static char *uuid_be(const char *uu)
 	static const unsigned char be[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
 	for (i = 0; i < 16; i++) {
-		p += sprintf(p, "%.2x", (unsigned char) uu[be[i]]);
+		p += sprintf(p, "%.2x", (unsigned char)uu[be[i]]);
 		switch (i) {
 		case 3:
 		case 5:
@@ -99,7 +99,7 @@ static char *uuid_be(const char *uu)
 	return uuid;
 }
 
-static const char* get_cxl_type_str(const char** type_array, uint8_t num_elems, uint8_t type)
+static const char *get_cxl_type_str(const char **type_array, uint8_t num_elems, uint8_t type)
 {
 	if (type >= num_elems)
 		return "Unknown";
@@ -244,7 +244,7 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	if (ev.flags & CXL_POISON_FLAG_OVERFLOW) {
 		if (tep_get_field_val(s,  event, "overflow_ts", record, &val, 1) < 0)
 			return -1;
-		convert_timestamp(val, ev.overflow_ts, sizeof(ev.overflow_ts));		
+		convert_timestamp(val, ev.overflow_ts, sizeof(ev.overflow_ts));
 	} else
 		strncpy(ev.overflow_ts, "1970-01-01 00:00:00 +0000", sizeof(ev.overflow_ts));
 	if (trace_seq_printf(s, "overflow timestamp:%s\n", ev.overflow_ts) <= 0)
@@ -491,7 +491,6 @@ enum cxl_event_log_type {
 
 static char *cxl_event_log_type_str(uint32_t log_type)
 {
-
 	switch (log_type) {
 	case CXL_EVENT_TYPE_INFO:
 		return "Informational";
@@ -701,7 +700,7 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 			if (trace_seq_printf(s, "\n  %08x: ", i) <= 0)
 				break;
 		if (trace_seq_printf(s, "%02x%02x%02x%02x ",
-				     buf[i], buf[i+1], buf[i+2], buf[i+3]) <= 0)
+				     buf[i], buf[i + 1], buf[i + 2], buf[i + 3]) <= 0)
 			break;
 	}
 
@@ -745,13 +744,13 @@ static const struct cxl_event_flags cxl_gmer_event_desc_flags[] = {
 #define CXL_GMER_VALID_DEVICE			BIT(2)
 #define CXL_GMER_VALID_COMPONENT		BIT(3)
 
-static const char* cxl_gmer_mem_event_type[] = {
+static const char *cxl_gmer_mem_event_type[] = {
 	"ECC Error",
 	"Invalid Address",
 	"Data Path Error",
 };
 
-static const char* cxl_gmer_trans_type[] = {
+static const char *cxl_gmer_trans_type[] = {
 	"Unknown",
 	"Host Read",
 	"Host Write",
@@ -801,7 +800,7 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 		return -1;
 	ev.type = val;
 	if (trace_seq_printf(s, "type:%s ", get_cxl_type_str(cxl_gmer_mem_event_type,
-			     ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
+							     ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
@@ -920,7 +919,7 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 		return -1;
 	ev.type = val;
 	if (trace_seq_printf(s, "type:%s ", get_cxl_type_str(cxl_gmer_mem_event_type,
-			     ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
+							     ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
@@ -1022,7 +1021,7 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
  *
  * CXL res 3.0 section 8.2.9.2.1.3; Table 8-45
  */
-static const char* cxl_dev_evt_type[] = {
+static const char *cxl_dev_evt_type[] = {
 	"Health Status Change",
 	"Media Status Change",
 	"Life Used Change",
@@ -1046,7 +1045,7 @@ static const struct cxl_event_flags cxl_health_status[] = {
 	{ .bit = CXL_DHI_HS_HW_REPLACEMENT_NEEDED, .flag = "REPLACEMENT_NEEDED" },
 };
 
-static const char* cxl_media_status[] = {
+static const char *cxl_media_status[] = {
 	"Normal",
 	"Not Ready",
 	"Write Persistency Lost",
@@ -1059,13 +1058,13 @@ static const char* cxl_media_status[] = {
 	"All Data Loss Imminent",
 };
 
-static const char* cxl_two_bit_status[] = {
+static const char *cxl_two_bit_status[] = {
 	"Normal",
 	"Warning",
 	"Critical",
 };
 
-static const char* cxl_one_bit_status[] = {
+static const char *cxl_one_bit_status[] = {
 	"Normal",
 	"Warning",
 };
@@ -1091,7 +1090,7 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 		return -1;
 	ev.event_type = val;
 	if (trace_seq_printf(s, "event_type:%s ", get_cxl_type_str(cxl_dev_evt_type,
-			     ARRAY_SIZE(cxl_dev_evt_type), ev.event_type)) <= 0)
+								   ARRAY_SIZE(cxl_dev_evt_type), ev.event_type)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "health_status", record, &val, 1) < 0)
@@ -1107,26 +1106,26 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 		return -1;
 	ev.media_status = val;
 	if (trace_seq_printf(s, "media_status:%s ", get_cxl_type_str(cxl_media_status,
-			     ARRAY_SIZE(cxl_media_status), ev.media_status)) <= 0)
+								     ARRAY_SIZE(cxl_media_status), ev.media_status)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "add_status", record, &val, 1) < 0)
 		return -1;
 	ev.add_status = val;
 	if (trace_seq_printf(s, "as_life_used:%s ", get_cxl_type_str(cxl_two_bit_status,
-			     ARRAY_SIZE(cxl_two_bit_status),
+								     ARRAY_SIZE(cxl_two_bit_status),
 			     CXL_DHI_AS_LIFE_USED(ev.add_status))) <= 0)
 		return -1;
 	if (trace_seq_printf(s, "as_dev_temp:%s ", get_cxl_type_str(cxl_two_bit_status,
-			     ARRAY_SIZE(cxl_two_bit_status),
+								    ARRAY_SIZE(cxl_two_bit_status),
 			     CXL_DHI_AS_DEV_TEMP(ev.add_status))) <= 0)
 		return -1;
 	if (trace_seq_printf(s, "as_cor_vol_err_cnt:%s ", get_cxl_type_str(cxl_one_bit_status,
-			     ARRAY_SIZE(cxl_one_bit_status),
+									   ARRAY_SIZE(cxl_one_bit_status),
 			     CXL_DHI_AS_COR_VOL_ERR_CNT(ev.add_status))) <= 0)
 		return -1;
 	if (trace_seq_printf(s, "as_cor_per_err_cnt:%s ", get_cxl_type_str(cxl_one_bit_status,
-			     ARRAY_SIZE(cxl_one_bit_status),
+									   ARRAY_SIZE(cxl_one_bit_status),
 			     CXL_DHI_AS_COR_PER_ERR_CNT(ev.add_status))) <= 0)
 		return -1;
 

@@ -29,7 +29,7 @@ struct link_queue *init_queue(void)
 	struct link_queue *queue = NULL;
 
 	queue = (struct link_queue *)malloc(sizeof(struct link_queue));
-	if (queue == NULL) {
+	if (!queue) {
 		log(TERM, LOG_ERR, "Failed to allocate memory for queue.\n");
 		return NULL;
 	}
@@ -43,13 +43,13 @@ struct link_queue *init_queue(void)
 
 void clear_queue(struct link_queue *queue)
 {
-	if (queue == NULL)
+	if (!queue)
 		return;
 
 	struct queue_node *node = queue->head;
 	struct queue_node *tmp = NULL;
 
-	while (node != NULL) {
+	while (node) {
 		tmp = node;
 		node = node->next;
 		free(tmp);
@@ -72,7 +72,7 @@ void free_queue(struct link_queue *queue)
 void push(struct link_queue *queue, struct queue_node *node)
 {
 	/* there is no element in the queue */
-	if (queue->head == NULL)
+	if (!queue->head)
 		queue->head = node;
 	else
 		queue->tail->next = node;
@@ -85,7 +85,7 @@ int pop(struct link_queue *queue)
 {
 	struct queue_node *tmp = NULL;
 
-	if (queue == NULL || is_empty(queue))
+	if (!queue || is_empty(queue))
 		return -1;
 
 	tmp = queue->head;
@@ -98,7 +98,7 @@ int pop(struct link_queue *queue)
 
 struct queue_node *front(struct link_queue *queue)
 {
-	if (queue == NULL)
+	if (!queue)
 		return NULL;
 
 	return queue->head;
@@ -109,7 +109,7 @@ struct queue_node *node_create(time_t time, unsigned int value)
 	struct queue_node *node = NULL;
 
 	node = (struct queue_node *)malloc(sizeof(struct queue_node));
-	if (node != NULL) {
+	if (node) {
 		node->time = time;
 		node->value = value;
 		node->next = NULL;

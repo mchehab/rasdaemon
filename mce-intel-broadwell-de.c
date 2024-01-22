@@ -78,7 +78,7 @@ void broadwell_de_decode_model(struct ras_events *ras, struct mce_event *e)
 {
 	uint64_t status = e->status;
 	uint32_t mca = status & 0xffff;
-	unsigned rank0 = -1, rank1 = -1, chan;
+	unsigned int rank0 = -1, rank1 = -1, chan;
 
 	switch (e->bank) {
 	case 4:
@@ -115,7 +115,7 @@ void broadwell_de_decode_model(struct ras_events *ras, struct mce_event *e)
 
 	/* Ignore unless this is an corrected extended error from an iMC bank */
 	if (e->bank < 9 || e->bank > 16 || (status & MCI_STATUS_UC) ||
-		!test_prefix(7, status & 0xefff))
+	    !test_prefix(7, status & 0xefff))
 		return;
 
 	/*
@@ -140,7 +140,7 @@ void broadwell_de_decode_model(struct ras_events *ras, struct mce_event *e)
 	 */
 	if (rank0 != -1 && rank1 != -1)
 		mce_snprintf(e->mc_location, "ranks=%d and %d",
-				     rank0, rank1);
+			     rank0, rank1);
 	else if (rank0 != -1)
 		mce_snprintf(e->mc_location, "rank=%d", rank0);
 }

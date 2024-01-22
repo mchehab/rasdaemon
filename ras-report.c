@@ -21,13 +21,14 @@
 
 #include "ras-report.h"
 
-static int setup_report_socket(void){
+static int setup_report_socket(void)
+{
 	int sockfd = -1;
 	int rc = -1;
 	struct sockaddr_un addr;
 
 	sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (sockfd < 0){
+	if (sockfd < 0) {
 		return -1;
 	}
 
@@ -45,12 +46,13 @@ static int setup_report_socket(void){
 	return sockfd;
 }
 
-static int commit_report_basic(int sockfd){
+static int commit_report_basic(int sockfd)
+{
 	char buf[INPUT_BUFFER_SIZE];
 	struct utsname un;
 	int rc = -1;
 
-	if(sockfd < 0){
+	if (sockfd < 0) {
 		return rc;
 	}
 
@@ -58,7 +60,7 @@ static int commit_report_basic(int sockfd){
 	memset(&un, 0, sizeof(struct utsname));
 
 	rc = uname(&un);
-	if(rc < 0){
+	if (rc < 0) {
 		return rc;
 	}
 
@@ -67,35 +69,36 @@ static int commit_report_basic(int sockfd){
 	 */
 	sprintf(buf, "PUT / HTTP/1.1\r\n\r\n");
 	rc = write(sockfd, buf, strlen(buf));
-	if(rc < strlen(buf)){
+	if (rc < strlen(buf)) {
 		return -1;
 	}
 
 	sprintf(buf, "PID=%d", (int)getpid());
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		return -1;
 	}
 
 	sprintf(buf, "EXECUTABLE=/boot/vmlinuz-%s", un.release);
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		return -1;
 	}
 
 	sprintf(buf, "TYPE=%s", "ras");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		return -1;
 	}
 
 	return 0;
 }
 
-static int set_mc_event_backtrace(char *buf, struct ras_mc_event *ev){
+static int set_mc_event_backtrace(char *buf, struct ras_mc_event *ev)
+{
 	char bt_buf[MAX_BACKTRACE_SIZE];
 
-	if(!buf || !ev)
+	if (!buf || !ev)
 		return -1;
 
 	sprintf(bt_buf, "BACKTRACE="	\
@@ -131,10 +134,11 @@ static int set_mc_event_backtrace(char *buf, struct ras_mc_event *ev){
 	return 0;
 }
 
-static int set_mce_event_backtrace(char *buf, struct mce_event *ev){
+static int set_mce_event_backtrace(char *buf, struct mce_event *ev)
+{
 	char bt_buf[MAX_BACKTRACE_SIZE];
 
-	if(!buf || !ev)
+	if (!buf || !ev)
 		return -1;
 
 	sprintf(bt_buf, "BACKTRACE="	\
@@ -190,10 +194,11 @@ static int set_mce_event_backtrace(char *buf, struct mce_event *ev){
 	return 0;
 }
 
-static int set_aer_event_backtrace(char *buf, struct ras_aer_event *ev){
+static int set_aer_event_backtrace(char *buf, struct ras_aer_event *ev)
+{
 	char bt_buf[MAX_BACKTRACE_SIZE];
 
-	if(!buf || !ev)
+	if (!buf || !ev)
 		return -1;
 
 	sprintf(bt_buf, "BACKTRACE="	\
@@ -211,10 +216,11 @@ static int set_aer_event_backtrace(char *buf, struct ras_aer_event *ev){
 	return 0;
 }
 
-static int set_non_standard_event_backtrace(char *buf, struct ras_non_standard_event *ev){
+static int set_non_standard_event_backtrace(char *buf, struct ras_non_standard_event *ev)
+{
 	char bt_buf[MAX_BACKTRACE_SIZE];
 
-	if(!buf || !ev)
+	if (!buf || !ev)
 		return -1;
 
 	sprintf(bt_buf, "BACKTRACE="	\
@@ -230,10 +236,11 @@ static int set_non_standard_event_backtrace(char *buf, struct ras_non_standard_e
 	return 0;
 }
 
-static int set_arm_event_backtrace(char *buf, struct ras_arm_event *ev){
+static int set_arm_event_backtrace(char *buf, struct ras_arm_event *ev)
+{
 	char bt_buf[MAX_BACKTRACE_SIZE];
 
-	if(!buf || !ev)
+	if (!buf || !ev)
 		return -1;
 
 	sprintf(bt_buf, "BACKTRACE="    \
@@ -257,10 +264,11 @@ static int set_arm_event_backtrace(char *buf, struct ras_arm_event *ev){
 	return 0;
 }
 
-static int set_devlink_event_backtrace(char *buf, struct devlink_event *ev){
+static int set_devlink_event_backtrace(char *buf, struct devlink_event *ev)
+{
 	char bt_buf[MAX_BACKTRACE_SIZE];
 
-	if(!buf || !ev)
+	if (!buf || !ev)
 		return -1;
 
 	sprintf(bt_buf, "BACKTRACE="	\
@@ -282,10 +290,11 @@ static int set_devlink_event_backtrace(char *buf, struct devlink_event *ev){
 	return 0;
 }
 
-static int set_diskerror_event_backtrace(char *buf, struct diskerror_event *ev) {
+static int set_diskerror_event_backtrace(char *buf, struct diskerror_event *ev)
+{
 	char bt_buf[MAX_BACKTRACE_SIZE];
 
-	if(!buf || !ev)
+	if (!buf || !ev)
 		return -1;
 
 	sprintf(bt_buf, "BACKTRACE="	\
@@ -317,14 +326,14 @@ static int set_mf_event_backtrace(char *buf, struct ras_mf_event *ev)
 		return -1;
 
 	sprintf(bt_buf, "BACKTRACE="    \
-                                                "timestamp=%s\n"	\
-                                                "pfn=%s\n"		\
-                                                "page_type=%s\n"	\
-                                                "action_result=%s\n",	\
-                                                ev->timestamp,		\
-                                                ev->pfn,		\
-                                                ev->page_type,		\
-                                                ev->action_result);
+						"timestamp=%s\n"	\
+						"pfn=%s\n"		\
+						"page_type=%s\n"	\
+						"action_result=%s\n",	\
+						ev->timestamp,		\
+						ev->pfn,		\
+						ev->page_type,		\
+						ev->action_result);
 
 	strcat(buf, bt_buf);
 
@@ -661,19 +670,20 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 	return 0;
 }
 
-static int commit_report_backtrace(int sockfd, int type, void *ev){
+static int commit_report_backtrace(int sockfd, int type, void *ev)
+{
 	char buf[MAX_BACKTRACE_SIZE];
 	char *pbuf = buf;
 	int rc = -1;
 	int buf_len = 0;
 
-	if(sockfd < 0 || !ev){
+	if (sockfd < 0 || !ev) {
 		return -1;
 	}
 
 	memset(buf, 0, MAX_BACKTRACE_SIZE);
 
-	switch(type){
+	switch (type) {
 	case MC_EVENT:
 		rc = set_mc_event_backtrace(buf, (struct ras_mc_event *)ev);
 		break;
@@ -726,15 +736,15 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 		return -1;
 	}
 
-	if(rc < 0){
+	if (rc < 0) {
 		return -1;
 	}
 
 	buf_len = strlen(buf);
 
-	for(;buf_len > INPUT_BUFFER_SIZE - 1; buf_len -= (INPUT_BUFFER_SIZE - 1)){
+	for (; buf_len > INPUT_BUFFER_SIZE - 1; buf_len -= (INPUT_BUFFER_SIZE - 1)) {
 		rc = write(sockfd, pbuf, INPUT_BUFFER_SIZE - 1);
-		if(rc < INPUT_BUFFER_SIZE - 1){
+		if (rc < INPUT_BUFFER_SIZE - 1) {
 			return -1;
 		}
 
@@ -742,14 +752,15 @@ static int commit_report_backtrace(int sockfd, int type, void *ev){
 	}
 
 	rc = write(sockfd, pbuf, buf_len + 1);
-	if(rc < buf_len){
+	if (rc < buf_len) {
 		return -1;
 	}
 
 	return 0;
 }
 
-int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev){
+int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
+{
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = -1;
 	int done = 0;
@@ -758,29 +769,29 @@ int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev){
 	memset(buf, 0, sizeof(buf));
 
 	sockfd = setup_report_socket();
-	if(sockfd < 0){
+	if (sockfd < 0) {
 		return -1;
 	}
 
 	rc = commit_report_basic(sockfd);
-	if(rc < 0){
+	if (rc < 0) {
 		goto mc_fail;
 	}
 
 	rc = commit_report_backtrace(sockfd, MC_EVENT, ev);
-	if(rc < 0){
+	if (rc < 0) {
 		goto mc_fail;
 	}
 
 	sprintf(buf, "ANALYZER=%s", "rasdaemon-mc");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto mc_fail;
 	}
 
 	sprintf(buf, "REASON=%s", "EDAC driver report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto mc_fail;
 	}
 
@@ -788,18 +799,19 @@ int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev){
 
 mc_fail:
 
-	if(sockfd >= 0){
+	if (sockfd >= 0) {
 		close(sockfd);
 	}
 
-	if(done){
+	if (done) {
 		return 0;
-	}else{
+	} else {
 		return -1;
 	}
 }
 
-int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev){
+int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
+{
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
 	int done = 0;
@@ -808,29 +820,29 @@ int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev){
 	memset(buf, 0, sizeof(buf));
 
 	sockfd = setup_report_socket();
-	if(sockfd < 0){
+	if (sockfd < 0) {
 		return -1;
 	}
 
 	rc = commit_report_basic(sockfd);
-	if(rc < 0){
+	if (rc < 0) {
 		goto aer_fail;
 	}
 
 	rc = commit_report_backtrace(sockfd, AER_EVENT, ev);
-	if(rc < 0){
+	if (rc < 0) {
 		goto aer_fail;
 	}
 
 	sprintf(buf, "ANALYZER=%s", "rasdaemon-aer");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto aer_fail;
 	}
 
 	sprintf(buf, "REASON=%s", "PCIe AER driver report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto aer_fail;
 	}
 
@@ -838,18 +850,19 @@ int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev){
 
 aer_fail:
 
-	if(sockfd >= 0){
+	if (sockfd >= 0) {
 		close(sockfd);
 	}
 
-	if(done){
+	if (done) {
 		return 0;
-	}else{
+	} else {
 		return -1;
 	}
 }
 
-int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standard_event *ev){
+int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standard_event *ev)
+{
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
 	int rc = -1;
@@ -857,29 +870,29 @@ int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standar
 	memset(buf, 0, sizeof(buf));
 
 	sockfd = setup_report_socket();
-	if(sockfd < 0){
+	if (sockfd < 0) {
 		return rc;
 	}
 
 	rc = commit_report_basic(sockfd);
-	if(rc < 0){
+	if (rc < 0) {
 		goto non_standard_fail;
 	}
 
 	rc = commit_report_backtrace(sockfd, NON_STANDARD_EVENT, ev);
-	if(rc < 0){
+	if (rc < 0) {
 		goto non_standard_fail;
 	}
 
 	sprintf(buf, "ANALYZER=%s", "rasdaemon-non-standard");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto non_standard_fail;
 	}
 
 	sprintf(buf, "REASON=%s", "Unknown CPER section problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto non_standard_fail;
 	}
 
@@ -887,14 +900,15 @@ int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standar
 
 non_standard_fail:
 
-	if(sockfd >= 0){
+	if (sockfd >= 0) {
 		close(sockfd);
 	}
 
 	return rc;
 }
 
-int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev){
+int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev)
+{
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
 	int rc = -1;
@@ -902,29 +916,29 @@ int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev){
 	memset(buf, 0, sizeof(buf));
 
 	sockfd = setup_report_socket();
-	if(sockfd < 0){
+	if (sockfd < 0) {
 		return rc;
 	}
 
 	rc = commit_report_basic(sockfd);
-	if(rc < 0){
+	if (rc < 0) {
 		goto arm_fail;
 	}
 
 	rc = commit_report_backtrace(sockfd, ARM_EVENT, ev);
-	if(rc < 0){
+	if (rc < 0) {
 		goto arm_fail;
 	}
 
 	sprintf(buf, "ANALYZER=%s", "rasdaemon-arm");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto arm_fail;
 	}
 
 	sprintf(buf, "REASON=%s", "ARM CPU report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto arm_fail;
 	}
 
@@ -932,14 +946,15 @@ int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev){
 
 arm_fail:
 
-	if(sockfd >= 0){
+	if (sockfd >= 0) {
 		close(sockfd);
 	}
 
 	return rc;
 }
 
-int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev){
+int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev)
+{
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
 	int done = 0;
@@ -948,29 +963,29 @@ int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev){
 	memset(buf, 0, sizeof(buf));
 
 	sockfd = setup_report_socket();
-	if(sockfd < 0){
+	if (sockfd < 0) {
 		return -1;
 	}
 
 	rc = commit_report_basic(sockfd);
-	if(rc < 0){
+	if (rc < 0) {
 		goto mce_fail;
 	}
 
 	rc = commit_report_backtrace(sockfd, MCE_EVENT, ev);
-	if(rc < 0){
+	if (rc < 0) {
 		goto mce_fail;
 	}
 
 	sprintf(buf, "ANALYZER=%s", "rasdaemon-mce");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto mce_fail;
 	}
 
 	sprintf(buf, "REASON=%s", "Machine Check driver report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto mce_fail;
 	}
 
@@ -978,18 +993,19 @@ int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev){
 
 mce_fail:
 
-	if(sockfd >= 0){
+	if (sockfd >= 0) {
 		close(sockfd);
 	}
 
-	if(done){
+	if (done) {
 		return 0;
-	}else{
+	} else {
 		return -1;
 	}
 }
 
-int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev){
+int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev)
+{
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
 	int done = 0;
@@ -998,29 +1014,29 @@ int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev){
 	memset(buf, 0, sizeof(buf));
 
 	sockfd = setup_report_socket();
-	if(sockfd < 0){
+	if (sockfd < 0) {
 		return -1;
 	}
 
 	rc = commit_report_basic(sockfd);
-	if(rc < 0){
+	if (rc < 0) {
 		goto devlink_fail;
 	}
 
 	rc = commit_report_backtrace(sockfd, DEVLINK_EVENT, ev);
-	if(rc < 0){
+	if (rc < 0) {
 		goto devlink_fail;
 	}
 
 	sprintf(buf, "ANALYZER=%s", "rasdaemon-devlink");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto devlink_fail;
 	}
 
 	sprintf(buf, "REASON=%s", "devlink health report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto devlink_fail;
 	}
 
@@ -1028,18 +1044,19 @@ int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev){
 
 devlink_fail:
 
-	if(sockfd >= 0){
+	if (sockfd >= 0) {
 		close(sockfd);
 	}
 
-	if(done){
+	if (done) {
 		return 0;
-	}else{
+	} else {
 		return -1;
 	}
 }
 
-int ras_report_diskerror_event(struct ras_events *ras, struct diskerror_event *ev){
+int ras_report_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
+{
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
 	int done = 0;
@@ -1048,42 +1065,42 @@ int ras_report_diskerror_event(struct ras_events *ras, struct diskerror_event *e
 	memset(buf, 0, sizeof(buf));
 
 	sockfd = setup_report_socket();
-	if(sockfd < 0){
+	if (sockfd < 0) {
 		return -1;
 	}
 
 	rc = commit_report_basic(sockfd);
-	if(rc < 0){
+	if (rc < 0) {
 		goto diskerror_fail;
 	}
 
 	rc = commit_report_backtrace(sockfd, DISKERROR_EVENT, ev);
-	if(rc < 0){
+	if (rc < 0) {
 		goto diskerror_fail;
 	}
 
 	sprintf(buf, "ANALYZER=%s", "rasdaemon-diskerror");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto diskerror_fail;
 	}
 
 	sprintf(buf, "REASON=%s", "disk I/O error");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if(rc < strlen(buf) + 1){
+	if (rc < strlen(buf) + 1) {
 		goto diskerror_fail;
 	}
 
 	done = 1;
 
 diskerror_fail:
-	if(sockfd >= 0){
+	if (sockfd >= 0) {
 		close(sockfd);
 	}
 
-	if(done){
+	if (done) {
 		return 0;
-	}else{
+	} else {
 		return -1;
 	}
 }
@@ -1349,7 +1366,6 @@ cxl_generic_fail:
 		return 0;
 	else
 		return -1;
-
 }
 
 int ras_report_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev)

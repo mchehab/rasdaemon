@@ -116,7 +116,7 @@ static void parse_isolation_env(struct isolation *config)
 	int unit_matched = 0;
 	unsigned long value, tmp;
 
-	/* check if env is vaild */
+	/* check if env is valid */
 	if (env && strlen(env)) {
 		/* All the character before unit must be digit */
 		for (i = 0; i < strlen(env) - 1; i++) {
@@ -125,7 +125,7 @@ static void parse_isolation_env(struct isolation *config)
 		}
 		if (sscanf(env, "%lu", &value) < 1 || !value)
 			goto parse;
-		/* check if the unit is vaild */
+		/* check if the unit is valid */
 		unit = env + strlen(env) - 1;
 		/* no unit, all the character are value character */
 		if (isdigit(*unit)) {
@@ -151,7 +151,7 @@ parse:
 			config->unit = unit;
 	} else {
 		 log(TERM, LOG_INFO, "Improper %s, set to default %s.\n",
-				 config->name, config->env);
+		     config->name, config->env);
 	}
 
 	/* if env value string is greater than ulong_max, truncate the last digit */
@@ -177,10 +177,11 @@ static void parse_env_string(struct isolation *config, char *str, unsigned int s
 
 	if (config->overflow) {
 		/* when overflow, use basic unit */
-		for (i = 0; config->units[i].name; i++) ;
-		snprintf(str, size, "%lu%s", config->val, config->units[i-1].name);
+		for (i = 0; config->units[i].name; i++)
+			;
+		snprintf(str, size, "%lu%s", config->val, config->units[i - 1].name);
 		log(TERM, LOG_INFO, "%s is set overflow(%s), truncate it\n",
-				config->name, config->env);
+		    config->name, config->env);
 	} else {
 		snprintf(str, size, "%s%s", config->env, config->unit);
 	}
@@ -202,7 +203,7 @@ static void page_isolation_init(void)
 	parse_env_string(&threshold, threshold_string, sizeof(threshold_string));
 	parse_env_string(&cycle, cycle_string, sizeof(cycle_string));
 	log(TERM, LOG_INFO, "Threshold of memory Corrected Errors is %s / %s\n",
-			threshold_string, cycle_string);
+	    threshold_string, cycle_string);
 }
 
 void ras_page_account_init(void)
@@ -239,7 +240,7 @@ static void page_offline(struct page_record *pr)
 	/* Offlining page is not required */
 	if (offline <= OFFLINE_ACCOUNT) {
 		log(TERM, LOG_INFO, "PAGE_CE_ACTION=%s, ignore to offline page at %#llx\n",
-				offline_choice[offline].name, addr);
+		    offline_choice[offline].name, addr);
 		return;
 	}
 
@@ -264,7 +265,7 @@ static void page_offline(struct page_record *pr)
 	    addr, page_state[pr->offlined]);
 }
 
-static void page_record(struct page_record *pr, unsigned count, time_t time)
+static void page_record(struct page_record *pr, unsigned int count, time_t time)
 {
 	unsigned long period = time - pr->start;
 	unsigned long tolerate;
@@ -328,7 +329,7 @@ static struct page_record *page_lookup_insert(unsigned long long addr)
 	return find;
 }
 
-void ras_record_page_error(unsigned long long addr, unsigned count, time_t time)
+void ras_record_page_error(unsigned long long addr, unsigned int count, time_t time)
 {
 	struct page_record *pr = NULL;
 

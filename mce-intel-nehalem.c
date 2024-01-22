@@ -112,9 +112,9 @@ void nehalem_decode_model(struct mce_event *e)
 	uint64_t status = e->status;
 	uint32_t mca = status & 0xffff;
 	uint64_t misc = e->misc;
-	unsigned channel, dimm;
+	unsigned int channel, dimm;
 
-	if ((mca >> 11) == 1) { 	/* bus and interconnect QPI */
+	if ((mca >> 11) == 1) {	/* bus and interconnect QPI */
 		decode_bitfield(e, status, qpi_status);
 		if (status & MCI_STATUS_MISCV) {
 			decode_numfield(e, misc, qpi_numbers);
@@ -143,6 +143,7 @@ void xeon75xx_decode_model(struct mce_event *e)
 {
 	uint64_t status = e->status;
 	uint32_t mca = status & 0xffff;
+
 	if (mca == 0x0001) { /* internal unspecified */
 		decode_bitfield(e, status, internal_error_status);
 		decode_numfield(e, status, internal_error_numbers);

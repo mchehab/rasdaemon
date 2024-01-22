@@ -24,8 +24,9 @@
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 
-void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index) {
-	trace_seq_printf(s, "%02x%02x%02x%02x", buf[index+3], buf[index+2], buf[index+1], buf[index]);
+void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index)
+{
+	trace_seq_printf(s, "%02x%02x%02x%02x", buf[index + 3], buf[index + 2], buf[index + 1], buf[index]);
 }
 
 static char *uuid_le(const char *uu)
@@ -33,10 +34,10 @@ static char *uuid_le(const char *uu)
 	static char uuid[sizeof("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")];
 	char *p = uuid;
 	int i;
-	static const unsigned char le[16] = {3,2,1,0,5,4,7,6,8,9,10,11,12,13,14,15};
+	static const unsigned char le[16] = {3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15};
 
 	for (i = 0; i < 16; i++) {
-		p += sprintf(p, "%.2x", (unsigned char) uu[le[i]]);
+		p += sprintf(p, "%.2x", (unsigned char)uu[le[i]]);
 		switch (i) {
 		case 3:
 		case 5:
@@ -167,7 +168,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -197,12 +198,12 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 
 	ev.sec_type = tep_get_field_raw(s, event, "sec_type",
 					record, &len, 1);
-	if(!ev.sec_type)
+	if (!ev.sec_type)
 		return -1;
 	if (strcmp(uuid_le(ev.sec_type),
 		   "e8ed898d-df16-43cc-8ecc-54f060ef157f") == 0)
 		trace_seq_printf(s, "\n section type: %s",
-		"Ampere Specific Error\n");
+				 "Ampere Specific Error\n");
 	else
 		trace_seq_printf(s, " section type: %s",
 				 uuid_le(ev.sec_type));
@@ -219,7 +220,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	trace_seq_printf(s, " length: %d", ev.length);
 
 	ev.error = tep_get_field_raw(s, event, "buf", record, &len, 1);
-	if(!ev.error)
+	if (!ev.error)
 		return -1;
 
 	if (!find_ns_ev_decoder(ev.sec_type, &ns_ev_decoder)) {
