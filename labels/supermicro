@@ -112,7 +112,25 @@ Vendor: Supermicro
     P2-DIMMD1: 3.0.0;
     P2-DIMME1: 3.1.0;
     P2-DIMMF1: 3.2.0;
-  
+
+  Model: X11DPi-N, X11DPi-NT
+    P1-DIMMA1: 0.0.0;
+    P1-DIMMA2: 0.0.1;
+    P1-DIMMB1: 0.1.0;
+    P1-DIMMC1: 0.2.0;
+    P1-DIMMD1: 1.0.0;
+    P1-DIMMD2: 1.0.1;
+    P1-DIMME1: 1.1.0;
+    P1-DIMMF1: 1.2.0;
+    P2-DIMMA1: 2.0.0;
+    P2-DIMMA2: 2.0.1;
+    P2-DIMMB1: 2.1.0;
+    P2-DIMMC1: 2.2.0;
+    P2-DIMMD1: 3.0.0;
+    P2-DIMMD2: 3.0.1;
+    P2-DIMME1: 3.1.0;
+    P2-DIMMF1: 3.2.0;
+
   Model: X11SPM-F, X11SPM-TF, X11SPM-TPF
     DIMMA1: 0.0.0;
     DIMMB1: 0.1.0;
