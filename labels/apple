@@ -8,6 +8,22 @@
 #    <label>: <mc>.<branch>.<channel>.<slot>
 #
 
+Vendor: Apple Computer, Inc.
+  Model: Mac-F4208DC8
+    DIMM1_RA: 0.0.0.0; DIMM2_RA: 0.0.1.0;
+    DIMM3_RA: 0.0.0.1; DIMM4_RA: 0.0.1.1;
+    
+    DIMM1_RB: 0.1.0.0; DIMM2_RB: 0.1.1.0;
+    DIMM3_RB: 0.1.0.1; DIMM4_RB: 0.1.1.1;
+
+Vendor: Apple Inc.
+  Model: Mac-F4208DA9
+    DIMM1_RA: 0.0.0.0; DIMM2_RA: 0.0.1.0;
+    DIMM3_RA: 0.0.0.1; DIMM4_RA: 0.0.1.1;
+    
+    DIMM1_RB: 0.1.0.0; DIMM2_RB: 0.1.1.0;
+    DIMM3_RB: 0.1.0.1; DIMM4_RB: 0.1.1.1;
+
 Vendor: Apple Inc.
   Model: Mac-F42C88C8
     DIMM1_RA: 0.1.0.0; DIMM2_RA: 0.1.1.0;
