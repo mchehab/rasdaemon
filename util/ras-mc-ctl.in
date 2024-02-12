@@ -1546,6 +1546,22 @@ sub summary
             print "No CXL general media errors.\n\n";
         }
         $query_handle->finish;
+
+        # CXL DRAM errors
+        $query = "select memdev, count(*) from cxl_dram_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL DRAM events summary:\n$out\n";
+        } else {
+            print "No CXL DRAM errors.\n\n";
+        }
+        $query_handle->finish;
     }
 
     # extlog errors
@@ -1658,6 +1674,7 @@ sub errors
     my ($trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts);
     my ($hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $data);
     my ($dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id);
+    my ($nibble_mask, $bank_group, $row, $column, $cor_mask);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1911,6 +1928,53 @@ sub errors
             print "CXL general media events:\n$out\n";
         } else {
             print "No CXL general media errors.\n\n";
+        }
+
+        # CXL DRAM errors
+        use constant CXL_EVENT_DER_CORRECTION_MASK_SIZE => 0x20;
+        $query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, nibble_mask, bank_group, bank, row, column, cor_mask from cxl_dram_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $dpa, $dpa_flags, $descriptor, $type, $transaction_type, $channel, $rank, $nibble_mask, $bank_group, $bank, $row, $column, $cor_mask));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+            $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+            $out .= sprintf "hdr_flags=0x%llx, %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+            $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+            $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+            $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+            $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+            $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+            $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
+            $out .= sprintf "dpa_flags: %s, ", get_cxl_dpa_flags_text($dpa_flags) if (defined $dpa_flags && length $dpa_flags);
+            $out .= sprintf "descriptor_flags: %s, ", get_cxl_descriptor_flags_text($descriptor) if (defined $descriptor && length $descriptor);
+            $out .= sprintf "memory event type: %s, ", get_cxl_mem_event_type($type) if (defined $type && length $type);
+            $out .= sprintf "transaction_type: %s, ", get_cxl_transaction_type($transaction_type) if (defined $transaction_type && length $transaction_type);
+            $out .= sprintf "channel=%u, ", $channel if (defined $channel && length $channel);
+            $out .= sprintf "rank=%u, ", $rank if (defined $rank && length $rank);
+            $out .= sprintf "nibble_mask=%u, ", $nibble_mask if (defined $nibble_mask && length $nibble_mask);
+            $out .= sprintf "bank_group=%u, ", $bank_group if (defined $bank_group && length $bank_group);
+            $out .= sprintf "bank=%u, ", $bank if (defined $bank && length $bank);
+            $out .= sprintf "row=%u, ", $row if (defined $row && length $row);
+            $out .= sprintf "column=%u, ", $column if (defined $column && length $column);
+            if (defined $cor_mask && length $cor_mask) {
+                $out .= sprintf "correction_mask:";
+                my @bytes = unpack "C*", $cor_mask;
+                for (my $i = 0; $i < CXL_EVENT_DER_CORRECTION_MASK_SIZE; $i++) {
+                    $out .= sprintf "%02x ", $bytes[$i];
+		}
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL DRAM events:\n$out\n";
+        } else {
+            print "No CXL DRAM errors.\n\n";
         }
     }
 
