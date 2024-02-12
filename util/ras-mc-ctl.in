@@ -1281,6 +1281,34 @@ sub get_cxl_ce_error_status_text
     return join (", ", @out);
 }
 
+use constant {
+    CXL_EVENT_RECORD_FLAG_PERMANENT => 0x0004,
+    CXL_EVENT_RECORD_FLAG_MAINT_NEEDED => 0x0008,
+    CXL_EVENT_RECORD_FLAG_PERF_DEGRADED => 0x0010,
+    CXL_EVENT_RECORD_FLAG_HW_REPLACE => 0x0020,
+};
+
+sub get_cxl_hdr_flags_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_EVENT_RECORD_FLAG_PERMANENT) {
+        push @out, (sprintf "\'PERMANENT_CONDITION\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_MAINT_NEEDED) {
+        push @out, (sprintf "\'MAINTENANCE_NEEDED\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_PERF_DEGRADED) {
+        push @out, (sprintf "\'PERFORMANCE_DEGRADED\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_HW_REPLACE) {
+        push @out, (sprintf "\'HARDWARE_REPLACEMENT_NEEDED\' ");
+    }
+
+    return join (", ", @out);
+}
+
 sub summary
 {
     require DBI;
@@ -1409,6 +1437,22 @@ sub summary
             print "No CXL poison errors.\n\n";
         }
         $query_handle->finish;
+
+        # CXL generic errors
+        $query = "select memdev, count(*) from cxl_generic_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL  generic events summary:\n$out\n";
+        } else {
+            print "No CXL generic errors.\n\n";
+        }
+        $query_handle->finish;
     }
 
     # extlog errors
@@ -1519,6 +1563,7 @@ sub errors
     my ($memdev, $host, $serial, $error_status, $first_error, $header_log);
     my ($log_type, $first_ts, $last_ts);
     my ($trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts);
+    my ($hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $data);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1691,6 +1736,44 @@ sub errors
             print "CXL poison events:\n$out\n";
         } else {
             print "No CXL poison errors.\n\n";
+        }
+
+        # CXL generic errors
+        use constant CXL_EVENT_RECORD_DATA_LENGTH => 0x50;
+        $query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, data from cxl_generic_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $data));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+            $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+            $out .= sprintf "hdr_flags=0x%llx %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+            $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+            $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+            $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+            $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+            $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+            if (defined $data && length $data) {
+                $out .= sprintf "data:\n";
+                my @bytes = unpack "C*", $data;
+                for (my $i = 0; $i < CXL_EVENT_RECORD_DATA_LENGTH; $i++) {
+                    if (($i > 0) && (($i % 16) == 0)) {
+                        $out .= sprintf "\n %08x: ", $i;
+                    }
+                    $out .= sprintf "%02x%02x%02x%02x ", $bytes[$i], $bytes[$i + 1], $bytes[$i + 2], $bytes[$i + 3];
+		}
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL generic events:\n$out\n";
+        } else {
+            print "No CXL generic errors.\n\n";
         }
     }
 
