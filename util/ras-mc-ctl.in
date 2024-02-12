@@ -1392,6 +1392,22 @@ sub summary
             print "No CXL overflow errors.\n\n";
         }
         $query_handle->finish;
+
+        # CXL poison errors
+        $query = "select memdev, count(*) from cxl_poison_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL poison events summary:\n$out\n";
+        } else {
+            print "No CXL poison errors.\n\n";
+        }
+        $query_handle->finish;
     }
 
     # extlog errors
@@ -1501,6 +1517,7 @@ sub errors
     my ($pfn, $page_type, $action_result);
     my ($memdev, $host, $serial, $error_status, $first_error, $header_log);
     my ($log_type, $first_ts, $last_ts);
+    my ($trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1645,6 +1662,34 @@ sub errors
             print "CXL overflow events:\n$out\n";
         } else {
             print "No CXL overflow errors.\n\n";
+        }
+
+        # CXL poison errors
+        $query = "select id, timestamp, memdev, host, serial, trace_type, region, region_uuid, hpa, dpa, dpa_length, source, flags, overflow_ts from cxl_poison_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "trace_type=$trace_type, " if (defined $trace_type && length $trace_type);
+            $out .= "region=$region, " if (defined $region && length $region);
+            $out .= "region_uuid=$region_uuid, " if (defined $region_uuid && length $region_uuid);
+            $out .= sprintf "hpa=0x%llx, ", $hpa if (defined $hpa && length $hpa);
+            $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
+            $out .= sprintf "dpa_length=0x%x, ", $dpa_length if (defined $dpa_length && length $dpa_length);
+            $out .= "source=$source, " if (defined $source && length $source);
+            $out .= sprintf "flags=%d, ", $flags if (defined $flags && length $flags);
+            $out .= "overflow timestamp=$overflow_ts " if (defined $overflow_ts && length $overflow_ts);
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL poison events:\n$out\n";
+        } else {
+            print "No CXL poison errors.\n\n";
         }
     }
 
