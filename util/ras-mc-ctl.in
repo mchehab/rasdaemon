@@ -43,6 +43,7 @@ my $modprobe    = find_prog ("modprobe")  or exit (1);
 
 my $has_aer = 0;
 my $has_arm = 0;
+my $has_cxl = 0;
 my $has_devlink = 0;
 my $has_disk_errors = 0;
 my $has_extlog = 0;
@@ -51,6 +52,7 @@ my $has_mce = 0;
 
 @WITH_AER_TRUE@$has_aer = 1;
 @WITH_ARM_TRUE@$has_arm = 1;
+@WITH_CXL_TRUE@$has_cxl = 1;
 @WITH_DEVLINK_TRUE@$has_devlink = 1;
 @WITH_DISKERROR_TRUE@$has_disk_errors = 1;
 @WITH_EXTLOG_TRUE@$has_extlog = 1;
@@ -1167,6 +1169,78 @@ sub get_uuid_le
     return $out;
 }
 
+use constant {
+    CXL_AER_UE_CACHE_DATA_PARITY => 0x0001,
+    CXL_AER_UE_CACHE_ADDR_PARITY => 0x0002,
+    CXL_AER_UE_CACHE_BE_PARITY => 0x0004,
+    CXL_AER_UE_CACHE_DATA_ECC => 0x0008,
+    CXL_AER_UE_MEM_DATA_PARITY => 0x0010,
+    CXL_AER_UE_MEM_ADDR_PARITY => 0x0020,
+    CXL_AER_UE_MEM_BE_PARITY => 0x0040,
+    CXL_AER_UE_MEM_DATA_ECC => 0x0080,
+    CXL_AER_UE_REINIT_THRESH => 0x0100,
+    CXL_AER_UE_RSVD_ENCODE => 0x0200,
+    CXL_AER_UE_POISON => 0x0400,
+    CXL_AER_UE_RECV_OVERFLOW => 0x0800,
+    CXL_AER_UE_INTERNAL_ERR => 0x4000,
+    CXL_AER_UE_IDE_TX_ERR => 0x8000,
+    CXL_AER_UE_IDE_RX_ERR => 0x10000,
+};
+
+sub get_cxl_ue_error_status_text
+{
+    my $error_status = $_[0];
+    my @out;
+
+    if ($error_status & CXL_AER_UE_CACHE_DATA_PARITY) {
+        push @out, (sprintf "\'Cache Data Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_ADDR_PARITY) {
+        push @out, (sprintf "\'Cache Address Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_BE_PARITY) {
+        push @out, (sprintf "\'Cache Byte Enable Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_DATA_ECC) {
+        push @out, (sprintf "\'Cache Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_DATA_PARITY) {
+        push @out, (sprintf "\'Memory Data Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_ADDR_PARITY) {
+        push @out, (sprintf "\'Memory Address Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_BE_PARITY) {
+        push @out, (sprintf "\'Memory Byte Enable Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_DATA_ECC) {
+        push @out, (sprintf "\'Memory Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_REINIT_THRESH) {
+        push @out, (sprintf "\'REINIT Threshold Hit\' ");
+    }
+    if ($error_status & CXL_AER_UE_RSVD_ENCODE) {
+        push @out, (sprintf "\'Received Unrecognized Encoding\' ");
+    }
+    if ($error_status & CXL_AER_UE_POISON) {
+        push @out, (sprintf "\'Received Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_UE_RECV_OVERFLOW) {
+        push @out, (sprintf "\'Receiver Overflow\' ");
+    }
+    if ($error_status & CXL_AER_UE_INTERNAL_ERR) {
+        push @out, (sprintf "\'Component Specific Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_IDE_TX_ERR) {
+        push @out, (sprintf "\'IDE Tx Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_IDE_RX_ERR) {
+        push @out, (sprintf "\'IDE Rx Error\' ");
+    }
+
+    return join (", ", @out);
+}
+
 sub summary
 {
     require DBI;
@@ -1174,7 +1248,7 @@ sub summary
     my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg, $action_result);
     my ($etype, $severity, $etype_string, $severity_string);
     my ($dev_name, $dev);
-    my ($mpidr);
+    my ($mpidr, $memdev);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1226,6 +1300,25 @@ sub summary
             print "ARM processor events summary:\n$out\n";
         } else {
             print "No ARM processor errors.\n\n";
+        }
+        $query_handle->finish;
+    }
+
+    # CXL errors
+    if ($has_cxl == 1) {
+        # CXL AER uncorrectable errors
+        $query = "select memdev, count(*) from cxl_aer_ue_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL AER uncorrectable events summary:\n$out\n";
+        } else {
+            print "No CXL AER uncorrectable errors.\n\n";
         }
         $query_handle->finish;
     }
@@ -1335,6 +1428,7 @@ sub errors
     my ($dev, $sector, $nr_sector, $error, $rwbs, $cmd);
     my ($error_count, $affinity, $mpidr, $r_state, $psci_state);
     my ($pfn, $page_type, $action_result);
+    my ($memdev, $host, $serial, $error_status, $first_error, $header_log);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1396,6 +1490,44 @@ sub errors
             print "ARM processor events:\n$out\n";
         } else {
             print "No ARM processor errors.\n\n";
+        }
+        $query_handle->finish;
+    }
+
+    # CXL errors
+    if ($has_cxl == 1) {
+        # CXL AER uncorrectable errors
+        use constant SZ_512 => 0x200;
+        use constant CXL_HEADERLOG_SIZE_U32 => SZ_512/32;
+        $query = "select id, timestamp, memdev, host, serial, error_status, first_error, header_log from cxl_aer_ue_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $error_status, $first_error, $header_log));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            if (defined $error_status && length $error_status) {
+                $out .= sprintf "error_status: %s, ", get_cxl_ue_error_status_text($error_status);
+            }
+            if (defined $first_error && length $first_error) {
+                $out .= sprintf "first_error: %s, ", get_cxl_ue_error_status_text($first_error);
+            }
+            if (defined $header_log && length $header_log) {
+	        $out .= sprintf "header_log:\n";
+	        my @bytes = unpack "C*", $header_log;
+	        for (my $i = 0; $i < CXL_HEADERLOG_SIZE_U32; $i++) {
+	            $out .= sprintf "%08x ", $bytes[$i];
+                }
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL AER uncorrectable events:\n$out\n";
+        } else {
+            print "No CXL AER uncorrectable errors.\n\n";
         }
         $query_handle->finish;
     }
