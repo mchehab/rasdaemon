@@ -1387,6 +1387,70 @@ sub get_cxl_transaction_type
     return $types[$_[0]];
 }
 
+sub get_cxl_dev_event_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 5) {
+        return "unknown-type";
+    }
+
+    @types = ("Health Status Change",
+              "Media Status Change",
+              "Life Used Change",
+              "Temperature Change",
+              "Data Path Error",
+              "LSA Error");
+
+    return $types[$_[0]];
+}
+
+use constant {
+    CXL_DHI_HS_MAINTENANCE_NEEDED => 0x0001,
+    CXL_DHI_HS_PERFORMANCE_DEGRADED => 0x0002,
+    CXL_DHI_HS_HW_REPLACEMENT_NEEDED => 0x0004,
+};
+
+sub get_cxl_health_status_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_DHI_HS_MAINTENANCE_NEEDED) {
+        push @out, (sprintf "\'MAINTENANCE_NEEDED\' ");
+    }
+    if ($flags & CXL_DHI_HS_PERFORMANCE_DEGRADED) {
+        push @out, (sprintf "\'PERFORMANCE_DEGRADED\' ");
+    }
+    if ($flags & CXL_DHI_HS_HW_REPLACEMENT_NEEDED) {
+        push @out, (sprintf "\'REPLACEMENT_NEEDED\' ");
+    }
+
+    return join (", ", @out);
+}
+
+sub get_cxl_media_status
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 9) {
+        return "unknown";
+    }
+
+    @types = ("Normal",
+              "Not Ready",
+              "Write Persistency Lost",
+              "All Data Lost",
+              "Write Persistency Loss in the Event of Power Loss",
+              "Write Persistency Loss in Event of Shutdown",
+              "Write Persistency Loss Imminent",
+              "All Data Loss in Event of Power Loss",
+              "All Data loss in the Event of Shutdown",
+              "All Data Loss Imminent");
+
+    return $types[$_[0]];
+}
+
 sub summary
 {
     require DBI;
@@ -1563,6 +1627,22 @@ sub summary
             print "No CXL DRAM errors.\n\n";
         }
         $query_handle->finish;
+
+        # CXL memory module errors
+        $query = "select memdev, count(*) from cxl_memory_module_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL memory module events summary:\n$out\n";
+        } else {
+            print "No CXL memory module errors.\n\n";
+        }
+        $query_handle->finish;
     }
 
     # extlog errors
@@ -1676,6 +1756,7 @@ sub errors
     my ($hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $data);
     my ($dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id);
     my ($nibble_mask, $bank_group, $row, $column, $cor_mask);
+    my ($event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1976,6 +2057,42 @@ sub errors
             print "CXL DRAM events:\n$out\n";
         } else {
             print "No CXL DRAM errors.\n\n";
+        }
+
+        # CXL memory module errors
+        $query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, event_type, health_status, media_status, life_used, dirty_shutdown_cnt, cor_vol_err_cnt, cor_per_err_cnt, device_temp, add_status from cxl_memory_module_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+            $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+            $out .= sprintf "hdr_flags=0x%llx, %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+            $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+            $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+            $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+            $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+            $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+            $out .= sprintf "event_type: %s, ", get_cxl_dev_event_type($event_type)  if (defined $event_type && length $event_type);
+            $out .= sprintf "health_status: %s, ", get_cxl_health_status_text($health_status)  if (defined $health_status && length $health_status);
+            $out .= sprintf "media_status: %s, ", get_cxl_media_status($media_status)  if (defined $media_status && length $media_status);
+            $out .= sprintf "life_used=%u, ", $life_used  if (defined $life_used && length $life_used);
+            $out .= sprintf "dirty_shutdown_cnt=%u, ", $dirty_shutdown_cnt  if (defined $dirty_shutdown_cnt && length $dirty_shutdown_cnt);
+            $out .= sprintf "cor_vol_err_cnt=%u, ", $cor_vol_err_cnt  if (defined $cor_vol_err_cnt && length $cor_vol_err_cnt);
+            $out .= sprintf "cor_per_err_cnt=%u, ", $cor_per_err_cnt  if (defined $cor_per_err_cnt && length $cor_per_err_cnt);
+            $out .= sprintf "device_temp=%u, ", $device_temp  if (defined $device_temp && length $device_temp);
+            $out .= sprintf "add_status=%u ", $add_status  if (defined $add_status && length $add_status);
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL memory module events:\n$out\n";
+        } else {
+            print "No CXL memory module errors.\n\n";
         }
     }
 
