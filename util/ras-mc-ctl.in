@@ -1241,6 +1241,46 @@ sub get_cxl_ue_error_status_text
     return join (", ", @out);
 }
 
+use constant {
+    CXL_AER_CE_CACHE_DATA_ECC => 0x0001,
+    CXL_AER_CE_MEM_DATA_ECC => 0x0002,
+    CXL_AER_CE_CRC_THRESH => 0x0004,
+    CXL_AER_CE_RETRY_THRESH => 0x0008,
+    CXL_AER_CE_CACHE_POISON => 0x0010,
+    CXL_AER_CE_MEM_POISON => 0x0020,
+    CXL_AER_CE_PHYS_LAYER_ERR => 0x0040,
+};
+
+sub get_cxl_ce_error_status_text
+{
+    my $error_status = $_[0];
+    my @out;
+
+    if ($error_status & CXL_AER_CE_CACHE_DATA_ECC) {
+        push @out, (sprintf "\'Cache Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_CE_MEM_DATA_ECC) {
+        push @out, (sprintf "\'Memory Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_CE_CRC_THRESH) {
+        push @out, (sprintf "\'CRC Threshold Hit\' ");
+    }
+    if ($error_status & CXL_AER_CE_RETRY_THRESH) {
+        push @out, (sprintf "\'Retry Threshold\' ");
+    }
+    if ($error_status & CXL_AER_CE_CACHE_POISON) {
+        push @out, (sprintf "\'Received Cache Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_CE_MEM_POISON) {
+        push @out, (sprintf "\'Received Memory Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_CE_PHYS_LAYER_ERR) {
+        push @out, (sprintf "\'Received Error From Physical Layer\' ");
+    }
+
+    return join (", ", @out);
+}
+
 sub summary
 {
     require DBI;
@@ -1319,6 +1359,22 @@ sub summary
             print "CXL AER uncorrectable events summary:\n$out\n";
         } else {
             print "No CXL AER uncorrectable errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL AER correctable errors
+        $query = "select memdev, count(*) from cxl_aer_ce_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL AER correctable events summary:\n$out\n";
+        } else {
+            print "No CXL AER correctable errors.\n\n";
         }
         $query_handle->finish;
     }
@@ -1528,6 +1584,29 @@ sub errors
             print "CXL AER uncorrectable events:\n$out\n";
         } else {
             print "No CXL AER uncorrectable errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL AER correctable errors
+        $query = "select id, timestamp, memdev, host, serial, error_status from cxl_aer_ce_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $error_status));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            if (defined $error_status && length $error_status) {
+                $out .= sprintf "error_status: %s, ", get_cxl_ce_error_status_text($error_status);
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL AER correctable events:\n$out\n";
+        } else {
+            print "No CXL AER correctable errors.\n\n";
         }
         $query_handle->finish;
     }
