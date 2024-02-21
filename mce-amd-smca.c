@@ -397,7 +397,7 @@ static const char * const smca_smu_mce_desc[] = {
 	"An ECC or parity error in an SMU RAM instance",
 };
 
-static const char * const smca_smu2_mce_desc[] = {
+static const char * smca_smu2_mce_desc[64] = {
 	"High SRAM ECC or parity error",
 	"Low SRAM ECC or parity error",
 	"Data Cache Bank A ECC or parity error",
@@ -409,6 +409,15 @@ static const char * const smca_smu2_mce_desc[] = {
 	"Instruction Tag Cache Bank A ECC or parity error",
 	"Instruction Tag Cache Bank B ECC or parity error",
 	"System Hub Read Buffer ECC or parity error",
+	"PHY RAS ECC Error",
+};
+
+static const char * smca_smu2_ext_mce_desc[] = {
+	"A correctable error from a GFX Sub-IP",
+	"A fatal error from a GFX Sub-IP",
+	"Reserved",
+	"Reserved",
+	"A poison error from a GFX Sub-IP",
 };
 
 static const char * const smca_mp5_mce_desc[] = {
@@ -815,6 +824,27 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_GMI_PHY]			= { "Global Memory Interconnect PHY Unit" },
 };
 
+void smca_smu2_ext_err_desc(void)
+{
+	int i, j;
+	int smu2_bits = 62;
+
+	/*
+	 * MCA_CTL_SMU error stings are defined for b'58:59 and b'62
+	 * in MI300A AMD systems. See AMD PPR MCA::SMU::MCA_CTL_SMU
+	 *
+	 * b'0:11 can be decoded from existing array smca_smu2_mce_desc.
+	 * b'12:57 are Reserved and b'58:62 are appended to the
+	 * smca_smu2_mce_desc.
+	 */
+	for (i = 12, j = 0; i < smu2_bits || j < 5; i++, j++) {
+		for ( ; i < 58; i++)
+			smca_smu2_mce_desc[i] = "Reserved";
+
+		smca_smu2_mce_desc[i] = smca_smu2_ext_mce_desc[j];
+	}
+}
+
 void amd_decode_errcode(struct mce_event *e)
 {
 	decode_amd_errcode(e);
@@ -905,6 +935,7 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 	mcatype_hwid = HWID_MCATYPE(ipid_high & MCI_IPID_HWID,
 				    (ipid_high & MCI_IPID_MCATYPE) >> 16);
 
+	smca_smu2_ext_err_desc();
 	fixup_hwid(m, &mcatype_hwid);
 
 	for (i = 0; i < ARRAY_SIZE(smca_hwid_mcatypes); i++) {
