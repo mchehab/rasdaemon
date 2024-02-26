@@ -28,7 +28,6 @@
 #include <sys/poll.h>
 #include <signal.h>
 #include <sys/signalfd.h>
-#include <linux/version.h>
 #include <traceevent/kbuffer.h>
 #include <traceevent/event-parse.h>
 #include "ras-mc-handler.h"
@@ -250,7 +249,7 @@ int toggle_ras_mc_event(int enable)
 #endif
 
 #ifdef HAVE_DISKERROR
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#ifdef HAVE_BLK_RQ_ERROR
 	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_error", enable);
 #else
 	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_complete", enable);
@@ -277,7 +276,7 @@ free_ras:
 	return rc;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
+#ifndef HAVE_BLK_RQ_ERROR
 /*
  * Set kernel filter. libtrace doesn't provide an API for setting filters
  * in kernel, we have to implement it here.
@@ -1014,7 +1013,7 @@ int handle_ras_events(int record_events)
 #endif
 
 #ifdef HAVE_DISKERROR
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+#ifdef HAVE_BLK_RQ_ERROR
 	rc = add_event_handler(ras, pevent, page_size, "block",
 			       "block_rq_error", ras_diskerror_event_handler,
 				NULL, DISKERROR_EVENT);
