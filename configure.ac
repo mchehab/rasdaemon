@@ -117,6 +117,19 @@ AS_IF([test "x$enable_diskerror" = "xyes" || test "x$enable_all" = "xyes"], [
 AM_CONDITIONAL([WITH_DISKERROR], [test x$enable_diskerror = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_DISKERROR], [USE_DISKERROR="yes"], [USE_DISKERROR="no"])
 
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
+#ifdef RHEL_RELEASE_CODE
+#if RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1)
+# error kernel too old
+#endif
+#else
+# error kernel too old
+#endif
+#endif
+]])], [AC_DEFINE(HAVE_BLK_RQ_ERROR,1,"have block_rq_error tracepoint")])
+
 AC_ARG_ENABLE([memory_failure],
     AS_HELP_STRING([--enable-memory-failure], [enable memory failure events (currently experimental)]))
 
