@@ -39,7 +39,6 @@ my $dbname      = "@RASSTATEDIR@/@RAS_DB_FNAME@";
 my $prefix      = "@prefix@";
 my $sysconfdir  = "@sysconfdir@";
 my $dmidecode   = find_prog ("dmidecode");
-my $modprobe    = find_prog ("modprobe")  or exit (1);
 
 my $has_aer = 0;
 my $has_arm = 0;
