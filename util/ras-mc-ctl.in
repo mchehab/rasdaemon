@@ -43,6 +43,7 @@ my $modprobe    = find_prog ("modprobe")  or exit (1);
 
 my $has_aer = 0;
 my $has_arm = 0;
+my $has_cxl = 0;
 my $has_devlink = 0;
 my $has_disk_errors = 0;
 my $has_extlog = 0;
@@ -51,6 +52,7 @@ my $has_mce = 0;
 
 @WITH_AER_TRUE@$has_aer = 1;
 @WITH_ARM_TRUE@$has_arm = 1;
+@WITH_CXL_TRUE@$has_cxl = 1;
 @WITH_DEVLINK_TRUE@$has_devlink = 1;
 @WITH_DISKERROR_TRUE@$has_disk_errors = 1;
 @WITH_EXTLOG_TRUE@$has_extlog = 1;
@@ -1167,6 +1169,288 @@ sub get_uuid_le
     return $out;
 }
 
+use constant {
+    CXL_AER_UE_CACHE_DATA_PARITY => 0x0001,
+    CXL_AER_UE_CACHE_ADDR_PARITY => 0x0002,
+    CXL_AER_UE_CACHE_BE_PARITY => 0x0004,
+    CXL_AER_UE_CACHE_DATA_ECC => 0x0008,
+    CXL_AER_UE_MEM_DATA_PARITY => 0x0010,
+    CXL_AER_UE_MEM_ADDR_PARITY => 0x0020,
+    CXL_AER_UE_MEM_BE_PARITY => 0x0040,
+    CXL_AER_UE_MEM_DATA_ECC => 0x0080,
+    CXL_AER_UE_REINIT_THRESH => 0x0100,
+    CXL_AER_UE_RSVD_ENCODE => 0x0200,
+    CXL_AER_UE_POISON => 0x0400,
+    CXL_AER_UE_RECV_OVERFLOW => 0x0800,
+    CXL_AER_UE_INTERNAL_ERR => 0x4000,
+    CXL_AER_UE_IDE_TX_ERR => 0x8000,
+    CXL_AER_UE_IDE_RX_ERR => 0x10000,
+};
+
+sub get_cxl_ue_error_status_text
+{
+    my $error_status = $_[0];
+    my @out;
+
+    if ($error_status & CXL_AER_UE_CACHE_DATA_PARITY) {
+        push @out, (sprintf "\'Cache Data Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_ADDR_PARITY) {
+        push @out, (sprintf "\'Cache Address Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_BE_PARITY) {
+        push @out, (sprintf "\'Cache Byte Enable Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_DATA_ECC) {
+        push @out, (sprintf "\'Cache Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_DATA_PARITY) {
+        push @out, (sprintf "\'Memory Data Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_ADDR_PARITY) {
+        push @out, (sprintf "\'Memory Address Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_BE_PARITY) {
+        push @out, (sprintf "\'Memory Byte Enable Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_DATA_ECC) {
+        push @out, (sprintf "\'Memory Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_REINIT_THRESH) {
+        push @out, (sprintf "\'REINIT Threshold Hit\' ");
+    }
+    if ($error_status & CXL_AER_UE_RSVD_ENCODE) {
+        push @out, (sprintf "\'Received Unrecognized Encoding\' ");
+    }
+    if ($error_status & CXL_AER_UE_POISON) {
+        push @out, (sprintf "\'Received Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_UE_RECV_OVERFLOW) {
+        push @out, (sprintf "\'Receiver Overflow\' ");
+    }
+    if ($error_status & CXL_AER_UE_INTERNAL_ERR) {
+        push @out, (sprintf "\'Component Specific Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_IDE_TX_ERR) {
+        push @out, (sprintf "\'IDE Tx Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_IDE_RX_ERR) {
+        push @out, (sprintf "\'IDE Rx Error\' ");
+    }
+
+    return join (", ", @out);
+}
+
+use constant {
+    CXL_AER_CE_CACHE_DATA_ECC => 0x0001,
+    CXL_AER_CE_MEM_DATA_ECC => 0x0002,
+    CXL_AER_CE_CRC_THRESH => 0x0004,
+    CXL_AER_CE_RETRY_THRESH => 0x0008,
+    CXL_AER_CE_CACHE_POISON => 0x0010,
+    CXL_AER_CE_MEM_POISON => 0x0020,
+    CXL_AER_CE_PHYS_LAYER_ERR => 0x0040,
+};
+
+sub get_cxl_ce_error_status_text
+{
+    my $error_status = $_[0];
+    my @out;
+
+    if ($error_status & CXL_AER_CE_CACHE_DATA_ECC) {
+        push @out, (sprintf "\'Cache Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_CE_MEM_DATA_ECC) {
+        push @out, (sprintf "\'Memory Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_CE_CRC_THRESH) {
+        push @out, (sprintf "\'CRC Threshold Hit\' ");
+    }
+    if ($error_status & CXL_AER_CE_RETRY_THRESH) {
+        push @out, (sprintf "\'Retry Threshold\' ");
+    }
+    if ($error_status & CXL_AER_CE_CACHE_POISON) {
+        push @out, (sprintf "\'Received Cache Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_CE_MEM_POISON) {
+        push @out, (sprintf "\'Received Memory Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_CE_PHYS_LAYER_ERR) {
+        push @out, (sprintf "\'Received Error From Physical Layer\' ");
+    }
+
+    return join (", ", @out);
+}
+
+use constant {
+    CXL_EVENT_RECORD_FLAG_PERMANENT => 0x0004,
+    CXL_EVENT_RECORD_FLAG_MAINT_NEEDED => 0x0008,
+    CXL_EVENT_RECORD_FLAG_PERF_DEGRADED => 0x0010,
+    CXL_EVENT_RECORD_FLAG_HW_REPLACE => 0x0020,
+};
+
+sub get_cxl_hdr_flags_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_EVENT_RECORD_FLAG_PERMANENT) {
+        push @out, (sprintf "\'PERMANENT_CONDITION\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_MAINT_NEEDED) {
+        push @out, (sprintf "\'MAINTENANCE_NEEDED\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_PERF_DEGRADED) {
+        push @out, (sprintf "\'PERFORMANCE_DEGRADED\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_HW_REPLACE) {
+        push @out, (sprintf "\'HARDWARE_REPLACEMENT_NEEDED\' ");
+    }
+
+    return join (", ", @out);
+}
+
+use constant {
+    CXL_DPA_VOLATILE => 0x0001,
+    CXL_DPA_NOT_REPAIRABLE => 0x0002,
+};
+
+sub get_cxl_dpa_flags_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_DPA_VOLATILE) {
+        push @out, (sprintf "\'VOLATILE\' ");
+    }
+    if ($flags & CXL_DPA_NOT_REPAIRABLE) {
+        push @out, (sprintf "\'NOT_REPAIRABLE\' ");
+    }
+
+    return join (", ", @out);
+}
+
+use constant {
+    CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT => 0x0001,
+    CXL_GMER_EVT_DESC_THRESHOLD_EVENT => 0x0002,
+    CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW => 0x0004,
+};
+
+sub get_cxl_descriptor_flags_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT) {
+        push @out, (sprintf "\'UNCORRECTABLE EVENT\' ");
+    }
+    if ($flags & CXL_GMER_EVT_DESC_THRESHOLD_EVENT) {
+        push @out, (sprintf "\'THRESHOLD EVENT\' ");
+    }
+    if ($flags & CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW) {
+        push @out, (sprintf "\'POISON LIST OVERFLOW\' ");
+    }
+
+    return join (", ", @out);
+}
+
+sub get_cxl_mem_event_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 2) {
+        return "unknown-type";
+    }
+
+    @types = ("ECC Error",
+              "Invalid Address",
+              "Data Path Error");
+
+    return $types[$_[0]];
+}
+
+sub get_cxl_transaction_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 6) {
+        return "unknown-type";
+    }
+
+    @types = ("Unknown",
+              "Host Read",
+              "Host Write",
+              "Host Scan Media",
+              "Host Inject Poison",
+              "Internal Media Scrub",
+              "Internal Media Management");
+
+    return $types[$_[0]];
+}
+
+sub get_cxl_dev_event_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 5) {
+        return "unknown-type";
+    }
+
+    @types = ("Health Status Change",
+              "Media Status Change",
+              "Life Used Change",
+              "Temperature Change",
+              "Data Path Error",
+              "LSA Error");
+
+    return $types[$_[0]];
+}
+
+use constant {
+    CXL_DHI_HS_MAINTENANCE_NEEDED => 0x0001,
+    CXL_DHI_HS_PERFORMANCE_DEGRADED => 0x0002,
+    CXL_DHI_HS_HW_REPLACEMENT_NEEDED => 0x0004,
+};
+
+sub get_cxl_health_status_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_DHI_HS_MAINTENANCE_NEEDED) {
+        push @out, (sprintf "\'MAINTENANCE_NEEDED\' ");
+    }
+    if ($flags & CXL_DHI_HS_PERFORMANCE_DEGRADED) {
+        push @out, (sprintf "\'PERFORMANCE_DEGRADED\' ");
+    }
+    if ($flags & CXL_DHI_HS_HW_REPLACEMENT_NEEDED) {
+        push @out, (sprintf "\'REPLACEMENT_NEEDED\' ");
+    }
+
+    return join (", ", @out);
+}
+
+sub get_cxl_media_status
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 9) {
+        return "unknown";
+    }
+
+    @types = ("Normal",
+              "Not Ready",
+              "Write Persistency Lost",
+              "All Data Lost",
+              "Write Persistency Loss in the Event of Power Loss",
+              "Write Persistency Loss in Event of Shutdown",
+              "Write Persistency Loss Imminent",
+              "All Data Loss in Event of Power Loss",
+              "All Data loss in the Event of Shutdown",
+              "All Data Loss Imminent");
+
+    return $types[$_[0]];
+}
+
 sub summary
 {
     require DBI;
@@ -1174,7 +1458,7 @@ sub summary
     my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg, $action_result);
     my ($etype, $severity, $etype_string, $severity_string);
     my ($dev_name, $dev);
-    my ($mpidr);
+    my ($mpidr, $memdev);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1226,6 +1510,137 @@ sub summary
             print "ARM processor events summary:\n$out\n";
         } else {
             print "No ARM processor errors.\n\n";
+        }
+        $query_handle->finish;
+    }
+
+    # CXL errors
+    if ($has_cxl == 1) {
+        # CXL AER uncorrectable errors
+        $query = "select memdev, count(*) from cxl_aer_ue_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL AER uncorrectable events summary:\n$out\n";
+        } else {
+            print "No CXL AER uncorrectable errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL AER correctable errors
+        $query = "select memdev, count(*) from cxl_aer_ce_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL AER correctable events summary:\n$out\n";
+        } else {
+            print "No CXL AER correctable errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL overflow errors
+        $query = "select memdev, count(*) from cxl_overflow_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL overflow events summary:\n$out\n";
+        } else {
+            print "No CXL overflow errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL poison errors
+        $query = "select memdev, count(*) from cxl_poison_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL poison events summary:\n$out\n";
+        } else {
+            print "No CXL poison errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL generic errors
+        $query = "select memdev, count(*) from cxl_generic_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL  generic events summary:\n$out\n";
+        } else {
+            print "No CXL generic errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL general media errors
+        $query = "select memdev, count(*) from cxl_general_media_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL general media events summary:\n$out\n";
+        } else {
+            print "No CXL general media errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL DRAM errors
+        $query = "select memdev, count(*) from cxl_dram_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL DRAM events summary:\n$out\n";
+        } else {
+            print "No CXL DRAM errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL memory module errors
+        $query = "select memdev, count(*) from cxl_memory_module_event$conf{opt}{since} group by memdev";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($memdev, $count));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "\t$memdev errors: $count\n";
+        }
+        if ($out ne "") {
+            print "CXL memory module events summary:\n$out\n";
+        } else {
+            print "No CXL memory module errors.\n\n";
         }
         $query_handle->finish;
     }
@@ -1335,6 +1750,13 @@ sub errors
     my ($dev, $sector, $nr_sector, $error, $rwbs, $cmd);
     my ($error_count, $affinity, $mpidr, $r_state, $psci_state);
     my ($pfn, $page_type, $action_result);
+    my ($memdev, $host, $serial, $error_status, $first_error, $header_log);
+    my ($log_type, $first_ts, $last_ts);
+    my ($trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts);
+    my ($hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $data);
+    my ($dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id);
+    my ($nibble_mask, $bank_group, $row, $column, $cor_mask);
+    my ($event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1398,6 +1820,280 @@ sub errors
             print "No ARM processor errors.\n\n";
         }
         $query_handle->finish;
+    }
+
+    # CXL errors
+    if ($has_cxl == 1) {
+        # CXL AER uncorrectable errors
+        use constant SZ_512 => 0x200;
+        use constant CXL_HEADERLOG_SIZE_U32 => SZ_512/32;
+        $query = "select id, timestamp, memdev, host, serial, error_status, first_error, header_log from cxl_aer_ue_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $error_status, $first_error, $header_log));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            if (defined $error_status && length $error_status) {
+                $out .= sprintf "error_status: %s, ", get_cxl_ue_error_status_text($error_status);
+            }
+            if (defined $first_error && length $first_error) {
+                $out .= sprintf "first_error: %s, ", get_cxl_ue_error_status_text($first_error);
+            }
+            if (defined $header_log && length $header_log) {
+	        $out .= sprintf "header_log:\n";
+	        my @bytes = unpack "C*", $header_log;
+	        for (my $i = 0; $i < CXL_HEADERLOG_SIZE_U32; $i++) {
+	            $out .= sprintf "%08x ", $bytes[$i];
+                }
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL AER uncorrectable events:\n$out\n";
+        } else {
+            print "No CXL AER uncorrectable errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL AER correctable errors
+        $query = "select id, timestamp, memdev, host, serial, error_status from cxl_aer_ce_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $error_status));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            if (defined $error_status && length $error_status) {
+                $out .= sprintf "error_status: %s, ", get_cxl_ce_error_status_text($error_status);
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL AER correctable events:\n$out\n";
+        } else {
+            print "No CXL AER correctable errors.\n\n";
+        }
+        $query_handle->finish;
+
+        # CXL overflow errors
+        $query = "select id, timestamp, memdev, host, serial, log_type, count, first_ts, last_ts from cxl_overflow_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $count, $first_ts, $last_ts));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+            $out .= sprintf "%u records from $first_ts to $last_ts", $count if (defined $count && length $count);
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL overflow events:\n$out\n";
+        } else {
+            print "No CXL overflow errors.\n\n";
+        }
+
+        # CXL poison errors
+        $query = "select id, timestamp, memdev, host, serial, trace_type, region, region_uuid, hpa, dpa, dpa_length, source, flags, overflow_ts from cxl_poison_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "trace_type=$trace_type, " if (defined $trace_type && length $trace_type);
+            $out .= "region=$region, " if (defined $region && length $region);
+            $out .= "region_uuid=$region_uuid, " if (defined $region_uuid && length $region_uuid);
+            $out .= sprintf "hpa=0x%llx, ", $hpa if (defined $hpa && length $hpa);
+            $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
+            $out .= sprintf "dpa_length=0x%x, ", $dpa_length if (defined $dpa_length && length $dpa_length);
+            $out .= "source=$source, " if (defined $source && length $source);
+            $out .= sprintf "flags=%d, ", $flags if (defined $flags && length $flags);
+            $out .= "overflow timestamp=$overflow_ts " if (defined $overflow_ts && length $overflow_ts);
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL poison events:\n$out\n";
+        } else {
+            print "No CXL poison errors.\n\n";
+        }
+
+        # CXL generic errors
+        use constant CXL_EVENT_RECORD_DATA_LENGTH => 0x50;
+        $query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, data from cxl_generic_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $data));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+            $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+            $out .= sprintf "hdr_flags=0x%llx %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+            $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+            $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+            $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+            $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+            $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+            if (defined $data && length $data) {
+                $out .= sprintf "data:\n";
+                my @bytes = unpack "C*", $data;
+                for (my $i = 0; $i < CXL_EVENT_RECORD_DATA_LENGTH; $i++) {
+                    if (($i > 0) && (($i % 16) == 0)) {
+                        $out .= sprintf "\n %08x: ", $i;
+                    }
+                    $out .= sprintf "%02x%02x%02x%02x ", $bytes[$i], $bytes[$i + 1], $bytes[$i + 2], $bytes[$i + 3];
+		}
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL generic events:\n$out\n";
+        } else {
+            print "No CXL generic errors.\n\n";
+        }
+
+        # CXL general media errors
+        use constant CXL_EVENT_GEN_MED_COMP_ID_SIZE => 0x10;
+        $query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, device, comp_id from cxl_general_media_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $dpa, $dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+            $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+            $out .= sprintf "hdr_flags=0x%llx %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+            $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+            $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+            $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+            $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+            $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+            $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
+            $out .= sprintf "dpa_flags: %s, ", get_cxl_dpa_flags_text($dpa_flags) if (defined $dpa_flags && length $dpa_flags);
+            $out .= sprintf "descriptor_flags: %s, ", get_cxl_descriptor_flags_text($descriptor) if (defined $descriptor && length $descriptor);
+            $out .= sprintf "memory event type: %s, ", get_cxl_mem_event_type($mem_event_type) if (defined $mem_event_type && length $mem_event_type);
+            $out .= sprintf "transaction_type: %s, ", get_cxl_transaction_type($transaction_type) if (defined $transaction_type && length $transaction_type);
+            $out .= sprintf "channel=%u, ", $channel if (defined $channel && length $channel);
+            $out .= sprintf "rank=%u, ", $rank if (defined $rank && length $rank);
+            $out .= sprintf "device=0x%x, ", $device if (defined $device && length $device);
+            if (defined $comp_id && length $comp_id) {
+                $out .= sprintf "component_id:";
+                my @bytes = unpack "C*", $comp_id;
+                for (my $i = 0; $i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; $i++) {
+                    $out .= sprintf "%02x ", $bytes[$i];
+		}
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL general media events:\n$out\n";
+        } else {
+            print "No CXL general media errors.\n\n";
+        }
+
+        # CXL DRAM errors
+        use constant CXL_EVENT_DER_CORRECTION_MASK_SIZE => 0x20;
+        $query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, nibble_mask, bank_group, bank, row, column, cor_mask from cxl_dram_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $dpa, $dpa_flags, $descriptor, $type, $transaction_type, $channel, $rank, $nibble_mask, $bank_group, $bank, $row, $column, $cor_mask));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+            $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+            $out .= sprintf "hdr_flags=0x%llx, %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+            $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+            $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+            $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+            $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+            $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+            $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
+            $out .= sprintf "dpa_flags: %s, ", get_cxl_dpa_flags_text($dpa_flags) if (defined $dpa_flags && length $dpa_flags);
+            $out .= sprintf "descriptor_flags: %s, ", get_cxl_descriptor_flags_text($descriptor) if (defined $descriptor && length $descriptor);
+            $out .= sprintf "memory event type: %s, ", get_cxl_mem_event_type($type) if (defined $type && length $type);
+            $out .= sprintf "transaction_type: %s, ", get_cxl_transaction_type($transaction_type) if (defined $transaction_type && length $transaction_type);
+            $out .= sprintf "channel=%u, ", $channel if (defined $channel && length $channel);
+            $out .= sprintf "rank=%u, ", $rank if (defined $rank && length $rank);
+            $out .= sprintf "nibble_mask=%u, ", $nibble_mask if (defined $nibble_mask && length $nibble_mask);
+            $out .= sprintf "bank_group=%u, ", $bank_group if (defined $bank_group && length $bank_group);
+            $out .= sprintf "bank=%u, ", $bank if (defined $bank && length $bank);
+            $out .= sprintf "row=%u, ", $row if (defined $row && length $row);
+            $out .= sprintf "column=%u, ", $column if (defined $column && length $column);
+            if (defined $cor_mask && length $cor_mask) {
+                $out .= sprintf "correction_mask:";
+                my @bytes = unpack "C*", $cor_mask;
+                for (my $i = 0; $i < CXL_EVENT_DER_CORRECTION_MASK_SIZE; $i++) {
+                    $out .= sprintf "%02x ", $bytes[$i];
+		}
+            }
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL DRAM events:\n$out\n";
+        } else {
+            print "No CXL DRAM errors.\n\n";
+        }
+
+        # CXL memory module errors
+        $query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, event_type, health_status, media_status, life_used, dirty_shutdown_cnt, cor_vol_err_cnt, cor_per_err_cnt, device_temp, add_status from cxl_memory_module_event$conf{opt}{since} order by id";
+        $query_handle = $dbh->prepare($query);
+        $query_handle->execute();
+        $query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status));
+        $out = "";
+        while($query_handle->fetch()) {
+            $out .= "$id $timestamp error: ";
+            $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+            $out .= "host=$host, " if (defined $host && length $host);
+            $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+            $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+            $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+            $out .= sprintf "hdr_flags=0x%llx, %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+            $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+            $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+            $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+            $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+            $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+            $out .= sprintf "event_type: %s, ", get_cxl_dev_event_type($event_type)  if (defined $event_type && length $event_type);
+            $out .= sprintf "health_status: %s, ", get_cxl_health_status_text($health_status)  if (defined $health_status && length $health_status);
+            $out .= sprintf "media_status: %s, ", get_cxl_media_status($media_status)  if (defined $media_status && length $media_status);
+            $out .= sprintf "life_used=%u, ", $life_used  if (defined $life_used && length $life_used);
+            $out .= sprintf "dirty_shutdown_cnt=%u, ", $dirty_shutdown_cnt  if (defined $dirty_shutdown_cnt && length $dirty_shutdown_cnt);
+            $out .= sprintf "cor_vol_err_cnt=%u, ", $cor_vol_err_cnt  if (defined $cor_vol_err_cnt && length $cor_vol_err_cnt);
+            $out .= sprintf "cor_per_err_cnt=%u, ", $cor_per_err_cnt  if (defined $cor_per_err_cnt && length $cor_per_err_cnt);
+            $out .= sprintf "device_temp=%u, ", $device_temp  if (defined $device_temp && length $device_temp);
+            $out .= sprintf "add_status=%u ", $add_status  if (defined $add_status && length $add_status);
+            $out .= "\n";
+        }
+        if ($out ne "") {
+            print "CXL memory module events:\n$out\n";
+        } else {
+            print "No CXL memory module errors.\n\n";
+        }
     }
 
     # Extlog errors

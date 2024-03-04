@@ -67,9 +67,11 @@ int ras_aer_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct ras_aer_event ev;
 	char buf[BUF_LEN];
+#ifdef HAVE_AMP_NS_DECODE
 	char ipmi_add_sel[105];
 	uint8_t sel_data[5];
 	int seg, bus, dev, fn;
+#endif
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -132,19 +134,27 @@ int ras_aer_event_handler(struct trace_seq *s,
 	switch (severity_val) {
 	case HW_EVENT_AER_UNCORRECTED_NON_FATAL:
 		ev.error_type = "Uncorrected (Non-Fatal)";
+#ifdef HAVE_AMP_NS_DECODE
 		sel_data[0] = 0xca;
+#endif
 		break;
 	case HW_EVENT_AER_UNCORRECTED_FATAL:
 		ev.error_type = "Uncorrected (Fatal)";
+#ifdef HAVE_AMP_NS_DECODE
 		sel_data[0] = 0xca;
+#endif
 		break;
 	case HW_EVENT_AER_CORRECTED:
 		ev.error_type = "Corrected";
+#ifdef HAVE_AMP_NS_DECODE
 		sel_data[0] = 0xbf;
+#endif
 		break;
 	default:
 		ev.error_type = "Unknown severity";
+#ifdef HAVE_AMP_NS_DECODE
 		sel_data[0] = 0xbf;
+#endif
 	}
 	trace_seq_puts(s, ev.error_type);
 
