@@ -182,6 +182,16 @@ AS_IF([test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_all" = "xyes"], 
 AM_CONDITIONAL([WITH_MEMORY_CE_PFA], [test x$enable_memory_ce_pfa = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_MEMORY_CE_PFA], [USE_MEMORY_CE_PFA="yes"], [USE_MEMORY_CE_PFA="no"])
 
+AC_ARG_ENABLE([memory_row_ce_pfa],
+    AS_HELP_STRING([--enable-memory-row-ce-pfa], [enable memory row Corrected Error predictive failure analysis]))
+
+AS_IF([test "x$enable_memory_row_ce_pfa" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_MEMORY_ROW_CE_PFA,1,"have memory row corrected error predictive failure analysis")
+  AC_SUBST([WITH_MEMORY_ROW_CE_PFA])
+])
+AM_CONDITIONAL([WITH_MEMORY_ROW_CE_PFA], [test x$enable_memory_row_ce_pfa = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_MEMORY_ROW_CE_PFA], [USE_MEMORY_ROW_CE_PFA="yes"], [USE_MEMORY_ROW_CE_PFA="no"])
+
 AC_ARG_ENABLE([amp_ns_decode],
     AS_HELP_STRING([--enable-amp-ns-decode], [enable AMP_NS_DECODE events (currently experimental)]))
 
@@ -262,6 +272,7 @@ compile time options summary
     Memory Failure      : $USE_MEMORY_FAILURE
     CXL events          : $USE_CXL
     Memory CE PFA       : $USE_MEMORY_CE_PFA
+    Memory ROW CE PFA   : $USE_MEMORY_ROW_CE_PFA
     AMP RAS errors      : $USE_AMP_NS_DECODE
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION
     YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
