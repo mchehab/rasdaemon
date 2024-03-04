@@ -947,6 +947,10 @@ int handle_ras_events(int record_events)
 	ras->page_size = page_size;
 	ras->record_events = record_events;
 
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	ras_row_account_init();
+#endif
+
 #ifdef HAVE_MEMORY_CE_PFA
 	/* FIXME: enable memory isolation unconditionally */
 	ras_page_account_init();
@@ -1208,6 +1212,10 @@ err:
 	}
 #ifdef HAVE_CPU_FAULT_ISOLATION
 	cpu_infos_free();
+#endif
+
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	row_record_infos_free();
 #endif
 	return rc;
 }

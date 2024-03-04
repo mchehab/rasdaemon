@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
@@ -263,6 +264,21 @@ int ras_mc_event_handler(struct trace_seq *s,
 	/* Account page corrected errors */
 	if (!strcmp(ev.error_type, "Corrected"))
 		ras_record_page_error(ev.address, ev.error_count, now);
+#endif
+
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	/* Account row corrected errors */
+	struct timespec ts;
+	clockid_t clk_id = CLOCK_MONOTONIC;
+	// A fault occurs, but the fault error_count BIOS reports sometimes is 0.
+	// This is a bug in the BIOS.
+	// We set the value to 1
+	// even if the error_count is reported 0.
+	if (ev.error_count == 0)
+		ev.error_count = 1;
+	if (clock_gettime(clk_id, &ts) == 0 && !strcmp(ev.error_type, "Corrected")) {
+		ras_record_row_error(ev.driver_detail, ev.error_count, ts.tv_sec, ev.address);
+	}
 #endif
 
 #ifdef HAVE_ABRT_REPORT
