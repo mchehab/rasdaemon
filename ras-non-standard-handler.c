@@ -202,8 +202,8 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 		return -1;
 	if (strcmp(uuid_le(ev.sec_type),
 		   "e8ed898d-df16-43cc-8ecc-54f060ef157f") == 0)
-		trace_seq_printf(s, "\n section type: %s",
-				 "Ampere Specific Error\n");
+		trace_seq_printf(s, " section type: %s",
+				 "Ampere Specific Error");
 	else
 		trace_seq_printf(s, " section type: %s",
 				 uuid_le(ev.sec_type));
