@@ -19,6 +19,7 @@
 
 struct ras_ns_ev_decoder {
 	struct ras_ns_ev_decoder *next;
+	uint16_t ref_count;
 	const char *sec_type;
 	int (*add_table)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder);
 	int (*decode)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder,
