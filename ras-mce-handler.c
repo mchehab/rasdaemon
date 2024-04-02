@@ -372,6 +372,9 @@ static void report_mce_event(struct ras_events *ras,
 
 	trace_seq_printf(s, ", apicid= %x", e->apicid);
 
+	if (e->ppin)
+		trace_seq_printf(s, ", ppin= %llx", (long long)e->ppin);
+
 	if (!e->vdata_len)
 		return;
 
@@ -565,6 +568,10 @@ int ras_mce_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "ipid", record, &val, 1) < 0)
 		return -1;
 	e.ipid = val;
+
+	/* Get PPIN */
+	if (!tep_get_field_val(s, event, "ppin", record, &val, 1))
+		e.ppin = val;
 
 	/* Get Vendor-specfic Data, if any */
 	e.vdata = tep_get_field_raw(s, event, "v_data", record, &e.vdata_len, 1);

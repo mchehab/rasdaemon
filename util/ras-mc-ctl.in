@@ -1329,7 +1329,7 @@ sub errors
 {
     require DBI;
     my ($query, $query_handle, $id, $time, $devname, $count, $type, $msg, $label, $mc, $top, $mid, $low, $addr, $grain, $syndrome, $detail, $out);
-    my ($mcgcap,$mcgstatus, $status, $misc, $ip, $tsc, $walltime, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $mcgstatus_msg, $mcistatus_msg, $mcastatus_msg, $user_action, $mc_location);
+    my ($mcgcap,$mcgstatus, $status, $misc, $ip, $tsc, $walltime, $ppin, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $mcgstatus_msg, $mcistatus_msg, $mcastatus_msg, $user_action, $mc_location);
     my ($timestamp, $etype, $severity, $etype_string, $severity_string, $fru_id, $fru_text, $cper_data);
     my ($bus_name, $dev_name, $driver_name, $reporter_name);
     my ($dev, $sector, $nr_sector, $error, $rwbs, $cmd);
@@ -1497,10 +1497,10 @@ sub errors
 
     # MCE mce_record errors
     if ($has_mce == 1) {
-        $query = "select id, timestamp, mcgcap, mcgstatus, status, addr, misc, ip, tsc, walltime, cpu, cpuid, apicid, socketid, cs, bank, cpuvendor, bank_name, error_msg, mcgstatus_msg, mcistatus_msg, mcastatus_msg, user_action, mc_location from mce_record$conf{opt}{since} order by id";
+        $query = "select id, timestamp, mcgcap, mcgstatus, status, addr, misc, ip, tsc, walltime, ppin, cpu, cpuid, apicid, socketid, cs, bank, cpuvendor, bank_name, error_msg, mcgstatus_msg, mcistatus_msg, mcastatus_msg, user_action, mc_location from mce_record$conf{opt}{since} order by id";
         $query_handle = $dbh->prepare($query);
         $query_handle->execute();
-        $query_handle->bind_columns(\($id, $time, $mcgcap,$mcgstatus, $status, $addr, $misc, $ip, $tsc, $walltime, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $msg, $mcgstatus_msg, $mcistatus_msg, $mcastatus_msg, $user_action, $mc_location));
+        $query_handle->bind_columns(\($id, $time, $mcgcap,$mcgstatus, $status, $addr, $misc, $ip, $tsc, $walltime, $ppin, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $msg, $mcgstatus_msg, $mcistatus_msg, $mcastatus_msg, $user_action, $mc_location));
         $out = "";
         while($query_handle->fetch()) {
             $out .= "$id $time error: $msg";
@@ -1519,6 +1519,7 @@ sub errors
 	    $out .= sprintf ", ip=0x%08x", $ip if ($ip);
 	    $out .= sprintf ", tsc=0x%08x", $tsc if ($tsc);
 	    $out .= sprintf ", walltime=0x%08x", $walltime if ($walltime);
+		$out .= sprintf ", ppin=0x%08x", $ppin if ($ppin);
 	    $out .= sprintf ", cpu=0x%08x", $cpu if ($cpu);
 	    $out .= sprintf ", cpuid=0x%08x", $cpuid if ($cpuid);
 	    $out .= sprintf ", apicid=0x%08x", $apicid if ($apicid);

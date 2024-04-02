@@ -330,19 +330,20 @@ static const struct db_fields mce_record_fields[] = {
 		{ .name = "ip",			.type = "INTEGER" },
 		{ .name = "tsc",			.type = "INTEGER" },
 		{ .name = "walltime",		.type = "INTEGER" },
-		{ .name = "cpu",			.type = "INTEGER" }, // 10
+		{ .name = "ppin",			.type = "INTEGER" }, // 10
+		{ .name = "cpu",			.type = "INTEGER" },
 		{ .name = "cpuid",		.type = "INTEGER" },
 		{ .name = "apicid",		.type = "INTEGER" },
 		{ .name = "socketid",		.type = "INTEGER" },
-		{ .name = "cs",			.type = "INTEGER" },
-		{ .name = "bank",			.type = "INTEGER" }, //15
+		{ .name = "cs",			.type = "INTEGER" }, // 15
+		{ .name = "bank",			.type = "INTEGER" },
 		{ .name = "cpuvendor",		.type = "INTEGER" },
 
 		/* Parsed data - will likely change */
 		{ .name = "bank_name",		.type = "TEXT" },
 		{ .name = "error_msg",		.type = "TEXT" },
-		{ .name = "mcgstatus_msg",	.type = "TEXT" },
-		{ .name = "mcistatus_msg",	.type = "TEXT" }, // 20
+		{ .name = "mcgstatus_msg",	.type = "TEXT" },// 20
+		{ .name = "mcistatus_msg",	.type = "TEXT" },
 		{ .name = "mcastatus_msg",	.type = "TEXT" },
 		{ .name = "user_action",		.type = "TEXT" },
 		{ .name = "mc_location",		.type = "TEXT" },
@@ -372,21 +373,22 @@ int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev)
 	sqlite3_bind_int64(priv->stmt_mce_record,  7, ev->ip);
 	sqlite3_bind_int64(priv->stmt_mce_record,  8, ev->tsc);
 	sqlite3_bind_int64(priv->stmt_mce_record,  9, ev->walltime);
-	sqlite3_bind_int   (priv->stmt_mce_record, 10, ev->cpu);
-	sqlite3_bind_int   (priv->stmt_mce_record, 11, ev->cpuid);
-	sqlite3_bind_int   (priv->stmt_mce_record, 12, ev->apicid);
-	sqlite3_bind_int   (priv->stmt_mce_record, 13, ev->socketid);
-	sqlite3_bind_int   (priv->stmt_mce_record, 14, ev->cs);
-	sqlite3_bind_int   (priv->stmt_mce_record, 15, ev->bank);
-	sqlite3_bind_int   (priv->stmt_mce_record, 16, ev->cpuvendor);
+	sqlite3_bind_int64(priv->stmt_mce_record,  10, ev->ppin);
+	sqlite3_bind_int   (priv->stmt_mce_record, 11, ev->cpu);
+	sqlite3_bind_int   (priv->stmt_mce_record, 12, ev->cpuid);
+	sqlite3_bind_int   (priv->stmt_mce_record, 13, ev->apicid);
+	sqlite3_bind_int   (priv->stmt_mce_record, 14, ev->socketid);
+	sqlite3_bind_int   (priv->stmt_mce_record, 15, ev->cs);
+	sqlite3_bind_int   (priv->stmt_mce_record, 16, ev->bank);
+	sqlite3_bind_int   (priv->stmt_mce_record, 17, ev->cpuvendor);
 
-	sqlite3_bind_text(priv->stmt_mce_record, 17, ev->bank_name, -1, NULL);
-	sqlite3_bind_text(priv->stmt_mce_record, 18, ev->error_msg, -1, NULL);
-	sqlite3_bind_text(priv->stmt_mce_record, 19, ev->mcgstatus_msg, -1, NULL);
-	sqlite3_bind_text(priv->stmt_mce_record, 20, ev->mcistatus_msg, -1, NULL);
-	sqlite3_bind_text(priv->stmt_mce_record, 21, ev->mcastatus_msg, -1, NULL);
-	sqlite3_bind_text(priv->stmt_mce_record, 22, ev->user_action, -1, NULL);
-	sqlite3_bind_text(priv->stmt_mce_record, 23, ev->mc_location, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 18, ev->bank_name, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 19, ev->error_msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 20, ev->mcgstatus_msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 21, ev->mcistatus_msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 22, ev->mcastatus_msg, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 23, ev->user_action, -1, NULL);
+	sqlite3_bind_text(priv->stmt_mce_record, 24, ev->mc_location, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_mce_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
