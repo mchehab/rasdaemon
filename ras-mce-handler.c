@@ -375,6 +375,9 @@ static void report_mce_event(struct ras_events *ras,
 	if (e->ppin)
 		trace_seq_printf(s, ", ppin= %llx", (long long)e->ppin);
 
+	if (e->microcode)
+		trace_seq_printf(s, ", microcode= %x", e->microcode);
+
 	if (!e->vdata_len)
 		return;
 
@@ -572,6 +575,10 @@ int ras_mce_event_handler(struct trace_seq *s,
 	/* Get PPIN */
 	if (!tep_get_field_val(s, event, "ppin", record, &val, 1))
 		e.ppin = val;
+
+	/* Get Microcode Revision */
+	if (!tep_get_field_val(s, event, "microcode", record, &val, 1))
+		e.microcode = val;
 
 	/* Get Vendor-specfic Data, if any */
 	e.vdata = tep_get_field_raw(s, event, "v_data", record, &e.vdata_len, 1);

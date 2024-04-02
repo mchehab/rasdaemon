@@ -76,6 +76,7 @@ struct mce_event {
 	uint64_t        synd;   /* MCA_SYND MSR: only valid on SMCA systems */
 	uint64_t        ipid;   /* MCA_IPID MSR: only valid on SMCA systems */
 	uint64_t 	ppin;
+	uint32_t	microcode;
 	int32_t		vdata_len;
 	const uint64_t	*vdata;
 
