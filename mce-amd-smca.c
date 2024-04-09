@@ -706,7 +706,7 @@ static struct smca_mce_desc smca_mce_descs[] = {
 };
 
 struct smca_hwid {
-	unsigned int bank_type; /* Use with smca_bank_types for easy indexing.*/
+	enum smca_bank_types bank_type;
 	uint32_t mcatype_hwid;  /* mcatype,hwid bit 63-32 in MCx_IPID Register*/
 };
 
