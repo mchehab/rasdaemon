@@ -108,7 +108,7 @@ static const char * const smca_ls_mce_desc[] = {
 	"Store queue parity",
 	"Miss address buffer payload parity",
 	"L1 TLB parity",
-	"Reserved",
+	"DC Tag error type 5",
 	"DC tag error type 6",
 	"DC tag error type 1",
 	"Internal error type 1",
@@ -125,6 +125,12 @@ static const char * const smca_ls_mce_desc[] = {
 	"DC tag error type 3",
 	"DC tag error type 5",
 	"L2 fill data error",
+	"Error on SCB cacheline state or address field",
+	"Error on SCB data, commit pipe 0",
+	"Error on SCB data, commit pipe 1",
+	"Error on SCB data for non-cacheable DRAM or IO",
+	"System Read Data Error detected by write combine buffer",
+	"Hardware Asserts",
 };
 
 static const char * const smca_ls2_mce_desc[] = {
@@ -168,7 +174,7 @@ static const char * const smca_if_mce_desc[] = {
 	"BP L1-BTB Multi-Hit Error",
 	"BP L2-BTB Multi-Hit Error",
 	"L2 Cache Response Poison error",
-	"L2 Cache Error Response",
+	"System Read Data error",
 	"Hardware Assertion Error",
 	"L1-TLB Multi-Hit",
 	"L2-TLB Multi-Hit",
@@ -182,6 +188,7 @@ static const char * const smca_l2_mce_desc[] = {
 	"L2M Data Array ECC Error",
 	"Hardware Assert Error",
 	"SDP Read Response Parity Error",
+	"Error initiated by programmable state machine",
 };
 
 static const char * const smca_de_mce_desc[] = {
@@ -193,7 +200,7 @@ static const char * const smca_de_mce_desc[] = {
 	"Fetch address FIFO parity error",
 	"Patch RAM data parity error",
 	"Patch RAM sequencer parity error",
-	"Micro-op buffer parity error",
+	"Micro-op fetch queue parity error",
 	"Hardware Assertion MCA Error",
 };
 
@@ -235,6 +242,7 @@ static const char * const smca_l3_mce_desc[] = {
 	"L3 victim queue Data Fabric error",
 	"L3 Hardware Assertion",
 	"XI WCB Parity Poison Creation event",
+	"Machine check error initiated by DSM action",
 };
 
 static const char * const smca_cs_mce_desc[] = {
@@ -268,6 +276,9 @@ static const char * const smca_cs2_mce_desc[] = {
 	"Address Violation on the no data channel",
 	"Security Violation on the no data channel",
 	"Hardware Assert Error",
+	"Shadow Tag Array Protocol Error",
+	"Shadow Tag ECC Error",
+	"Shadow Tag Transaction Error",
 };
 
 /*
@@ -303,6 +314,8 @@ static const char * const smca_pie_mce_desc[] = {
 	"A deferred error was detected in the DF",
 	"Watch Dog Timer",
 	"An SRAM ECC error was detected in the CNLI block",
+	"Register access during DF Cstate",
+	"DSM Error",
 };
 
 static const char * const smca_umc_mce_desc[] = {
@@ -318,6 +331,11 @@ static const char * const smca_umc_mce_desc[] = {
 	"ECS Error",
 	"UMC Throttling Error",
 	"Read CRC Error",
+	"Reserved",
+	"Reserved",
+	"Reserved",
+	"Reserved",
+	"RFM SRAM ECC error",
 };
 
 static const char * const smca_umc_quirk_mce_desc[] = {
@@ -391,6 +409,12 @@ static const char * const smca_psp2_mce_desc[] = {
 	"TLB Bank 0 parity error",
 	"TLB Bank 1 parity error",
 	"System Hub Read Buffer ECC or parity error",
+	"FUSE IP SRAM ECC or parity error",
+	"PCRU FUSE SRAM ECC or parity error",
+	"SIB SRAM parity error",
+	"mpASP SECEMC Error",
+	"mpASP A5 Hang",
+	"SIB WDT error",
 };
 
 static const char * const smca_smu_mce_desc[] = {
@@ -422,6 +446,7 @@ static const char * const smca_mp5_mce_desc[] = {
 	"Instruction Cache Bank B ECC or parity error",
 	"Instruction Tag Cache Bank A ECC or parity error",
 	"Instruction Tag Cache Bank B ECC or parity error",
+	"Fuse SRAM ECC or parity error",
 };
 
 static const char * const smca_mpdma_mce_desc[] = {
@@ -474,6 +499,7 @@ static const char * const smca_mpdma_mce_desc[] = {
 	"MPDMA PTE Internal Data FIFO ECC or parity error",
 	"MPDMA PTE Command Memory DMA ECC or parity error",
 	"MPDMA PTE Command Memory Internal ECC or parity error",
+	"MPDMA TVF SDP Master Memory 7 ECC or parity error",
 };
 
 static const char * const smca_nbio_mce_desc[] = {
