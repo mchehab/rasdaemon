@@ -727,12 +727,12 @@ static const struct cxl_event_flags cxl_dpa_flags[] = {
  * General Media Event Record - GMER
  * CXL rev 3.0 Section 8.2.9.2.1.1; Table 8-43
  */
-#define CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT		BIT(0)
+#define CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT		BIT(0)
 #define CXL_GMER_EVT_DESC_THRESHOLD_EVENT		BIT(1)
 #define CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW		BIT(2)
 
 static const struct cxl_event_flags cxl_gmer_event_desc_flags[] = {
-	{ .bit = CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT, .flag = "UNCORRECTABLE EVENT" },
+	{ .bit = CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT, .flag = "UNCORRECTABLE EVENT" },
 	{ .bit = CXL_GMER_EVT_DESC_THRESHOLD_EVENT, .flag = "THRESHOLD EVENT" },
 	{ .bit = CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW, .flag = "POISON LIST OVERFLOW" },
 };
