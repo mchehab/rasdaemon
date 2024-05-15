@@ -198,6 +198,9 @@ struct ras_cxl_general_media_event {
 	uint32_t device;
 	uint8_t *comp_id;
 	uint16_t validity_flags;
+	uint64_t hpa;
+	const char *region;
+	const char *region_uuid;
 };
 
 struct ras_cxl_dram_event {
@@ -216,6 +219,9 @@ struct ras_cxl_dram_event {
 	uint16_t column;
 	uint8_t *cor_mask;
 	uint16_t validity_flags;
+	uint64_t hpa;
+	const char *region;
+	const char *region_uuid;
 };
 
 struct ras_cxl_memory_module_event {

@@ -811,6 +811,26 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 					      ev.transaction_type)) <= 0)
 		return -1;
 
+	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
+		return -1;
+	ev.hpa = val;
+	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+		return -1;
+
+	ev.region = tep_get_field_raw(s, event, "region_name", record, &len, 1);
+	if (!ev.region)
+		return -1;
+	if (trace_seq_printf(s, "region:%s ", ev.region) <= 0)
+		return -1;
+
+	ev.region_uuid = tep_get_field_raw(s, event, "region_uuid",
+					   record, &len, 1);
+	if (!ev.region_uuid)
+		return -1;
+	ev.region_uuid = uuid_be(ev.region_uuid);
+	if (trace_seq_printf(s, "region_uuid:%s ", ev.region_uuid) <= 0)
+		return -1;
+
 	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
 		return -1;
 	ev.validity_flags = val;
@@ -931,6 +951,26 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 			     get_cxl_type_str(cxl_gmer_trans_type,
 					      ARRAY_SIZE(cxl_gmer_trans_type),
 					      ev.transaction_type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
+		return -1;
+	ev.hpa = val;
+	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+		return -1;
+
+	ev.region = tep_get_field_raw(s, event, "region", record, &len, 1);
+	if (!ev.region)
+		return -1;
+	if (trace_seq_printf(s, "region:%s ", ev.region) <= 0)
+		return -1;
+
+	ev.region_uuid = tep_get_field_raw(s, event, "region_uuid",
+					   record, &len, 1);
+	if (!ev.region_uuid)
+		return -1;
+	ev.region_uuid = uuid_be(ev.region_uuid);
+	if (trace_seq_printf(s, "region_uuid:%s ", ev.region_uuid) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
