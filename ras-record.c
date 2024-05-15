@@ -877,6 +877,9 @@ static const struct db_fields cxl_general_media_event_fields[] = {
 	{ .name = "rank",		.type = "INTEGER" },
 	{ .name = "device",		.type = "INTEGER" },
 	{ .name = "comp_id",		.type = "BLOB" },
+	{ .name = "hpa",		.type = "INTEGER" },
+	{ .name = "region",		.type = "TEXT" },
+	{ .name = "region_uuid",	.type = "TEXT" },
 };
 
 static const struct db_table_descriptor cxl_general_media_event_tab = {
@@ -907,6 +910,9 @@ int ras_store_cxl_general_media_event(struct ras_events *ras,
 	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 20, ev->device);
 	sqlite3_bind_blob(priv->stmt_cxl_general_media_event, 21, ev->comp_id,
 			  CXL_EVENT_GEN_MED_COMP_ID_SIZE, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, 22, ev->hpa);
+	sqlite3_bind_text(priv->stmt_cxl_general_media_event, 23, ev->region, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_general_media_event, 24, ev->region_uuid, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_general_media_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -951,6 +957,9 @@ static const struct db_fields cxl_dram_event_fields[] = {
 	{ .name = "row",		.type = "INTEGER" },
 	{ .name = "column",		.type = "INTEGER" },
 	{ .name = "cor_mask",		.type = "BLOB" },
+	{ .name = "hpa",		.type = "INTEGER" },
+	{ .name = "region",		.type = "TEXT" },
+	{ .name = "region_uuid",	.type = "TEXT" },
 };
 
 static const struct db_table_descriptor cxl_dram_event_tab = {
@@ -984,6 +993,9 @@ int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *
 	sqlite3_bind_int(priv->stmt_cxl_dram_event, 24, ev->column);
 	sqlite3_bind_blob(priv->stmt_cxl_dram_event, 25, ev->cor_mask,
 			  CXL_EVENT_DER_CORRECTION_MASK_SIZE, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_dram_event, 26, ev->hpa);
+	sqlite3_bind_text(priv->stmt_cxl_dram_event, 27, ev->region, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_dram_event, 28, ev->region_uuid, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_dram_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)

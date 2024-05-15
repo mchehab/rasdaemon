@@ -554,6 +554,9 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		"descriptor=%u\n"
 		"type=%u\n"
 		"transaction_type=%u\n"
+		"hpa=0x%lx\n"
+		"region=%s\n"
+		"region_uuid=%s\n"
 		"channel=%u\n"
 		"rank=%u\n"
 		"device=0x%x\n",
@@ -574,6 +577,9 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		ev->descriptor,
 		ev->type,
 		ev->transaction_type,
+		ev->hpa,
+		ev->region,
+		ev->region_uuid,
 		ev->channel,
 		ev->rank,
 		ev->device);
@@ -611,6 +617,9 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		"descriptor=%u\n"
 		"type=%u\n"
 		"transaction_type=%u\n"
+		"hpa=0x%lx\n"
+		"region=%s\n"
+		"region_uuid=%s\n"
 		"channel=%u\n"
 		"rank=%u\n"
 		"nibble_mask=%u\n"
@@ -635,6 +644,9 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		ev->descriptor,
 		ev->type,
 		ev->transaction_type,
+		ev->hpa,
+		ev->region,
+		ev->region_uuid,
 		ev->channel,
 		ev->rank,
 		ev->nibble_mask,
