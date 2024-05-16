@@ -216,6 +216,17 @@ static const char * const module_name[] = {
 	"SDMA",
 	"UC",
 	"HBMC",
+	"PMC",
+	"SCHE",
+	"ASMB_DFS",
+	"ASMB_NTU",
+	"UB",
+	"UMMU",
+	"PCU",
+	"UCMI",
+	"DJTAGM",
+	"CFGBUS",
+	"MPU",
 };
 
 static const char * const get_soc_desc(uint8_t soc_id)
