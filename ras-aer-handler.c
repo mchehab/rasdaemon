@@ -35,6 +35,7 @@ static const char *aer_cor_errors[32] = {
 	[8]  = "RELAY_NUM Rollover",
 	[12] = "Replay Timer Timeout",
 	[13] = "Advisory Non-Fatal",
+	[14] = "Corrected Internal Error",
 };
 
 /* bit field meaning for uncorrectable error */
