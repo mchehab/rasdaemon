@@ -16,6 +16,7 @@
 #include "ras-report.h"
 #include "unified-sel.h"
 #include "types.h"
+#include "trigger.h"
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {
@@ -209,6 +210,8 @@ int ras_aer_event_handler(struct trace_seq *s,
 		if (openbmc_unified_sel_log(severity_val, ev.dev_name, status_val) < 0)
 			return -1;
 #endif
+
+	run_aer_event_trigger(&ev);
 
 	return 0;
 }

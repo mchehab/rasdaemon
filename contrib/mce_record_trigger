@@ -1,0 +1,46 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+#  This shell script can be executed by rasdaemon in daemon mode when a
+#  mc_event is occurred, environment variables include all information
+#  reported by tracepoint.
+#
+# environment:
+# MCGCAP        MCGCAP MSR: machine check capabilities of CPU
+# MCGSTATUS     Machine Check Global Status MSR
+# STATUS        Bank's MCi_STATUS MSR
+# ADDR          Bank's MCi_ADDR MSR
+# MISC          Bank's MCi_MISC MSR
+# IP            Instruction Pointer when the error happened
+# TSC           CPU time stamp counter
+# WALLTIME      Wall time_t when error was detected
+# CPU           CPU number; obsoleted by extcpu
+# CPUID         CPUID 1 EAX
+# APICID        CPU initial APIC ID
+# SOCKETID      CPU socket ID
+# CS            Code segment
+# BANK          Machine check bank reporting the error
+# CPUVENDOR     Kernel's X86_VENDOR enum
+# SYND          MCA_SYND MSR: only valid on SMCA systems
+# IPID          MCA_IPID MSR: only valid on SMCA systems
+# TIMESTAMP     Rasdaemon timestamp
+# BANK_NAME     Decode ban name
+# ERROR_MSG     Vendor define error message
+# MCGSTATUS_MSG Decode mcgstatus
+# MCISTATUS_MSG Decode mcistatus
+# MCASTATUS_MSG Decode mcastatus
+# USER_ACTION   Recommendations for actions users should take
+# MC_LOCATION   Error location in MC
+#
+
+[ -x ./mce_record_trigger.local ] && . ./mce_record_trigger.local
+
+if [ -d mce_record_trigger.extern ]
+then
+    ls mce_record_trigger.extern |
+    while read item
+    do
+        [ -x ./mce_record_trigger.extern/$item ] && . ./mce_record_trigger.extern/$item
+    done
+fi
+
+exit 0

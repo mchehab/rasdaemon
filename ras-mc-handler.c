@@ -20,89 +20,6 @@
 #include "trigger.h"
 #include "types.h"
 
-#define MAX_ENV 30
-static const char *mc_ce_trigger = NULL;
-static const char *mc_ue_trigger = NULL;
-
-void mc_event_trigger_setup(void)
-{
-	const char *trigger;
-
-	trigger = getenv("MC_CE_TRIGGER");
-	if (trigger && strcmp(trigger, "")) {
-		mc_ce_trigger = trigger_check(trigger);
-
-		if (!mc_ce_trigger) {
-			log(ALL, LOG_ERR,
-			    "Cannot access mc_event ce trigger `%s`\n",
-			    trigger);
-		} else {
-			log(ALL, LOG_INFO,
-			    "Setup mc_event ce trigger `%s`\n",
-			    trigger);
-		}
-	}
-
-	trigger = getenv("MC_UE_TRIGGER");
-	if (trigger && strcmp(trigger, "")) {
-		mc_ue_trigger = trigger_check(trigger);
-
-		if (!mc_ue_trigger) {
-			log(ALL, LOG_ERR,
-			    "Cannot access mc_event ue trigger `%s`\n",
-			    trigger);
-		} else {
-			log(ALL, LOG_INFO,
-			    "Setup mc_event ue trigger `%s`\n",
-			    trigger);
-		}
-	}
-}
-
-static void run_mc_trigger(struct ras_mc_event *ev, const char *mc_trigger)
-{
-	char *env[MAX_ENV];
-	int ei = 0;
-	int i;
-
-	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
-		goto free;
-	if (asprintf(&env[ei++], "TIMESTAMP=%s", ev->timestamp) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "COUNT=%d", ev->error_count) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "TYPE=%s", ev->error_type) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "MESSAGE=%s", ev->msg) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "LABEL=%s", ev->label) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "MC_INDEX=%d", ev->mc_index) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "TOP_LAYER=%d", ev->top_layer) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "MIDDLE_LAYER=%d", ev->middle_layer) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "LOWER_LAYER=%d", ev->lower_layer) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "ADDRESS=%llx", ev->address) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "GRAIN=%lld", ev->grain) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "SYNDROME=%llx", ev->syndrome) < 0)
-		goto free;
-	if (asprintf(&env[ei++], "DRIVER_DETAIL=%s", ev->driver_detail) < 0)
-		goto free;
-	env[ei] = NULL;
-	assert(ei < MAX_ENV);
-
-	run_trigger(mc_trigger, NULL, env, "mc_event");
-
-free:
-	for (i = 0; i < ei; i++)
-		free(env[i]);
-}
-
 int ras_mc_event_handler(struct trace_seq *s,
 			 struct tep_record *record,
 			 struct tep_event *event, void *context)
@@ -289,11 +206,7 @@ int ras_mc_event_handler(struct trace_seq *s,
 	ras_report_mc_event(ras, &ev);
 #endif
 
-	if (mc_ce_trigger && !strcmp(ev.error_type, "Corrected"))
-		run_mc_trigger(&ev, mc_ce_trigger);
-
-	if (mc_ue_trigger && !strcmp(ev.error_type, "Uncorrected"))
-		run_mc_trigger(&ev, mc_ue_trigger);
+	run_mc_event_trigger(&ev);
 
 	return 0;
 

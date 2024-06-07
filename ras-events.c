@@ -53,13 +53,6 @@
 
 char *choices_disable;
 
-static const struct event_trigger event_triggers[] = {
-	{ "mc_event", &mc_event_trigger_setup },
-#ifdef HAVE_MEMORY_FAILURE
-	{ "memory_failure_event", &mem_fail_event_trigger_setup },
-#endif
-};
-
 static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
 	FILE *fp;
@@ -321,17 +314,6 @@ free_ras:
 		return -EINVAL;
 
 	return 0;
-}
-
-static void setup_event_trigger(char *event)
-{
-	struct event_trigger trigger;
-
-	for (int i = 0; i < ARRAY_SIZE(event_triggers); i++) {
-		trigger = event_triggers[i];
-		if (!strcmp(event, trigger.name))
-			trigger.setup();
-	}
 }
 
 #ifdef HAVE_DISKERROR

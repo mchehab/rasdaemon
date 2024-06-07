@@ -17,6 +17,7 @@
 #include "ras-mce-handler.h"
 #include "ras-report.h"
 #include "types.h"
+#include "trigger.h"
 
 /*
  * The code below were adapted from Andi Kleen/Intel/SUSE mcelog code,
@@ -578,6 +579,8 @@ int ras_mce_event_handler(struct trace_seq *s,
 	/* Report event to ABRT */
 	ras_report_mce_event(ras, &e);
 #endif
+
+	run_mce_record_trigger(&e);
 
 	return 0;
 }
