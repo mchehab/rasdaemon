@@ -64,9 +64,7 @@ endif
 if WITH_HISI_NS_DECODE
    rasdaemon_SOURCES += non-standard-hisi_hip08.c non-standard-hisilicon.c
 endif
-if WITH_MEMORY_CE_PFA
-   rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
-endif
+rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
 if WITH_AMP_NS_DECODE
    rasdaemon_SOURCES += non-standard-ampere.c
 endif
@@ -120,6 +118,5 @@ upload:
 # custom target
 install-data-local:
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d"
-if WITH_MEMORY_CE_PFA
 	$(install_sh) @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@SYSCONFDEFDIR@/rasdaemon"
-endif
+
