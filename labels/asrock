@@ -19,6 +19,12 @@ Vendor: ASRock
     DIMM_A1:  0.0.1, 0.1.1;    DIMM_A2:   0.2.1, 0.3.1;
     DIMM_B1:  0.0.0, 0.1.0;    DIMM_B2:   0.2.0, 0.3.0;
 
+  Model: TRX50 WS
+    DIMM_A0: 0.0.3, 0.1.3;
+    DIMM_C0: 0.0.0, 0.1.0;
+    DIMM_E0: 0.0.9, 0.1.9;
+    DIMM_G0: 0.0.6, 0.1.6;
+
 Vendor: ASRockRack
   Model: X399D8A-2T
     DIMM_A1:  0.2.0, 0.3.0;    DIMM_A2: 0.0.0, 0.1.0;
