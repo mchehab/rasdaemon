@@ -102,15 +102,39 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 	return ENOENT;
 }
 
+static int wait_access(char *path, int ms)
+{
+	int i;
+	for (i = 0; i < ms; i++) {
+		if (access(path, F_OK) == 0)
+			return 0;
+		usleep(1000);
+	}
+
+	log(ALL, LOG_WARNING, "wait_access() failed, %s not created in %d ms\n", path, ms);
+	return -1;
+}
+
 static int open_trace(struct ras_events *ras, char *name, int flags)
 {
+	int ret = 0;
 	char fname[MAX_PATH + 1];
 
 	strcpy(fname, ras->tracing);
 	strcat(fname, "/");
 	strcat(fname, name);
 
-	return open(fname, flags);
+	ret = wait_access(fname, 100);
+	if (ret != 0) {
+		/* use -1 to keep same error value with open() */
+		return -1;
+	}
+
+	ret = open(fname, flags);
+	if (ret == -1)
+		log(ALL, LOG_WARNING, "open_trace()->open() failed, fname=%s ret=%d errno=%d\n", fname, ret, errno);
+
+	return ret;
 }
 
 static int get_tracing_dir(struct ras_events *ras)
