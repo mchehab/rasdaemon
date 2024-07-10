@@ -245,7 +245,7 @@ class errorInjection:
                         suffixes=["-error", "-cap"])
         get_mult_int(pei, "multiple-error", args.multiple_error)
         get_mult_int(pei, "phy-addr", args.physical_address)
-        get_mult_int(pei, "vir-addr", args.virtual_address)
+        get_mult_int(pei, "virt-addr", args.virtual_address)
 
         # Handle context
         get_mult_int(ctx, "type", args.ctx_type, allow_zero=True)
