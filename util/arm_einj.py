@@ -201,8 +201,6 @@ class errorInjection:
             self.args = args
             return
 
-        print("ARGS:", args)
-
         pei = {}
         ctx = {}
         vendor = {}
