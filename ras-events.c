@@ -988,7 +988,7 @@ int handle_ras_events(int record_events)
 
 #ifdef HAVE_MCE
 	rc = register_mce_handler(ras, cpus);
-	if (rc)
+	if (rc && rc != -ENOENT)
 		log(ALL, LOG_INFO, "Can't register mce handler\n");
 	if (ras->mce_priv) {
 		rc = add_event_handler(ras, pevent, page_size,

@@ -186,6 +186,11 @@ static int detect_cpu(struct mce_priv *mce)
 			seen |= CPU_FLAGS;
 		}
 	}
+	if (!seen) {
+		log(ALL, LOG_INFO, "Can't find a x86 CPU at /proc/cpuinfo. Disabling MCE handler.\n");
+		ret = -ENOENT;
+		goto ret;
+	}
 
 	if (seen != CPU_ALL) {
 		log(ALL, LOG_INFO, "Can't parse /proc/cpuinfo: missing%s%s%s%s%s\n",
