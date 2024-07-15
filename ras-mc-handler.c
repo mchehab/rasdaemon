@@ -40,7 +40,9 @@ void mc_event_trigger_setup(void)
 
 	trigger = getenv("MC_CE_TRIGGER");
 	if (trigger && strcmp(trigger, "")) {
-		if (trigger_check(trigger) < 0) {
+		mc_ce_trigger = trigger_check(trigger);
+
+		if (!mc_ce_trigger) {
 			log(ALL, LOG_ERR,
 			    "Cannot access mc_event ce trigger `%s`\n",
 			    trigger);
@@ -48,13 +50,14 @@ void mc_event_trigger_setup(void)
 			log(ALL, LOG_INFO,
 			    "Setup mc_event ce trigger `%s`\n",
 			    trigger);
-			mc_ce_trigger = trigger;
 		}
 	}
 
 	trigger = getenv("MC_UE_TRIGGER");
 	if (trigger && strcmp(trigger, "")) {
-		if (trigger_check(trigger) < 0) {
+		mc_ue_trigger = trigger_check(trigger);
+
+		if (!mc_ue_trigger) {
 			log(ALL, LOG_ERR,
 			    "Cannot access mc_event ue trigger `%s`\n",
 			    trigger);
@@ -62,7 +65,6 @@ void mc_event_trigger_setup(void)
 			log(ALL, LOG_INFO,
 			    "Setup mc_event ue trigger `%s`\n",
 			    trigger);
-			mc_ue_trigger = trigger;
 		}
 	}
 }
@@ -72,9 +74,6 @@ static void run_mc_trigger(struct ras_mc_event *ev, const char *mc_trigger)
 	char *env[MAX_ENV];
 	int ei = 0;
 	int i;
-
-	if (!strcmp(mc_trigger, ""))
-		return;
 
 	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
 		goto free;

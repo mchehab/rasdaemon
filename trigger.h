@@ -6,7 +6,7 @@ struct event_trigger {
         void (*setup)(void);
 };
 
-int trigger_check(const char *s);
+const char *trigger_check(const char *s);
 void run_trigger(const char *trigger, char *argv[], char **env, const char* reporter);
 
 #endif

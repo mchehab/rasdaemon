@@ -9,14 +9,9 @@
 void run_trigger(const char *trigger, char *argv[], char **env, const char *reporter)
 {
 	pid_t child;
-	char *path;
 	int status;
-	char *trigger_dir = getenv("TRIGGER_DIR");
 
 	log(SYSLOG, LOG_INFO, "Running trigger `%s' (reporter: %s)\n", trigger, reporter);
-
-	if (asprintf(&path, "%s/%s", trigger_dir, trigger) < 0)
-		return;
 
 	child = fork();
 	if (child < 0) {
@@ -25,7 +20,7 @@ void run_trigger(const char *trigger, char *argv[], char **env, const char *repo
 	}
 
 	if (child == 0) {
-		execve(path, argv, env);
+		execve(trigger, argv, env);
 		_exit(127);
 	} else {
 		waitpid(child, &status, 0);
@@ -39,7 +34,7 @@ void run_trigger(const char *trigger, char *argv[], char **env, const char *repo
 	}
 }
 
-int trigger_check(const char *s)
+const char *trigger_check(const char *s)
 {
 	char *name;
 	int rc;
@@ -47,14 +42,14 @@ int trigger_check(const char *s)
 
 	if (trigger_dir) {
 		if (asprintf(&name, "%s/%s", trigger_dir, s) < 0)
-			return -1;
-	} else
-		name = s;
+			return NULL;
+                s = name;
+	}
 
-	rc = access(name, R_OK|X_OK);
+	rc = access(s, R_OK|X_OK);
 
-	if (trigger_dir)
-		free(name);
+	if (!rc)
+		return(s);
 
-	return rc;
+	return NULL;
 }
