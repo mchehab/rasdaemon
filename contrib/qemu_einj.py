@@ -11,53 +11,29 @@ import socket
 import sys
 
 einj_description= """
-Do UEFI CPER firmware-first error injections via QEMU.
+Handle ACPI GHESv2 error injection logic QEMU QMP interface.\n
+
+It allows using UEFI BIOS EINJ features to generate GHES records.
+
+It helps testing Linux CPER and GHES drivers and to test rasdaemon
+error handling logic.
+
+Currently, it support ARM processor error injection for ARM processor
+events, being compatible with UEFI 2.9A Errata.
 
 This small utility works together with those QEMU additions:
-   https://gitlab.com/mchehab_kernel/qemu/-/tree/arm-error-inject-v2
-
-It allows using UEFI BIOS EINJ features on ARM32/64 emulation to do ARM
-processor error injection, to be decoded by Linux CPER and GHES drivers,
-helping to test rasdaemon firmware-first error handling for ARM processor
-events, being compatible with UEFI 2.9A Errata.
+- https://gitlab.com/mchehab_kernel/qemu/-/tree/arm-error-inject-v2
 """
 
+#
+# Socket QMP send command
+#
 
-# Valid choice values
-ARM_valid_bits = {
-    "mpidr": "mpidr-valid",
-    "affinity": "affinity-valid",
-    "running": "running-state-valid",
-    "vendor": "vendor-specific-valid"
-}
-
-PEI_flags = {
-    "first": "first-error-cap",
-    "last": "last-error-cap",
-    "propagated": "propagated",
-    "overflow": "overflow",
-}
-
-PEI_error_types = {
-    "cache": "cache-error",
-    "tlb": "tlb-error",
-    "bus": "bus-error",
-    "micro-arch": "micro-arch-error",
-    "vendor": "micro-arch-error"
-}
-
-PEI_valid_bits = {
-    "multiple-error": "multiple-error-valid",
-    "flags": "flags-valid",
-    "error": "error-info-valid",
-    "virt": "virt-addr-valid",
-    "virtual": "virt-addr-valid",
-    "phy": "phy-addr-valid",
-    "physical": "phy-addr-valid"
-}
-
-def einj_command(host, port, commands):
+def qmp_command(host, port, commands):
     """Send commands to QEMU though QMP TCP socket"""
+
+    # Needed to negotiate QMP and for QEMU to accept the command
+    commands.insert(0, '{ "execute": "qmp_capabilities" } ')
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
@@ -81,6 +57,10 @@ def einj_command(host, port, commands):
         print("\t", data.decode('utf-8'))
 
     s.close()
+
+#
+# Helper routines to handle multiple choice arguments
+#
 
 def get_choice(name, value, choices, suffixes=None):
     new_values = []
@@ -186,7 +166,11 @@ def get_mult_int(mult, name, values, allow_zero=False):
         mult[i][name] = val
         i += 1
 
-class errorInjection:
+#
+# Arm processor EINJ logic
+#
+
+class ArmProcessorEinj:
     def __init__(self, args=None, arm=None):
 
         """Initialize the error injection class. There are two possible
@@ -194,6 +178,39 @@ class errorInjection:
            1. passing a set of arguments;
            2. passing a dict with error inject command parameters. Each
               column is handled in separate."""
+
+        # Valid choice values
+        self.ARM_valid_bits = {
+            "mpidr": "mpidr-valid",
+            "affinity": "affinity-valid",
+            "running": "running-state-valid",
+            "vendor": "vendor-specific-valid"
+        }
+
+        self.PEI_flags = {
+            "first": "first-error-cap",
+            "last": "last-error-cap",
+            "propagated": "propagated",
+            "overflow": "overflow",
+        }
+
+        self.PEI_error_types = {
+            "cache": "cache-error",
+            "tlb": "tlb-error",
+            "bus": "bus-error",
+            "micro-arch": "micro-arch-error",
+            "vendor": "micro-arch-error"
+        }
+
+        self.PEI_valid_bits = {
+            "multiple-error": "multiple-error-valid",
+            "flags": "flags-valid",
+            "error": "error-info-valid",
+            "virt": "virt-addr-valid",
+            "virtual": "virt-addr-valid",
+            "phy": "phy-addr-valid",
+            "physical": "phy-addr-valid"
+        }
 
         self.arm = {}
 
@@ -208,7 +225,7 @@ class errorInjection:
         # Handle global parameters
         if args.arm:
             self.arm["validation"] = get_choice(name="validation", value=args.arm,
-                                                choices=ARM_valid_bits,
+                                                choices=self.ARM_valid_bits,
                                                 suffixes=["-error", "-err"])
 
         if args.affinity:
@@ -235,13 +252,13 @@ class errorInjection:
             args.type = ['cache-error']
 
         get_mult_choices(pei, name="validation", values=args.pei_valid,
-                        choices=PEI_valid_bits,
+                        choices=self.PEI_valid_bits,
                         suffixes=["-valid", "-info", "--information", "--addr"])
         get_mult_choices(pei, name="type", values=args.type,
-                        choices=PEI_error_types,
+                        choices=self.PEI_error_types,
                         suffixes=["-error", "-err"])
         get_mult_choices(pei, name="flags", values=args.flags,
-                        choices=PEI_flags,
+                        choices=self.PEI_flags,
                         suffixes=["-error", "-cap"])
         get_mult_int(pei, "multiple-error", args.multiple_error)
         get_mult_int(pei, "phy-addr", args.physical_address)
@@ -276,29 +293,19 @@ class errorInjection:
         # Fill the commands to be sent
         commands = []
 
-        # Needed to negotiate QMP and for QEMU to accept the command
-        commands.append('{ "execute": "qmp_capabilities" } ')
-
         command = '{ "execute": "arm-inject-error", '
         command += '"arguments": ' + json.dumps(self.arm) + ' }'
 
         commands.append(command)
 
-        einj_command(host, port, commands)
+        qmp_command(host, port, commands)
 
+#
+# Argument parser for ARM Processor CPER
+#
 
-def handle_args():
-    parser = argparse.ArgumentParser(prog="einj.py",
-                                     usage="%(prog)s [options]",
-                                     description=einj_description,
-                                     epilog="If a field is not defined, a default value will be applied by QEMU.")
-
-    # TCP QEMU QMP host/port
-    g_options = parser.add_argument_group("Socket options")
-    g_options.add_argument("-H", "--host", default="localhost", type=str,
-                           help="host name")
-    g_options.add_argument("-P", "--port", default=4445, type=int,
-                           help="TCP port number")
+def arm_handle_args(subparsers):
+    parser = subparsers.add_parser('arm', help='Generate an ARM processor CPER')
 
     # UEFI N.16 ARM Validation bits
     g_arm = parser.add_argument_group("ARM processor")
@@ -349,15 +356,38 @@ def handle_args():
     g_pei.add_argument("--vendor", "--vendor-specific", nargs="+",
                        help="Vendor-specific byte arrays of data")
 
-    return parser.parse_args()
+#
+# Main Program. Each error injection logic is handled by a separate subparser
+#
 
 def main():
     """Main program"""
 
-    args = handle_args()
+    # Main parser - handle generic args like QEMU QMP TCP socket options
+    parser = argparse.ArgumentParser(prog="einj.py",
+                                     formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     usage="%(prog)s [options]",
+                                     description=einj_description,
+                                     epilog="If a field is not defined, a default value will be applied by QEMU.")
 
-    einj = errorInjection(args)
-    einj.run(args.host, args.port)
+    g_options = parser.add_argument_group("QEMU QMP socket options")
+    g_options.add_argument("-H", "--host", default="localhost", type=str,
+                           help="host name")
+    g_options.add_argument("-P", "--port", default=4445, type=int,
+                           help="TCP port number")
+
+    # Call subparsers
+    subparsers = parser.add_subparsers()
+    arm_handle_args(subparsers)
+
+    args = parser.parse_args()
+
+    # Handle subparser commands
+    if "arm" in args:
+        einj = ArmProcessorEinj(args)
+        einj.run(args.host, args.port)
+    else:
+        sys.exit("Error: type of error injection missing.")
 
 if __name__ == '__main__':
     main()
