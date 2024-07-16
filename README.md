@@ -235,6 +235,9 @@ AER error injection can use this tool:
 If you want to help improving this tool, be my guest! We try to follow
 the Kernel's CodingStyle and submission rules as a reference.
 
+Before submitting your patch, please check the coding style with:
+scripts/checkpatch.pl.
+
 In order to contribute with rasdaemon, please send a Merge Request via
 github repository at:
 
