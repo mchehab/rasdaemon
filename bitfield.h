@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 #include <stdint.h>
 
@@ -60,7 +60,7 @@ static inline int test_prefix(int nr, uint32_t value)
 
 /* Ancillary routines */
 
-unsigned int bitfield_msg(char *buf, size_t len, const char **bitarray,
+unsigned int bitfield_msg(char *buf, size_t len, const char * const *bitarray,
 			  unsigned int array_len,
 			  unsigned int bit_offset, unsigned int ignore_bits,
 			  uint64_t status);

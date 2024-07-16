@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 #ifndef __RAS_LOGGER_H
 
@@ -35,14 +35,14 @@
 #define ALL	(SYSLOG | TERM)
 /* TODO: global logging limit mask */
 
-#define log(where, level, fmt, args...) do {\
-	if (where & SYSLOG)\
-		syslog(level, fmt, ##args);\
-	if (where & TERM) {\
-		fprintf(stderr, "%s: ", TOOL_NAME);\
-		fprintf(stderr, fmt, ##args);\
-		fflush(stderr);\
-	}\
+#define log(where, level, fmt, args...) do {			\
+	if ((where) & SYSLOG)					\
+		syslog(level, fmt, ##args);			\
+	if ((where) & TERM) {					\
+		fprintf(stderr, "%s: ", TOOL_NAME);		\
+		fprintf(stderr, fmt, ##args);			\
+		fflush(stderr);					\
+	}							\
 } while (0)
 
 #define __RAS_LOGGER_H

@@ -171,13 +171,13 @@ static const struct db_table_descriptor hisi_common_section_tab = {
 };
 #endif
 
-static const char *soc_desc[] = {
+static const char * const soc_desc[] = {
 	"Kunpeng916",
 	"Kunpeng920",
 	"Kunpeng930",
 };
 
-static const char *module_name[] = {
+static const char * const module_name[] = {
 	"MN",
 	"PLL",
 	"SLLC",
@@ -221,7 +221,7 @@ static const char *module_name[] = {
 	"HBMC",
 };
 
-static const char *get_soc_desc(uint8_t soc_id)
+static const char * const get_soc_desc(uint8_t soc_id)
 {
 	if (soc_id >= sizeof(soc_desc) / sizeof(char *))
 		return "unknown";

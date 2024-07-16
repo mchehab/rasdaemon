@@ -42,8 +42,9 @@ void display_raw_data(struct trace_seq *s,
 		if (++line_count == 4) {
 			trace_seq_printf(s, "\n  %08x: ", i);
 			line_count = 0;
-		} else
+		} else {
 			trace_seq_printf(s, " ");
+		}
 	}
 }
 

@@ -26,7 +26,9 @@ static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index)
 {
-	trace_seq_printf(s, "%02x%02x%02x%02x", buf[index + 3], buf[index + 2], buf[index + 1], buf[index]);
+	trace_seq_printf(s, "%02x%02x%02x%02x",
+			 buf[index + 3], buf[index + 2],
+			 buf[index + 1], buf[index]);
 }
 
 static char *uuid_le(const char *uu)
@@ -253,8 +255,9 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 			if (++line_count == 4) {
 				trace_seq_printf(s, "\n  %08x: ", i);
 				line_count = 0;
-			} else
+			} else {
 				trace_seq_printf(s, " ");
+			}
 		}
 	}
 

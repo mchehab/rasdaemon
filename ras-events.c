@@ -14,36 +14,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
+
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <sys/poll.h>
+#include <sys/signalfd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/poll.h>
-#include <signal.h>
-#include <sys/signalfd.h>
-#include <traceevent/kbuffer.h>
 #include <traceevent/event-parse.h>
-#include "ras-mc-handler.h"
+#include <traceevent/kbuffer.h>
+#include <unistd.h>
+
 #include "ras-aer-handler.h"
-#include "ras-non-standard-handler.h"
 #include "ras-arm-handler.h"
-#include "ras-mce-handler.h"
-#include "ras-extlog-handler.h"
+#include "ras-cpu-isolation.h"
+#include "ras-cxl-handler.h"
 #include "ras-devlink-handler.h"
 #include "ras-diskerror-handler.h"
-#include "ras-memory-failure-handler.h"
-#include "ras-cxl-handler.h"
-#include "ras-record.h"
+#include "ras-extlog-handler.h"
 #include "ras-logger.h"
+#include "ras-mce-handler.h"
+#include "ras-mc-handler.h"
+#include "ras-memory-failure-handler.h"
+#include "ras-non-standard-handler.h"
 #include "ras-page-isolation.h"
-#include "ras-cpu-isolation.h"
+#include "ras-record.h"
 #include "trigger.h"
 
 /*
@@ -105,7 +107,7 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 
 	fclose(fp);
 	log(ALL, LOG_INFO, "Can't find debugfs\n");
-	return ENOENT;
+	return -ENOENT;
 }
 
 static int open_trace(struct ras_events *ras, char *name, int flags)
@@ -164,7 +166,8 @@ static int is_disabled_event(char *group, char *event)
 	snprintf(ras_event_name, sizeof(ras_event_name), "%s:%s",
 		 group, event);
 
-	if (choices_disable && strlen(choices_disable) != 0 && strstr(choices_disable, ras_event_name)) {
+	if (choices_disable && strlen(choices_disable) != 0 &&
+	    strstr(choices_disable, ras_event_name)) {
 		return 1;
 	}
 	return 0;
@@ -519,9 +522,8 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 
 	do {
 		ready = poll(fds, (n_cpus + 1), -1);
-		if (ready < 0) {
+		if (ready < 0)
 			log(TERM, LOG_WARNING, "poll\n");
-		}
 
 		/* check for the signal */
 		if (fds[n_cpus].revents & POLLIN) {
@@ -1139,7 +1141,7 @@ int handle_ras_events(int record_events)
 		goto err;
 	}
 
-	data = calloc(sizeof(*data), cpus);
+	data = calloc(cpus, sizeof(*data));
 	if (!data)
 		goto err;
 

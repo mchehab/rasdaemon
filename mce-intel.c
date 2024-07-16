@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 #include <errno.h>
 #include <fcntl.h>
@@ -164,10 +164,15 @@ static void decode_memory_controller(struct mce_event *e, uint32_t status)
 static void decode_termal_bank(struct mce_event *e)
 {
 	if (e->status & 1) {
-		mce_snprintf(e->mcgstatus_msg, "Processor %d heated above trip temperature. Throttling enabled.", e->cpu);
-		mce_snprintf(e->user_action, "Please check your system cooling. Performance will be impacted");
+		mce_snprintf(e->mcgstatus_msg,
+			     "Processor %d heated above trip temperature. Throttling enabled.",
+			     e->cpu);
+		mce_snprintf(e->user_action,
+			     "Please check your system cooling. Performance will be impacted");
 	} else {
-		mce_snprintf(e->error_msg, "Processor %d below trip temperature. Throttling disabled", e->cpu);
+		mce_snprintf(e->error_msg,
+			     "Processor %d below trip temperature. Throttling disabled",
+			     e->cpu);
 	}
 }
 
@@ -209,9 +214,8 @@ static char *get_RRRR_str(uint8_t rrrr)
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(RRRR); i++) {
-		if (RRRR[i].value == rrrr) {
+		if (RRRR[i].value == rrrr)
 			return RRRR[i].str;
-		}
 	}
 
 	return "UNKNOWN";
@@ -281,8 +285,9 @@ static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 	} else if (test_prefix(7, mca)) {
 		decode_memory_controller(e, mca);
 		*ismemerr = 1;
-	} else
+	} else {
 		mce_snprintf(e->mcastatus_msg, "Unknown Error %x", mca);
+	}
 }
 
 static void decode_tracking(struct mce_event *e, uint64_t track)

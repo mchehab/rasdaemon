@@ -14,18 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
+
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdint.h>
 #include <traceevent/kbuffer.h>
+
 #include "ras-extlog-handler.h"
-#include "ras-record.h"
 #include "ras-logger.h"
+#include "ras-record.h"
 #include "ras-report.h"
 
 static char *err_type(int etype)

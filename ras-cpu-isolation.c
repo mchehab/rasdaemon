@@ -84,7 +84,7 @@ static int open_sys_file(unsigned int cpu, int __oflag, const char *format)
 	char real_path[PATH_MAX] = "";
 
 	snprintf(path, sizeof(path), format, cpu);
-	if (strlen(path) > PATH_MAX || realpath(path, real_path) == NULL) {
+	if (strlen(path) > PATH_MAX || !realpath(path, real_path)) {
 		log(TERM, LOG_ERR, "[%s]:open file: %s failed\n", __func__, path);
 		return -1;
 	}
@@ -178,8 +178,9 @@ static int parse_ul_config(struct isolation_param *config, char *env, unsigned l
 				return -1;
 			}
 			*value = DEC_CHECK * (*value) + (env[i] - '0');
-		} else
+		} else {
 			return -1;
+		}
 	}
 
 	if (!has_unit)
@@ -391,15 +392,16 @@ void ras_record_cpu_error(struct error_info *err_info, int cpu)
 	}
 
 	ret = error_handler(cpu, err_info);
-	if (ret == HANDLE_NOTHING)
+	if (ret == HANDLE_NOTHING) {
 		log(TERM, LOG_WARNING, "Doing nothing in the cpu%d\n", cpu);
-	else if (ret == HANDLE_SUCCEED) {
+	} else if (ret == HANDLE_SUCCEED) {
 		log(TERM, LOG_INFO, "Offline cpu%d succeed, the state is %s\n",
 		    cpu, cpu_state[cpu_infos[cpu].state]);
 		clear_queue(cpu_infos[cpu].ce_queue);
 		cpu_infos[cpu].ce_nums = 0;
 		cpu_infos[cpu].uce_nums = 0;
-	} else
+	} else {
 		log(TERM, LOG_WARNING, "Offline cpu%d fail, the state is %s\n",
 		    cpu, cpu_state[cpu_infos[cpu].state]);
+	}
 }

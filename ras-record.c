@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 /*
  * BuildRequires: sqlite-devel
@@ -885,7 +885,8 @@ static const struct db_table_descriptor cxl_general_media_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_general_media_event_fields),
 };
 
-int ras_store_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev)
+int ras_store_cxl_general_media_event(struct ras_events *ras,
+				      struct ras_cxl_general_media_event *ev)
 {
 	int rc;
 	struct sqlite3_priv *priv = ras->db_priv;
@@ -1031,7 +1032,8 @@ static const struct db_table_descriptor cxl_memory_module_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_memory_module_event_fields),
 };
 
-int ras_store_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev)
+int ras_store_cxl_memory_module_event(struct ras_events *ras,
+				      struct ras_cxl_memory_module_event *ev)
 {
 	int rc;
 	struct sqlite3_priv *priv = ras->db_priv;

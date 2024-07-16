@@ -10,7 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-*/
+ */
 
 #ifndef __RAS_PAGE_ISOLATION_H
 #define __RAS_PAGE_ISOLATION_H

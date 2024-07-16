@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -33,7 +33,7 @@
 #define K8_MCELOG_THRESHOLD_L3_CACHE (4 * 9 + 2)
 #define K8_MCELOG_THRESHOLD_FBDIMM   (4 * 9 + 3)
 
-static const char *k8bank[] = {
+static const char * const k8bank[] = {
 	"data cache",
 	"instruction cache",
 	"bus unit",
@@ -42,7 +42,7 @@ static const char *k8bank[] = {
 	"fixed-issue reoder"
 };
 
-static const char *k8threshold[] = {
+static const char * const k8threshold[] = {
 	[0 ... K8_MCELOG_THRESHOLD_DRAM_ECC - 1] = "Unknown threshold counter",
 	[K8_MCELOG_THRESHOLD_DRAM_ECC] = "MC4_MISC0 DRAM threshold",
 	[K8_MCELOG_THRESHOLD_LINK] = "MC4_MISC1 Link threshold",
@@ -53,35 +53,35 @@ static const char *k8threshold[] = {
 		"Unknown threshold counter",
 };
 
-static const char *transaction[] = {
+static const char * const transaction[] = {
 	"instruction", "data", "generic", "reserved"
 };
 
-static const char *cachelevel[] = {
+static const char * const cachelevel[] = {
 	"0", "1", "2", "generic"
 };
 
-static const char *memtrans[] = {
+static const char * const memtrans[] = {
 	"generic error", "generic read", "generic write", "data read",
 	"data write", "instruction fetch", "prefetch", "evict", "snoop",
 	"?", "?", "?", "?", "?", "?", "?"
 };
 
-static const char *partproc[] = {
+static const char * const partproc[] = {
 	"local node origin", "local node response",
 	"local node observed", "generic participation"
 };
 
-static const char *timeout[] = {
+static const char * const timeout[] = {
 	"request didn't time out",
 	"request timed out"
 };
 
-static const char *memoryio[] = {
+static const char * const memoryio[] = {
 	"memory", "res.", "i/o", "generic"
 };
 
-static const char *nbextendederr[] = {
+static const char * const nbextendederr[] = {
 	"RAM ECC error",
 	"CRC error",
 	"Sync error",
@@ -103,7 +103,7 @@ static const char *nbextendederr[] = {
 	"L3 Cache LRU Error"
 };
 
-static const char *highbits[32] = {
+static const char * const highbits[32] = {
 	[31] = "valid",
 	[30] = "error overflow (multiple errors)",
 	[29] = "error uncorrected",
@@ -264,9 +264,8 @@ int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
 	if (e->bank == 4) {
 		unsigned short exterrcode = (e->status >> 16) & 0x0f;
 
-		if (exterrcode == 5 && (e->status & (1ULL << 61))) {
+		if (exterrcode == 5 && (e->status & (1ULL << 61)))
 			return -1;
-		}
 	}
 
 	bank_name(e);

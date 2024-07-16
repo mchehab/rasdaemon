@@ -14,10 +14,10 @@
 #include "ras-events.h"
 #include <traceevent/event-parse.h>
 
-#define SOCKET_NUM(x) ((x >> 14) & 0x3)
-#define PAYLOAD_TYPE(x) ((x >> 6) & 0x3)
-#define TYPE(x) (x & 0x3f)
-#define INSTANCE(x) (x & 0x3fff)
+#define SOCKET_NUM(x) (((x) >> 14) & 0x3)
+#define PAYLOAD_TYPE(x) (((x) >> 6) & 0x3)
+#define TYPE(x) ((x) & 0x3f)
+#define INSTANCE(x) ((x) & 0x3fff)
 #define AMP_PAYLOAD0_BUF_LEN   1024
 #define PAYLOAD_TYPE_0         0x00
 #define PAYLOAD_TYPE_1         0x01

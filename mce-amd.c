@@ -86,10 +86,11 @@ void decode_amd_errcode(struct mce_event *e)
 			       "Uncorrected, software restartable error.");
 		strcpy(e->error_msg,
 		       "Uncorrected, software containable error.");
-	} else if (e->status & MCI_STATUS_DEFERRED)
+	} else if (e->status & MCI_STATUS_DEFERRED) {
 		strcpy(e->error_msg, "Deferred error, no action required.");
-	else
+	} else {
 		strcpy(e->error_msg, "Corrected error, no action required.");
+	}
 
 	if (!(e->status & MCI_STATUS_VAL))
 		mce_snprintf(e->mcistatus_msg, "MCE_INVALID");

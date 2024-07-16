@@ -185,11 +185,11 @@ enum {
 struct hisi_module_info {
 	int id;
 	const char *name;
-	const char **sub;
+	const char * const *sub;
 	int sub_num;
 };
 
-static const char *pll_submodule_name[] = {
+static const char * const pll_submodule_name[] = {
 	"TB_PLL0",
 	"TB_PLL1",
 	"TB_PLL2",
@@ -205,7 +205,7 @@ static const char *pll_submodule_name[] = {
 	"NIMBUS_PLL4",
 };
 
-static const char *sllc_submodule_name[] = {
+static const char * const sllc_submodule_name[] = {
 	"TB_SLLC0",
 	"TB_SLLC1",
 	"TB_SLLC2",
@@ -216,7 +216,7 @@ static const char *sllc_submodule_name[] = {
 	"NIMBUS_SLLC1",
 };
 
-static const char *sioe_submodule_name[] = {
+static const char * const sioe_submodule_name[] = {
 	"TB_SIOE0",
 	"TB_SIOE1",
 	"TB_SIOE2",
@@ -229,12 +229,12 @@ static const char *sioe_submodule_name[] = {
 	"NIMBUS_SIOE1",
 };
 
-static const char *poe_submodule_name[] = {
+static const char * const poe_submodule_name[] = {
 	"TB_POE",
 	"TA_POE",
 };
 
-static const char *disp_submodule_name[] = {
+static const char * const disp_submodule_name[] = {
 	"TB_PERI_DISP",
 	"TB_POE_DISP",
 	"TB_GIC_DISP",
@@ -247,7 +247,7 @@ static const char *disp_submodule_name[] = {
 	"NETWORK_DISP",
 };
 
-static const char *sas_submodule_name[] = {
+static const char * const sas_submodule_name[] = {
 	"SAS0",
 	"SAS1",
 };
@@ -321,27 +321,27 @@ static const struct hisi_module_info hisi_oem_type1_module[] = {
 	}
 };
 
-static const char *smmu_submodule_name[] = {
+static const char * const smmu_submodule_name[] = {
 	"HAC_SMMU",
 	"PCIE_SMMU",
 	"MGMT_SMMU",
 	"NIC_SMMU",
 };
 
-static const char *hllc_submodule_name[] = {
+static const char * const hllc_submodule_name[] = {
 	"HLLC0",
 	"HLLC1",
 	"HLLC2",
 };
 
-static const char *hha_submodule_name[] = {
+static const char * const hha_submodule_name[] = {
 	"TB_HHA0",
 	"TB_HHA1",
 	"TA_HHA0",
 	"TA_HHA1"
 };
 
-static const char *ddrc_submodule_name[] = {
+static const char * const ddrc_submodule_name[] = {
 	"TB_DDRC0",
 	"TB_DDRC1",
 	"TB_DDRC2",
@@ -352,7 +352,7 @@ static const char *ddrc_submodule_name[] = {
 	"TA_DDRC3",
 };
 
-static const char *l3tag_submodule_name[] = {
+static const char * const l3tag_submodule_name[] = {
 	"TB_PARTITION0",
 	"TB_PARTITION1",
 	"TB_PARTITION2",
@@ -371,7 +371,7 @@ static const char *l3tag_submodule_name[] = {
 	"TA_PARTITION7",
 };
 
-static const char *l3data_submodule_name[] = {
+static const char * const l3data_submodule_name[] = {
 	"TB_BANK0",
 	"TB_BANK1",
 	"TB_BANK2",
@@ -427,8 +427,8 @@ static const struct hisi_module_info hisi_oem_type2_module[] = {
 	}
 };
 
-static const char *oem_module_name(const struct hisi_module_info *info,
-				   uint8_t module_id)
+static const char * const oem_module_name(const struct hisi_module_info *info,
+					  uint8_t module_id)
 {
 	const struct hisi_module_info *module = &info[0];
 
@@ -442,13 +442,13 @@ static const char *oem_module_name(const struct hisi_module_info *info,
 	return "unknown";
 }
 
-static const char *oem_submodule_name(const struct hisi_module_info *info,
-				      uint8_t module_id, uint8_t sub_module_id)
+static const char * const oem_submodule_name(const struct hisi_module_info *info,
+					     uint8_t module_id, uint8_t sub_module_id)
 {
 	const struct hisi_module_info *module = &info[0];
 
 	for (; module->name; module++) {
-		const char **submodule = module->sub;
+		const char * const *submodule = module->sub;
 
 		if (module->id != module_id)
 			continue;

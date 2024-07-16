@@ -448,10 +448,14 @@ static const char *get_jm_dev_desc(uint8_t subsys_id, uint8_t mod_id, uint8_t su
 static inline char *jm_err_severity(uint8_t err_sev)
 {
 	switch (err_sev) {
-	case JM_ERR_SEVERITY_NFE: return "recoverable";
-	case JM_ERR_SEVERITY_FE: return "fatal";
-	case JM_ERR_SEVERITY_CE: return "corrected";
-	case JM_ERR_SEVERITY_NONE: return "none";
+	case JM_ERR_SEVERITY_NFE:
+		return "recoverable";
+	case JM_ERR_SEVERITY_FE:
+		return "fatal";
+	case JM_ERR_SEVERITY_CE:
+		return "corrected";
+	case JM_ERR_SEVERITY_NONE:
+		return "none";
 	default:
 		break;
 	}
@@ -498,11 +502,13 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SUBMODULE_ID)) {
 		JM_SNPRINTF(event->error_msg, " sub module=%s",
-			    get_jm_submod_desc(err->subsystem_id, err->module_id, err->submodule_id));
+			    get_jm_submod_desc(err->subsystem_id,
+					       err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_SUB_MODULE,
 			0,
-			get_jm_submod_desc(err->subsystem_id, err->module_id, err->submodule_id));
+			get_jm_submod_desc(err->subsystem_id,
+					   err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
 			       JM_PAYLOAD_FIELD_MODULE_ID,
 			err->submodule_id, NULL);
@@ -510,10 +516,12 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_DEV_ID)) {
 		JM_SNPRINTF(event->error_msg, " dev=%s",
-			    get_jm_dev_desc(err->subsystem_id, err->module_id, err->submodule_id));
+			    get_jm_dev_desc(err->subsystem_id,
+					    err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_DEV,
-			0, get_jm_dev_desc(err->subsystem_id, err->module_id, err->submodule_id));
+			0, get_jm_dev_desc(err->subsystem_id,
+					   err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
 			       JM_PAYLOAD_FIELD_DEV_ID,
 					err->dev_id, NULL);

@@ -10,16 +10,17 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
-*/
+ */
 
 #include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
 
@@ -53,7 +54,7 @@ static struct isolation cycle = {
 	.unit = "h",
 };
 
-static const char *kernel_offline[] = {
+static const char * const kernel_offline[] = {
 	[OFFLINE_SOFT]		 = "/sys/devices/system/memory/soft_offline_page",
 	[OFFLINE_HARD]		 = "/sys/devices/system/memory/hard_offline_page",
 	[OFFLINE_SOFT_THEN_HARD] = "/sys/devices/system/memory/soft_offline_page",
@@ -68,7 +69,7 @@ static const struct config offline_choice[] = {
 	{}
 };
 
-static const char *page_state[] = {
+static const char * const page_state[] = {
 	[PAGE_ONLINE]		= "online",
 	[PAGE_OFFLINE]		= "offlined",
 	[PAGE_OFFLINE_FAILED]	= "offline-failed",
@@ -150,8 +151,8 @@ parse:
 		if (!no_unit)
 			config->unit = unit;
 	} else {
-		 log(TERM, LOG_INFO, "Improper %s, set to default %s.\n",
-		     config->name, config->env);
+		log(TERM, LOG_INFO, "Improper %s, set to default %s.\n",
+		    config->name, config->env);
 	}
 
 	/* if env value string is greater than ulong_max, truncate the last digit */
@@ -219,15 +220,18 @@ static int do_page_offline(unsigned long long addr, enum otype type)
 
 	fd = open(kernel_offline[type], O_WRONLY);
 	if (fd == -1) {
-		log(TERM, LOG_ERR, "[%s]:open file: %s failed\n", __func__, kernel_offline[type]);
+		log(TERM, LOG_ERR, "[%s]:open file: %s failed\n", __func__,
+		    kernel_offline[type]);
 		return -1;
 	}
 
 	sprintf(buf, "%#llx", addr);
 	rc = write(fd, buf, strlen(buf));
-	if (rc < 0) {
-		log(TERM, LOG_ERR, "page offline addr(%s) by %s failed, errno:%d\n", buf, kernel_offline[type], errno);
-	}
+	if (rc < 0)
+		log(TERM, LOG_ERR,
+		    "page offline addr(%s) by %s failed, errno:%d\n",
+		    buf, kernel_offline[type], errno);
+
 	close(fd);
 	return rc;
 }
@@ -307,13 +311,12 @@ static struct page_record *page_lookup_insert(unsigned long long addr)
 	while (*entry) {
 		parent = *entry;
 		pr = rb_entry(parent, struct page_record, entry);
-		if (addr == pr->addr) {
+		if (addr == pr->addr)
 			return pr;
-		} else if (addr < pr->addr) {
+		else if (addr < pr->addr)
 			entry = &(*entry)->rb_left;
-		} else {
+		else
 			entry = &(*entry)->rb_right;
-		}
 	}
 
 	find = calloc(1, sizeof(struct page_record));

@@ -1058,8 +1058,9 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 	} else if (payload_type == PAYLOAD_TYPE_3) {
 		db_tab = amp_payload3_event_tab;
 		id = AMP_PAYLOAD3_FIELD_TIMESTAMP;
-	} else
+	} else {
 		return -1;
+	}
 
 	if (!ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,

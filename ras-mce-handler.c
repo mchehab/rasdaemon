@@ -14,7 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
+
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -23,6 +24,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <traceevent/kbuffer.h>
+
 #include "ras-mce-handler.h"
 #include "ras-record.h"
 #include "ras-logger.h"
@@ -164,20 +166,19 @@ static int detect_cpu(struct mce_priv *mce)
 	f = fopen("/proc/cpuinfo", "r");
 	if (!f) {
 		log(ALL, LOG_INFO, "Can't open /proc/cpuinfo\n");
-		return errno;
+		return -errno;
 	}
 
 	while (seen != CPU_ALL && getdelim(&line, &linelen, '\n', f) > 0) {
-		if (sscanf(line, "vendor_id : %63[^\n]",
-			   (char *)&mce->vendor) == 1)
+		if (sscanf(line, "vendor_id : %63[^\n]", (char *)&mce->vendor) == 1) {
 			seen |= CPU_VENDOR;
-		else if (sscanf(line, "cpu family : %d", &mce->family) == 1)
+		} else if (sscanf(line, "cpu family : %d", &mce->family) == 1) {
 			seen |= CPU_FAMILY;
-		else if (sscanf(line, "model : %d", &mce->model) == 1)
+		} else if (sscanf(line, "model : %d", &mce->model) == 1) {
 			seen |= CPU_MODEL;
-		else if (sscanf(line, "cpu MHz : %lf", &mce->mhz) == 1)
+		} else if (sscanf(line, "cpu MHz : %lf", &mce->mhz) == 1) {
 			seen |= CPU_MHZ;
-		else if (!strncmp(line, "flags", 5) && isspace(line[6])) {
+		} else if (!strncmp(line, "flags", 5) && isspace(line[6])) {
 			if (mce->processor_flags)
 				free(mce->processor_flags);
 			mce->processor_flags = line;
@@ -187,7 +188,8 @@ static int detect_cpu(struct mce_priv *mce)
 		}
 	}
 	if (!seen) {
-		log(ALL, LOG_INFO, "Can't find a x86 CPU at /proc/cpuinfo. Disabling MCE handler.\n");
+		log(ALL, LOG_INFO,
+		    "Can't find a x86 CPU at /proc/cpuinfo. Disabling MCE handler.\n");
 		ret = -ENOENT;
 		goto ret;
 	}
@@ -199,7 +201,7 @@ static int detect_cpu(struct mce_priv *mce)
 			(seen & CPU_MODEL)  ? "" : " [model]",
 			(seen & CPU_MHZ)    ? "" : " [cpu MHz]",
 			(seen & CPU_FLAGS)  ? "" : " [flags]");
-		ret = EINVAL;
+		ret = -EINVAL;
 		goto ret;
 	}
 
@@ -217,18 +219,18 @@ static int detect_cpu(struct mce_priv *mce)
 			log(ALL, LOG_INFO,
 			    "Can't parse MCE for this AMD CPU yet %d\n",
 			    mce->family);
-			ret = EINVAL;
+			ret = -EINVAL;
 		}
 		goto ret;
 	} else if (!strcmp(mce->vendor, "HygonGenuine")) {
-		if (mce->family == 24) {
+		if (mce->family == 24)
 			mce->cputype = CPU_DHYANA;
-		}
+
 		goto ret;
 	} else if (!strcmp(mce->vendor, "GenuineIntel")) {
 		mce->cputype = select_intel_cputype(mce);
 	} else {
-		ret = EINVAL;
+		ret = -EINVAL;
 	}
 
 ret:
@@ -257,7 +259,7 @@ int register_mce_handler(struct ras_events *ras, unsigned int ncpus)
 			free(mce->processor_flags);
 		free(ras->mce_priv);
 		ras->mce_priv = NULL;
-		return (rc);
+		return rc;
 	}
 	switch (mce->cputype) {
 	case CPU_SANDY_BRIDGE_EP:

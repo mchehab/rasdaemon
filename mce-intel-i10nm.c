@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -299,18 +299,32 @@ static void i10nm_imc_misc(struct mce_event *e)
 	uint32_t eccmode = EXTRACT(e->misc, 59, 62);
 	uint32_t transient = EXTRACT(e->misc, 63, 63);
 
-	mce_snprintf(e->error_msg, "bank: 0x%x bankgroup: 0x%x row: 0x%x column: 0x%x", bank, bankgroup, row, column);
+	mce_snprintf(e->error_msg,
+		     "bank: 0x%x bankgroup: 0x%x row: 0x%x column: 0x%x",
+		     bank, bankgroup, row, column);
 	if (!transient && !EXTRACT(e->status, 61, 61))
 		mce_snprintf(e->error_msg, "failed device: 0x%x", fdevice);
 	mce_snprintf(e->error_msg, "rank: 0x%x subrank: 0x%x", rank, subrank);
 	mce_snprintf(e->error_msg, "ecc mode: ");
 	switch (eccmode) {
-	case 0: mce_snprintf(e->error_msg, "SDDC memory mode"); break;
-	case 1: mce_snprintf(e->error_msg, "SDDC"); break;
-	case 4: mce_snprintf(e->error_msg, "ADDDC memory mode"); break;
-	case 5: mce_snprintf(e->error_msg, "ADDDC"); break;
-	case 8: mce_snprintf(e->error_msg, "DDRT read"); break;
-	default: mce_snprintf(e->error_msg, "unknown"); break;
+	case 0:
+		mce_snprintf(e->error_msg, "SDDC memory mode");
+		break;
+	case 1:
+		mce_snprintf(e->error_msg, "SDDC");
+		break;
+	case 4:
+		mce_snprintf(e->error_msg, "ADDDC memory mode");
+		break;
+	case 5:
+		mce_snprintf(e->error_msg, "ADDDC");
+		break;
+	case 8:
+		mce_snprintf(e->error_msg, "DDRT read");
+		break;
+	default:
+		mce_snprintf(e->error_msg, "unknown");
+		break;
 	}
 	if (transient)
 		mce_snprintf(e->error_msg, "transient");
@@ -359,7 +373,7 @@ static enum banktype sapphire[32] = {
 	[13 ... 20]	= BT_IMC,
 };
 
-void i10nm_memerr_misc(struct mce_event *e, int *channel);
+static void i10nm_memerr_misc(struct mce_event *e, int *channel);
 
 void i10nm_decode_model(enum cputype cputype, struct ras_events *ras,
 			struct mce_event *e)
@@ -426,12 +440,24 @@ void i10nm_decode_model(enum cputype cputype, struct ras_events *ras,
 		mce_snprintf(e->error_msg, "MemCtrl: ");
 		f = EXTRACT(status, 16, 23);
 		switch (EXTRACT(status, 24, 31)) {
-		case 0: decode_bitfield(e, f, imc0); break;
-		case 1: decode_bitfield(e, f, imc1); break;
-		case 2: decode_bitfield(e, f, imc2); break;
-		case 4: decode_bitfield(e, f, imc4); break;
-		case 8: decode_bitfield(e, f, imc8); break;
-		case 0x10: decode_bitfield(e, f, imc10); break;
+		case 0:
+			decode_bitfield(e, f, imc0);
+			break;
+		case 1:
+			decode_bitfield(e, f, imc1);
+			break;
+		case 2:
+			decode_bitfield(e, f, imc2);
+			break;
+		case 4:
+			decode_bitfield(e, f, imc4);
+			break;
+		case 8:
+			decode_bitfield(e, f, imc8);
+			break;
+		case 0x10:
+			decode_bitfield(e, f, imc10);
+			break;
 		}
 		i10nm_imc_misc(e);
 		break;
@@ -464,7 +490,7 @@ void i10nm_decode_model(enum cputype cputype, struct ras_events *ras,
  * we can derive the channel from the bank number.
  * There can be four memory controllers with two channels each.
  */
-void i10nm_memerr_misc(struct mce_event *e, int *channel)
+static void i10nm_memerr_misc(struct mce_event *e, int *channel)
 {
 	uint64_t status = e->status;
 	unsigned int chan, imc;
