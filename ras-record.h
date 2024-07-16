@@ -96,6 +96,11 @@ struct ras_arm_event {
 	uint32_t ctx_len;
 	const uint8_t *vsei_error;
 	uint32_t oem_len;
+	char error_types[512];
+	char error_flags[512];
+	uint64_t error_info;
+	uint64_t virt_fault_addr;
+	uint64_t phy_fault_addr;
 };
 
 struct devlink_event {

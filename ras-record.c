@@ -215,6 +215,11 @@ static const struct db_fields arm_event_fields[] = {
 		{ .name = "err_info",		.type = "BLOB"	},
 		{ .name = "context_info",		.type = "BLOB"	},
 		{ .name = "vendor_info",		.type = "BLOB"	},
+		{ .name = "error_type",		.type = "TEXT" },
+		{ .name = "error_flags",	.type = "TEXT" },
+		{ .name = "error_info",		.type = "INTEGER" },
+		{ .name = "virt_fault_addr",	.type = "INTEGER" },
+		{ .name = "phy_fault_addr",	.type = "INTEGER" },
 };
 
 static const struct db_table_descriptor arm_event_tab = {
@@ -244,6 +249,11 @@ int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 			  ev->ctx_error, ev->ctx_len, NULL);
 	sqlite3_bind_blob(priv->stmt_arm_record,  9,
 			  ev->vsei_error, ev->oem_len, NULL);
+	sqlite3_bind_text(priv->stmt_arm_record,  10, ev->error_types, -1, NULL);
+	sqlite3_bind_text(priv->stmt_arm_record, 11, ev->error_flags, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_arm_record,  12,  ev->error_info);
+	sqlite3_bind_int64(priv->stmt_arm_record,  13,  ev->virt_fault_addr);
+	sqlite3_bind_int64(priv->stmt_arm_record,  14,  ev->phy_fault_addr);
 
 	rc = sqlite3_step(priv->stmt_arm_record);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
