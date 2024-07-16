@@ -8,7 +8,6 @@
  *
  */
 
-
 #ifndef __NON_STANDARD_AMPERE_H
 #define __NON_STANDARD_AMPERE_H
 

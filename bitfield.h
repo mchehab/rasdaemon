@@ -22,13 +22,13 @@
 /* Generic bitfield decoder */
 
 struct field {
-	unsigned start_bit;
+	unsigned int start_bit;
 	char **str;
-	unsigned stringlen;
+	unsigned int stringlen;
 };
 
 struct numfield {
-	unsigned start, end;
+	unsigned int start, end;
 	char *name;
 	char *fmt;
 	int force;
@@ -51,7 +51,7 @@ void decode_numfield(struct mce_event *e, uint64_t status,
 		     struct numfield *fields);
 
 #define MASK(x) ((1ULL << (1 + (x))) - 1)
-#define EXTRACT(v, a, b) (((v) >> (a)) & MASK((b)-(a)))
+#define EXTRACT(v, a, b) (((v) >> (a)) & MASK((b) - (a)))
 
 static inline int test_prefix(int nr, uint32_t value)
 {
@@ -60,7 +60,7 @@ static inline int test_prefix(int nr, uint32_t value)
 
 /* Ancillary routines */
 
-unsigned bitfield_msg(char *buf, size_t len, const char **bitarray,
-		      unsigned array_len,
-		      unsigned bit_offset, unsigned ignore_bits,
-		      uint64_t status);
+unsigned int bitfield_msg(char *buf, size_t len, const char **bitarray,
+			  unsigned int array_len,
+			  unsigned int bit_offset, unsigned int ignore_bits,
+			  uint64_t status);

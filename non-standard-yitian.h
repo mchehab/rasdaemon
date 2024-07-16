@@ -8,7 +8,6 @@
  *
  */
 
-
 #ifndef __NON_STANDARD_YITIAN_H
 #define __NON_STANDARD_YITIAN_H
 
@@ -65,9 +64,9 @@ struct ras_yitian_ddr_payload_event {
 };
 
 int record_yitian_ddr_reg_dump_event(struct ras_ns_ev_decoder *ev_decoder,
-			       struct ras_yitian_ddr_payload_event *ev);
+				     struct ras_yitian_ddr_payload_event *ev);
 void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct yitian_ddr_payload_type_sec *err,
-				struct ras_events *ras);
+					struct trace_seq *s,
+					const struct yitian_ddr_payload_type_sec *err,
+					struct ras_events *ras);
 #endif

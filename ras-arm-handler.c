@@ -30,7 +30,7 @@
 
 void display_raw_data(struct trace_seq *s,
 		      const uint8_t *buf,
-		uint32_t datalen)
+		      uint32_t datalen)
 {
 	int i = 0, line_count = 0;
 
@@ -209,7 +209,6 @@ int ras_arm_event_handler(struct trace_seq *s,
 
 	// Upstream kKernels up to version 6.10 don't decode UEFI 2.6+ N.17 table
 	if (tep_get_field_val(s, event, "pei_len", record, &val, 1) >= 0) {
-
 		ev.pei_len = val;
 		trace_seq_printf(s, " ARM Processor Err Info data len: %d\n",
 				 ev.pei_len);
@@ -251,7 +250,6 @@ int ras_arm_event_handler(struct trace_seq *s,
 		if (ras_handle_cpu_error(s, record, event, &ev, now) < 0)
 			printf("Can't do CPU fault isolation!\n");
 #endif
-
 	}
 
 	/* Insert data into the SGBD */

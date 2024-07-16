@@ -8,7 +8,6 @@
  *
  */
 
-
 #ifndef __NON_STANDARD_JAGUAR_H
 #define __NON_STANDARD_JAGUAR_H
 
@@ -129,7 +128,6 @@ struct jm_payload5_type_sec {
 	struct jm_common_sec_tail common_tail;
 };
 
-
 /*GIC IP */
 struct jm_payload6_type_sec {
 	struct jm_common_sec_head common_head;
@@ -167,7 +165,6 @@ enum {
 	JM_PAYLOAD_FIELD_ERR_SEVERITY,
 	JM_PAYLOAD_FIELD_REGS_DUMP,
 };
-
 
 #define JM_SNPRINTF	mce_snprintf
 #endif

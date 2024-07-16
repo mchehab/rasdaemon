@@ -24,7 +24,7 @@
 #include <stdbool.h>
 #include "config.h"
 
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof(*(x)))
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
 
 #define BIT(nr)                 (1UL << (nr))
 #define BIT_ULL(nr)             (1ULL << (nr))
@@ -313,7 +313,7 @@ struct db_table_descriptor {
 	size_t                  num_fields;
 };
 
-int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras);
+int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras);
 int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras);
 int ras_mc_add_vendor_table(struct ras_events *ras, sqlite3_stmt **stmt,
 			    const struct db_table_descriptor *db_tab);
@@ -337,7 +337,7 @@ int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *
 int ras_store_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev);
 
 #else
-static inline int ras_mc_event_opendb(unsigned cpu, struct ras_events *ras) { return 0; };
+static inline int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras) { return 0; };
 static inline int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras) { return 0; };
 static inline int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev) { return 0; };
 static inline int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev) { return 0; };

@@ -84,7 +84,6 @@ struct pthread_data {
 	int			cpu;
 };
 
-
 /* Should match the code at Kernel's include/linux/edac.c */
 enum hw_event_mc_err_type {
 	HW_EVENT_ERR_CORRECTED,

@@ -15,13 +15,15 @@
 #ifndef __RAS_PAGE_ISOLATION_H
 #define __RAS_PAGE_ISOLATION_H
 
-#include <time.h>
 #include <stdbool.h>
+#include <time.h>
+
+#include "ras-record.h"
 #include "rbtree.h"
 
 #define PAGE_SHIFT		12
-#define PAGE_SIZE		(1 << PAGE_SHIFT)
-#define PAGE_MASK		(~(PAGE_SIZE-1))
+#define PAGE_SIZE		BIT(PAGE_SHIFT)
+#define PAGE_MASK		(~(PAGE_SIZE - 1))
 
 struct config {
 	char			*name;
@@ -61,6 +63,7 @@ struct isolation {
 };
 
 void ras_page_account_init(void);
-void ras_record_page_error(unsigned long long addr, unsigned count, time_t time);
+void ras_record_page_error(unsigned long long addr,
+			   unsigned int count, time_t time);
 
 #endif

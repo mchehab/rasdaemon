@@ -75,7 +75,7 @@ struct mce_event {
 	uint8_t		cpuvendor;
 	uint64_t        synd;   /* MCA_SYND MSR: only valid on SMCA systems */
 	uint64_t        ipid;   /* MCA_IPID MSR: only valid on SMCA systems */
-	uint64_t 	ppin;
+	uint64_t	ppin;
 	uint32_t	microcode;
 	int32_t		vdata_len;
 	const uint64_t	*vdata;
@@ -103,8 +103,8 @@ struct mce_priv {
 };
 
 #define mce_snprintf(buf, fmt, arg...) do {			\
-	unsigned __n = strlen(buf);				\
-	unsigned __len = sizeof(buf) - __n;			\
+	unsigned int __n = strlen(buf);				\
+	unsigned int __len = sizeof(buf) - __n;			\
 	if (!__len)						\
 		break;						\
 	if (__n) {						\
@@ -116,13 +116,13 @@ struct mce_priv {
 } while (0)
 
 /* register and handling routines */
-int register_mce_handler(struct ras_events *ras, unsigned ncpus);
+int register_mce_handler(struct ras_events *ras, unsigned int ncpus);
 int ras_mce_event_handler(struct trace_seq *s,
 			  struct tep_record *record,
 			  struct tep_event *event, void *context);
 
 /* enables intel iMC logs */
-int set_intel_imc_log(enum cputype cputype, unsigned ncpus);
+int set_intel_imc_log(enum cputype cputype, unsigned int ncpus);
 
 /* Undertake AMD SMCA Error Decoding */
 void decode_smca_error(struct mce_event *e, struct mce_priv *m);
@@ -151,29 +151,29 @@ void decode_amd_errcode(struct mce_event *e);
 /* Software defined banks */
 #define MCE_EXTENDED_BANK	128
 
-#define MCI_THRESHOLD_OVER  (1ULL<<48)  /* threshold error count overflow */
+#define MCI_THRESHOLD_OVER  BIT_ULL(48)  /* threshold error count overflow */
 
-#define MCI_STATUS_VAL   (1ULL<<63)  /* valid error */
-#define MCI_STATUS_OVER  (1ULL<<62)  /* previous errors lost */
-#define MCI_STATUS_UC    (1ULL<<61)  /* uncorrected error */
-#define MCI_STATUS_EN    (1ULL<<60)  /* error enabled */
-#define MCI_STATUS_MISCV (1ULL<<59)  /* misc error reg. valid */
-#define MCI_STATUS_ADDRV (1ULL<<58)  /* addr reg. valid */
-#define MCI_STATUS_PCC   (1ULL<<57)  /* processor context corrupt */
-#define MCI_STATUS_S	 (1ULL<<56)  /* signalled */
-#define MCI_STATUS_AR	 (1ULL<<55)  /* action-required */
+#define MCI_STATUS_VAL   BIT_ULL(63)  /* valid error */
+#define MCI_STATUS_OVER  BIT_ULL(62)  /* previous errors lost */
+#define MCI_STATUS_UC    BIT_ULL(61)  /* uncorrected error */
+#define MCI_STATUS_EN    BIT_ULL(60)  /* error enabled */
+#define MCI_STATUS_MISCV BIT_ULL(59)  /* misc error reg. valid */
+#define MCI_STATUS_ADDRV BIT_ULL(58)  /* addr reg. valid */
+#define MCI_STATUS_PCC   BIT_ULL(57)  /* processor context corrupt */
+#define MCI_STATUS_S	 BIT_ULL(56)  /* signalled */
+#define MCI_STATUS_AR	 BIT_ULL(55)  /* action-required */
 
 /* AMD-specific bits */
-#define MCI_STATUS_TCC          (1ULL<<55)  /* Task context corrupt */
-#define MCI_STATUS_SYNDV        (1ULL<<53)  /* synd reg. valid */
+#define MCI_STATUS_TCC          BIT_ULL(55)  /* Task context corrupt */
+#define MCI_STATUS_SYNDV        BIT_ULL(53)  /* synd reg. valid */
 /* uncorrected error,deferred exception */
-#define MCI_STATUS_DEFERRED     (1ULL<<44)
-#define MCI_STATUS_POISON       (1ULL<<43)  /* access poisonous data */
+#define MCI_STATUS_DEFERRED     BIT_ULL(44)
+#define MCI_STATUS_POISON       BIT_ULL(43)  /* access poisonous data */
 
-#define MCG_STATUS_RIPV  (1ULL<<0)   /* restart ip valid */
-#define MCG_STATUS_EIPV  (1ULL<<1)   /* eip points to correct instruction */
-#define MCG_STATUS_MCIP  (1ULL<<2)   /* machine check in progress */
-#define MCG_STATUS_LMCE  (1ULL<<3)   /* local machine check signaled */
+#define MCG_STATUS_RIPV  BIT_ULL(0)   /* restart ip valid */
+#define MCG_STATUS_EIPV  BIT_ULL(1)   /* eip points to correct instruction */
+#define MCG_STATUS_MCIP  BIT_ULL(2)   /* machine check in progress */
+#define MCG_STATUS_LMCE  BIT_ULL(3)   /* local machine check signaled */
 
 /* Those functions are defined on per-cpu vendor C files */
 int parse_intel_event(struct ras_events *ras, struct mce_event *e);

@@ -24,9 +24,8 @@
 #include "ras-events.h"
 #include <traceevent/event-parse.h>
 
-extern int ras_extlog_mem_event_handler(struct trace_seq *s,
-					struct tep_record *record,
-					struct tep_event *event,
-					void *context);
-
+int ras_extlog_mem_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event,
+				 void *context);
 #endif

@@ -33,6 +33,7 @@ struct ras_arm_err_info {
 	uint64_t virt_fault_addr;
 	uint64_t physical_fault_addr;
 };
+
 #pragma pack()
 
 int ras_arm_event_handler(struct trace_seq *s,

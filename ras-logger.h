@@ -20,6 +20,8 @@
 
 #include <syslog.h>
 
+#include "ras-record.h"
+
 /*
  * Logging macros
  */
@@ -28,8 +30,8 @@
 	#define TOOL_NAME "rasdaemon"
 #endif
 
-#define SYSLOG	(1 << 0)
-#define TERM	(1 << 1)
+#define SYSLOG	BIT(0)
+#define TERM	BIT(1)
 #define ALL	(SYSLOG | TERM)
 /* TODO: global logging limit mask */
 

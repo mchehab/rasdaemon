@@ -26,10 +26,10 @@ void run_trigger(const char *trigger, char *argv[], char **env, const char *repo
 		waitpid(child, &status, 0);
 		if (WIFEXITED(status) && WEXITSTATUS(status)) {
 			log(SYSLOG, LOG_INFO, "Trigger %s exited with status %d",
-				trigger, WEXITSTATUS(status));
+			    trigger, WEXITSTATUS(status));
 		} else if (WIFSIGNALED(status)) {
 			log(SYSLOG, LOG_INFO, "Trigger %s killed by signal %d",
-				trigger, WTERMSIG(status));
+			    trigger, WTERMSIG(status));
 		}
 	}
 }
@@ -43,10 +43,10 @@ const char *trigger_check(const char *s)
 	if (trigger_dir) {
 		if (asprintf(&name, "%s/%s", trigger_dir, s) < 0)
 			return NULL;
-                s = name;
+		s = name;
 	}
 
-	rc = access(s, R_OK|X_OK);
+	rc = access(s, R_OK | X_OK);
 
 	if (!rc)
 		return(s);
