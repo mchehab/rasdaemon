@@ -1,3 +1,26 @@
+2023-07-16      Mauro Carvalho Chehab <mchehab@kernel.org>
+	- Version 0.8.1
+
+	* Lots of new labels added;
+	* Added a script to check coding style;
+	* Detect non-x86 CPUs on MCE handler;
+	* Added an error injection script for QEMU;
+	* Allow external scripts to handle memory errors;
+	* Fix ARM processor compatibility with upstream;
+	* Add support for CXL events;
+	* Add support for microcode and PPIN on MCE traces;
+	* Add non-standard decodes for Yitian and Jaguarmicro;
+	* Add EmeraldRapids Intel CPU;
+	* Add Corrected Internal Error for aer_cor_errors;
+	* Add support for disable ras events in runtime;
+	* Improve AMD SMCA handling;
+	* Fix several compilation and runtime issues;
+	* Add option on ras-mc-ctl to exclude old events from reports;
+	* Other improvements at ras-mc-ctl tool;
+	* Documentation updates;
+	* Code cleanups;
+	* Coding style cleanups.
+
 2023-02-18      Mauro Carvalho Chehab <mchehab@kernel.org>
 	- Version 0.8.0
 
