@@ -45,7 +45,6 @@ my $show_types = 0;
 my $list_types = 0;
 my $fix = 0;
 my $fix_inplace = 0;
-my $root;
 my $gitroot = $ENV{'GIT_DIR'};
 $gitroot = ".git" if !defined($gitroot);
 my %debug;
@@ -309,7 +308,6 @@ GetOptions(
 	'max-line-length=i' => \$max_line_length,
 	'min-conf-desc-length=i' => \$min_conf_desc_length,
 	'tab-size=i'	=> \$tabsize,
-	'root=s'	=> \$root,
 	'summary!'	=> \$summary,
 	'mailback!'	=> \$mailback,
 	'summary-file!'	=> \$summary_file,
@@ -439,21 +437,6 @@ my $rpt_cleaners = 0;
 if ($terse) {
 	$emacs = 1;
 	$quiet++;
-}
-
-if ($tree) {
-	if (defined $root) {
-		if (!top_of_kernel_tree($root)) {
-			die "$P: $root: --root does not point at a valid tree\n";
-		}
-	} else {
-		if (top_of_kernel_tree('.')) {
-			$root = '.';
-		} elsif ($0 =~ m@(.*)/scripts/[^/]*$@ &&
-						top_of_kernel_tree($1)) {
-			$root = $1;
-		}
-	}
 }
 
 my $emitted_corrupt = 0;
@@ -1119,17 +1102,6 @@ sub seed_camelcase_file {
 	}
 }
 
-sub is_SPDX_License_valid {
-	my ($license) = @_;
-
-	return 1 if (!$tree || which("python3") eq "" || !(-x "$root/scripts/spdxcheck.py") || !(-e "$gitroot"));
-
-	my $root_path = abs_path($root);
-	my $status = `cd "$root_path"; echo "$license" | scripts/spdxcheck.py -`;
-	return 0 if ($status ne "");
-	return 1;
-}
-
 my $camelcase_seeded = 0;
 sub seed_camelcase_includes {
 	return if ($camelcase_seeded);
@@ -1146,7 +1118,7 @@ sub seed_camelcase_includes {
 		$camelcase_cache = ".checkpatch-camelcase.git.$git_last_include_commit";
 	} else {
 		my $last_mod_date = 0;
-		$files = `find $root/include -name "*.h"`;
+		$files = `find include -name "*.h"`;
 		@include_files = split('\n', $files);
 		foreach my $file (@include_files) {
 			my $date = POSIX::strftime("%Y%m%d%H%M",
@@ -1343,23 +1315,6 @@ EOM
 }
 
 exit($exit);
-
-sub top_of_kernel_tree {
-	my ($root) = @_;
-
-	my @tree_check = (
-		"COPYING", "CREDITS", "Kbuild", "MAINTAINERS", "Makefile",
-		"README", "Documentation", "arch", "include", "drivers",
-		"fs", "init", "ipc", "kernel", "lib", "scripts",
-	);
-
-	foreach my $check (@tree_check) {
-		if (! -e $root . '/' . $check) {
-			return 0;
-		}
-	}
-	return 1;
-}
 
 sub parse_email {
 	my ($formatted_email) = @_;
@@ -2475,7 +2430,7 @@ sub check_absolute_file {
 
 	# See if any suffix of this path is a path within the tree.
 	while ($file =~ s@^[^/]*/@@) {
-		if (-f "$root/$file") {
+		if (-f "./$file") {
 			##print "file<$file>\n";
 			last;
 		}
@@ -2835,7 +2790,7 @@ sub process {
 
 			$p1_prefix = $1;
 			if (!$file && $tree && $p1_prefix ne '' &&
-			    -e "$root/$p1_prefix") {
+			    -e "./$p1_prefix") {
 				WARN("PATCH_PREFIX",
 				     "patch prefix '$p1_prefix' exists, appears to be a -p0 patch\n");
 			}
@@ -3633,37 +3588,6 @@ sub process {
 
 			WARN("DEPRECATED_VARIABLE",
 			     "Use of $flag is deprecated, please use \`$replacement->{$flag} instead.\n" . $herecurr) if ($replacement->{$flag});
-		}
-
-# check for DT compatible documentation
-		if (defined $root &&
-			(($realfile =~ /\.dtsi?$/ && $line =~ /^\+\s*compatible\s*=\s*\"/) ||
-			 ($realfile =~ /\.[ch]$/ && $line =~ /^\+.*\.compatible\s*=\s*\"/))) {
-
-			my @compats = $rawline =~ /\"([a-zA-Z0-9\-\,\.\+_]+)\"/g;
-
-			my $dt_path = $root . "/Documentation/devicetree/bindings/";
-			my $vp_file = $dt_path . "vendor-prefixes.yaml";
-
-			foreach my $compat (@compats) {
-				my $compat2 = $compat;
-				$compat2 =~ s/\,[a-zA-Z0-9]*\-/\,<\.\*>\-/;
-				my $compat3 = $compat;
-				$compat3 =~ s/\,([a-z]*)[0-9]*\-/\,$1<\.\*>\-/;
-				`grep -Erq "$compat|$compat2|$compat3" $dt_path`;
-				if ( $? >> 8 ) {
-					WARN("UNDOCUMENTED_DT_STRING",
-					     "DT compatible string \"$compat\" appears un-documented -- check $dt_path\n" . $herecurr);
-				}
-
-				next if $compat !~ /^([a-zA-Z0-9\-]+)\,/;
-				my $vendor = $1;
-				`grep -Eq "\\"\\^\Q$vendor\E,\\.\\*\\":" $vp_file`;
-				if ( $? >> 8 ) {
-					WARN("UNDOCUMENTED_DT_STRING",
-					     "DT compatible string vendor \"$vendor\" appears un-documented -- check $vp_file\n" . $herecurr);
-				}
-			}
 		}
 
 # check for embedded filenames
@@ -5756,11 +5680,11 @@ sub process {
 		if ($tree && $rawline =~ m{^.\s*\#\s*include\s*\<asm\/(.*)\.h\>}) {
 			my $file = "$1.h";
 			my $checkfile = "include/linux/$file";
-			if (-f "$root/$checkfile" &&
+			if (-f "./$checkfile" &&
 			    $realfile ne $checkfile &&
 			    $1 !~ /$allowed_asm_includes/)
 			{
-				my $asminclude = `grep -Ec "#include\\s+<asm/$file>" $root/$checkfile`;
+				my $asminclude = `grep -Ec "#include\\s+<asm/$file>" ./$checkfile`;
 				if ($asminclude > 0) {
 					if ($realfile =~ m{^arch/}) {
 						CHK("ARCH_INCLUDE_LINUX",
@@ -6917,24 +6841,6 @@ sub process {
 			my $stat_real = get_stat_real($linenr, $lc);
 			WARN("NAKED_SSCANF",
 			     "unchecked sscanf return value\n" . "$here\n$stat_real\n");
-		}
-
-# check for simple sscanf that should be kstrto<foo>
-		if ($perl_version_ok &&
-		    defined $stat &&
-		    $line =~ /\bsscanf\b/) {
-			my $lc = $stat =~ tr@\n@@;
-			$lc = $lc + $linenr;
-			my $stat_real = get_stat_real($linenr, $lc);
-			if ($stat_real =~ /\bsscanf\b\s*\(\s*$FuncArg\s*,\s*("[^"]+")/) {
-				my $format = $6;
-				my $count = $format =~ tr@%@%@;
-				if ($count == 1 &&
-				    $format =~ /^"\%(?i:ll[udxi]|[udxi]ll|ll|[hl]h?[udxi]|[udxi][hl]h?|[hl]h?|[udxi])"$/) {
-					WARN("SSCANF_TO_KSTRTO",
-					     "Prefer kstrto<type> to single variable sscanf\n" . "$here\n$stat_real\n");
-				}
-			}
 		}
 
 # check for new externs in .h files.
