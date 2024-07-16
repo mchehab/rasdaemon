@@ -71,7 +71,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 #ifdef HAVE_AMP_NS_DECODE
 	char ipmi_add_sel[105];
 	uint8_t sel_data[5];
-	int seg, bus, dev, fn;
+	int seg, bus, dev, fn, rc;
 #endif
 
 	/*
@@ -190,7 +190,9 @@ int ras_aer_event_handler(struct trace_seq *s,
 		"ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 0x00 0x3a 0xcd 0x00 0xc0 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
 	  sel_data[0], sel_data[1], sel_data[2], sel_data[3], sel_data[4]);
 
-	system(ipmi_add_sel);
+	rc = system(ipmi_add_sel);
+	if (rc)
+		log(SYSLOG, LOG_WARNING, "Failed to execute ipmitool\n");
 #endif
 
 	return 0;
