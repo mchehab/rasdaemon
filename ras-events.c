@@ -62,7 +62,7 @@
 
 extern char *choices_disable;
 
-const static struct event_trigger event_triggers[] = {
+static const struct event_trigger event_triggers[] = {
 	{ "mc_event", &mc_event_trigger_setup },
 };
 
@@ -284,6 +284,7 @@ free_ras:
 static void setup_event_trigger(char *event)
 {
 	struct event_trigger trigger;
+
 	for (int i = 0; i < ARRAY_SIZE(event_triggers); i++) {
 		trigger = event_triggers[i];
 		if (!strcmp(event, trigger.name))

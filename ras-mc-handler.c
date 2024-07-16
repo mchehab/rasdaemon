@@ -16,42 +16,55 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 */
 #define _GNU_SOURCE
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
-#include <assert.h>
+#include <unistd.h>
+
 #include "ras-mc-handler.h"
-#include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
+#include "ras-record.h"
 #include "ras-report.h"
 #include "trigger.h"
 
 #define MAX_ENV 30
-static char *mc_ce_trigger;
-static char *mc_ue_trigger;
+static const char *mc_ce_trigger = NULL;
+static const char *mc_ue_trigger = NULL;
 
 void mc_event_trigger_setup(void)
 {
-	mc_ce_trigger = getenv("MC_CE_TRIGGER");
-	if (!mc_ce_trigger || !strcmp(mc_ce_trigger, "")
-			|| trigger_check(mc_ce_trigger) < 0) {
-		log(SYSLOG, LOG_ERR, "Cannot access mc_event ce trigger `%s`\n",
-			mc_ce_trigger);
-	} else
-		log(SYSLOG, LOG_INFO, "Setup mc_event ce trigger `%s`\n",
-			mc_ce_trigger);
+	const char *trigger;
 
-	mc_ue_trigger = getenv("MC_UE_TRIGGER");
-	if (!mc_ue_trigger || !strcmp(mc_ue_trigger, "")
-			|| trigger_check(mc_ue_trigger) < 0) {
-		log(SYSLOG, LOG_ERR, "Cannot access mc_event ue trigger `%s`\n",
-			mc_ue_trigger);
-	} else
-		log(SYSLOG, LOG_INFO, "Setup mc_event ue trigger `%s`\n",
-			mc_ue_trigger);
+	trigger = getenv("MC_CE_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		if (trigger_check(trigger) < 0) {
+			log(ALL, LOG_ERR,
+			    "Cannot access mc_event ce trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup mc_event ce trigger `%s`\n",
+			    trigger);
+			mc_ce_trigger = trigger;
+		}
+	}
+
+	trigger = getenv("MC_UE_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		if (trigger_check(trigger) < 0) {
+			log(ALL, LOG_ERR,
+			    "Cannot access mc_event ue trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup mc_event ue trigger `%s`\n",
+			    trigger);
+			mc_ue_trigger = trigger;
+		}
+	}
 }
 
 static void run_mc_trigger(struct ras_mc_event *ev, const char *mc_trigger)
@@ -60,7 +73,7 @@ static void run_mc_trigger(struct ras_mc_event *ev, const char *mc_trigger)
 	int ei = 0;
 	int i;
 
-	if (!mc_trigger || !strcmp(mc_trigger, ""))
+	if (!strcmp(mc_trigger, ""))
 		return;
 
 	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
@@ -269,10 +282,10 @@ int ras_mc_event_handler(struct trace_seq *s,
 	ras_report_mc_event(ras, &ev);
 #endif
 
-	if (!strcmp(ev.error_type, "Corrected"))
+	if (mc_ce_trigger && !strcmp(ev.error_type, "Corrected"))
 		run_mc_trigger(&ev, mc_ce_trigger);
 
-	if (!strcmp(ev.error_type, "Uncorrected"))
+	if (mc_ue_trigger && !strcmp(ev.error_type, "Uncorrected"))
 		run_mc_trigger(&ev, mc_ue_trigger);
 
 	return 0;

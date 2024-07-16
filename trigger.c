@@ -6,7 +6,7 @@
 #include "ras-logger.h"
 #include "trigger.h"
 
-void run_trigger(const char *trigger, char *argv[], char **env, const char* reporter)
+void run_trigger(const char *trigger, char *argv[], char **env, const char *reporter)
 {
 	pid_t child;
 	char *path;
@@ -39,7 +39,7 @@ void run_trigger(const char *trigger, char *argv[], char **env, const char* repo
 	}
 }
 
-int trigger_check(char *s)
+int trigger_check(const char *s)
 {
 	char *name;
 	int rc;
