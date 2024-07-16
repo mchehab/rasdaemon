@@ -59,6 +59,7 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_mandir}/*/*
 %{_unitdir}/*.service
 %{_sysconfdir}/ras/dimm_labels.d
+%{_sysconfdir}/ras/*/*
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 
 %changelog
