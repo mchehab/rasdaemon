@@ -12,13 +12,16 @@
  * GNU General Public License for more details.
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ras-record.h"
+
 #include "ras-logger.h"
-#include "ras-report.h"
 #include "ras-memory-failure-handler.h"
+#include "ras-record.h"
+#include "ras-report.h"
+#include "trigger.h"
 
 /* Memory failure - various types of pages */
 enum mf_action_page_type {
@@ -89,6 +92,59 @@ static const struct {
 	{ MF_DELAYED, "Delayed" },
 	{ MF_RECOVERED, "Recovered" },
 };
+
+#define MAX_ENV 6
+static const char *mf_trigger = NULL;
+
+void mem_fail_event_trigger_setup(void)
+{
+	const char *trigger;
+
+	trigger = getenv("MEM_FAIL_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		mf_trigger = trigger_check(trigger);
+
+		if (!mf_trigger) {
+			log(ALL, LOG_ERR,
+			    "Cannot access memory_fail_event trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup memory_fail_event trigger `%s`\n",
+			    trigger);
+		}
+	}
+}
+
+static void run_mf_trigger(struct ras_mf_event *ev)
+{
+	char *env[MAX_ENV];
+	int ei = 0;
+	int i;
+
+	if (!mf_trigger)
+		return;
+
+	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
+		goto free;
+	if (asprintf(&env[ei++], "TIMESTAMP=%s", ev->timestamp) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "PFN=%s", ev->pfn) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "PAGE_TYPE=%s", ev->page_type) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "ACTION_RESULT=%s", ev->action_result) < 0)
+		goto free;
+
+	env[ei] = NULL;
+	assert(ei < MAX_ENV);
+
+	run_trigger(mf_trigger, NULL, env, "memory_fail_event");
+
+free:
+	for (i = 0; i < ei; i++)
+		free(env[i]);
+}
 
 static const char *get_page_type(int page_type)
 {
@@ -168,6 +224,7 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 	/* Report event to ABRT */
 	ras_report_mf_event(ras, &ev);
 #endif
+	run_mf_trigger(&ev);
 
 	return 0;
 }
