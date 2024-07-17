@@ -68,7 +68,7 @@ void free_queue(struct link_queue *queue)
 		free(queue);
 }
 
-/* It should be guranteed that the param is not NULL */
+/* It should be guaranteed that the param is not NULL */
 void push(struct link_queue *queue, struct queue_node *node)
 {
 	/* there is no element in the queue */

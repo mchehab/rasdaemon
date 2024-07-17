@@ -173,7 +173,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 	/*
 	 * Get PCIe AER error source seg/bus/dev/fn and save it into
 	 * BMC OEM SEL, ipmitool raw 0x0a 0x44 is IPMI command-Add SEL
-	 * entry, please refer IPMI specificaiton chapter 31.6. 0xcd3a
+	 * entry, please refer IPMI specification chapter 31.6. 0xcd3a
 	 * is manufactuer ID(ampere),byte 12 is sensor num(CE is 0xBF,
 	 * UE is 0xCA), byte 13~14 is segment number, byte 15 is bus
 	 * number, byte 16[7:3] is device number, byte 16[2:0] is

@@ -277,7 +277,7 @@ static void page_record(struct page_record *pr, unsigned int count, time_t time)
 	if (period >= cycle.val) {
 		/**
 		 * Since we don't refresh automatically, it is possible that the period
-		 * between two occurences will be longer than the pre-configured refresh cycle.
+		 * between two occurrences will be longer than the pre-configured refresh cycle.
 		 * In this case, we tolerate the frequency of the whole period up to
 		 * the pre-configured threshold.
 		 */

@@ -284,10 +284,10 @@ static int do_ce_handler(unsigned int cpu)
 	struct link_queue *queue = cpu_infos[cpu].ce_queue;
 	unsigned int tmp;
 	/*
-	 * Since we just count all error numbers in setted cycle, we store the time
-	 * and error numbers from current event to the queue, then everytime we
+	 * Since we just count all error numbers in set cycle, we store the time
+	 * and error numbers from current event to the queue, then every time we
 	 * calculate the period from beginning time to ending time, if the period
-	 * exceeds setted cycle, we pop the beginning time and error until the period
+	 * exceeds set cycle, we pop the beginning time and error until the period
 	 * from new beginning time to ending time is less than cycle.
 	 */
 	while (queue->head && queue->tail && queue->tail->time - queue->head->time > cycle.value) {

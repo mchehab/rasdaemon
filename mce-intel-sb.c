@@ -152,7 +152,7 @@ void snb_decode_model(struct ras_events *ras, struct mce_event *e)
  * banks. The mode is off by default, but can be enabled by setting the
  * "MemError Log Enable" * bit in MSR_ERROR_CONTROL (MSR 0x17f).
  * The documentation in the August 2012 edition of Intel's Software developer
- * manual has some minor errors because the worng version of table 16-16
+ * manual has some minor errors because the wrong version of table 16-16
  * "Intel IMC MC Error Codes for IA32_MCi_MISC (i= 8, 11)" was included.
  * Corrections are:
  *  Bit 62 is the "VALID" bit for the "first-device" bits in MISC and STATUS

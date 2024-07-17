@@ -39,7 +39,7 @@ static const char * const k8bank[] = {
 	"bus unit",
 	"load/store unit",
 	"northbridge",
-	"fixed-issue reoder"
+	"fixed-issue reorder"
 };
 
 static const char * const k8threshold[] = {

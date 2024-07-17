@@ -21,7 +21,7 @@
  *********************** Higher 32-bits *****************************
  * 63: VALIDERROR, 62: OVERFLOW, 61: UC, 60: Err ENABLE,
  * 59: Misc Valid, 58: Addr Valid, 57: PCC, 56: ErrCoreID Valid,
- * 55: TCC, 54: RES, 53: Syndrom Valid, 52: Transparanet,
+ * 55: TCC, 54: RES, 53: Syndrome Valid, 52: Transparent,
  * 51: RES, 50: RES, 49: RES, 48: RES,
  * 47: RES, 46: CECC, 45: UECC, 44: Deferred,
  * 43: Poison, 42: RES, 41: RES, 40: RES,

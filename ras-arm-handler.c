@@ -96,7 +96,7 @@ static int count_errors(struct ras_arm_event *ev, int sev)
 		num += error_count;
 		err_info += 1;
 	}
-	log(TERM, LOG_INFO, "%d error in cpu core catched\n", num);
+	log(TERM, LOG_INFO, "%d error in cpu core caught\n", num);
 	return num;
 }
 

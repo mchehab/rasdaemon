@@ -2,7 +2,7 @@
  * Red Black Trees
  * (C) 1999  Andrea Arcangeli <andrea@suse.de>
  * (C) 2002  David Woodhouse <dwmw2@infradead.org>
- * Taken from the Linux 2.6.30 source with some minor modificatons.
+ * Taken from the Linux 2.6.30 source with some minor modifications.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
