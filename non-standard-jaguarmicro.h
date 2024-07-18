@@ -76,7 +76,7 @@ struct jm_payload0_type_sec {
 	uint32_t ecc_misc0_high32;
 	uint32_t ecc_misc1_low32;
 	uint32_t ecc_misc1_high32;
-	uint32_t ecc_misc2_Low32;
+	uint32_t ecc_misc2_low32;
 	uint32_t ecc_misc2_high32;
 
 	struct jm_common_sec_tail common_tail;

@@ -729,9 +729,9 @@ static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
 	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_misc1_high32);
 
-	//display ecc_misc2_Low32
+	//display ecc_misc2_low32
 	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_misc2_Low32);
+	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_misc2_low32);
 
 	//display ecc_misc2_high32
 	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
