@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include "ras-events.h"
+#include "ras-record.h"
 #include "ras-mc-handler.h"
 #include "ras-aer-handler.h"
 #include "ras-mce-handler.h"

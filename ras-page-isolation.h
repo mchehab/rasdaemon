@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include "ras-record.h"
+#include "types.h"
 #include "rbtree.h"
 
 #define PAGE_SHIFT		12

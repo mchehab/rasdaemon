@@ -27,7 +27,7 @@
 
 #include "ras-extlog-handler.h"
 #include "ras-logger.h"
-#include "ras-record.h"
+#include "types.h"
 #include "ras-report.h"
 
 static char *err_type(int etype)

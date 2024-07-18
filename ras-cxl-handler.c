@@ -18,8 +18,9 @@
 #include <unistd.h>
 #include <traceevent/kbuffer.h>
 #include "ras-cxl-handler.h"
-#include "ras-record.h"
+#include "types.h"
 #include "ras-logger.h"
+#include "ras-record.h"
 #include "ras-report.h"
 #include <endian.h>
 

@@ -45,6 +45,7 @@
 #include "ras-memory-failure-handler.h"
 #include "ras-non-standard-handler.h"
 #include "ras-page-isolation.h"
+#include "ras-events.h"
 #include "ras-record.h"
 #include "trigger.h"
 

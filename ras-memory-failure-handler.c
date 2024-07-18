@@ -19,7 +19,7 @@
 
 #include "ras-logger.h"
 #include "ras-memory-failure-handler.h"
-#include "ras-record.h"
+#include "types.h"
 #include "ras-report.h"
 #include "trigger.h"
 

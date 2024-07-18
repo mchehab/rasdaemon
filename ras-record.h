@@ -23,11 +23,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "config.h"
-
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
-
-#define BIT(nr)                 (1UL << (nr))
-#define BIT_ULL(nr)             (1ULL << (nr))
+#include "types.h"
 
 extern long user_hz;
 
@@ -145,7 +141,6 @@ struct ras_cxl_poison_event {
 	char overflow_ts[64];
 };
 
-#define SZ_512                          0x200
 #define CXL_HEADERLOG_SIZE              SZ_512
 #define CXL_HEADERLOG_SIZE_U32          (SZ_512 / sizeof(uint32_t))
 #define CXL_EVENT_RECORD_DATA_LENGTH	0x50

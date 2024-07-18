@@ -27,7 +27,7 @@
 #include <sys/sysmacros.h>
 #include <traceevent/kbuffer.h>
 #include "ras-diskerror-handler.h"
-#include "ras-record.h"
+#include "types.h"
 #include "ras-logger.h"
 #include "ras-report.h"
 

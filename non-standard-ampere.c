@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "ras-record.h"
+#include "types.h"
 #include "ras-logger.h"
 #include "ras-report.h"
 #include "ras-non-standard-handler.h"

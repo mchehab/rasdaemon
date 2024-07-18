@@ -15,6 +15,7 @@
 #define __RAS_NON_STANDARD_HANDLER_H
 
 #include "ras-events.h"
+#include "ras-record.h"
 #include <traceevent/event-parse.h>
 
 struct ras_ns_ev_decoder {

@@ -22,9 +22,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "ras-record.h"
+#include "types.h"
 #include "ras-logger.h"
 #include "ras-events.h"
+#include "ras-record.h"
 
 /*
  * Arguments(argp) handling logic and main

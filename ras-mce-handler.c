@@ -26,7 +26,7 @@
 #include <traceevent/kbuffer.h>
 
 #include "ras-mce-handler.h"
-#include "ras-record.h"
+#include "types.h"
 #include "ras-logger.h"
 #include "ras-report.h"
 

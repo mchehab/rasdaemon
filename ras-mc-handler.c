@@ -27,7 +27,7 @@
 #include "ras-mc-handler.h"
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
-#include "ras-record.h"
+#include "types.h"
 #include "ras-report.h"
 #include "trigger.h"
 

@@ -21,7 +21,7 @@
 #include <unistd.h>
 #include <traceevent/kbuffer.h>
 #include "ras-aer-handler.h"
-#include "ras-record.h"
+#include "types.h"
 #include "ras-logger.h"
 #include "bitfield.h"
 #include "ras-report.h"

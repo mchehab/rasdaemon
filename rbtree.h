@@ -97,11 +97,6 @@
 
 #include <stddef.h>
 
-#define container_of(ptr, type, member) ({			\
-	const typeof(((type *)0)->member) *__mptr = (ptr);	\
-	(type *)((char *)__mptr - offsetof(type, member));	\
-})
-
 struct rb_node {
 	unsigned long  rb_parent_color;
 #define	RB_RED		0
