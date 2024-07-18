@@ -63,7 +63,7 @@
 	#define ENDIAN KBUFFER_ENDIAN_BIG
 #endif
 
-extern char *choices_disable;
+char *choices_disable;
 
 static const struct event_trigger event_triggers[] = {
 	{ "mc_event", &mc_event_trigger_setup },

@@ -24,6 +24,8 @@
 
 #include "types.h"
 
+extern char *choices_disable;
+
 struct mce_priv;
 struct ras_mc_offline_event;
 
