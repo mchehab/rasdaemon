@@ -24,7 +24,6 @@
 #include <asm/bitsperlong.h>
 #include <assert.h>
 #include <errno.h>
-#include <linux/bits.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -109,6 +108,14 @@
 #define GENMASK_INPUT_CHECK(h, l) \
 	(BUILD_BUG_ON_ZERO(__builtin_choose_expr( \
 		__is_constexpr((l) > (h)), (l) > (h), 0)))
+
+#define __GENMASK(h, l) \
+        (((~_UL(0)) - (_UL(1) << (l)) + 1) & \
+         (~_UL(0) >> (__BITS_PER_LONG - 1 - (h))))
+
+#define __GENMASK_ULL(h, l) \
+        (((~_ULL(0)) - (_ULL(1) << (l)) + 1) & \
+         (~_ULL(0) >> (__BITS_PER_LONG_LONG - 1 - (h))))
 
 #define GENMASK(h, l) \
 	(GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))

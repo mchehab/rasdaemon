@@ -263,7 +263,6 @@ struct ras_cxl_memory_module_event;
 
 #ifdef HAVE_SQLITE3
 
-
 struct sqlite3_priv {
 	sqlite3		*db;
 	sqlite3_stmt	*stmt_mc_event;
