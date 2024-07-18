@@ -11,10 +11,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "types.h"
+
+#include "non-standard-hisilicon.h"
 #include "ras-logger.h"
 #include "ras-report.h"
-#include "non-standard-hisilicon.h"
+#include "types.h"
 
 #define HISI_BUF_LEN	2048
 #define HISI_PCIE_INFO_BUF_LEN	256

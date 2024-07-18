@@ -8,15 +8,16 @@
  *
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include "types.h"
-#include "ras-logger.h"
-#include "ras-report.h"
-#include "ras-non-standard-handler.h"
+
 #include "non-standard-yitian.h"
+#include "ras-logger.h"
+#include "ras-non-standard-handler.h"
+#include "ras-report.h"
+#include "types.h"
 
 static const char * const yitian_ddr_payload_err_reg_name[] = {
 	"Error Type:",

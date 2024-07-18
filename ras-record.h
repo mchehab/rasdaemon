@@ -20,8 +20,10 @@
 #ifndef __RAS_RECORD_H
 #define __RAS_RECORD_H
 
-#include <stdint.h>
+#include <sqlite3.h>
 #include <stdbool.h>
+#include <stdint.h>
+
 #include "config.h"
 #include "types.h"
 
@@ -261,7 +263,6 @@ struct ras_cxl_memory_module_event;
 
 #ifdef HAVE_SQLITE3
 
-#include <sqlite3.h>
 
 struct sqlite3_priv {
 	sqlite3		*db;

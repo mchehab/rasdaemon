@@ -20,9 +20,9 @@
 #define __RAS_EXTLOG_HANDLER_H
 
 #include <stdint.h>
+#include <traceevent/event-parse.h>
 
 #include "ras-events.h"
-#include <traceevent/event-parse.h>
 
 int ras_extlog_mem_event_handler(struct trace_seq *s,
 				 struct tep_record *record,

@@ -24,8 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 static char *pcu_1[] = {
 	[0x0D] = "MCA_LLC_BIST_ACTIVE_TIMEOUT",

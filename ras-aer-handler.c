@@ -15,16 +15,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
-#include "ras-aer-handler.h"
-#include "types.h"
-#include "ras-logger.h"
+#include <unistd.h>
+
 #include "bitfield.h"
+#include "ras-aer-handler.h"
+#include "ras-logger.h"
 #include "ras-report.h"
+#include "types.h"
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {

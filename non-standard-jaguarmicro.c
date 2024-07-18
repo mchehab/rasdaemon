@@ -8,16 +8,17 @@
  *
  */
 
+#include "non-standard-jaguarmicro.h"
+#include "ras-logger.h"
+#include "ras-mce-handler.h"
+#include "ras-non-standard-handler.h"
+#include "ras-report.h"
+#include "types.h"
+
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include "types.h"
-#include "ras-logger.h"
-#include "ras-report.h"
-#include "ras-non-standard-handler.h"
-#include "non-standard-jaguarmicro.h"
-#include "ras-mce-handler.h"
 
 #define JM_BUF_LEN	256
 #define JM_REG_BUF_LEN	2048

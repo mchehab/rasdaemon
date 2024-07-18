@@ -14,8 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 /* MCA_STATUS REGISTER FOR FAMILY 17H
  *********************** Higher 32-bits *****************************

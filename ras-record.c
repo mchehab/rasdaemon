@@ -17,22 +17,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "ras-aer-handler.h"
+#include "ras-events.h"
+#include "ras-logger.h"
+#include "ras-mce-handler.h"
+#include "ras-mc-handler.h"
+#include "ras-record.h"
+
 /*
  * BuildRequires: sqlite-devel
  */
-
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include "ras-events.h"
-#include "ras-record.h"
-#include "ras-mc-handler.h"
-#include "ras-aer-handler.h"
-#include "ras-mce-handler.h"
-#include "ras-logger.h"
 
 /* #define DEBUG_SQL 1 */
 

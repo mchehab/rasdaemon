@@ -22,13 +22,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
+#include <unistd.h>
 
 #include "ras-extlog-handler.h"
 #include "ras-logger.h"
-#include "types.h"
 #include "ras-report.h"
+#include "types.h"
 
 static char *err_type(int etype)
 {

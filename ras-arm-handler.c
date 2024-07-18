@@ -14,15 +14,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
-#include "ras-arm-handler.h"
-#include "types.h"
-#include "ras-logger.h"
-#include "ras-report.h"
-#include "ras-non-standard-handler.h"
+#include <unistd.h>
+
 #include "non-standard-ampere.h"
+#include "ras-arm-handler.h"
 #include "ras-cpu-isolation.h"
+#include "ras-logger.h"
+#include "ras-non-standard-handler.h"
+#include "ras-report.h"
+#include "types.h"
 
 #define ARM_ERR_VALID_ERROR_COUNT BIT(0)
 #define ARM_ERR_VALID_FLAGS BIT(1)

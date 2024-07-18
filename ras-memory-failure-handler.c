@@ -19,9 +19,9 @@
 
 #include "ras-logger.h"
 #include "ras-memory-failure-handler.h"
-#include "types.h"
 #include "ras-report.h"
 #include "trigger.h"
+#include "types.h"
 
 /* Memory failure - various types of pages */
 enum mf_action_page_type {

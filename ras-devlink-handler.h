@@ -19,8 +19,9 @@
 #ifndef __RAS_DEVLINK_HANDLER_H
 #define __RAS_DEVLINK_HANDLER_H
 
-#include "ras-events.h"
 #include <traceevent/event-parse.h>
+
+#include "ras-events.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
 				 struct tep_record *record,

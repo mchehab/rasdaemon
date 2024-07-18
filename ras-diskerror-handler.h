@@ -19,8 +19,9 @@
 #ifndef __RAS_DISKERROR_HANDLER_H
 #define __RAS_DISKERROR_HANDLER_H
 
-#include "ras-events.h"
 #include <traceevent/event-parse.h>
+
+#include "ras-events.h"
 
 int ras_diskerror_event_handler(struct trace_seq *s,
 				struct tep_record *record,

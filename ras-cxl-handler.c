@@ -12,17 +12,18 @@
  * GNU General Public License for more details.
  */
 
+#include <endian.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
+#include <unistd.h>
+
 #include "ras-cxl-handler.h"
-#include "types.h"
 #include "ras-logger.h"
 #include "ras-record.h"
 #include "ras-report.h"
-#include <endian.h>
+#include "types.h"
 
 /* Common Functions */
 static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size)

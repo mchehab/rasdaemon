@@ -14,8 +14,9 @@
 #ifndef __RAS_ARM_HANDLER_H
 #define __RAS_ARM_HANDLER_H
 
-#include "ras-events.h"
 #include <traceevent/event-parse.h>
+
+#include "ras-events.h"
 
 /*
  * ARM Processor Error Information Structure, According to

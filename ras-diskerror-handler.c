@@ -17,19 +17,21 @@
  */
 
 #define _GNU_SOURCE
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/sysmacros.h>
+#include <traceevent/kbuffer.h>
+
+#include "ras-diskerror-handler.h"
+#include "ras-logger.h"
+#include "ras-report.h"
+#include "types.h"
+
 #ifndef __dev_t_defined
 #include <sys/types.h>
 #endif /* __dev_t_defined */
-#include <string.h>
-#include <errno.h>
-#include <sys/sysmacros.h>
-#include <traceevent/kbuffer.h>
-#include "ras-diskerror-handler.h"
-#include "types.h"
-#include "ras-logger.h"
-#include "ras-report.h"
 
 static const struct {
 	int             error;

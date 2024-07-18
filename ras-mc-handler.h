@@ -19,8 +19,9 @@
 #ifndef __RAS_MC_HANDLER_H
 #define __RAS_MC_HANDLER_H
 
-#include "ras-events.h"
 #include <traceevent/event-parse.h>
+
+#include "ras-events.h"
 
 void mc_event_trigger_setup(void);
 

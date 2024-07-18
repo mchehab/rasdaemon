@@ -14,9 +14,14 @@
 #ifndef __RAS_NON_STANDARD_HANDLER_H
 #define __RAS_NON_STANDARD_HANDLER_H
 
+#include <traceevent/event-parse.h>
+
 #include "ras-events.h"
 #include "ras-record.h"
-#include <traceevent/event-parse.h>
+
+#ifdef HAVE_SQLITE3
+#include <sqlite3.h>
+#endif
 
 struct ras_ns_ev_decoder {
 	struct ras_ns_ev_decoder *next;
@@ -26,7 +31,6 @@ struct ras_ns_ev_decoder {
 	int (*decode)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder,
 		      struct trace_seq *s, struct ras_non_standard_event *event);
 #ifdef HAVE_SQLITE3
-#include <sqlite3.h>
 	sqlite3_stmt *stmt_dec_record;
 #endif
 };

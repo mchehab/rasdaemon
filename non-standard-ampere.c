@@ -8,15 +8,16 @@
  *
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include "types.h"
-#include "ras-logger.h"
-#include "ras-report.h"
-#include "ras-non-standard-handler.h"
+
 #include "non-standard-ampere.h"
+#include "ras-logger.h"
+#include "ras-non-standard-handler.h"
+#include "ras-report.h"
+#include "types.h"
 
 /*Armv8 RAS compicant Error Record(APEI and BMC Reporting) Payload Type 0*/
 static const char * const disp_payload0_err_reg_name[] = {

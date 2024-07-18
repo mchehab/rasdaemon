@@ -11,16 +11,17 @@
  * GNU General Public License for more details.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
-#include "ras-non-standard-handler.h"
-#include "types.h"
+#include <unistd.h>
+
 #include "ras-logger.h"
+#include "ras-non-standard-handler.h"
 #include "ras-report.h"
+#include "types.h"
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 

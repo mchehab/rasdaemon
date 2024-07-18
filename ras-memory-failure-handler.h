@@ -15,8 +15,9 @@
 #ifndef __RAS_MEMORY_FAILURE_HANDLER_H
 #define __RAS_MEMORY_FAILURE_HANDLER_H
 
-#include "ras-events.h"
 #include <traceevent/event-parse.h>
+
+#include "ras-events.h"
 
 void mem_fail_event_trigger_setup(void);
 int ras_memory_failure_event_handler(struct trace_seq *s,

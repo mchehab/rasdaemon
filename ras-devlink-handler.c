@@ -20,12 +20,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
+#include <unistd.h>
+
 #include "ras-devlink-handler.h"
-#include "types.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include "types.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
 				 struct tep_record *record,

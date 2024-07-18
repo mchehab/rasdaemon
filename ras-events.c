@@ -38,6 +38,7 @@
 #include "ras-cxl-handler.h"
 #include "ras-devlink-handler.h"
 #include "ras-diskerror-handler.h"
+#include "ras-events.h"
 #include "ras-extlog-handler.h"
 #include "ras-logger.h"
 #include "ras-mce-handler.h"
@@ -45,7 +46,6 @@
 #include "ras-memory-failure-handler.h"
 #include "ras-non-standard-handler.h"
 #include "ras-page-isolation.h"
-#include "ras-events.h"
 #include "ras-record.h"
 #include "trigger.h"
 

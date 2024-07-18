@@ -14,6 +14,8 @@
 #include "ras-events.h"
 #include "traceevent/event-parse.h"
 
+struct ras_ns_ev_decoder;
+
 #define YITIAN_RAS_TYPE_DDR		0x50
 
 struct yitian_payload_header {

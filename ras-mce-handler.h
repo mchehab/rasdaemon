@@ -20,9 +20,9 @@
 #define __RAS_MCE_HANDLER_H
 
 #include <stdint.h>
+#include <traceevent/event-parse.h>
 
 #include "ras-events.h"
-#include <traceevent/event-parse.h>
 
 enum cputype {
 	CPU_GENERIC,

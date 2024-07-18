@@ -13,11 +13,11 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/utsname.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/un.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 
 #include "ras-report.h"
 

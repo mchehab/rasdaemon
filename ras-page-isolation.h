@@ -18,8 +18,8 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include "types.h"
 #include "rbtree.h"
+#include "types.h"
 
 #define PAGE_SHIFT		12
 #define PAGE_SIZE		BIT(PAGE_SHIFT)

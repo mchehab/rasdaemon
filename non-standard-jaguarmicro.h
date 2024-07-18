@@ -11,8 +11,9 @@
 #ifndef __NON_STANDARD_JAGUAR_H
 #define __NON_STANDARD_JAGUAR_H
 
-#include "ras-events.h"
 #include <traceevent/event-parse.h>
+
+#include "ras-events.h"
 #include "ras-mce-handler.h"
 
 #define PAYLOAD_TYPE_0         0x00

@@ -11,8 +11,8 @@
 #ifndef __NON_STANDARD_HISILICON_H
 #define __NON_STANDARD_HISILICON_H
 
-#include "ras-non-standard-handler.h"
 #include "ras-mc-handler.h"
+#include "ras-non-standard-handler.h"
 
 #define HISI_SNPRINTF	mce_snprintf
 

@@ -21,15 +21,15 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <string.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
+#include "bitfield.h"
 #include "ras-logger.h"
 #include "ras-mce-handler.h"
-#include "bitfield.h"
 
 #define MCE_THERMAL_BANK	(MCE_EXTENDED_BANK + 0)
 #define MCE_TIMEOUT_BANK        (MCE_EXTENDED_BANK + 90)

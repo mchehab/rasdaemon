@@ -18,17 +18,17 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdint.h>
 #include <traceevent/kbuffer.h>
+#include <unistd.h>
 
-#include "ras-mce-handler.h"
-#include "types.h"
 #include "ras-logger.h"
+#include "ras-mce-handler.h"
 #include "ras-report.h"
+#include "types.h"
 
 /*
  * The code below were adapted from Andi Kleen/Intel/SuSe mcelog code,

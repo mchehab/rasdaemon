@@ -14,12 +14,12 @@
 #ifndef __RAS_REPORT_H
 #define __RAS_REPORT_H
 
-#include "types.h"
-#include "ras-events.h"
-#include "ras-record.h"
-#include "ras-mc-handler.h"
-#include "ras-mce-handler.h"
 #include "ras-aer-handler.h"
+#include "ras-events.h"
+#include "ras-mce-handler.h"
+#include "ras-mc-handler.h"
+#include "ras-record.h"
+#include "types.h"
 
 /* Maximal length of backtrace. */
 #define MAX_BACKTRACE_SIZE (1024 * 1024)

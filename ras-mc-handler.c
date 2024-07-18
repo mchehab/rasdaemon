@@ -24,12 +24,12 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
-#include "ras-mc-handler.h"
 #include "ras-logger.h"
+#include "ras-mc-handler.h"
 #include "ras-page-isolation.h"
-#include "types.h"
 #include "ras-report.h"
 #include "trigger.h"
+#include "types.h"
 
 #define MAX_ENV 30
 static const char *mc_ce_trigger = NULL;

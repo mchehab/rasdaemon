@@ -11,11 +11,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "types.h"
-#include "ras-logger.h"
-#include "ras-report.h"
-#include "ras-non-standard-handler.h"
+
 #include "non-standard-hisilicon.h"
+#include "ras-logger.h"
+#include "ras-non-standard-handler.h"
+#include "ras-report.h"
+#include "types.h"
 
 /* HISI OEM error definitions */
 /* HISI OEM format1 error definitions */
