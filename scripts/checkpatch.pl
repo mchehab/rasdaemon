@@ -6676,9 +6676,16 @@ sub process {
 #		}
 
 # strcpy and strcat should be avoided
+		my %strcpy_variant = (
+		    "strcpy" => "strscpy",
+		    "strncpy" => "strscpy",
+		    "strcat" => "strscat",
+		    "strncat" => "strscat",
+		    "sprintf" => "snprint",
+		);
 		if ($line =~ /\b(strcpy|strcat|sprintf)\s*\(/) {
-			WARN("STRCPY",
-			     "Please avoid $1 as it doesn't check buffer size\n" . $herecurr);
+			WARN("STRING_COPY",
+			     "Please use " . $strcpy_variant{$1} . " instead $1\n" . $herecurr);
 		}
 
 # ethtool_sprintf uses that should likely be ethtool_puts

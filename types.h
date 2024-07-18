@@ -23,7 +23,9 @@
 
 #include <asm/bitsperlong.h>
 #include <assert.h>
+#include <errno.h>
 #include <linux/bits.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #define STR(x) #x
@@ -120,6 +122,65 @@
 
 #define MAX_PATH			1024
 #define SZ_512				0x200
+
+/* String copy */
+
+/**
+ * strscpy - safe implementation of strcpy, with a buffer size
+ * @dst:	destination buffer
+ * @src:	source buffer
+ * @dsize:	size of the destination buffer
+ *
+ * Copy string up to @dsize-1 characters. String will end with a '\0'
+ * character at the end.
+ *
+ * Returns: number of characters at the destination buffer or -E2BIG if
+ * the string was too big to fit.
+ */
+static inline size_t strscpy(char *dst, const char *src, size_t dsize)
+{
+	size_t i = 0;
+
+	for (; i < dsize; i++, dst++, src++) {
+		*dst = *src;
+		if (!*dst)
+			return i;
+	}
+
+	if (i)
+		dst--;
+
+	*dst = '\0';
+
+	return -E2BIG;
+}
+
+/**
+ * strscat - safe implementation of strcat, with a buffer size
+ * @dst:	destination buffer
+ * @src:	source buffer
+ * @dsize:	size of the destination buffer
+ *
+ * Append string until @dst is up to @dsize-1 characters. String will end
+ * with a '\0' character at the end.
+ *
+ * Returns: number of characters at the destination buffer or -E2BIG if
+ * the string was too big to fit.
+ */
+static inline size_t strscat(char *dst, const char *src, size_t dsize)
+{
+	int i, rc;
+
+	for (i = 0; dsize > 0; dsize--, dst++, i++)
+		if (!*dst)
+			break;
+
+	rc = strscpy(dst, src, dsize);
+	if (rc < 0)
+		return rc;
+
+	return rc + i;
+}
 
 /**
  * container_of - cast a member of a structure out to the containing structure
