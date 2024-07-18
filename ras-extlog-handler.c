@@ -108,40 +108,85 @@ static char *err_cper_data(const char *c)
 {
 	const struct cper_mem_err_compact *cpd = (struct cper_mem_err_compact *)c;
 	static char buf[256];
+	unsigned int rc, size = sizeof(buf);
 	char *p = buf;
 
 	if (cpd->validation_bits == 0)
 		return "";
-	p += sprintf(p, " (");
-	if (cpd->validation_bits & CPER_MEM_VALID_NODE)
-		p += sprintf(p, "node: %d ", cpd->node);
-	if (cpd->validation_bits & CPER_MEM_VALID_CARD)
-		p += sprintf(p, "card: %d ", cpd->card);
-	if (cpd->validation_bits & CPER_MEM_VALID_MODULE)
-		p += sprintf(p, "module: %d ", cpd->module);
-	if (cpd->validation_bits & CPER_MEM_VALID_BANK)
-		p += sprintf(p, "bank: %d ", cpd->bank);
-	if (cpd->validation_bits & CPER_MEM_VALID_DEVICE)
-		p += sprintf(p, "device: %d ", cpd->device);
-	if (cpd->validation_bits & CPER_MEM_VALID_ROW)
-		p += sprintf(p, "row: %d ", cpd->row);
-	if (cpd->validation_bits & CPER_MEM_VALID_COLUMN)
-		p += sprintf(p, "column: %d ", cpd->column);
-	if (cpd->validation_bits & CPER_MEM_VALID_BIT_POSITION)
-		p += sprintf(p, "bit_pos: %d ", cpd->bit_pos);
-	if (cpd->validation_bits & CPER_MEM_VALID_REQUESTOR_ID)
-		p += sprintf(p, "req_id: 0x%llx ", cpd->requestor_id);
-	if (cpd->validation_bits & CPER_MEM_VALID_RESPONDER_ID)
-		p += sprintf(p, "resp_id: 0x%llx ", cpd->responder_id);
-	if (cpd->validation_bits & CPER_MEM_VALID_TARGET_ID)
-		p += sprintf(p, "tgt_id: 0x%llx ", cpd->target_id);
-	if (cpd->validation_bits & CPER_MEM_VALID_RANK_NUMBER)
-		p += sprintf(p, "rank: %d ", cpd->rank);
-	if (cpd->validation_bits & CPER_MEM_VALID_CARD_HANDLE)
-		p += sprintf(p, "card_handle: %d ", cpd->mem_array_handle);
-	if (cpd->validation_bits & CPER_MEM_VALID_MODULE_HANDLE)
-		p += sprintf(p, "module_handle: %d ", cpd->mem_dev_handle);
-	p += sprintf(p - 1, ")");
+	rc = snprintf(p, size, " (");
+	p += rc;
+	size -= rc;
+	if (cpd->validation_bits & CPER_MEM_VALID_NODE) {
+		rc = snprintf(p, size, "node: %d ", cpd->node);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_CARD) {
+		rc = snprintf(p, size, "card: %d ", cpd->card);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_MODULE) {
+		rc = snprintf(p, size, "module: %d ", cpd->module);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_BANK) {
+		rc = snprintf(p, size, "bank: %d ", cpd->bank);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_DEVICE) {
+		rc = snprintf(p, size, "device: %d ", cpd->device);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_ROW) {
+		rc = snprintf(p, size, "row: %d ", cpd->row);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_COLUMN) {
+		rc = snprintf(p, size, "column: %d ", cpd->column);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_BIT_POSITION) {
+		rc = snprintf(p, size, "bit_pos: %d ", cpd->bit_pos);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_REQUESTOR_ID) {
+		rc = snprintf(p, size, "req_id: 0x%llx ", cpd->requestor_id);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_RESPONDER_ID) {
+		rc = snprintf(p, size, "resp_id: 0x%llx ", cpd->responder_id);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_TARGET_ID) {
+		rc = snprintf(p, size, "tgt_id: 0x%llx ", cpd->target_id);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_RANK_NUMBER) {
+		rc = snprintf(p, size, "rank: %d ", cpd->rank);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_CARD_HANDLE) {
+		rc = snprintf(p, size, "card_handle: %d ", cpd->mem_array_handle);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_MODULE_HANDLE) {
+		rc = snprintf(p, size, "module_handle: %d ", cpd->mem_dev_handle);
+		p += rc;
+		size -= rc;
+	}
+	rc = snprintf(p - 1, size, ")");
 
 	return buf;
 }
@@ -154,7 +199,7 @@ static char *uuid_le(const char *uu)
 	static const unsigned char le[16] = {3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15};
 
 	for (i = 0; i < 16; i++) {
-		p += sprintf(p, "%.2x", (unsigned char)uu[le[i]]);
+		p += snprintf(p, sizeof(uuid), "%.2x", (unsigned char)uu[le[i]]);
 		switch (i) {
 		case 3:
 		case 5:

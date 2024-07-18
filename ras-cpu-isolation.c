@@ -255,14 +255,13 @@ void cpu_infos_free(void)
 static int do_cpu_offline(unsigned int cpu)
 {
 	int fd, rc;
-	char buf[2] = "";
+	char buf[2] = "0";
 
 	cpu_infos[cpu].state = CPU_OFFLINE_FAILED;
 	fd = open_sys_file(cpu, O_RDWR, cpu_path_format);
 	if (fd == -1)
 		return HANDLE_FAILED;
 
-	strcpy(buf, "0");
 	rc = write(fd, buf, strlen(buf));
 	if (rc < 0) {
 		log(TERM, LOG_ERR, "cpu%u offline failed, errno:%d\n", cpu, errno);

@@ -33,7 +33,7 @@ static int setup_report_socket(void)
 
 	memset(&addr, 0, sizeof(struct sockaddr_un));
 	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path, ABRT_SOCKET, sizeof(addr.sun_path));
+	strscpy(addr.sun_path, ABRT_SOCKET, sizeof(addr.sun_path));
 	addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
 
 	rc = connect(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un));

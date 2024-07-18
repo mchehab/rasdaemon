@@ -101,7 +101,7 @@
 
 /* BIT handling */
 
-#define _AC(X,Y)	(X##Y)
+#define _AC(X, Y)	(X##Y)
 
 #define _UL(x)          (_AC(x, UL))
 #define _ULL(x)         (_AC(x, ULL))

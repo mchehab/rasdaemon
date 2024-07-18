@@ -297,7 +297,8 @@ int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
 		decode_k8_threashold(e);
 		break;
 	default:
-		strcpy(e->error_msg, "Don't know how to decode this bank");
+		strscpy(e->error_msg, "Don't know how to decode this bank",
+			sizeof(e->error_msg));
 	}
 
 	/* IP doesn't matter on memory errors */

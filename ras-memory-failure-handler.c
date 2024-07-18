@@ -197,12 +197,12 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 		strftime(ev.timestamp, sizeof(ev.timestamp),
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	else
-		strncpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
+		strscpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
 	if (tep_get_field_val(s,  event, "pfn", record, &val, 1) < 0)
 		return -1;
-	sprintf(ev.pfn, "0x%llx", val);
+	snprintf(ev.pfn, sizeof(ev.pfn), "0x%llx", val);
 	trace_seq_printf(s, "pfn=0x%llx ", val);
 
 	if (tep_get_field_val(s, event, "type", record, &val, 1) < 0)

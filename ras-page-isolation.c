@@ -225,7 +225,7 @@ static int do_page_offline(unsigned long long addr, enum otype type)
 		return -1;
 	}
 
-	sprintf(buf, "%#llx", addr);
+	snprintf(buf, sizeof(buf), "%#llx", addr);
 	rc = write(fd, buf, strlen(buf));
 	if (rc < 0)
 		log(TERM, LOG_ERR,

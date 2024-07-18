@@ -1107,9 +1107,9 @@ static int __ras_mc_prepare_stmt(struct sqlite3_priv *priv,
 
 	for (i = 1; i < db_tab->num_fields; i++) {
 		if (i <  db_tab->num_fields - 1)
-			strcat(sql, "?, ");
+			strscat(sql, "?, ", sizeof(sql));
 		else
-			strcat(sql, "?)");
+			strscat(sql, "?)", sizeof(sql));
 	}
 
 #ifdef DEBUG_SQL

@@ -100,8 +100,7 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 
 		if (!strcmp(type, "debugfs")) {
 			fclose(fp);
-			strncpy(tracing_dir, dir, len - 1);
-			tracing_dir[len - 1] = '\0';
+			strscpy(tracing_dir, dir, len - 1);
 			return 0;
 		}
 	} while (1);
@@ -114,10 +113,17 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 static int open_trace(struct ras_events *ras, char *name, int flags)
 {
 	char fname[MAX_PATH + 1];
+	int rc;
 
-	strcpy(fname, ras->tracing);
-	strcat(fname, "/");
-	strcat(fname, name);
+	rc = strscpy(fname, ras->tracing, sizeof(fname));
+	if (rc < 0)
+		return rc;
+	rc = strscat(fname, "/", sizeof(fname));
+	if (rc < 0)
+		return rc;
+	rc = strscat(fname, name, sizeof(fname));
+	if (rc < 0)
+		return rc;
 
 	return open(fname, flags);
 }
@@ -131,8 +137,13 @@ static int get_tracing_dir(struct ras_events *ras)
 
 	get_debugfs_dir(ras->debugfs, sizeof(ras->debugfs));
 
-	strcpy(fname, ras->debugfs);
-	strcat(fname, "/tracing");
+	rc = strscpy(fname, ras->debugfs, sizeof(fname));
+	if (rc < 0)
+		return rc;
+	rc = strscat(fname, "/tracing", sizeof(fname));
+	if (rc < 0)
+		return rc;
+
 	dir = opendir(fname);
 	if (!dir)
 		return -1;
@@ -145,10 +156,14 @@ static int get_tracing_dir(struct ras_events *ras)
 	}
 	closedir(dir);
 
-	strcpy(ras->tracing, ras->debugfs);
-	strcat(ras->tracing, "/tracing");
+	strscpy(ras->tracing, ras->debugfs, sizeof(ras->tracing));
+	strscat(ras->tracing, "/tracing", sizeof(ras->tracing));
 	if (has_instances) {
-		strcat(ras->tracing, "/instances/" TOOL_NAME);
+		rc = strscat(ras->tracing, "/instances/" TOOL_NAME,
+			     sizeof(ras->tracing));
+		if (rc < 0)
+			return rc;
+
 		rc = mkdir(ras->tracing, 0700);
 		if (rc < 0 && errno != EEXIST) {
 			log(ALL, LOG_INFO,

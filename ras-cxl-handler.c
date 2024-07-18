@@ -40,7 +40,7 @@ static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size
 		strftime(ts_ptr, size, "%Y-%m-%d %H:%M:%S %z", tm);
 
 	if (!ts || !tm)
-		strncpy(ts_ptr, "1970-01-01 00:00:00 +0000",
+		strscpy(ts_ptr, "1970-01-01 00:00:00 +0000",
 			size);
 }
 
@@ -55,7 +55,7 @@ static void get_timestamp(struct trace_seq *s, struct tep_record *record,
 	if (tm)
 		strftime(ts_ptr, size, "%Y-%m-%d %H:%M:%S %z", tm);
 	else
-		strncpy(ts_ptr, "1970-01-01 00:00:00 +0000", size);
+		strscpy(ts_ptr, "1970-01-01 00:00:00 +0000", size);
 }
 
 struct cxl_event_flags {
@@ -85,7 +85,7 @@ static char *uuid_be(const char *uu)
 	static const unsigned char be[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
 	for (i = 0; i < 16; i++) {
-		p += sprintf(p, "%.2x", (unsigned char)uu[be[i]]);
+		p += snprintf(p, sizeof(uuid), "%.2x", (unsigned char)uu[be[i]]);
 		switch (i) {
 		case 3:
 		case 5:
@@ -249,7 +249,7 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 			return -1;
 		convert_timestamp(val, ev.overflow_ts, sizeof(ev.overflow_ts));
 	} else {
-		strncpy(ev.overflow_ts, "1970-01-01 00:00:00 +0000",
+		strscpy(ev.overflow_ts, "1970-01-01 00:00:00 +0000",
 			sizeof(ev.overflow_ts));
 	}
 

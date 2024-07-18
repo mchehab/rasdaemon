@@ -952,17 +952,20 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 	}
 
 	if (i >= MAX_NR_BANKS) {
-		strcpy(e->mcastatus_msg, "Couldn't find bank type with IPID");
+		strscpy(e->mcastatus_msg, "Couldn't find bank type with IPID",
+			sizeof(e->mcastatus_msg));
 		return;
 	}
 
 	if (bank_type >= N_SMCA_BANK_TYPES) {
-		strcpy(e->mcastatus_msg, "Don't know how to decode this bank");
+		strscpy(e->mcastatus_msg, "Don't know how to decode this bank",
+			sizeof(e->mcastatus_msg));
 		return;
 	}
 
 	if (bank_type == SMCA_RESERVED) {
-		strcpy(e->mcastatus_msg, "Bank 4 is reserved.\n");
+		strscpy(e->mcastatus_msg, "Bank 4 is reserved.\n",
+			sizeof(e->mcastatus_msg));
 		return;
 	}
 

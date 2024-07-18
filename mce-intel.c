@@ -151,9 +151,9 @@ static void decode_memory_controller(struct mce_event *e, uint32_t status)
 	char channel[30];
 
 	if ((status & 0xf) == 0xf)
-		sprintf(channel, "unspecified");
+		snprintf(channel, sizeof(channel), "unspecified");
 	else
-		sprintf(channel, "%u", status & 0xf);
+		snprintf(channel, sizeof(channel), "%u", status & 0xf);
 
 	mce_snprintf(e->error_msg, "MEMORY CONTROLLER %s_CHANNEL%s_ERR",
 		     mmm_mnemonic[(status >> 4) & 7], channel);
@@ -195,14 +195,14 @@ static void decode_mcg(struct mce_event *e)
 
 static void bank_name(struct mce_event *e)
 {
-	char *buf = e->bank_name;
-
 	switch (e->bank) {
 	case MCE_THERMAL_BANK:
-		strcpy(buf, "THERMAL EVENT");
+		strscpy(e->bank_name, "THERMAL EVENT", sizeof(e->bank_name));
 		break;
 	case MCE_TIMEOUT_BANK:
-		strcpy(buf, "Timeout waiting for exception on other CPUs");
+		strscpy(e->bank_name,
+			"Timeout waiting for exception on other CPUs",
+			sizeof(e->bank_name));
 		break;
 	default:
 		break;
@@ -435,7 +435,7 @@ static int domsr(int cpu, int msr, int bit)
 	unsigned long long data;
 	int fd;
 
-	sprintf(fpath, "/dev/cpu/%d/msr", cpu);
+	snprintf(fpath, sizeof(fpath), "/dev/cpu/%d/msr", cpu);
 	fd = open(fpath, O_RDWR);
 	if (fd == -1) {
 		switch (errno) {
