@@ -64,22 +64,23 @@ static int commit_report_basic(int sockfd)
 	/*
 	 * ABRT server protocol
 	 */
-	sprintf(buf, "PUT / HTTP/1.1\r\n\r\n");
+	snprintf(buf, INPUT_BUFFER_SIZE, "PUT / HTTP/1.1\r\n\r\n");
 	rc = write(sockfd, buf, strlen(buf));
 	if (rc < strlen(buf))
 		return -1;
 
-	sprintf(buf, "PID=%d", (int)getpid());
+	snprintf(buf, INPUT_BUFFER_SIZE, "PID=%d", (int)getpid());
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		return -1;
 
-	sprintf(buf, "EXECUTABLE=/boot/vmlinuz-%s", un.release);
+	snprintf(buf, INPUT_BUFFER_SIZE, "EXECUTABLE=/boot/vmlinuz-%s",
+		 un.release);
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		return -1;
 
-	sprintf(buf, "TYPE=%s", "ras");
+	snprintf(buf, INPUT_BUFFER_SIZE, "TYPE=%s", "ras");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		return -1;
@@ -89,12 +90,17 @@ static int commit_report_basic(int sockfd)
 
 static int set_mc_event_backtrace(char *buf, struct ras_mc_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"error_count=%d\n"
 		"error_type=%s\n"
@@ -122,19 +128,22 @@ static int set_mc_event_backtrace(char *buf, struct ras_mc_event *ev)
 		ev->syndrome,
 		ev->driver_detail);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_mce_event_backtrace(char *buf, struct mce_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"bank_name=%s\n"
 		"error_msg=%s\n"
@@ -182,19 +191,22 @@ static int set_mce_event_backtrace(char *buf, struct mce_event *ev)
 		ev->bank,
 		ev->cpuvendor);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_aer_event_backtrace(char *buf, struct ras_aer_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"error_type=%s\n"
 		"dev_name=%s\n"
@@ -204,19 +216,22 @@ static int set_aer_event_backtrace(char *buf, struct ras_aer_event *ev)
 		ev->dev_name,
 		ev->msg);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_non_standard_event_backtrace(char *buf, struct ras_non_standard_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"severity=%s\n"
 		"length=%d\n",
@@ -224,19 +239,22 @@ static int set_non_standard_event_backtrace(char *buf, struct ras_non_standard_e
 		ev->severity,
 		ev->length);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_arm_event_backtrace(char *buf, struct ras_arm_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"error_count=%d\n"
 		"affinity=%d\n"
@@ -252,19 +270,22 @@ static int set_arm_event_backtrace(char *buf, struct ras_arm_event *ev)
 		ev->running_state,
 		ev->psci_state);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_devlink_event_backtrace(char *buf, struct devlink_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"bus_name=%s\n"
 		"dev_name=%s\n"
@@ -278,19 +299,22 @@ static int set_devlink_event_backtrace(char *buf, struct devlink_event *ev)
 		ev->reporter_name,
 		ev->msg);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_diskerror_event_backtrace(char *buf, struct diskerror_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"dev=%s\n"
 		"sector=%llu\n"
@@ -306,19 +330,22 @@ static int set_diskerror_event_backtrace(char *buf, struct diskerror_event *ev)
 		ev->rwbs,
 		ev->cmd);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_mf_event_backtrace(char *buf, struct ras_mf_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"pfn=%s\n"
 		"page_type=%s\n"
@@ -328,19 +355,22 @@ static int set_mf_event_backtrace(char *buf, struct ras_mf_event *ev)
 		ev->page_type,
 		ev->action_result);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_cxl_poison_event_backtrace(char *buf, struct ras_cxl_poison_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"memdev=%s\n"
 		"host=%s\n"
@@ -368,19 +398,22 @@ static int set_cxl_poison_event_backtrace(char *buf, struct ras_cxl_poison_event
 		ev->flags,
 		ev->overflow_ts);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_cxl_aer_ue_event_backtrace(char *buf, struct ras_cxl_aer_ue_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"memdev=%s\n"
 		"host=%s\n"
@@ -394,19 +427,22 @@ static int set_cxl_aer_ue_event_backtrace(char *buf, struct ras_cxl_aer_ue_event
 		ev->error_status,
 		ev->first_error);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_cxl_aer_ce_event_backtrace(char *buf, struct ras_cxl_aer_ce_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"memdev=%s\n"
 		"host=%s\n"
@@ -418,19 +454,22 @@ static int set_cxl_aer_ce_event_backtrace(char *buf, struct ras_cxl_aer_ce_event
 		ev->serial,
 		ev->error_status);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_cxl_overflow_event_backtrace(char *buf, struct ras_cxl_overflow_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"memdev=%s\n"
 		"host=%s\n"
@@ -448,19 +487,22 @@ static int set_cxl_overflow_event_backtrace(char *buf, struct ras_cxl_overflow_e
 		ev->first_ts,
 		ev->last_ts);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_cxl_generic_event_backtrace(char *buf, struct ras_cxl_generic_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"memdev=%s\n"
 		"host=%s\n"
@@ -486,19 +528,22 @@ static int set_cxl_generic_event_backtrace(char *buf, struct ras_cxl_generic_eve
 		ev->hdr.hdr_length,
 		ev->hdr.hdr_maint_op_class);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_general_media_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"memdev=%s\n"
 		"host=%s\n"
@@ -540,19 +585,22 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		ev->rank,
 		ev->device);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"memdev=%s\n"
 		"host=%s\n"
@@ -602,19 +650,22 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		ev->row,
 		ev->column);
 
-	strcat(buf, bt_buf);
-
 	return 0;
 }
 
 static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memory_module_event *ev)
 {
-	char bt_buf[MAX_BACKTRACE_SIZE];
+	unsigned int size = MAX_BACKTRACE_SIZE;
 
 	if (!buf || !ev)
 		return -1;
 
-	sprintf(bt_buf, "BACKTRACE="
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
 		"timestamp=%s\n"
 		"memdev=%s\n"
 		"host=%s\n"
@@ -657,8 +708,6 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 		ev->cor_per_err_cnt,
 		ev->device_temp,
 		ev->add_status);
-
-	strcat(buf, bt_buf);
 
 	return 0;
 }
@@ -785,12 +834,12 @@ int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 	if (rc < 0)
 		goto mc_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-mc");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-mc");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto mc_fail;
 
-	sprintf(buf, "REASON=%s", "EDAC driver report problem");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "EDAC driver report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto mc_fail;
@@ -828,12 +877,13 @@ int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 	if (rc < 0)
 		goto aer_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-aer");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-aer");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto aer_fail;
 
-	sprintf(buf, "REASON=%s", "PCIe AER driver report problem");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
+		 "PCIe AER driver report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto aer_fail;
@@ -851,7 +901,8 @@ aer_fail:
 	return -1;
 }
 
-int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standard_event *ev)
+int ras_report_non_standard_event(struct ras_events *ras,
+				  struct ras_non_standard_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -871,12 +922,14 @@ int ras_report_non_standard_event(struct ras_events *ras, struct ras_non_standar
 	if (rc < 0)
 		goto non_standard_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-non-standard");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-non-standard");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto non_standard_fail;
 
-	sprintf(buf, "REASON=%s", "Unknown CPER section problem");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
+		 "Unknown CPER section problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto non_standard_fail;
@@ -911,12 +964,12 @@ int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev)
 	if (rc < 0)
 		goto arm_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-arm");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-arm");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto arm_fail;
 
-	sprintf(buf, "REASON=%s", "ARM CPU report problem");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "ARM CPU report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto arm_fail;
@@ -952,12 +1005,13 @@ int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev)
 	if (rc < 0)
 		goto mce_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-mce");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-mce");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto mce_fail;
 
-	sprintf(buf, "REASON=%s", "Machine Check driver report problem");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
+		 "Machine Check driver report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto mce_fail;
@@ -996,12 +1050,13 @@ int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 	if (rc < 0)
 		goto devlink_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-devlink");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-devlink");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto devlink_fail;
 
-	sprintf(buf, "REASON=%s", "devlink health report problem");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
+		 "devlink health report problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto devlink_fail;
@@ -1040,12 +1095,12 @@ int ras_report_diskerror_event(struct ras_events *ras, struct diskerror_event *e
 	if (rc < 0)
 		goto diskerror_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-diskerror");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-diskerror");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto diskerror_fail;
 
-	sprintf(buf, "REASON=%s", "disk I/O error");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "disk I/O error");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto diskerror_fail;
@@ -1083,12 +1138,13 @@ int ras_report_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 	if (rc < 0)
 		goto mf_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-memory_failure");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-memory_failure");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto mf_fail;
 
-	sprintf(buf, "REASON=%s", "memory failure problem");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "memory failure problem");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto mf_fail;
@@ -1105,7 +1161,8 @@ mf_fail:
 		return -1;
 }
 
-int ras_report_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
+int ras_report_cxl_poison_event(struct ras_events *ras,
+				struct ras_cxl_poison_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -1126,12 +1183,12 @@ int ras_report_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_ev
 	if (rc < 0)
 		goto cxl_poison_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl-poison");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-cxl-poison");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_poison_fail;
 
-	sprintf(buf, "REASON=%s", "CXL poison");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL poison");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_poison_fail;
@@ -1149,7 +1206,8 @@ cxl_poison_fail:
 	return -1;
 }
 
-int ras_report_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev)
+int ras_report_cxl_aer_ue_event(struct ras_events *ras,
+				struct ras_cxl_aer_ue_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -1170,12 +1228,14 @@ int ras_report_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_ev
 	if (rc < 0)
 		goto cxl_aer_ue_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl-aer-uncorrectable-error");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-cxl-aer-uncorrectable-error");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_aer_ue_fail;
 
-	sprintf(buf, "REASON=%s", "CXL AER uncorrectable error");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
+		 "CXL AER uncorrectable error");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_aer_ue_fail;
@@ -1193,7 +1253,8 @@ cxl_aer_ue_fail:
 	return -1;
 }
 
-int ras_report_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
+int ras_report_cxl_aer_ce_event(struct ras_events *ras,
+				struct ras_cxl_aer_ce_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -1214,12 +1275,14 @@ int ras_report_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_ev
 	if (rc < 0)
 		goto cxl_aer_ce_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl-aer-correctable-error");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-cxl-aer-correctable-error");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_aer_ce_fail;
 
-	sprintf(buf, "REASON=%s", "CXL AER correctable error");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
+		 "CXL AER correctable error");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_aer_ce_fail;
@@ -1237,7 +1300,8 @@ cxl_aer_ce_fail:
 	return -1;
 }
 
-int ras_report_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
+int ras_report_cxl_overflow_event(struct ras_events *ras,
+				  struct ras_cxl_overflow_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -1258,12 +1322,13 @@ int ras_report_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflo
 	if (rc < 0)
 		goto cxl_overflow_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl-overflow");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-cxl-overflow");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_overflow_fail;
 
-	sprintf(buf, "REASON=%s", "CXL overflow");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL overflow");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_overflow_fail;
@@ -1281,7 +1346,8 @@ cxl_overflow_fail:
 	return -1;
 }
 
-int ras_report_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
+int ras_report_cxl_generic_event(struct ras_events *ras,
+				 struct ras_cxl_generic_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -1302,12 +1368,13 @@ int ras_report_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_
 	if (rc < 0)
 		goto cxl_generic_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_generic_event");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-cxl_generic_event");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_generic_fail;
 
-	sprintf(buf, "REASON=%s", "CXL Generic Event ");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL Generic Event ");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_generic_fail;
@@ -1325,7 +1392,8 @@ cxl_generic_fail:
 	return -1;
 }
 
-int ras_report_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_general_media_event *ev)
+int ras_report_cxl_general_media_event(struct ras_events *ras,
+				       struct ras_cxl_general_media_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -1346,12 +1414,13 @@ int ras_report_cxl_general_media_event(struct ras_events *ras, struct ras_cxl_ge
 	if (rc < 0)
 		goto cxl_general_media_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_general_media_event");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-cxl_general_media_event");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_general_media_fail;
 
-	sprintf(buf, "REASON=%s", "CXL General Media Event");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL General Media Event");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_general_media_fail;
@@ -1369,7 +1438,8 @@ cxl_general_media_fail:
 	return -1;
 }
 
-int ras_report_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
+int ras_report_cxl_dram_event(struct ras_events *ras,
+			      struct ras_cxl_dram_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -1390,12 +1460,13 @@ int ras_report_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event 
 	if (rc < 0)
 		goto cxl_dram_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_dram_event");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-cxl_dram_event");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_dram_fail;
 
-	sprintf(buf, "REASON=%s", "CXL DRAM Event");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL DRAM Event");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_dram_fail;
@@ -1413,7 +1484,8 @@ cxl_dram_fail:
 	return -1;
 }
 
-int ras_report_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_memory_module_event *ev)
+int ras_report_cxl_memory_module_event(struct ras_events *ras,
+				       struct ras_cxl_memory_module_event *ev)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = 0;
@@ -1434,12 +1506,13 @@ int ras_report_cxl_memory_module_event(struct ras_events *ras, struct ras_cxl_me
 	if (rc < 0)
 		goto cxl_memory_module_fail;
 
-	sprintf(buf, "ANALYZER=%s", "rasdaemon-cxl_memory_module_event");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-cxl_memory_module_event");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_memory_module_fail;
 
-	sprintf(buf, "REASON=%s", "CXL Memory Module Event");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL Memory Module Event");
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
 		goto cxl_memory_module_fail;
