@@ -387,26 +387,6 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 static int get_num_cpus(struct ras_events *ras)
 {
 	return sysconf(_SC_NPROCESSORS_ONLN);
-#if 0
-	char fname[MAX_PATH + 1];
-	int num_cpus = 0;
-	DIR		*dir;
-	struct dirent	*entry;
-
-	strcpy(fname, ras->debugfs);
-	strcat(fname, "/tracing/per_cpu/");
-	dir = opendir(fname);
-	if (!dir)
-		return -1;
-
-	for (entry = readdir(dir); entry; entry = readdir(dir)) {
-		if (strstr(entry->d_name, "cpu"))
-			num_cpus++;
-	}
-	closedir(dir);
-
-	return num_cpus;
-#endif
 }
 
 static int set_buffer_percent(struct ras_events *ras, int percent)
