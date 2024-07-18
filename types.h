@@ -110,12 +110,12 @@
 		__is_constexpr((l) > (h)), (l) > (h), 0)))
 
 #define __GENMASK(h, l) \
-        (((~_UL(0)) - (_UL(1) << (l)) + 1) & \
-         (~_UL(0) >> (__BITS_PER_LONG - 1 - (h))))
+	(((~_UL(0)) - (_UL(1) << (l)) + 1) & \
+	 (~_UL(0) >> (__BITS_PER_LONG - 1 - (h))))
 
 #define __GENMASK_ULL(h, l) \
-        (((~_ULL(0)) - (_ULL(1) << (l)) + 1) & \
-         (~_ULL(0) >> (__BITS_PER_LONG_LONG - 1 - (h))))
+	(((~_ULL(0)) - (_ULL(1) << (l)) + 1) & \
+	 (~_ULL(0) >> (__BITS_PER_LONG_LONG - 1 - (h))))
 
 #define GENMASK(h, l) \
 	(GENMASK_INPUT_CHECK(h, l) + __GENMASK(h, l))
