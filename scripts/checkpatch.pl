@@ -6675,10 +6675,10 @@ sub process {
 #			}
 #		}
 
-# strcpy should be avoided
-		if ($line =~ /\bstrcpy\s*\(/) {
+# strcpy and strcat should be avoided
+		if ($line =~ /\b(strcpy|strcat|sprintf)\s*\(/) {
 			WARN("STRCPY",
-			     "Please avoid strcpy\n" . $herecurr);
+			     "Please avoid $1 as it doesn't check buffer size\n" . $herecurr);
 		}
 
 # ethtool_sprintf uses that should likely be ethtool_puts
