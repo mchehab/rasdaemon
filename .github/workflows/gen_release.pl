@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 #!/usr/bin/perl
 
 my $body_path = shift or die "Need a file name to store the release body";

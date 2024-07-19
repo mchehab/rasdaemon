@@ -1,8 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0
+#
 # Originally from Debian's Lintian tool. Various false positives have been
 # removed, and various additions have been made as they've been discovered
 # in the kernel source.
-#
-# License: GPLv2
 #
 # The format of each line is:
 # mistake||correction

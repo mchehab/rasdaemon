@@ -1,7 +1,9 @@
 .\"****************************************************************************
 .\" $Id$
 .\"****************************************************************************
-.\"Copyright (c) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
+.\" SPDX-License-Identifier: GPL-2.0-or-later
+.\"
+.\"Copyright (c) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 .\"
 .\" This is free software; you can redistribute it and/or modify it
 .\" under the terms of the GNU General Public License as published by

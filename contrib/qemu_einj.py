@@ -3,7 +3,7 @@
 # pylint: disable=C0301, C0114
 # SPDX-License-Identifier: GPL-2.0
 #
-# Copyright (C) 2024  Mauro Carvalho Chehab <mchehab@kernel.org>
+# Copyright (C) 2024  Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
 import argparse
 import json

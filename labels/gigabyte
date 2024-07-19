@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 #
 vendor: GIGABYTE
   model: MZ62-HD0-00
@@ -6,8 +8,8 @@ vendor: GIGABYTE
 #  <label>: <mc>.<row>.<channel>
 #  ras-mc-ctl  --layout
 #          +---------------------------------------------------------------------------------------------------+
-#          |                      mc0                      |                      mc1                      |
-#          |  csrow0   |  csrow1   |  csrow2   |  csrow3   |  csrow0   |  csrow1   |  csrow2   |  csrow3   |
+#          |                       mc0                       |                       mc1                       |
+#          |  csrow0    |  csrow1    |  csrow2   |  csrow3   |  csrow0    |  csrow1    |  csrow2   |  csrow3   |
 #----------+---------------------------------------------------------------------------------------------------+
 #channel7: |  16384 MB  |  16384 MB  |     0 MB  |     0 MB  |  16384 MB  |  16384 MB  |     0 MB  |     0 MB  |
 #channel6: |  16384 MB  |  16384 MB  |     0 MB  |     0 MB  |  16384 MB  |  16384 MB  |     0 MB  |     0 MB  |

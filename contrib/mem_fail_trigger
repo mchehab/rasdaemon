@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+#
 #  This shell script can be executed by rasdaemon in daemon mode when a
 #  memory_failure_event is occured, environment variables include all
 #  information reported by tracepoint.

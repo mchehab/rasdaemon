@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 AM_DISTCHECK_CONFIGURE_FLAGS = --enable-all
 ACLOCAL_AMFLAGS=-I m4
 SUBDIRS = util man
