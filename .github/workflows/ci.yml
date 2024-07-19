@@ -26,6 +26,11 @@ jobs:
           ./configure --enable-all
           make
           sudo make install
+  Ubuntu:
+    name: Source code check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
       - name: checkpatch
         run:
           ./scripts/checkpatch.pl --terse --show-types --no-summary -f $(git ls-files|grep -E '\.[ch]$')
