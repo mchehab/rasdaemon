@@ -230,7 +230,7 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 		return -EIO;
 	}
 
-	log(ALL, LOG_INFO, "%s:%s event %s\n",
+	log(TERM, LOG_DEBUG, "%s:%s event %s\n",
 	    group, event,
 	    enable ? "enabled" : "disabled");
 
