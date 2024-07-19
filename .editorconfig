@@ -23,4 +23,3 @@ indent_size = 2
 [*.py,ras-mc-ctl.in]
 indent_style = space
 indent_size = 4
-
