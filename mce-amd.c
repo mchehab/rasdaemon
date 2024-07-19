@@ -128,5 +128,4 @@ void decode_amd_errcode(struct mce_event *e)
 			     "Bus Error '%s, %s, mem-tx: %s, level: %s'",
 			     PP_MSG(ec), TO_MSG(ec),
 			     R4_MSG(ec), LL_MSG(ec));
-	return;
 }

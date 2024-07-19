@@ -379,7 +379,7 @@ static const char *get_jm_module_desc(uint8_t subsys_id, uint8_t mod_id)
 		break;
 	}
 
-	if ((!module) || (mod_id >= tbl_size))
+	if (!module || mod_id >= tbl_size)
 		return "unknown";
 
 	return module[mod_id];
@@ -422,7 +422,7 @@ static const char *get_jm_submod_desc(uint8_t subsys_id, uint8_t mod_id, uint8_t
 		tbl_size = 0;
 	}
 
-	if ((!sub_module) || (sub_id >= tbl_size))
+	if (!sub_module || sub_id >= tbl_size)
 		return "unknown";
 
 	return sub_module[sub_id];

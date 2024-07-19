@@ -248,7 +248,7 @@ int register_mce_handler(struct ras_events *ras, unsigned int ncpus)
 	ras->mce_priv = calloc(1, sizeof(struct mce_priv));
 	if (!ras->mce_priv) {
 		log(ALL, LOG_INFO, "Can't allocate memory MCE data\n");
-		return ENOMEM;
+		return -ENOMEM;
 	}
 
 	mce = ras->mce_priv;

@@ -740,8 +740,7 @@ void decode_amp_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	p += snprintf(p, end - p, " 0x%x\n", INSTANCE(err->instance));
 
 	//display socket number
-	if ((TYPE(err->type) == 0) &&
-	    ((err->subtype == 0x01) || (err->subtype == 0x02))) {
+	if (!TYPE(err->type) && (err->subtype == 0x01 || err->subtype == 0x02)) {
 		core_num = INSTANCE(err->instance) * 2 + err->subtype - 1;
 		p += snprintf(p, end - p, " %s",
 			      disp_payload1_err_reg_name[i++]);

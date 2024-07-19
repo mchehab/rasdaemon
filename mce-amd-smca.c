@@ -981,7 +981,7 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 			     xec);
 
 	if ((bank_type == SMCA_UMC || bank_type == SMCA_UMC_QUIRK) && xec == 0) {
-		if ((m->family == 0x19) && (m->model >= 0x90 && m->model <= 0x9f)) {
+		if (m->family == 0x19 && (m->model >= 0x90 && m->model <= 0x9f)) {
 			/* MCA_IPID[InstanceIdHi] give the AMD Node Die ID */
 			mce_snprintf(e->mc_location, "memory_die_id=%d", mcatype_instancehi / 4);
 		} else {

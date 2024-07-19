@@ -126,10 +126,13 @@ static int open_trace(struct ras_events *ras, char *name, int flags)
 		return rc;
 
 	rc = open(fname, flags);
-	if (rc)
-		return -errno;
+	if (rc < 0) {
+		rc = -errno;
 
-	return 0;
+		return -errno;
+	}
+
+	return rc;
 }
 
 static int get_tracing_dir(struct ras_events *ras)
@@ -829,17 +832,24 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 
 	fd = open_trace(ras, fname, O_RDONLY);
 	if (fd < 0) {
-		log(TERM, LOG_ERR,
-		    "Can't get %s:%s traces. Perhaps this feature is not supported on your system.\n",
-		    group, event);
-		return -errno;
+		if (fd == -ENOENT) {
+			log(TERM, LOG_ERR,
+			    "Feature %s:%s not supported on your system.\n",
+			    group, event);
+			return EVENT_DISABLED;
+		}
+
+		log(TERM, LOG_ERR, "Can't get %s:%s traces: %s\n",
+		    group, event, strerror(-fd));
+
+		return fd;
 	}
 
 	page = malloc(page_size);
 	if (!page) {
+		rc = -errno;
 		log(TERM, LOG_ERR, "Can't allocate page to read %s:%s format\n",
 		    group, event);
-		rc = -errno;
 		close(fd);
 		return rc;
 	}
@@ -939,10 +949,8 @@ int handle_ras_events(int record_events)
 	}
 
 	rc = select_tracing_timestamp(ras);
-	if (rc < 0) {
-		log(TERM, LOG_ERR, "Can't select a timestamp for tracing\n");
-		goto err;
-	}
+	if (rc < 0)
+		log(TERM, LOG_ERR, "Can't select a timestamp for tracing. Using default\n");
 
 	pevent = tep_alloc();
 	if (!pevent) {
@@ -975,7 +983,7 @@ int handle_ras_events(int record_events)
 			       ras_aer_event_handler, NULL, AER_EVENT);
 	if (!rc)
 		num_events++;
-	else if (rc != EVENT_DISABLED)
+	else if (rc != EVENT_DISABLED && rc != ENOENT)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "aer_event");
 #endif
@@ -1154,7 +1162,7 @@ int handle_ras_events(int record_events)
 
 	if (!num_events) {
 		log(ALL, LOG_INFO,
-		    "Failed to trace all supported RAS events. Aborting.\n");
+		    "Failed to trace any supported RAS events. Aborting.\n");
 		rc = -EINVAL;
 		goto err;
 	}

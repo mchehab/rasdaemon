@@ -405,7 +405,7 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 	for (i = 0; i < CXL_HEADERLOG_SIZE_U32; i++) {
 		if (trace_seq_printf(s, "%08x ", ev.header_log[i]) <= 0)
 			break;
-		if ((i > 0) && ((i % 20) == 0))
+		if (i > 0 && ((i % 20) == 0))
 			if (trace_seq_printf(s, "\n") <= 0)
 				break;
 		/* Convert header log data to the big-endian format because
@@ -702,7 +702,7 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "\ndata:\n  %08x: ", i) <= 0)
 		return -1;
 	for (i = 0; i < CXL_EVENT_RECORD_DATA_LENGTH; i += 4) {
-		if ((i > 0) && ((i % 16) == 0))
+		if (i > 0 && ((i % 16) == 0))
 			if (trace_seq_printf(s, "\n  %08x: ", i) <= 0)
 				break;
 		if (trace_seq_printf(s, "%02x%02x%02x%02x ",
