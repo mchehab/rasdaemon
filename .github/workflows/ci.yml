@@ -26,7 +26,8 @@ jobs:
           ./configure --enable-all
           make
           sudo make install
-  Ubuntu:
+
+  Check:
     name: Source code check
     runs-on: ubuntu-latest
     steps:
