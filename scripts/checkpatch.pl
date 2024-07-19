@@ -1102,6 +1102,17 @@ sub seed_camelcase_file {
 	}
 }
 
+sub is_SPDX_License_valid {
+        my ($license) = @_;
+
+        return 1 if (!$tree || which("python3") eq "" || !(-x "scripts/spdxcheck.py") || !(-e "$gitroot"));
+
+        my $root_path = abs_path(".");
+        my $status = `cd "$root_path"; echo "$license" | scripts/spdxcheck.py -`;
+        return 0 if ($status ne "");
+        return 1;
+}
+
 my $camelcase_seeded = 0;
 sub seed_camelcase_includes {
 	return if ($camelcase_seeded);
@@ -3589,6 +3600,42 @@ sub process {
 			WARN("DEPRECATED_VARIABLE",
 			     "Use of $flag is deprecated, please use \`$replacement->{$flag} instead.\n" . $herecurr) if ($replacement->{$flag});
 		}
+
+# check for using SPDX license tag at beginning of files
+                if ($realline == $checklicenseline) {
+                        if ($rawline =~ /^[ \+]\s*\#\!\s*\//) {
+                                $checklicenseline = 2;
+                        } elsif ($rawline =~ /^\+/) {
+                                my $comment = "";
+                                if ($realfile =~ /\.(h|s|S)$/) {
+                                        $comment = '/*';
+                                } elsif ($realfile =~ /\.(c|rs|dts|dtsi)$/) {
+                                        $comment = '//';
+                                } elsif (($checklicenseline == 2) || $realfile =~ /\.(sh|pl|py|awk|tc|yaml)$/) {
+                                        $comment = '#';
+                                } elsif ($realfile =~ /\.rst$/) {
+                                        $comment = '..';
+                                }
+
+# check SPDX comment style for .[ch] files
+                                if ($realfile =~ /\.[ch]$/ &&
+                                    $rawline =~ /SPDX-License-Identifier:/ &&
+                                    $rawline !~ m@^\+\s*\Q$comment\E\s*@) {
+                                        WARN("SPDX_LICENSE_TAG",
+                                             "Improper SPDX comment style for '$realfile', please use '$comment' instead\n" . $herecurr);
+                                } elsif ($comment !~ /^$/ &&
+                                    $rawline !~ m@^\+\Q$comment\E SPDX-License-Identifier: @) {
+                                        WARN("SPDX_LICENSE_TAG",
+                                             "Missing or malformed SPDX-License-Identifier tag in line $checklicenseline\n" . $herecurr);
+                                } elsif ($rawline =~ /(SPDX-License-Identifier: .*)/) {
+                                        my $spdx_license = $1;
+                                        if (!is_SPDX_License_valid($spdx_license)) {
+                                                WARN("SPDX_LICENSE_TAG",
+                                                     "'$spdx_license' is not supported in LICENSES/...\n" . $herecurr);
+                                        }
+                                }
+                        }
+                }
 
 # check for embedded filenames
 		if ($rawline =~ /^\+.*\b\Q$realfile\E\b/) {
