@@ -26,3 +26,6 @@ jobs:
           ./configure --enable-all
           make
           sudo make install
+      - name: checkpatch
+        run:
+          ./scripts/checkpatch.pl --terse --show-types --no-summary -f $(git ls-files|grep -E '\.[ch]$')
