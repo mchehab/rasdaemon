@@ -17,6 +17,9 @@
 #include "ras-page-isolation.h"
 
 #define PARSED_ENV_LEN 50
+#define ROW_ID_MAX_LEN 200
+#define SAME_PAGE_IN_ROW 200
+
 static const struct config threshold_units[] = {
 	{ "m",	1000 },
 	{ "k",	1000 },
@@ -39,8 +42,22 @@ static struct isolation threshold = {
 	.unit = "",
 };
 
+static struct isolation row_threshold = {
+	.name = "ROW_CE_THRESHOLD",
+	.units = threshold_units,
+	.env = "50",
+	.unit = "",
+};
+
 static struct isolation cycle = {
 	.name = "PAGE_CE_REFRESH_CYCLE",
+	.units = cycle_units,
+	.env = "24h",
+	.unit = "h",
+};
+
+static struct isolation row_cycle = {
+	.name = "ROW_CE_REFRESH_CYCLE",
 	.units = cycle_units,
 	.env = "24h",
 	.unit = "h",
@@ -68,7 +85,9 @@ static const char * const page_state[] = {
 };
 
 static enum otype offline = OFFLINE_SOFT;
+static enum otype row_offline_action = OFFLINE_OFF;
 static struct rb_root page_records;
+LIST_HEAD(row_listhead, row_record) row_head;
 
 static void page_offline_init(void)
 {
@@ -93,6 +112,11 @@ static void page_offline_init(void)
 	if (offline > OFFLINE_ACCOUNT && access(kernel_offline[offline], W_OK)) {
 		log(TERM, LOG_INFO, "Kernel does not support page offline interface\n");
 		offline = OFFLINE_ACCOUNT;
+	}
+
+	if (row_offline_action != OFFLINE_OFF) {
+		log(TERM, LOG_INFO, "row threshold is open, so turn off page threshold\n");
+		offline = OFFLINE_OFF;
 	}
 
 	log(TERM, LOG_INFO, "Page offline choice on Corrected Errors is %s\n",
@@ -198,6 +222,63 @@ static void page_isolation_init(void)
 	log(TERM, LOG_INFO, "Threshold of memory Corrected Errors is %s / %s\n",
 	    threshold_string, cycle_string);
 }
+
+static void row_offline_init(void)
+{
+	const char *env = "ROW_CE_ACTION";
+	char *choice = getenv(env);
+	const struct config *c = NULL;
+	int matched = 0;
+
+	if (choice) {
+		for (c = offline_choice; c->name; c++) {
+			if (!strcasecmp(choice, c->name)) {
+				row_offline_action = c->val;
+				matched = 1;
+				break;
+			}
+		}
+	}
+
+	if (!matched){
+		log(TERM, LOG_INFO, "Improper %s, set to default off\n", env);
+	}
+
+	if (row_offline_action > OFFLINE_ACCOUNT && access(kernel_offline[row_offline_action], W_OK)) {
+		log(TERM, LOG_INFO, "Kernel does not support row offline interface\n");
+		row_offline_action = OFFLINE_ACCOUNT;
+	}
+
+	log(TERM, LOG_INFO, "Row offline choice on Corrected Errors is %s\n",
+	    offline_choice[row_offline_action].name);
+}
+
+static void row_isolation_init(void)
+{
+	char threshold_string[PARSED_ENV_LEN];
+	char cycle_string[PARSED_ENV_LEN];
+	/**
+	 * It's unnecessary to parse threshold configuration when offline
+	 * choice is off.
+	 */
+	if (row_offline_action == OFFLINE_OFF)
+		return;
+
+	parse_isolation_env(&row_threshold);
+	parse_isolation_env(&row_cycle);
+	parse_env_string(&row_threshold, threshold_string, sizeof(threshold_string));
+	parse_env_string(&row_cycle, cycle_string, sizeof(cycle_string));
+	log(TERM, LOG_INFO, "Threshold of memory row Corrected Errors is %s / %s\n",
+			threshold_string, cycle_string);
+}
+
+void ras_row_account_init(void)
+{
+	row_offline_init();
+	row_isolation_init();
+	log(TERM, LOG_INFO, "ras_row_account_init done\n");
+}
+
 
 void ras_page_account_init(void)
 {
@@ -338,3 +419,324 @@ void ras_record_page_error(unsigned long long addr, unsigned int count, time_t t
 		page_record(pr, count, time);
 	}
 }
+/* memory page CE threshold policy ends */
+
+/* memory row CE threshold policy starts */
+const struct memory_location_field apei_fields[] = {
+	[APEI_NODE] = {.name = "node", .anchor_str = "node:", .value_base = 10},
+	[APEI_CARD] = {.name = "card", .anchor_str = "card:", .value_base = 10},
+	[APEI_MODULE] = {.name = "module", .anchor_str = "module:", .value_base = 10},
+	[APEI_RANK] = {.name = "rank", .anchor_str = "rank:", .value_base = 10},
+	[APEI_DEVICE] = {.name = "device", .anchor_str = "device:", .value_base = 10},
+	[APEI_BANK] = {.name = "bank", .anchor_str = "bank:", .value_base = 10},
+	[APEI_ROW] = {.name = "row", .anchor_str = "row:", .value_base = 10},
+};
+
+const struct memory_location_field dsm_fields[] = {
+	[DSM_ProcessorSocketId] = {.name = "ProcessorSocketId", .anchor_str = "ProcessorSocketId:", .value_base = 16},
+	[DSM_MemoryControllerId] = {.name = "MemoryControllerId", .anchor_str = "MemoryControllerId:", .value_base = 16},
+	[DSM_ChannelId] = {.name = "ChannelId", .anchor_str = "ChannelId:", .value_base = 16},
+	[DSM_DimmSlotId] = {.name = "DimmSlotId", .anchor_str = "DimmSlotId:", .value_base = 16},
+	[DSM_PhysicalRankId] = {.name = "PhysicalRankId", .anchor_str = "PhysicalRankId:", .value_base = 16},
+	[DSM_ChipId] = {.name = "ChipId", .anchor_str = "ChipId:", .value_base = 16},
+	[DSM_BankGroup] = {.name = "BankGroup", .anchor_str = "BankGroup:", .value_base = 16},
+	[DSM_Bank] = {.name = "Bank", .anchor_str = "Bank:", .value_base = 16},
+	[DSM_Row] = {.name = "Row", .anchor_str = "Row:", .value_base = 16},
+};
+
+void row_record_get_id(struct row_record *rr, char *buffer) 
+{
+	if (!rr || !buffer) 
+		return;
+
+	int len = 0, field_num = 0;
+	const struct memory_location_field *fields;
+	if (rr->type == GHES) {
+		field_num = APEI_FIELD_NUM_CONST;
+		fields = apei_fields;
+	} else {
+		field_num = DSM_FIELD_NUM_CONST;
+		fields = dsm_fields;
+	}
+	len += sprintf(buffer + len, "{");
+	for (int idx = 0; idx < field_num; idx++)
+	{
+		if (idx == field_num - 1)
+			len += sprintf(buffer + len, "%s:%d", fields[idx].name, rr->location_fields[idx]);
+		else
+			len += sprintf(buffer + len, "%s:%d,", fields[idx].name, rr->location_fields[idx]);
+	}
+	len += sprintf(buffer + len, "}");
+	buffer[len] = '\0';
+}
+
+bool row_record_is_same_row(struct row_record *rr1, struct row_record *rr2)
+{
+	if (!rr1 || !rr2 || rr1->type != rr2->type) 
+		return false;
+
+	int field_num = 0;
+	if (rr1->type == GHES) {
+		field_num = APEI_FIELD_NUM_CONST;
+	} else {
+		field_num = DSM_FIELD_NUM_CONST;
+	}
+	for (int idx = 0; idx < field_num; idx++) {
+		if (rr1->location_fields[idx] != rr2->location_fields[idx])
+			return false;
+	}
+	return true;
+}
+
+void row_record_copy(struct row_record *dst, struct row_record *src) 
+{
+	if (!dst || !src) 
+		return;
+
+	for (int i = 0; i < ROW_LOCATION_FIELDS_NUM; i++) {
+		dst->location_fields[i] = src->location_fields[i];
+	}
+}
+
+static int parse_value(const char* str, const char *anchor_str, int value_base, int *value) {
+	char *start, *endptr;
+	int tmp;
+
+	if (!str || !anchor_str || !value) 
+		return 1;
+
+	char *pos = strstr(str, anchor_str);
+	if (!pos)
+		return 1;
+
+	errno = 0;
+	start = pos + strlen(anchor_str);
+	tmp = (int)strtol(start, &endptr, value_base);
+
+	if (errno != 0) {
+		log(TERM, LOG_ERR, "parse_value error, start: %s, value_base: %d, errno: %d\n", start, value_base, errno);
+		return 1;
+	}
+	
+	if (endptr == start){
+		log(TERM, LOG_ERR, "parse_value error, start: %s, value_base: %d\n", start, value_base);
+		return 1;
+	}	
+	*value = tmp;
+	return 0;
+}
+
+static int parse_row_info(const char *detail, struct row_record *r) {
+	const struct memory_location_field *fields = NULL;
+	int field_num;
+
+	if (!detail || !r)  
+		return 1;
+	
+	if (strstr(detail, "APEI location")) {
+		fields = apei_fields;
+		field_num = APEI_FIELD_NUM_CONST;
+		r->type = GHES;
+	} else if (strstr(detail,  "ProcessorSocketId:")) {
+		fields = dsm_fields;
+		field_num = DSM_FIELD_NUM_CONST;
+		r->type = DSM;
+	} else {
+		return 1;
+	}
+
+	for (int idx = 0; idx < field_num; idx++) {
+		if (parse_value(detail,  fields[idx].anchor_str, fields[idx].value_base, &r->location_fields[idx])) {
+			log(TERM, LOG_INFO, "Cannot parse memory row info from CE detail: %s missing\n", fields[idx].name);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static void row_offline(struct row_record *rr, time_t time)
+{
+	int ret;
+	char row_id[ROW_ID_MAX_LEN] = {0};
+
+	if (!rr) 
+		return;
+	row_record_get_id(rr, row_id);
+	/* Offlining row is not required */
+	if (row_offline_action <= OFFLINE_ACCOUNT) {
+		log(TERM, LOG_INFO, "ROW_CE_ACTION=%s, ignore to offline row at %s\n",
+			offline_choice[row_offline_action].name, row_id);
+		return;
+	}
+
+	struct page_addr *page_info = NULL;
+	// do offline
+	unsigned long long addr_list[SAME_PAGE_IN_ROW];
+	int addr_list_size = 0;
+	LIST_FOREACH(page_info, &rr->page_head, entry) {
+		/* Ignore offlined pages */
+		if (page_info->offlined == PAGE_OFFLINE && (addr_list_size < SAME_PAGE_IN_ROW)) {
+			addr_list[addr_list_size++] = page_info->addr;
+			continue;
+		}
+
+		int found = 0;
+		for (int i = 0; i < addr_list_size; i++) {
+			if (addr_list[i] ==  page_info->addr) {
+				found = 1;
+				break;
+			}
+		}
+
+		if(found){
+			page_info->offlined = PAGE_OFFLINE;
+			continue;
+		}
+
+		/* Time to silence this noisy page */
+		if (row_offline_action == OFFLINE_SOFT_THEN_HARD) {
+			ret = do_page_offline(page_info->addr, OFFLINE_SOFT);
+			if (ret < 0)
+				ret = do_page_offline(page_info->addr, OFFLINE_HARD);
+		} else {
+			ret = do_page_offline(page_info->addr, row_offline_action);
+		}
+
+		page_info->offlined  = ret < 0 ? PAGE_OFFLINE_FAILED : PAGE_OFFLINE;
+
+		log(TERM, LOG_INFO, "Result of offlining page at %#llx of row %s: %s\n",
+			page_info->addr, row_id, page_state[page_info->offlined ]);
+		
+		if (page_info->offlined == PAGE_OFFLINE && (addr_list_size < SAME_PAGE_IN_ROW))
+			addr_list[addr_list_size++] = page_info->addr;
+	}
+}
+
+static void row_record(struct row_record *rr, time_t time)
+{
+	if (!rr) 
+		return;
+
+	if (time - rr->start > row_cycle.val) {
+		struct page_addr *page_info = NULL, *tmp_page_info = NULL;
+		page_info = LIST_FIRST(&rr->page_head);
+		while (page_info) {
+			// delete exceeds row_cycle.val
+			if (time - page_info->start <= row_cycle.val)
+				break;
+			tmp_page_info = LIST_NEXT(page_info, entry);
+			rr->count -= page_info->count;
+			LIST_REMOVE(page_info, entry);
+			free(page_info);
+			page_info = tmp_page_info;
+		}
+		rr->start = page_info ? page_info->start : time;
+	}
+
+	char row_id[ROW_ID_MAX_LEN] = {0};
+	row_record_get_id(rr, row_id);
+	if (rr->count >= row_threshold.val) {
+		log(TERM, LOG_INFO, "Corrected Errors of row %s exceeded row CE threshold, count=%lu\n", row_id, rr->count);
+		row_offline(rr, time);
+	}
+}
+
+static struct row_record *row_lookup_insert(struct row_record *r, unsigned count, unsigned long long addr, time_t time)
+{
+	struct row_record *rr = NULL, *new_row_record = NULL;
+	struct page_addr *new_page_addr = NULL, *tail_page_addr = NULL;;
+	int found = 0;
+
+	if (!r) 
+		return NULL;
+	// look same row record
+	LIST_FOREACH(rr, &row_head, entry) {
+		if (row_record_is_same_row(rr, r)) {
+			found = 1;
+			new_row_record = rr;
+			break;
+		}
+	}
+		
+	// new row
+	if (!found){
+		new_row_record = calloc(1, sizeof(struct row_record));
+		if (!new_row_record) {
+			log(TERM, LOG_ERR, "No memory for new row record\n");
+			return NULL;
+		}
+		new_row_record->start = time;
+		new_row_record->count = 0;
+		new_row_record->type = r->type;
+
+		LIST_INSERT_HEAD(&row_head, new_row_record, entry);
+		row_record_copy(new_row_record, r);
+	}
+	
+	// new page
+	new_page_addr = calloc(1, sizeof(struct page_addr));
+	if (!new_page_addr) {
+		log(TERM, LOG_ERR, "No memory for new page addr\n");
+		return NULL;
+	}
+	new_page_addr->addr = addr & PAGE_MASK;
+	new_page_addr->start = time;
+	new_page_addr->count = count;
+
+	struct page_addr *record = NULL;
+	int not_empty = 0;
+	LIST_FOREACH(record, &new_row_record->page_head, entry) {
+		tail_page_addr = record;
+		not_empty = 1;
+	}
+	if (not_empty)
+		LIST_INSERT_AFTER(tail_page_addr, new_page_addr, entry);
+	else
+		LIST_INSERT_HEAD(&new_row_record->page_head, new_page_addr, entry);
+
+	new_row_record->count += new_page_addr->count;
+
+	return new_row_record;
+}
+
+void ras_record_row_error(const char *detail, unsigned count, time_t time, unsigned long long addr)
+{
+	struct row_record *pr = NULL;
+	struct row_record r = {0};
+
+	if (row_offline_action == OFFLINE_OFF) 
+		return;
+
+	if (parse_row_info(detail, &r))
+		return;
+
+	pr = row_lookup_insert(&r, count, addr, time);
+	if (!pr){
+		log(TERM, LOG_ERR, "insert CE page structure into CE row structure failed\n");
+		return;
+	}
+
+	row_record(pr, time);
+}
+
+void row_record_infos_free(void)
+{	
+	struct row_record *row_record = NULL, *tmp_row_record = NULL;
+	struct page_addr *page_addr = NULL, *tmp_page_addr = NULL;
+
+	row_record = LIST_FIRST(&row_head);
+	while (row_record) {
+		page_addr = LIST_FIRST(&row_record->page_head);
+		while (page_addr) {
+			tmp_page_addr = LIST_NEXT(page_addr, entry);
+			LIST_REMOVE(page_addr, entry);
+			free(page_addr);
+			page_addr = tmp_page_addr;
+		}
+		tmp_row_record = LIST_NEXT(row_record, entry);
+		LIST_REMOVE(row_record, entry);
+		free(row_record);
+		row_record = tmp_row_record;
+	}
+}
+/* memory row CE threshold policy ends */
