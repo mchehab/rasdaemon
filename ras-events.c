@@ -193,7 +193,8 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 	int fd, rc;
 	char fname[MAX_PATH + 1];
 
-	enable = is_disabled_event(group, event) ? 0 : 1;
+	if (enable)
+		enable = is_disabled_event(group, event) ? 0 : 1;
 
 	snprintf(fname, sizeof(fname), "%s%s:%s\n",
 		 enable ? "" : "!",
