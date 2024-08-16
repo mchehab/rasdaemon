@@ -55,7 +55,9 @@ char *choices_disable;
 
 static const struct event_trigger event_triggers[] = {
 	{ "mc_event", &mc_event_trigger_setup },
+#ifdef HAVE_MEMORY_FAILURE
 	{ "memory_failure_event", &mem_fail_event_trigger_setup },
+#endif
 };
 
 static int get_debugfs_dir(char *tracing_dir, size_t len)
