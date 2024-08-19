@@ -24,7 +24,7 @@ struct ras_ns_ev_decoder {
 	int (*decode)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder,
 		      struct trace_seq *s, struct ras_non_standard_event *event);
 #ifdef HAVE_SQLITE3
-	sqlite3_stmt *stmt_dec_record;
+	struct sqlite3_stmt *stmt_dec_record;
 #endif
 };
 
