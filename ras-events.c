@@ -313,6 +313,7 @@ static void setup_event_trigger(char *event)
 	}
 }
 
+#ifdef HAVE_DISKERROR
 #ifndef HAVE_BLK_RQ_ERROR
 /*
  * Set kernel filter. libtrace doesn't provide an API for setting filters
@@ -345,6 +346,7 @@ static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
 
 	return 0;
 }
+#endif
 #endif
 
 /*
