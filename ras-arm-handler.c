@@ -271,7 +271,7 @@ static void parse_arm_err_info(struct trace_seq *s, uint32_t type, uint64_t erro
 		restartable_pc = ((error_info >> ARM_ERR_RESTARTABLE_PC_SHIFT)
 				  & ARM_ERR_RESTARTABLE_PC_MASK);
 		if (restartable_pc)
-			trace_seq_printf(s, " Program execution can be restarted reliably at the PC associated with the error");
+			trace_seq_printf(s, " Program execution can be restartable reliably at the PC");
 	}
 
 	/* The rest of the fields are specific to bus errors */
