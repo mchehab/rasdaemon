@@ -314,27 +314,9 @@ static void report_mce_event(struct ras_events *ras,
 	if (*e->mc_location)
 		trace_seq_printf(s, ", %s", e->mc_location);
 
-#if 0
-	/*
-	 * While the logic for decoding tsc is there at mcelog, why to
-	 * decode/print it, if we already got the uptime from the
-	 * tracing event? Let's just discard it for now.
-	 */
-	trace_seq_printf(s, ", tsc= %d", e->tsc);
-	trace_seq_printf(s, ", walltime= %d", e->walltime);
-#endif
-
 	trace_seq_printf(s, ", cpu_type= %s", cputype_name[mce->cputype]);
 	trace_seq_printf(s, ", cpu= %d", e->cpu);
 	trace_seq_printf(s, ", socketid= %d", e->socketid);
-
-#if 0
-	/*
-	 * The CPU vendor is already reported from mce->cputype
-	 */
-	trace_seq_printf(s, ", cpuvendor= %d", e->cpuvendor);
-	trace_seq_printf(s, ", cpuid= %d", e->cpuid);
-#endif
 
 	if (e->ip)
 		trace_seq_printf(s, ", ip= %llx%s",
