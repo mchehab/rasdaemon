@@ -457,9 +457,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
 	int legacy_kernel = 0;
-#if 0
-	int need_sleep = 0;
-#endif
 
 	memset(&warnonce, 0, sizeof(warnonce));
 
@@ -560,9 +557,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 					log(TERM, LOG_INFO,
 					    "Error on CPU %i\n", i);
 					warnonce[i]++;
-#if 0
-					need_sleep = 1;
-#endif
 				}
 			}
 			if (!(fds[i].revents & POLLIN)) {
@@ -592,10 +586,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				count_nready++;
 			}
 		}
-#if 0
-		if (need_sleep)
-			sleep(POLLING_TIME);
-#else
 		/*
 		 * If we enable fallback mode, it will always be used, as
 		 * poll is still not working fine, IMHO
@@ -605,7 +595,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			legacy_kernel = 1;
 			break;
 		}
-#endif
 	} while (1);
 
 	/* poll() is not supported. We need to fallback to the old way */
