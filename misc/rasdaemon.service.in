@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 [Unit]
 Description=RAS daemon to log the RAS events
 # only needed when not running in foreground (--foreground | -f)

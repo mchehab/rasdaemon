@@ -1,27 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0
+
 /*
- * The code below came from Andi Kleen/Intel/SuSe mcelog code,
+ * The code below came from Andi Kleen/Intel/SUSE mcelog code,
  * released under GNU Public General License, v.2
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 /* Follows Intel IA32 SDM 3b Appendix E.2.1 ++ */
 
@@ -91,6 +79,7 @@ static void dunnington_decode_bus(struct mce_event *e, uint64_t status)
 static void dunnington_decode_internal(struct mce_event *e, uint64_t status)
 {
 	uint32_t mca = (status >> 16) & 0xffff;
+
 	if ((mca & 0xfff0) == 0)
 		decode_bitfield(e, mca, dnt_front_status);
 	else if ((mca & 0xf0ff) == 0)
@@ -104,6 +93,7 @@ static void dunnington_decode_internal(struct mce_event *e, uint64_t status)
 void dunnington_decode_model(struct mce_event *e)
 {
 	uint64_t status = e->status;
+
 	if ((status & 0xffff) == 0xe0f)
 		dunnington_decode_bus(e, status);
 	else if ((status & 0xffff) == (1 << 10))

@@ -1,21 +1,18 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (c) 2019 Hisilicon Limited.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ras-record.h"
-#include "ras-logger.h"
-#include "ras-report.h"
-#include "ras-non-standard-handler.h"
+
 #include "non-standard-hisilicon.h"
+#include "ras-logger.h"
+#include "ras-non-standard-handler.h"
+#include "ras-report.h"
+#include "types.h"
 
 /* HISI OEM error definitions */
 /* HISI OEM format1 error definitions */
@@ -185,11 +182,11 @@ enum {
 struct hisi_module_info {
 	int id;
 	const char *name;
-	const char **sub;
+	const char * const *sub;
 	int sub_num;
 };
 
-static const char *pll_submodule_name[] = {
+static const char * const pll_submodule_name[] = {
 	"TB_PLL0",
 	"TB_PLL1",
 	"TB_PLL2",
@@ -205,7 +202,7 @@ static const char *pll_submodule_name[] = {
 	"NIMBUS_PLL4",
 };
 
-static const char *sllc_submodule_name[] = {
+static const char * const sllc_submodule_name[] = {
 	"TB_SLLC0",
 	"TB_SLLC1",
 	"TB_SLLC2",
@@ -216,7 +213,7 @@ static const char *sllc_submodule_name[] = {
 	"NIMBUS_SLLC1",
 };
 
-static const char *sioe_submodule_name[] = {
+static const char * const sioe_submodule_name[] = {
 	"TB_SIOE0",
 	"TB_SIOE1",
 	"TB_SIOE2",
@@ -229,12 +226,12 @@ static const char *sioe_submodule_name[] = {
 	"NIMBUS_SIOE1",
 };
 
-static const char *poe_submodule_name[] = {
+static const char * const poe_submodule_name[] = {
 	"TB_POE",
 	"TA_POE",
 };
 
-static const char *disp_submodule_name[] = {
+static const char * const disp_submodule_name[] = {
 	"TB_PERI_DISP",
 	"TB_POE_DISP",
 	"TB_GIC_DISP",
@@ -247,7 +244,7 @@ static const char *disp_submodule_name[] = {
 	"NETWORK_DISP",
 };
 
-static const char *sas_submodule_name[] = {
+static const char * const sas_submodule_name[] = {
 	"SAS0",
 	"SAS1",
 };
@@ -321,27 +318,27 @@ static const struct hisi_module_info hisi_oem_type1_module[] = {
 	}
 };
 
-static const char *smmu_submodule_name[] = {
+static const char * const smmu_submodule_name[] = {
 	"HAC_SMMU",
 	"PCIE_SMMU",
 	"MGMT_SMMU",
 	"NIC_SMMU",
 };
 
-static const char *hllc_submodule_name[] = {
+static const char * const hllc_submodule_name[] = {
 	"HLLC0",
 	"HLLC1",
 	"HLLC2",
 };
 
-static const char *hha_submodule_name[] = {
+static const char * const hha_submodule_name[] = {
 	"TB_HHA0",
 	"TB_HHA1",
 	"TA_HHA0",
 	"TA_HHA1"
 };
 
-static const char *ddrc_submodule_name[] = {
+static const char * const ddrc_submodule_name[] = {
 	"TB_DDRC0",
 	"TB_DDRC1",
 	"TB_DDRC2",
@@ -352,7 +349,7 @@ static const char *ddrc_submodule_name[] = {
 	"TA_DDRC3",
 };
 
-static const char *l3tag_submodule_name[] = {
+static const char * const l3tag_submodule_name[] = {
 	"TB_PARTITION0",
 	"TB_PARTITION1",
 	"TB_PARTITION2",
@@ -371,7 +368,7 @@ static const char *l3tag_submodule_name[] = {
 	"TA_PARTITION7",
 };
 
-static const char *l3data_submodule_name[] = {
+static const char * const l3data_submodule_name[] = {
 	"TB_BANK0",
 	"TB_BANK1",
 	"TB_BANK2",
@@ -427,8 +424,8 @@ static const struct hisi_module_info hisi_oem_type2_module[] = {
 	}
 };
 
-static const char *oem_module_name(const struct hisi_module_info *info,
-				   uint8_t module_id)
+static const char * const oem_module_name(const struct hisi_module_info *info,
+					  uint8_t module_id)
 {
 	const struct hisi_module_info *module = &info[0];
 
@@ -442,18 +439,18 @@ static const char *oem_module_name(const struct hisi_module_info *info,
 	return "unknown";
 }
 
-static const char *oem_submodule_name(const struct hisi_module_info *info,
-				      uint8_t module_id, uint8_t sub_module_id)
+static const char * const oem_submodule_name(const struct hisi_module_info *info,
+					     uint8_t module_id, uint8_t sub_module_id)
 {
 	const struct hisi_module_info *module = &info[0];
 
 	for (; module->name; module++) {
-		const char **submodule = module->sub;
+		const char * const *submodule = module->sub;
 
 		if (module->id != module_id)
 			continue;
 
-		if (module->sub == NULL)
+		if (!module->sub)
 			return module->name;
 
 		if (sub_module_id >= module->sub_num)
@@ -654,6 +651,20 @@ static void decode_oem_type1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	step_vendor_data_tab(ev_decoder, "hip08_oem_type1_event_tab");
 }
 
+static int add_hip08_oem_type1_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
+{
+#ifdef HAVE_SQLITE3
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+					    &hip08_oem_type1_event_tab) != SQLITE_OK) {
+			log(TERM, LOG_WARNING, "Failed to create sql hip08_oem_type1_event_tab\n");
+			return -1;
+		}
+	}
+#endif
+	return 0;
+}
+
 /* error data decoding functions */
 static int decode_hip08_oem_type1_error(struct ras_events *ras,
 					struct ras_ns_ev_decoder *ev_decoder,
@@ -661,7 +672,7 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 					struct ras_non_standard_event *event)
 {
 	const struct hisi_oem_type1_err_sec *err =
-			(struct hisi_oem_type1_err_sec*)event->error;
+			(struct hisi_oem_type1_err_sec *)event->error;
 
 	if (err->val_bits == 0) {
 		trace_seq_printf(s, "%s: no valid error information\n",
@@ -669,17 +680,6 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 		return -1;
 	}
 
-#ifdef HAVE_SQLITE3
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &hip08_oem_type1_event_tab)
-			!= SQLITE_OK) {
-			trace_seq_printf(s,
-					"create sql hip08_oem_type1_event_tab fail\n");
-			return -1;
-		}
-	}
-#endif
 	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 			   HIP08_OEM_TYPE1_FIELD_TIMESTAMP,
 			   0, event->timestamp);
@@ -827,6 +827,20 @@ static void decode_oem_type2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	step_vendor_data_tab(ev_decoder, "hip08_oem_type2_event_tab");
 }
 
+static int add_hip08_oem_type2_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
+{
+#ifdef HAVE_SQLITE3
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+					    &hip08_oem_type2_event_tab) != SQLITE_OK) {
+			log(TERM, LOG_WARNING, "Failed to create sql hip08_oem_type2_event_tab\n");
+			return -1;
+		}
+	}
+#endif
+	return 0;
+}
+
 static int decode_hip08_oem_type2_error(struct ras_events *ras,
 					struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
@@ -841,16 +855,6 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 		return -1;
 	}
 
-#ifdef HAVE_SQLITE3
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-			&hip08_oem_type2_event_tab) != SQLITE_OK) {
-			trace_seq_printf(s,
-				"create sql hip08_oem_type2_event_tab fail\n");
-			return -1;
-		}
-	}
-#endif
 	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 			   HIP08_OEM_TYPE2_FIELD_TIMESTAMP,
 			   0, event->timestamp);
@@ -977,6 +981,20 @@ static void decode_pcie_local_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	step_vendor_data_tab(ev_decoder, "hip08_pcie_local_event_tab");
 }
 
+static int add_hip08_pcie_local_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
+{
+#ifdef HAVE_SQLITE3
+	if (ras->record_events && !ev_decoder->stmt_dec_record) {
+		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+					    &hip08_pcie_local_event_tab) != SQLITE_OK) {
+			log(TERM, LOG_WARNING, "Failed to create sql hip08_pcie_local_event_tab\n");
+			return -1;
+		}
+	}
+#endif
+	return 0;
+}
+
 static int decode_hip08_pcie_local_error(struct ras_events *ras,
 					 struct ras_ns_ev_decoder *ev_decoder,
 					 struct trace_seq *s,
@@ -991,16 +1009,6 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 		return -1;
 	}
 
-#ifdef HAVE_SQLITE3
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-				&hip08_pcie_local_event_tab) != SQLITE_OK) {
-			trace_seq_printf(s,
-				"create sql hip08_pcie_local_event_tab fail\n");
-			return -1;
-		}
-	}
-#endif
 	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
 			   HIP08_PCIE_LOCAL_FIELD_TIMESTAMP,
 			   0, event->timestamp);
@@ -1015,21 +1023,24 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 static struct ras_ns_ev_decoder hip08_ns_ev_decoder[] = {
 	{
 		.sec_type = "1f8161e1-55d6-41e6-bd10-7afd1dc5f7c5",
+		.add_table = add_hip08_oem_type1_table,
 		.decode = decode_hip08_oem_type1_error,
 	},
 	{
 		.sec_type = "45534ea6-ce23-4115-8535-e07ab3aef91d",
+		.add_table = add_hip08_oem_type2_table,
 		.decode = decode_hip08_oem_type2_error,
 	},
 	{
 		.sec_type = "b2889fc9-e7d7-4f9d-a867-af42e98be772",
+		.add_table = add_hip08_pcie_local_table,
 		.decode = decode_hip08_pcie_local_error,
 	},
 };
 
 static void __attribute__((constructor)) hip08_init(void)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(hip08_ns_ev_decoder); i++)
 		register_ns_ev_decoder(&hip08_ns_ev_decoder[i]);

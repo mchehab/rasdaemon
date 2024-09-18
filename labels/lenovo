@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-2.0
+
+# RASDAEMON Motherboard DIMM labels Database file.
+#
+#  Vendor-name and model-name are found from the program 'dmidecode'
+#  labels are found from the silk screen on the motherboard.
+#
+#Vendor: <vendor-name>
+#  Model: <model-name>
+#    <label>: <mc>.<branch>.<channel>.<slot>
+#
+
+Vendor: LENOVO
+  # Lenovo Thinkstation P920
+  Model: 1038
+    CPU2_DIMM2: 3.2.0; # CPU_SrcID#1_MC#1_Chan#2_DIMM#0
+    CPU2_DIMM6: 3.1.0; # CPU_SrcID#1_MC#1_Chan#1_DIMM#0
+    CPU2_DIMM4: 3.0.0; # CPU_SrcID#1_MC#1_Chan#0_DIMM#0
+    CPU2_DIMM3: 2.0.0; # CPU_SrcID#1_MC#0_Chan#0_DIMM#0
+    CPU2_DIMM5: 2.1.0; # CPU_SrcID#1_MC#0_Chan#1_DIMM#0
+    CPU2_DIMM1: 2.2.0; # CPU_SrcID#1_MC#0_Chan#2_DIMM#0
+    CPU1_DIMM1: 0.2.0; # CPU_SrcID#0_MC#0_Chan#2_DIMM#0
+    CPU1_DIMM5: 0.1.0; # CPU_SrcID#0_MC#0_Chan#1_DIMM#0
+    CPU1_DIMM3: 0.0.0; # CPU_SrcID#0_MC#0_Chan#0_DIMM#0
+    CPU1_DIMM4: 1.0.0; # CPU_SrcID#0_MC#1_Chan#0_DIMM#0
+    CPU1_DIMM6: 1.1.0; # CPU_SrcID#0_MC#1_Chan#1_DIMM#0
+    CPU1_DIMM2: 1.2.0; # CPU_SrcID#0_MC#1_Chan#2_DIMM#0

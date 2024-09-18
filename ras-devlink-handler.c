@@ -1,30 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (C) 2019 Cong Wang <xiyou.wangcong@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
+#include <unistd.h>
+
 #include "ras-devlink-handler.h"
-#include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include "types.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
 				 struct tep_record *record,
@@ -38,7 +28,7 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 	struct devlink_event ev;
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -78,7 +68,6 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 
 	free(ev.msg);
 	return 0;
-
 }
 
 int ras_devlink_event_handler(struct trace_seq *s,
@@ -104,7 +93,7 @@ int ras_devlink_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -125,7 +114,7 @@ int ras_devlink_event_handler(struct trace_seq *s,
 		return -1;
 
 	ev.driver_name = tep_get_field_raw(s, event, "driver_name",
-					record, &len, 1);
+					   record, &len, 1);
 	if (!ev.driver_name)
 		return -1;
 

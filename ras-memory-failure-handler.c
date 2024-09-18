@@ -1,25 +1,19 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2020. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <traceevent/kbuffer.h>
-#include "ras-memory-failure-handler.h"
-#include "ras-record.h"
+
 #include "ras-logger.h"
+#include "ras-memory-failure-handler.h"
 #include "ras-report.h"
+#include "trigger.h"
+#include "types.h"
 
 /* Memory failure - various types of pages */
 enum mf_action_page_type {
@@ -27,10 +21,8 @@ enum mf_action_page_type {
 	MF_MSG_KERNEL_HIGH_ORDER,
 	MF_MSG_SLAB,
 	MF_MSG_DIFFERENT_COMPOUND,
-	MF_MSG_POISONED_HUGE,
 	MF_MSG_HUGE,
 	MF_MSG_FREE_HUGE,
-	MF_MSG_NON_PMD_HUGE,
 	MF_MSG_UNMAP_FAILED,
 	MF_MSG_DIRTY_SWAPCACHE,
 	MF_MSG_CLEAN_SWAPCACHE,
@@ -42,7 +34,6 @@ enum mf_action_page_type {
 	MF_MSG_CLEAN_LRU,
 	MF_MSG_TRUNCATED_LRU,
 	MF_MSG_BUDDY,
-	MF_MSG_BUDDY_2ND,
 	MF_MSG_DAX,
 	MF_MSG_UNSPLIT_THP,
 	MF_MSG_UNKNOWN,
@@ -65,10 +56,8 @@ static const struct {
 	{ MF_MSG_KERNEL_HIGH_ORDER, "high-order kernel page"},
 	{ MF_MSG_SLAB, "kernel slab page"},
 	{ MF_MSG_DIFFERENT_COMPOUND, "different compound page after locking"},
-	{ MF_MSG_POISONED_HUGE, "huge page already hardware poisoned"},
 	{ MF_MSG_HUGE, "huge page"},
 	{ MF_MSG_FREE_HUGE, "free huge page"},
-	{ MF_MSG_NON_PMD_HUGE, "non-pmd-sized huge page"},
 	{ MF_MSG_UNMAP_FAILED, "unmapping failed page"},
 	{ MF_MSG_DIRTY_SWAPCACHE, "dirty swapcache page"},
 	{ MF_MSG_CLEAN_SWAPCACHE, "clean swapcache page"},
@@ -80,7 +69,6 @@ static const struct {
 	{ MF_MSG_CLEAN_LRU, "clean LRU page"},
 	{ MF_MSG_TRUNCATED_LRU, "already truncated LRU page"},
 	{ MF_MSG_BUDDY, "free buddy page"},
-	{ MF_MSG_BUDDY_2ND, "free buddy page (2nd try)"},
 	{ MF_MSG_DAX, "dax page"},
 	{ MF_MSG_UNSPLIT_THP, "unsplit thp"},
 	{ MF_MSG_UNKNOWN, "unknown page"},
@@ -97,9 +85,62 @@ static const struct {
 	{ MF_RECOVERED, "Recovered" },
 };
 
+#define MAX_ENV 6
+static const char *mf_trigger = NULL;
+
+void mem_fail_event_trigger_setup(void)
+{
+	const char *trigger;
+
+	trigger = getenv("MEM_FAIL_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		mf_trigger = trigger_check(trigger);
+
+		if (!mf_trigger) {
+			log(ALL, LOG_ERR,
+			    "Cannot access memory_fail_event trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup memory_fail_event trigger `%s`\n",
+			    trigger);
+		}
+	}
+}
+
+static void run_mf_trigger(struct ras_mf_event *ev)
+{
+	char *env[MAX_ENV];
+	int ei = 0;
+	int i;
+
+	if (!mf_trigger)
+		return;
+
+	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
+		goto free;
+	if (asprintf(&env[ei++], "TIMESTAMP=%s", ev->timestamp) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "PFN=%s", ev->pfn) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "PAGE_TYPE=%s", ev->page_type) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "ACTION_RESULT=%s", ev->action_result) < 0)
+		goto free;
+
+	env[ei] = NULL;
+	assert(ei < MAX_ENV);
+
+	run_trigger(mf_trigger, NULL, env, "memory_fail_event");
+
+free:
+	for (i = 0; i < ei; i++)
+		free(env[i]);
+}
+
 static const char *get_page_type(int page_type)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(mf_page_type); i++)
 		if (mf_page_type[i].type == page_type)
@@ -110,7 +151,7 @@ static const char *get_page_type(int page_type)
 
 static const char *get_action_result(int result)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(mf_action_result); i++)
 		if (mf_action_result[i].result == result)
@@ -118,7 +159,6 @@ static const char *get_action_result(int result)
 
 	return "unknown";
 }
-
 
 int ras_memory_failure_event_handler(struct trace_seq *s,
 				     struct tep_record *record,
@@ -140,7 +180,7 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -149,12 +189,12 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 		strftime(ev.timestamp, sizeof(ev.timestamp),
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	else
-		strncpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
+		strscpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
 	trace_seq_printf(s, "%s ", ev.timestamp);
 
 	if (tep_get_field_val(s,  event, "pfn", record, &val, 1) < 0)
 		return -1;
-	sprintf(ev.pfn, "0x%llx", val);
+	snprintf(ev.pfn, sizeof(ev.pfn), "0x%llx", val);
 	trace_seq_printf(s, "pfn=0x%llx ", val);
 
 	if (tep_get_field_val(s, event, "type", record, &val, 1) < 0)
@@ -176,6 +216,7 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 	/* Report event to ABRT */
 	ras_report_mf_event(ras, &ev);
 #endif
+	run_mf_trigger(&ev);
 
 	return 0;
 }

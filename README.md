@@ -4,14 +4,14 @@ RAS Daemon
 Those tools provide a way to get Platform Reliability, Availability
 and Serviceability (RAS) reports made via the Kernel tracing events.
 
-The main repository for the rasdaemon is at Fedora hosted:
+The main repository for the rasdaemon is at:
 
-- <http://git.infradead.org/users/mchehab/rasdaemon.git>
+- <https://github.com/mchehab/rasdaemon>
 
 And two mirrors are available:
 
-- <https://github.com/mchehab/rasdaemon>
 - <https://gitlab.com/mchehab_kernel/rasdaemon>
+- <http://git.infradead.org/users/mchehab/rasdaemon.git>
 
 Tarballs for each release can be found at:
 - <http://www.infradead.org/~mchehab/rasdaemon/>
@@ -188,6 +188,16 @@ required):
     # rasdaemon -f -r
 ```
 
+To post-process and decode received MCA errors on AMD SMCA systems, run:
+
+```
+	# rasdaemon -p --status <STATUS_reg> --ipid <IPID_reg> --smca --family <CPU Family> --model <CPU Model> --bank <BANK_NUM>
+```
+
+Status and IPID Register values (in hex) are mandatory. The `smca` flag
+with `family` and `model` are required if not decoding locally. `Bank`
+parameter is optional.
+
 You may also start it via systemd:
 
 ```
@@ -224,6 +234,9 @@ AER error injection can use this tool:
 
 If you want to help improving this tool, be my guest! We try to follow
 the Kernel's CodingStyle and submission rules as a reference.
+
+Before submitting your patch, please check the coding style with:
+scripts/checkpatch.pl.
 
 In order to contribute with rasdaemon, please send a Merge Request via
 github repository at:

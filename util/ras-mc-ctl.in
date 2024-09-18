@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+# SPDX-License-Identifier: GPL-2.0
 
 #******************************************************************************
 # Copyright (c) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
@@ -13,20 +14,6 @@
 #  This version uses the new EDAC v 3.0.0 and upper API, with adds proper
 #  representation for the memory controllers found on Intel designs after
 #  2002. It requires Linux Kernel 3.5 or upper to work.
-#
-#  This is free software; you can redistribute it and/or modify it
-#  under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
-#
-#  This is distributed in the hope that it will be useful, but WITHOUT
-#  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-#  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-#  for more details.
-#
-#  You should have received a copy of the GNU General Public License along
-#  with this program; if not, write to the Free Software Foundation, Inc.,
-#  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
 #****************************************************************************/
 
 use strict;
@@ -39,10 +26,10 @@ my $dbname      = "@RASSTATEDIR@/@RAS_DB_FNAME@";
 my $prefix      = "@prefix@";
 my $sysconfdir  = "@sysconfdir@";
 my $dmidecode   = find_prog ("dmidecode");
-my $modprobe    = find_prog ("modprobe")  or exit (1);
 
 my $has_aer = 0;
 my $has_arm = 0;
+my $has_cxl = 0;
 my $has_devlink = 0;
 my $has_disk_errors = 0;
 my $has_extlog = 0;
@@ -51,6 +38,7 @@ my $has_mce = 0;
 
 @WITH_AER_TRUE@$has_aer = 1;
 @WITH_ARM_TRUE@$has_arm = 1;
+@WITH_CXL_TRUE@$has_cxl = 1;
 @WITH_DEVLINK_TRUE@$has_devlink = 1;
 @WITH_DISKERROR_TRUE@$has_disk_errors = 1;
 @WITH_EXTLOG_TRUE@$has_extlog = 1;
@@ -112,25 +100,25 @@ if (  $conf{opt}{mainboard} || $conf{opt}{print_labels}
     get_mainboard_info();
 
     if ($conf{opt}{mainboard} eq "report") {
-        print "$prog: mainboard: ",
-              "$conf{mainboard}{vendor} model $conf{mainboard}{model}\n";
+	print "$prog: mainboard: ",
+	      "$conf{mainboard}{vendor} model $conf{mainboard}{model}\n";
     }
 
     if ($conf{opt}{print_labels}) {
-        print_dimm_labels ();
+	print_dimm_labels ();
 
     }
     if ($conf{opt}{register_labels}) {
-        register_dimm_labels ();
+	register_dimm_labels ();
     }
     if ($conf{opt}{display_memory_layout}) {
-        display_memory_layout ();
+	display_memory_layout ();
     }
     if ($conf{opt}{guess_dimm_label}) {
-        guess_dimm_label ();
+	guess_dimm_label ();
     }
     if ($conf{opt}{error_count}) {
-        display_error_count ();
+	display_error_count ();
     }
 }
 
@@ -184,39 +172,39 @@ sub parse_cmdline
 
     Getopt::Long::Configure ("bundling");
     my $rc = GetOptions ("mainboard:s" =>     sub { $$mref = $_[1]||"report" },
-                         "help" =>            sub {usage (0)},
-                         "quiet" =>           \$conf{opt}{quiet},
-                         "print-labels" =>    \$conf{opt}{print_labels},
-                         "guess-labels" =>    \$conf{opt}{guess_dimm_label},
-                         "register-labels" => \$conf{opt}{register_labels},
-                         "delay:s" =>         \$conf{opt}{delay},
-                         "labeldb=s" =>       \$conf{labeldb},
-                         "status" =>          \$conf{opt}{status},
-                         "layout" =>          \$conf{opt}{display_memory_layout},
-                         "summary" =>         \$conf{opt}{summary},
-                         "errors" =>          \$conf{opt}{errors},
-                         "error-count" =>     \$conf{opt}{error_count},
-                         "vendor-errors-summary" =>    \$conf{opt}{vendor_errors_summary},
-                         "vendor-errors" =>   \$conf{opt}{vendor_errors},
-                         "since=s" =>         \$conf{opt}{since},
-                         "vendor-platforms" =>    \$conf{opt}{vendor_platforms},
-            );
+			 "help" =>            sub {usage (0)},
+			 "quiet" =>           \$conf{opt}{quiet},
+			 "print-labels" =>    \$conf{opt}{print_labels},
+			 "guess-labels" =>    \$conf{opt}{guess_dimm_label},
+			 "register-labels" => \$conf{opt}{register_labels},
+			 "delay:s" =>         \$conf{opt}{delay},
+			 "labeldb=s" =>       \$conf{labeldb},
+			 "status" =>          \$conf{opt}{status},
+			 "layout" =>          \$conf{opt}{display_memory_layout},
+			 "summary" =>         \$conf{opt}{summary},
+			 "errors" =>          \$conf{opt}{errors},
+			 "error-count" =>     \$conf{opt}{error_count},
+			 "vendor-errors-summary" =>    \$conf{opt}{vendor_errors_summary},
+			 "vendor-errors" =>   \$conf{opt}{vendor_errors},
+			 "since=s" =>         \$conf{opt}{since},
+			 "vendor-platforms" =>    \$conf{opt}{vendor_platforms},
+	    );
 
     usage(1) if !$rc;
 
     usage (0) if !grep $conf{opt}{$_}, keys %{$conf{opt}};
 
     if ($conf{opt}{delay} && !$conf{opt}{register_labels}) {
-        log_error ("Only use --delay with --register-labels\n");
-        exit (1);
+	log_error ("Only use --delay with --register-labels\n");
+	exit (1);
     }
 
     if ($conf{opt}{since}) {
-        if ($conf{opt}{since} !~ /^20\d\d-[01]\d-[0-3]\d/) {
-            log_error ("--since requires a date like yyyy-mm-dd where yyyy is the year, mm the month, and dd the day\n");
-            exit (1);
-        }
-        $conf{opt}{since} = " where timestamp>='$conf{opt}{since}'";
+	if ($conf{opt}{since} !~ /^20\d\d-[01]\d-[0-3]\d/) {
+	    log_error ("--since requires a date like yyyy-mm-dd where yyyy is the year, mm the month, and dd the day\n");
+	    exit (1);
+	}
+	$conf{opt}{since} = " where timestamp>='$conf{opt}{since}'";
     }
 }
 
@@ -239,14 +227,14 @@ sub print_status
 {
     my $status = 0;
     open (MODULES, "/proc/modules")
-         or die "Unable to open /proc/modules: $!\n";
+	 or die "Unable to open /proc/modules: $!\n";
 
     while (<MODULES>) {
        $status = 1 if /_edac/;
     }
 
     print "$prog: drivers ", ($status ? "are" : "not"), " loaded.\n"
-        unless $conf{opt}{quiet};
+	unless $conf{opt}{quiet};
 
     return ($status);
 }
@@ -256,118 +244,118 @@ sub parse_dimm_nodes
     my $file = $File::Find::name;
 
     if (($file =~ /max_location$/)) {
-        open IN, $file;
-        my $location = <IN>;
-        $location =~ s/\s+$//;
-        close IN;
-        my @temp = split(/ /, $location);
+	open IN, $file;
+	my $location = <IN>;
+	$location =~ s/\s+$//;
+	close IN;
+	my @temp = split(/ /, $location);
 
-        $layers[0] = "mc";
+	$layers[0] = "mc";
 
-        if (m,/mc/mc(\d+),) {
-                $max_pos[0] = $1 if (!exists($max_pos[0]) || $1 > $max_pos[0]);
-        } else {
-                $max_pos[0] = 0 if (!exists($max_pos[0]));
-        }
-        for (my $i = 0; $i < scalar(@temp); $i += 2) {
-            $layers[$i / 2 + 1] = $temp[$i];
-            $max_pos[$i / 2 + 1] = $temp[$i + 1];
-        }
+	if (m,/mc/mc(\d+),) {
+		$max_pos[0] = $1 if (!exists($max_pos[0]) || $1 > $max_pos[0]);
+	} else {
+		$max_pos[0] = 0 if (!exists($max_pos[0]));
+	}
+	for (my $i = 0; $i < scalar(@temp); $i += 2) {
+	    $layers[$i / 2 + 1] = $temp[$i];
+	    $max_pos[$i / 2 + 1] = $temp[$i + 1];
+	}
 
-        return;
+	return;
     }
     if ($file =~ /size_mb$/) {
-        my $mc = $file;
-        $mc =~ s,.*mc(\d+).*,$1,;
+	my $mc = $file;
+	$mc =~ s,.*mc(\d+).*,$1,;
 
-        my $csrow = $file;
-        $csrow =~ s,.*csrow(\d+).*,$1,;
+	my $csrow = $file;
+	$csrow =~ s,.*csrow(\d+).*,$1,;
 
-        open IN, $file;
-        my $size = <IN>;
-        close IN;
+	open IN, $file;
+	my $size = <IN>;
+	close IN;
 
-        my $str_loc = join(':', $mc, $csrow);
-        $csrow_size{$str_loc} = $size;
+	my $str_loc = join(':', $mc, $csrow);
+	$csrow_size{$str_loc} = $size;
 
-        return;
+	return;
     }
     if ($file =~ /location$/) {
-        my $mc = $file;
-        $mc =~ s,.*mc(\d+).*,$1,;
+	my $mc = $file;
+	$mc =~ s,.*mc(\d+).*,$1,;
 
-        my $dimm = $file;
-        $dimm =~ s,.*(rank|dimm)(\d+).*,$2,;
+	my $dimm = $file;
+	$dimm =~ s,.*(rank|dimm)(\d+).*,$2,;
 
-        open IN, $file;
-        my $location = <IN>;
-        $location =~ s/\s+$//;
-        close IN;
+	open IN, $file;
+	my $location = <IN>;
+	$location =~ s/\s+$//;
+	close IN;
 
-        my @pos;
+	my @pos;
 
-        # Get the name of the hierarchy labels
-        if (!@layers) {
-                my @temp = split(/ /, $location);
-                $max_pos[0] = 0;
-                $layers[0] = "mc";
-                for (my $i = 0; $i < scalar(@temp); $i += 2) {
-                $layers[$i / 2 + 1] = $temp[$i];
-                $max_pos[$i / 2 + 1] = 0;
-                }
-        }
+	# Get the name of the hierarchy labels
+	if (!@layers) {
+		my @temp = split(/ /, $location);
+		$max_pos[0] = 0;
+		$layers[0] = "mc";
+		for (my $i = 0; $i < scalar(@temp); $i += 2) {
+		$layers[$i / 2 + 1] = $temp[$i];
+		$max_pos[$i / 2 + 1] = 0;
+		}
+	}
 
-        my @temp = split(/ /, $location);
-        for (my $i = 1; $i < scalar(@temp); $i += 2) {
-                $pos[$i / 2] = $temp[$i];
+	my @temp = split(/ /, $location);
+	for (my $i = 1; $i < scalar(@temp); $i += 2) {
+		$pos[$i / 2] = $temp[$i];
 
-                if ($pos[$i / 2] > $max_pos[$i / 2 + 1]) {
-                        $max_pos[$i / 2 + 1] = $pos[$i / 2];
-                }
-        }
-        if ($mc > $max_pos[0]) {
-                $max_pos[0] = $mc;
-        }
+		if ($pos[$i / 2] > $max_pos[$i / 2 + 1]) {
+			$max_pos[$i / 2 + 1] = $pos[$i / 2];
+		}
+	}
+	if ($mc > $max_pos[0]) {
+		$max_pos[0] = $mc;
+	}
 
-        # Get DIMM size
+	# Get DIMM size
 
-        $file =~ s/dimm_location/size/;
-        open IN, $file;
-        my $size = <IN>;
-        close IN;
+	$file =~ s/dimm_location/size/;
+	open IN, $file;
+	my $size = <IN>;
+	close IN;
 
-        my $str_loc = join(':', $mc, @pos);
-        $dimm_size{$str_loc} = $size;
-        $dimm_node{$str_loc} = $dimm;
-        $file =~ s/size/dimm_label/;
-        $dimm_label_file{$str_loc} = $file;
-        $dimm_location{$str_loc} = $location;
+	my $str_loc = join(':', $mc, @pos);
+	$dimm_size{$str_loc} = $size;
+	$dimm_node{$str_loc} = $dimm;
+	$file =~ s/size/dimm_label/;
+	$dimm_label_file{$str_loc} = $file;
+	$dimm_location{$str_loc} = $location;
 
-        my $count;
+	my $count;
 
-        $file =~s/dimm_label/dimm_ce_count/;
-        if (-e $file) {
-                open IN, $file;
-                chomp($count = <IN>);
-                close IN;
-        } else {
-                log_error ("dimm_ce_count not found in sysfs. Old kernel?\n");
-                exit -1;
-        }
-        $dimm_ce_count{$str_loc} = $count;
+	$file =~s/dimm_label/dimm_ce_count/;
+	if (-e $file) {
+		open IN, $file;
+		chomp($count = <IN>);
+		close IN;
+	} else {
+		log_error ("dimm_ce_count not found in sysfs. Old kernel?\n");
+		exit -1;
+	}
+	$dimm_ce_count{$str_loc} = $count;
 
-        $file =~s/dimm_ce_count/dimm_ue_count/;
-        if (-e $file) {
-                open IN, $file;
-                chomp($count = <IN>);
-                close IN;
-        } else {
-                log_error ("dimm_ue_count not found in sysfs. Old kernel?\n");
-                exit -1;
-        }
-        $dimm_ue_count{$str_loc} = $count;
+	$file =~s/dimm_ce_count/dimm_ue_count/;
+	if (-e $file) {
+		open IN, $file;
+		chomp($count = <IN>);
+		close IN;
+	} else {
+		log_error ("dimm_ue_count not found in sysfs. Old kernel?\n");
+		exit -1;
+	}
+	$dimm_ue_count{$str_loc} = $count;
 
-        return;
+	return;
     }
 }
 
@@ -376,14 +364,14 @@ sub guess_product {
     my $pname = undef;
 
     if (open (VENDOR, "/sys/class/dmi/id/product_vendor")) {
-        $pvendor = <VENDOR>;
-        close VENDOR;
-        chomp($pvendor);
+	$pvendor = <VENDOR>;
+	close VENDOR;
+	chomp($pvendor);
     }
     if (open (NAME, "/sys/class/dmi/id/product_name")) {
-        $pname = <NAME>;
-        close NAME;
-        chomp($pname);
+	$pname = <NAME>;
+	close NAME;
+	chomp($pname);
     }
 
     return ($pvendor, $pname);
@@ -394,11 +382,11 @@ sub get_mainboard_info {
     my ($pvendor, $pname);
 
     if ($conf{opt}{mainboard} && $conf{opt}{mainboard} ne "report") {
-        ($vendor, $model) = split (/[: ]/, $conf{opt}{mainboard}, 2);
+	($vendor, $model) = split (/[: ]/, $conf{opt}{mainboard}, 2);
     }
 
     if (!$vendor || !$model) {
-        ($vendor, $model) = guess_vendor_model ();
+	($vendor, $model) = guess_vendor_model ();
     }
 
     $conf{mainboard}{vendor} = $vendor;
@@ -407,9 +395,9 @@ sub get_mainboard_info {
     ($pvendor, $pname) = guess_product ();
     # since product vendor is rare, use mainboard's vendor
     if ($pvendor) {
-        $conf{mainboard}{product_vendor} = $pvendor;
+	$conf{mainboard}{product_vendor} = $pvendor;
     } else {
-        $conf{mainboard}{product_vendor} = $vendor;
+	$conf{mainboard}{product_vendor} = $vendor;
     }
     $conf{mainboard}{product_name} = $pname if $pname;
 }
@@ -427,25 +415,25 @@ sub guess_vendor_model_dmidecode {
 
   LINE:
     while (<DMI>) {
-        $line++;
+	$line++;
 
-        /^(\s*)(board|base board|system) information/i || next LINE;
-        my $indent = $1;
+	/^(\s*)(board|base board|system) information/i || next LINE;
+	my $indent = $1;
 	my $type = $2;
 
-        while ( <DMI> ) {
-            /^(\s*)/;
-            $1 lt $indent && last LINE;
-            $indent = $1;
-            if ($type eq "system") {
-                /(?:manufacturer|vendor):\s*(.*\S)\s*/i && ( $system_vendor = $1 );
-                /product(?: name)?:\s*(.*\S)\s*/i       && ( $system_model  = $1 );
-            } else {
-                /(?:manufacturer|vendor):\s*(.*\S)\s*/i && ( $vendor = $1 );
-                /product(?: name)?:\s*(.*\S)\s*/i       && ( $model  = $1 );
-            }
-            last LINE if ($vendor && $model);
-        }
+	while ( <DMI> ) {
+	    /^(\s*)/;
+	    $1 lt $indent && last LINE;
+	    $indent = $1;
+	    if ($type eq "system") {
+		/(?:manufacturer|vendor):\s*(.*\S)\s*/i && ( $system_vendor = $1 );
+		/product(?: name)?:\s*(.*\S)\s*/i       && ( $system_model  = $1 );
+	    } else {
+		/(?:manufacturer|vendor):\s*(.*\S)\s*/i && ( $vendor = $1 );
+		/product(?: name)?:\s*(.*\S)\s*/i       && ( $model  = $1 );
+	    }
+	    last LINE if ($vendor && $model);
+	}
     }
 
     close (DMI);
@@ -483,18 +471,18 @@ sub parse_mainboard_config
 
     open (CFG, "$file") or die "Failed to read mainboard config: $file: $!\n";
     while (<CFG>) {
-        $line++;
-        chomp;                                          # remove newline
-        s/^((?:[^'"#]*(?:(['"])[^\2]*\2)*)*)#.*/$1/;    # remove comments
-        s/^\s+//;                                       # remove leading space
-        s/\s+$//;                                       # remove trailing space
-        next unless length;                             # skip blank lines
-        if (my ($key, $val) = /^\s*([-\w]+)\s*=\s*(.*)/) {
-            $hash{$key}{val} = $val;
-            $hash{$key}{line} = $line;
-            next;
-        }
-        return undef;
+	$line++;
+	chomp;                                          # remove newline
+	s/^((?:[^'"#]*(?:(['"])[^\2]*\2)*)*)#.*/$1/;    # remove comments
+	s/^\s+//;                                       # remove leading space
+	s/\s+$//;                                       # remove trailing space
+	next unless length;                             # skip blank lines
+	if (my ($key, $val) = /^\s*([-\w]+)\s*=\s*(.*)/) {
+	    $hash{$key}{val} = $val;
+	    $hash{$key}{line} = $line;
+	    next;
+	}
+	return undef;
     }
     close (CFG) or &log_error ("close $file: $!\n");
     return \%hash;
@@ -507,16 +495,16 @@ sub guess_vendor_model {
     #   to get the vendor and model information.
     #
     if (-f $conf{mbconfig} ) {
-        my $cfg = &parse_mainboard_config ($conf{mbconfig});
+	my $cfg = &parse_mainboard_config ($conf{mbconfig});
 
-        #  If mainboard config file specified a script, then try to
-        #   run the specified script or executable:
-        #
-        if ($cfg->{"script"}) {
-            $cfg = &parse_mainboard_config ("$cfg->{script}{val} |");
-            die "Failed to run mainboard script\n" if (!$cfg);
-        }
-        return ($cfg->{vendor}{val}, $cfg->{model}{val});
+	#  If mainboard config file specified a script, then try to
+	#   run the specified script or executable:
+	#
+	if ($cfg->{"script"}) {
+	    $cfg = &parse_mainboard_config ("$cfg->{script}{val} |");
+	    die "Failed to run mainboard script\n" if (!$cfg);
+	}
+	return ($cfg->{vendor}{val}, $cfg->{model}{val});
     }
 
     ($vendor, $model) = &guess_vendor_model_sysfs ();
@@ -531,10 +519,10 @@ sub guess_dimm_label {
 
   LINE:
     while (<DMI>) {
-        /^(\s*)memory device$/i || next LINE;
+	/^(\s*)memory device$/i || next LINE;
 	my ($dimm_label, $dimm_addr);
 
-        while (<DMI>) {
+	while (<DMI>) {
 	    if (/^\s*(locator|bank locator)/i) {
 		my $indent = $1;
 		$indent =~ tr/A-Z/a-z/;
@@ -552,7 +540,7 @@ sub guess_dimm_label {
 		next LINE;
 	    }
 	    next LINE if (/^\s*\n/);
-        }
+	}
     }
 
     close (DMI);
@@ -568,84 +556,84 @@ sub parse_dimm_labels_file
     my $num;
 
     open (LABELS, "$file")
-        or die "Unable to open label database: $file: $!\n";
+	or die "Unable to open label database: $file: $!\n";
 
     while (<LABELS>) {
-        $line++;
-        next if /^#/;
-        chomp;
-        s/^\s+//;
-        s/\s+$//;
-        next unless length;
+	$line++;
+	next if /^#/;
+	chomp;
+	s/^\s+//;
+	s/\s+$//;
+	next unless length;
 
-        if (/vendor\s*:\s*(.*\S)\s*/i) {
-            $vendor = lc $1;
-            @models = ();
-            @products = ();
-            $num = 0;
-            next;
-        }
-        if (/(model|board)\s*:\s*(.*)$/i) {
-            !$vendor && die "$file: line $line: MB model without vendor\n";
-            @models = grep { s/\s*(.*)\s*$/$1/ } split(/[,;]+/, $2);
-            @products = ();
-            $num = 0;
-            next;
-        }
-        if (/(product)\s*:\s*(.*)$/i) {
-            !$vendor && die "$file: line $line: product without vendor\n";
-            @models = ();
-            @products = grep { s/\s*(.*)\s*$/$1/ } split(/[,;]+/, $2);
-            $num = 0;
-            next;
-        }
+	if (/vendor\s*:\s*(.*\S)\s*/i) {
+	    $vendor = lc $1;
+	    @models = ();
+	    @products = ();
+	    $num = 0;
+	    next;
+	}
+	if (/(model|board)\s*:\s*(.*)$/i) {
+	    !$vendor && die "$file: line $line: MB model without vendor\n";
+	    @models = grep { s/\s*(.*)\s*$/$1/ } split(/[,;]+/, $2);
+	    @products = ();
+	    $num = 0;
+	    next;
+	}
+	if (/(product)\s*:\s*(.*)$/i) {
+	    !$vendor && die "$file: line $line: product without vendor\n";
+	    @models = ();
+	    @products = grep { s/\s*(.*)\s*$/$1/ } split(/[,;]+/, $2);
+	    $num = 0;
+	    next;
+	}
 
-        # Allow multiple labels to be specified on a single line,
-        #  separated by ;
-        for my $str (split /;/) {
-            $str =~ s/^\s*(.*)\s*$/$1/;
+	# Allow multiple labels to be specified on a single line,
+	#  separated by ;
+	for my $str (split /;/) {
+	    $str =~ s/^\s*(.*)\s*$/$1/;
 
-            next unless (my ($label, $info) = ($str =~ /^(.*)\s*:\s*(.*)$/i));
+	    next unless (my ($label, $info) = ($str =~ /^(.*)\s*:\s*(.*)$/i));
 
-            unless ($info =~ /\d+(?:[\.\:]\d+)*/) {
-                log_error ("$file: $line: Invalid syntax, ignoring: \"$_\"\n");
-                next;
-            }
+	    unless ($info =~ /\d+(?:[\.\:]\d+)*/) {
+		log_error ("$file: $line: Invalid syntax, ignoring: \"$_\"\n");
+		next;
+	    }
 
-            for my $target (split (/[, ]+/, $info)) {
-                my $n;
-                my ($mc, $top, $mid, $low, $extra) = ($target =~ /(\d+)(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}/);
+	    for my $target (split (/[, ]+/, $info)) {
+		my $n;
+		my ($mc, $top, $mid, $low, $extra) = ($target =~ /(\d+)(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}(?:[\.\:](\d+)){0,1}/);
 
-                if (defined($extra)) {
-                        die ("Error: Only up to 3 layers are currently supported on label db \"$file\"\n");
-                        return;
-                } elsif (!defined($top)) {
-                        die ("Error: The label db \"$file\" is defining a zero-layers machine\n");
-                        return;
-                } else {
-                    $n = 3;
-                    if (!defined($low)) {
-                        $low = 0;
-                        $n--;
-                    }
-                    if (!defined($mid)) {
-                        $mid = 0;
-                        $n--;
-                    }
-                    map { $lh->{$vendor}{lc $_}{$mc}{$top}{$mid}{$low} = $label }
-                            @models;
-                    map { $lh_prod->{$vendor}{lc $_}{$mc}{$top}{$mid}{$low} = $label }
-                            @products;
-                }
-                if (!$num) {
-                        $num = $n;
-                        map { $num_layers->{$vendor}{lc $_} = $num } @models;
-                        map { $num_layers_prod->{$vendor}{lc $_} = $num } @products;
-                } elsif ($num != $n) {
-                        die ("Error: Inconsistent number of layers at label db \"$file\"\n");
-                }
-            }
-        }
+		if (defined($extra)) {
+			die ("Error: Only up to 3 layers are currently supported on label db \"$file\"\n");
+			return;
+		} elsif (!defined($top)) {
+			die ("Error: The label db \"$file\" is defining a zero-layers machine\n");
+			return;
+		} else {
+		    $n = 3;
+		    if (!defined($low)) {
+			$low = 0;
+			$n--;
+		    }
+		    if (!defined($mid)) {
+			$mid = 0;
+			$n--;
+		    }
+		    map { $lh->{$vendor}{lc $_}{$mc}{$top}{$mid}{$low} = $label }
+			    @models;
+		    map { $lh_prod->{$vendor}{lc $_}{$mc}{$top}{$mid}{$low} = $label }
+			    @products;
+		}
+		if (!$num) {
+			$num = $n;
+			map { $num_layers->{$vendor}{lc $_} = $num } @models;
+			map { $num_layers_prod->{$vendor}{lc $_} = $num } @products;
+		} elsif ($num != $n) {
+			die ("Error: Inconsistent number of layers at label db \"$file\"\n");
+		}
+	    }
+	}
     }
 
     close (LABELS) or die "Error from label db \"$file\" : $!\n";
@@ -663,8 +651,8 @@ sub parse_dimm_labels
     #   well as any files under the labels dir
     #
     for my $file ($conf{labeldb}, <$conf{labeldir}/*>) {
-        next unless -r $file;
-        parse_dimm_labels_file (\%labels, \%num_layers, \%labels_prod, \%num_layers_prod, $file);
+	next unless -r $file;
+	parse_dimm_labels_file (\%labels, \%num_layers, \%labels_prod, \%num_layers_prod, $file);
     }
 
     return (\%labels, \%num_layers, \%labels_prod, \%num_layers_prod);
@@ -681,9 +669,9 @@ sub read_dimm_label
     $pos = "$mc:$top" if ($num_layers == 1);
 
     if (!defined($dimm_node{$pos})) {
-        my $label = "$pos missing";
-        $pos = "";
-        return ($label, $pos);
+	my $label = "$pos missing";
+	$pos = "";
+	return ($label, $pos);
     }
 
     my $dimm = $dimm_node{$pos};
@@ -695,8 +683,8 @@ sub read_dimm_label
     return ("label missing", "$pos missing") unless -f $dimm_label_file;
 
     if (!open (LABEL, "$dimm_label_file")) {
-        warn "Failed to open $dimm_label_file: $!\n";
-        return ("Error");
+	warn "Failed to open $dimm_label_file: $!\n";
+	return ("Error");
     }
 
     chomp (my $label = <LABEL> || "");
@@ -729,16 +717,16 @@ sub _print_dimm_labels
     my ($lref, $num_layers, $vendor, $model, $fh, $format) = @_;
 
     for my $mc (sort keys %{$$lref{$vendor}{$model}}) {
-        for my $top (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
-            for my $mid (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}}) {
-                for my $low (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}{$mid}}) {
-                    my $label = $$lref{$vendor}{$model}{$mc}{$top}{$mid}{$low};
-                    my ($rlabel,$loc) = read_dimm_label ($$num_layers{$vendor}{$model}, $mc, $top, $mid, $low);
+	for my $top (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
+	    for my $mid (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}}) {
+		for my $low (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}{$mid}}) {
+		    my $label = $$lref{$vendor}{$model}{$mc}{$top}{$mid}{$low};
+		    my ($rlabel,$loc) = read_dimm_label ($$num_layers{$vendor}{$model}, $mc, $top, $mid, $low);
 
-                    printf $fh $format, $loc, $label, $rlabel;
-                }
-            }
-        }
+		    printf $fh $format, $loc, $label, $rlabel;
+		}
+	    }
+	}
     }
     print $fh "\n";
 }
@@ -754,9 +742,9 @@ sub print_dimm_labels
     my $format = "%-35s %-20s %-20s\n";
 
     if (!exists $$lref{$vendor}{$model} && !exists $$lref_prod{$pvendor}{$pname}) {
-        log_error ("No dimm labels for $conf{mainboard}{vendor} " .
-                   "model $conf{mainboard}{model}\n");
-        return;
+	log_error ("No dimm labels for $conf{mainboard}{vendor} " .
+		   "model $conf{mainboard}{model}\n");
+	return;
     }
 
     my $sysfs_dir = "/sys/devices/system/edac/mc";
@@ -766,9 +754,9 @@ sub print_dimm_labels
     printf $fh $format, "LOCATION", "CONFIGURED LABEL", "SYSFS CONTENTS";
 
     if (exists $$lref{$vendor}{$model}) {
-        _print_dimm_labels($lref, $num_layers, $vendor, $model, $fh, $format);
+	_print_dimm_labels($lref, $num_layers, $vendor, $model, $fh, $format);
     } elsif (exists $$lref_prod{$pvendor}{$pname}) {
-        _print_dimm_labels($lref_prod, $num_layers_prod, $pvendor, $pname, $fh, $format);
+	_print_dimm_labels($lref_prod, $num_layers_prod, $pvendor, $pname, $fh, $format);
     }
 }
 
@@ -777,27 +765,27 @@ sub write_dimm_labels
     my ($lref, $num_layers, $vendor, $model) = @_;
 
     for my $mc (sort keys %{$$lref{$vendor}{$model}}) {
-        for my $top (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
-            for my $mid (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}}) {
-                for my $low (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}{$mid}}) {
+	for my $top (sort keys %{$$lref{$vendor}{$model}{$mc}}) {
+	    for my $mid (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}}) {
+		for my $low (sort keys %{$$lref{$vendor}{$model}{$mc}{$top}{$mid}}) {
 
-                    my $file = get_dimm_label_node($$num_layers{$vendor}{$model}, $mc, $top, $mid, $low);
+		    my $file = get_dimm_label_node($$num_layers{$vendor}{$model}, $mc, $top, $mid, $low);
 
-                    # Ignore sysfs files that don't exist. Might just be
-                    #  unpopulated bank.
-                    next unless -f $file;
+		    # Ignore sysfs files that don't exist. Might just be
+		    #  unpopulated bank.
+		    next unless -f $file;
 
-                    if (!open (DL, ">$file")) {
-                        warn ("Unable to open $file\n");
-                        next;
-                    }
+		    if (!open (DL, ">$file")) {
+			warn ("Unable to open $file\n");
+			next;
+		    }
 
-                    syswrite DL, $$lref{$vendor}{$model}{$mc}{$top}{$mid}{$low};
+		    syswrite DL, $$lref{$vendor}{$model}{$mc}{$top}{$mid}{$low};
 
-                    close (DL);
-                }
-            }
-        }
+		    close (DL);
+		}
+	    }
+	}
     }
 }
 
@@ -811,9 +799,9 @@ sub register_dimm_labels
     my $sysfs  = "/sys/devices/system/edac/mc";
 
     if (!exists $$lref{$vendor}{$model} && !exists $$lref_prod{$pvendor}{$pname}) {
-        log_error ("No dimm labels for $conf{mainboard}{vendor} " .
-                                      "model $conf{mainboard}{model}\n");
-        return 0;
+	log_error ("No dimm labels for $conf{mainboard}{vendor} " .
+				      "model $conf{mainboard}{model}\n");
+	return 0;
     }
     my $sysfs_dir = "/sys/devices/system/edac/mc";
 
@@ -822,9 +810,9 @@ sub register_dimm_labels
     select (undef, undef, undef, $conf{opt}{delay});
 
     if (exists $$lref{$vendor}{$model}) {
-        write_dimm_labels($lref, $num_layers, $vendor, $model);
+	write_dimm_labels($lref, $num_layers, $vendor, $model);
     } else {
-        write_dimm_labels($lref_prod, $num_layers_prod, $pvendor, $pname);
+	write_dimm_labels($lref_prod, $num_layers_prod, $pvendor, $pname);
     }
 
     return 1;
@@ -839,20 +827,20 @@ sub dimm_display_layer_rev($@)
 
     $layer++;
     if ($layer >= scalar(@pos) - 1) {
-        my $str_loc = join(':', @pos);
-        my $size = $dimm_size{$str_loc};
-        if (!$size) {
-            $size = 0;
-        }
-        my $s = sprintf "  %4i MB  |", $size;
-        $item_size = length($s);
-        return $s;
+	my $str_loc = join(':', @pos);
+	my $size = $dimm_size{$str_loc};
+	if (!$size) {
+	    $size = 0;
+	}
+	my $s = sprintf "  %4i MB  |", $size;
+	$item_size = length($s);
+	return $s;
     }
 
     my $s;
     for (my $i = 0; $i <= $max_pos[$layer]; $i++) {
-        $pos[$layer] = $i;
-        $s .= dimm_display_layer_rev($layer, @pos);
+	$pos[$layer] = $i;
+	$s .= dimm_display_layer_rev($layer, @pos);
     }
 
     return $s;
@@ -864,8 +852,8 @@ sub dimm_display_layer(@)
 
     my $s;
     for (my $i = 0; $i <= $max_pos[0]; $i++) {
-        $pos[0] = $i;
-        $s .= dimm_display_layer_rev(0, @pos);
+	$pos[0] = $i;
+	$s .= dimm_display_layer_rev(0, @pos);
     }
 
     return $s;
@@ -881,24 +869,24 @@ sub dimm_display_layer_header($$)
 
     my $s;
     for (my $i = 0; $i <= $layer; $i++) {
-        $n_items *= $max_pos[$i] + 1;
+	$n_items *= $max_pos[$i] + 1;
     }
     $scale = $tot_items / $n_items;
 
     my $d = 0;
     for (my $i = 0; $i < $n_items; $i++) {
-        my $val = sprintf("%s%d", $layers[$layer], $d);
-        $val = substr($val, 0, $scale * $item_size - 2);
-        my $fillsize =  $scale * $item_size - 1 - length($val);
-        $s .= "|";
-        $s .= " " x ($fillsize / 2);
-        $s .= $val;
-        $s .= " " x ($fillsize - floor($fillsize / 2));
+	my $val = sprintf("%s%d", $layers[$layer], $d);
+	$val = substr($val, 0, $scale * $item_size - 2);
+	my $fillsize =  $scale * $item_size - 1 - length($val);
+	$s .= "|";
+	$s .= " " x ($fillsize / 2);
+	$s .= $val;
+	$s .= " " x ($fillsize - floor($fillsize / 2));
 
-        $d++;
-        if ($d > $max_pos[$layer]) {
-            $d = 0;
-        }
+	$d++;
+	if ($d > $max_pos[$layer]) {
+	    $d = 0;
+	}
     }
     $s .= "|";
     return $s;
@@ -912,48 +900,48 @@ sub dimm_display_mem()
     my $first = 1;
 
     for (my $i = 0; $i < scalar(@pos) - 1; $i++) {
-        $pos[$i] = 0;
-        $tot_items *= $max_pos[$i] + 1;
+	$pos[$i] = 0;
+	$tot_items *= $max_pos[$i] + 1;
     }
 
     my $is_even = $max_pos[scalar(@max_pos) - 1] % 2;
     for (my $d = $max_pos[scalar(@max_pos) - 1]; $d >= 0; $d--) {
-        my $len;
+	my $len;
 
-        my $s = sprintf("%s%d: |", $layers[scalar(@max_pos) - 1], $d);
-        my $p1 = length($s) - 1;
+	my $s = sprintf("%s%d: |", $layers[scalar(@max_pos) - 1], $d);
+	my $p1 = length($s) - 1;
 
-        $pos[scalar(@pos) - 1] = $d;
-        $s .= dimm_display_layer(@pos);
-        $len += length($s);
+	$pos[scalar(@pos) - 1] = $d;
+	$s .= dimm_display_layer(@pos);
+	$len += length($s);
 
-        $sep = "-" x $p1;
-        $sep .= "+";
-        $sep .= "-" x ($len - $p1 - 2);
-        $sep .= "+";
+	$sep = "-" x $p1;
+	$sep .= "+";
+	$sep .= "-" x ($len - $p1 - 2);
+	$sep .= "+";
 
-        if ($first) {
-            my $sep1 = " " x $p1;
-            $sep1 .= "+";
-            $sep1 .= "-" x ($len - $p1 - 2);
-            $sep1 .= "+";
-            printf "$sep1\n";
-            for (my $layer = 0; $layer < scalar(@pos) - 1; $layer++) {
-                my $s = sprintf("%s%d: |", $layers[scalar(@max_pos) - 1], 0);
-                my $p1 = length($s) - 1;
-                my $msg = " " x $p1;
-                $msg .= dimm_display_layer_header($layer, $tot_items);
-                printf "$msg\n";
-            }
-            printf "$sep\n" if (!$is_even);
-            $first = 0;
-        }
+	if ($first) {
+	    my $sep1 = " " x $p1;
+	    $sep1 .= "+";
+	    $sep1 .= "-" x ($len - $p1 - 2);
+	    $sep1 .= "+";
+	    printf "$sep1\n";
+	    for (my $layer = 0; $layer < scalar(@pos) - 1; $layer++) {
+		my $s = sprintf("%s%d: |", $layers[scalar(@max_pos) - 1], 0);
+		my $p1 = length($s) - 1;
+		my $msg = " " x $p1;
+		$msg .= dimm_display_layer_header($layer, $tot_items);
+		printf "$msg\n";
+	    }
+	    printf "$sep\n" if (!$is_even);
+	    $first = 0;
+	}
 
-        if ($is_even && (($max_pos[scalar(@max_pos) - 1] - $d) % 2 == 0)) {
-            printf "$sep\n";
-        }
+	if ($is_even && (($max_pos[scalar(@max_pos) - 1] - $d) % 2 == 0)) {
+	    printf "$sep\n";
+	}
 
-        printf "$s\n";
+	printf "$s\n";
     }
     printf "$sep\n";
 }
@@ -961,11 +949,11 @@ sub dimm_display_mem()
 sub fill_csrow_size()
 {
     foreach my $str_loc (keys %rank_size) {
-        my @temp = split(/:/, $str_loc);
-        my $csrow = join(':', $temp[0], $temp[1]);
-        if ($csrow_ranks{$csrow}) {
-            $rank_size{$str_loc} = $csrow_size{$csrow} / $csrow_ranks{$csrow};
-        }
+	my @temp = split(/:/, $str_loc);
+	my $csrow = join(':', $temp[0], $temp[1]);
+	if ($csrow_ranks{$csrow}) {
+	    $rank_size{$str_loc} = $csrow_size{$csrow} / $csrow_ranks{$csrow};
+	}
     }
 }
 
@@ -976,15 +964,15 @@ sub display_memory_layout
     find({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
 
     if (!scalar(%csrow_size)) {
-        log_error ("No memories found at via edac.\n");
-        exit -1;
+	log_error ("No memories found at via edac.\n");
+	exit -1;
     } elsif (!scalar(%dimm_size)) {
-        fill_csrow_size;
-        $layers[0] = "mc";
-        $layers[1] = "csrow";
-        $layers[2] = "channel";
-        @max_pos = @max_csrow;
-        %dimm_size = %rank_size;
+	fill_csrow_size;
+	$layers[0] = "mc";
+	$layers[1] = "csrow";
+	$layers[2] = "channel";
+	@max_pos = @max_csrow;
+	%dimm_size = %rank_size;
     }
     dimm_display_mem();
 }
@@ -999,32 +987,32 @@ sub display_error_count
     find ({wanted => \&parse_dimm_nodes, no_chdir => 1}, $sysfs_dir);
 
     if (!scalar(keys %dimm_node)) {
-        log_error ("No DIMMs found in /sys or new sysfs EDAC interface not found.\n");
-        exit -1;
+	log_error ("No DIMMs found in /sys or new sysfs EDAC interface not found.\n");
+	exit -1;
     }
 
     foreach $key (keys %dimm_node) {
-        my $label_width;
+	my $label_width;
 
-        open IN, $dimm_label_file{$key};
-        chomp(my $label = <IN>);
-        close IN;
-        $label_width = length $label;
+	open IN, $dimm_label_file{$key};
+	chomp(my $label = <IN>);
+	close IN;
+	$label_width = length $label;
 
-        if ($label_width > $max_width) {
-            $max_width = $label_width;
-        }
-        $dimm_labels{$key} = $label;
+	if ($label_width > $max_width) {
+	    $max_width = $label_width;
+	}
+	$dimm_labels{$key} = $label;
     }
     my $string = "Label";
     $string .= " " x ($max_width - length $string);
     print($string . "\tCE\tUE\n");
 
     foreach $key (keys %dimm_node) {
-        my $ce_count = $dimm_ce_count{$key};
-        my $ue_count = $dimm_ue_count{$key};
+	my $ce_count = $dimm_ce_count{$key};
+	my $ue_count = $dimm_ue_count{$key};
 
-        print("$dimm_labels{$key}\t$ce_count\t$ue_count\n");
+	print("$dimm_labels{$key}\t$ce_count\t$ue_count\n");
     }
 }
 
@@ -1032,7 +1020,7 @@ sub find_prog
 {
     my ($file) = @_;
     for my $dir ("/sbin", "/usr/sbin", split ':', $ENV{PATH}) {
-        return "$dir/$file" if -x "$dir/$file";
+	return "$dir/$file" if -x "$dir/$file";
     }
     # log_error ("Failed to find $file in PATH\n");
     return "";
@@ -1043,26 +1031,26 @@ sub get_extlog_type
     my @types;
 
     if ($_[0] < 0 || $_[0] > 15) {
-        return "unknown-type";
+	return "unknown-type";
     }
 
     @types = ("unknown",
-              "no error",
-              "single-bit ECC",
-              "multi-bit ECC",
-              "single-symbol chipkill ECC",
-              "multi-symbol chipkill ECC",
-              "master abort",
-              "target abort",
-              "parity error",
-              "watchdog timeout",
-              "invalid address",
-              "mirror Broken",
-              "memory sparing",
-              "scrub corrected error",
-              "scrub uncorrected error",
-              "physical memory map-out event",
-              "unknown-type");
+	      "no error",
+	      "single-bit ECC",
+	      "multi-bit ECC",
+	      "single-symbol chipkill ECC",
+	      "multi-symbol chipkill ECC",
+	      "master abort",
+	      "target abort",
+	      "parity error",
+	      "watchdog timeout",
+	      "invalid address",
+	      "mirror Broken",
+	      "memory sparing",
+	      "scrub corrected error",
+	      "scrub uncorrected error",
+	      "physical memory map-out event",
+	      "unknown-type");
     return $types[$_[0]];
 }
 
@@ -1071,14 +1059,14 @@ sub get_extlog_severity
     my @sev;
 
     if ($_[0] < 0 || $_[0] > 3) {
-        return "unknown-severity";
+	return "unknown-severity";
     }
 
     @sev = ("recoverable",
-            "fatal",
-            "corrected",
-            "informational",
-            "unknown-severity");
+	    "fatal",
+	    "corrected",
+	    "informational",
+	    "unknown-severity");
     return $sev[$_[0]];
 }
 
@@ -1107,46 +1095,46 @@ sub get_cper_data_text
     my @out;
 
     if ($validation_bits & CPER_MEM_VALID_NODE) {
-        push @out, (sprintf "node=%d", $node);
+	push @out, (sprintf "node=%d", $node);
     }
     if ($validation_bits & CPER_MEM_VALID_CARD) {
-        push @out, (sprintf "card=%d", $card);
+	push @out, (sprintf "card=%d", $card);
     }
     if ($validation_bits & CPER_MEM_VALID_MODULE) {
-        push @out, (sprintf "module=%d", $module);
+	push @out, (sprintf "module=%d", $module);
     }
     if ($validation_bits & CPER_MEM_VALID_BANK) {
-        push @out, (sprintf "bank=%d", $bank);
+	push @out, (sprintf "bank=%d", $bank);
     }
     if ($validation_bits & CPER_MEM_VALID_DEVICE) {
-        push @out, (sprintf "device=%d", $device);
+	push @out, (sprintf "device=%d", $device);
     }
     if ($validation_bits & CPER_MEM_VALID_ROW) {
-        push @out, (sprintf "row=%d", $row);
+	push @out, (sprintf "row=%d", $row);
     }
     if ($validation_bits & CPER_MEM_VALID_COLUMN) {
-        push @out, (sprintf "column=%d", $column);
+	push @out, (sprintf "column=%d", $column);
     }
     if ($validation_bits & CPER_MEM_VALID_BIT_POSITION) {
-        push @out, (sprintf "bit_position=%d", $bit_pos);
+	push @out, (sprintf "bit_position=%d", $bit_pos);
     }
     if ($validation_bits & CPER_MEM_VALID_REQUESTOR_ID) {
-        push @out, (sprintf "0x%08x", $requestor_id);
+	push @out, (sprintf "0x%08x", $requestor_id);
     }
     if ($validation_bits & CPER_MEM_VALID_RESPONDER_ID) {
-        push @out, (sprintf "0x%08x", $responder_id);
+	push @out, (sprintf "0x%08x", $responder_id);
     }
     if ($validation_bits & CPER_MEM_VALID_TARGET_ID) {
-        push @out, (sprintf "0x%08x", $target_id);
+	push @out, (sprintf "0x%08x", $target_id);
     }
     if ($validation_bits & CPER_MEM_VALID_RANK_NUMBER) {
-        push @out, (sprintf "rank=%d", $rank);
+	push @out, (sprintf "rank=%d", $rank);
     }
     if ($validation_bits & CPER_MEM_VALID_CARD_HANDLE) {
-        push @out, (sprintf "mem_array_handle=%d", $mem_array_handle);
+	push @out, (sprintf "mem_array_handle=%d", $mem_array_handle);
     }
     if ($validation_bits & CPER_MEM_VALID_MODULE_HANDLE) {
-        push @out, (sprintf "mem_dev_handle=%d", $mem_dev_handle);
+	push @out, (sprintf "mem_dev_handle=%d", $mem_dev_handle);
     }
 
     return join (", ", @out);
@@ -1159,12 +1147,294 @@ sub get_uuid_le
     my @le16_table = (3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15);
 
     for (my $i = 0; $i < 16; $i++) {
-        $out .= sprintf "%.2x", $bytes[$le16_table[$i]];
-        if ($i == 3 or $i == 5 or $i == 7 or $i == 9) {
-            $out .= "-";
-        }
+	$out .= sprintf "%.2x", $bytes[$le16_table[$i]];
+	if ($i == 3 or $i == 5 or $i == 7 or $i == 9) {
+	    $out .= "-";
+	}
     }
     return $out;
+}
+
+use constant {
+    CXL_AER_UE_CACHE_DATA_PARITY => 0x0001,
+    CXL_AER_UE_CACHE_ADDR_PARITY => 0x0002,
+    CXL_AER_UE_CACHE_BE_PARITY => 0x0004,
+    CXL_AER_UE_CACHE_DATA_ECC => 0x0008,
+    CXL_AER_UE_MEM_DATA_PARITY => 0x0010,
+    CXL_AER_UE_MEM_ADDR_PARITY => 0x0020,
+    CXL_AER_UE_MEM_BE_PARITY => 0x0040,
+    CXL_AER_UE_MEM_DATA_ECC => 0x0080,
+    CXL_AER_UE_REINIT_THRESH => 0x0100,
+    CXL_AER_UE_RSVD_ENCODE => 0x0200,
+    CXL_AER_UE_POISON => 0x0400,
+    CXL_AER_UE_RECV_OVERFLOW => 0x0800,
+    CXL_AER_UE_INTERNAL_ERR => 0x4000,
+    CXL_AER_UE_IDE_TX_ERR => 0x8000,
+    CXL_AER_UE_IDE_RX_ERR => 0x10000,
+};
+
+sub get_cxl_ue_error_status_text
+{
+    my $error_status = $_[0];
+    my @out;
+
+    if ($error_status & CXL_AER_UE_CACHE_DATA_PARITY) {
+	push @out, (sprintf "\'Cache Data Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_ADDR_PARITY) {
+	push @out, (sprintf "\'Cache Address Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_BE_PARITY) {
+	push @out, (sprintf "\'Cache Byte Enable Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_CACHE_DATA_ECC) {
+	push @out, (sprintf "\'Cache Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_DATA_PARITY) {
+	push @out, (sprintf "\'Memory Data Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_ADDR_PARITY) {
+	push @out, (sprintf "\'Memory Address Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_BE_PARITY) {
+	push @out, (sprintf "\'Memory Byte Enable Parity Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_MEM_DATA_ECC) {
+	push @out, (sprintf "\'Memory Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_REINIT_THRESH) {
+	push @out, (sprintf "\'REINIT Threshold Hit\' ");
+    }
+    if ($error_status & CXL_AER_UE_RSVD_ENCODE) {
+	push @out, (sprintf "\'Received Unrecognized Encoding\' ");
+    }
+    if ($error_status & CXL_AER_UE_POISON) {
+	push @out, (sprintf "\'Received Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_UE_RECV_OVERFLOW) {
+	push @out, (sprintf "\'Receiver Overflow\' ");
+    }
+    if ($error_status & CXL_AER_UE_INTERNAL_ERR) {
+	push @out, (sprintf "\'Component Specific Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_IDE_TX_ERR) {
+	push @out, (sprintf "\'IDE Tx Error\' ");
+    }
+    if ($error_status & CXL_AER_UE_IDE_RX_ERR) {
+	push @out, (sprintf "\'IDE Rx Error\' ");
+    }
+
+    return join (", ", @out);
+}
+
+use constant {
+    CXL_AER_CE_CACHE_DATA_ECC => 0x0001,
+    CXL_AER_CE_MEM_DATA_ECC => 0x0002,
+    CXL_AER_CE_CRC_THRESH => 0x0004,
+    CXL_AER_CE_RETRY_THRESH => 0x0008,
+    CXL_AER_CE_CACHE_POISON => 0x0010,
+    CXL_AER_CE_MEM_POISON => 0x0020,
+    CXL_AER_CE_PHYS_LAYER_ERR => 0x0040,
+};
+
+sub get_cxl_ce_error_status_text
+{
+    my $error_status = $_[0];
+    my @out;
+
+    if ($error_status & CXL_AER_CE_CACHE_DATA_ECC) {
+	push @out, (sprintf "\'Cache Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_CE_MEM_DATA_ECC) {
+	push @out, (sprintf "\'Memory Data ECC Error\' ");
+    }
+    if ($error_status & CXL_AER_CE_CRC_THRESH) {
+	push @out, (sprintf "\'CRC Threshold Hit\' ");
+    }
+    if ($error_status & CXL_AER_CE_RETRY_THRESH) {
+	push @out, (sprintf "\'Retry Threshold\' ");
+    }
+    if ($error_status & CXL_AER_CE_CACHE_POISON) {
+	push @out, (sprintf "\'Received Cache Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_CE_MEM_POISON) {
+	push @out, (sprintf "\'Received Memory Poison From Peer\' ");
+    }
+    if ($error_status & CXL_AER_CE_PHYS_LAYER_ERR) {
+	push @out, (sprintf "\'Received Error From Physical Layer\' ");
+    }
+
+    return join (", ", @out);
+}
+
+use constant {
+    CXL_EVENT_RECORD_FLAG_PERMANENT => 0x0004,
+    CXL_EVENT_RECORD_FLAG_MAINT_NEEDED => 0x0008,
+    CXL_EVENT_RECORD_FLAG_PERF_DEGRADED => 0x0010,
+    CXL_EVENT_RECORD_FLAG_HW_REPLACE => 0x0020,
+};
+
+sub get_cxl_hdr_flags_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_EVENT_RECORD_FLAG_PERMANENT) {
+	push @out, (sprintf "\'PERMANENT_CONDITION\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_MAINT_NEEDED) {
+	push @out, (sprintf "\'MAINTENANCE_NEEDED\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_PERF_DEGRADED) {
+	push @out, (sprintf "\'PERFORMANCE_DEGRADED\' ");
+    }
+    if ($flags & CXL_EVENT_RECORD_FLAG_HW_REPLACE) {
+	push @out, (sprintf "\'HARDWARE_REPLACEMENT_NEEDED\' ");
+    }
+
+    return join (", ", @out);
+}
+
+use constant {
+    CXL_DPA_VOLATILE => 0x0001,
+    CXL_DPA_NOT_REPAIRABLE => 0x0002,
+};
+
+sub get_cxl_dpa_flags_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_DPA_VOLATILE) {
+	push @out, (sprintf "\'VOLATILE\' ");
+    }
+    if ($flags & CXL_DPA_NOT_REPAIRABLE) {
+	push @out, (sprintf "\'NOT_REPAIRABLE\' ");
+    }
+
+    return join (", ", @out);
+}
+
+use constant {
+    CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT => 0x0001,
+    CXL_GMER_EVT_DESC_THRESHOLD_EVENT => 0x0002,
+    CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW => 0x0004,
+};
+
+sub get_cxl_descriptor_flags_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT) {
+	push @out, (sprintf "\'UNCORRECTABLE EVENT\' ");
+    }
+    if ($flags & CXL_GMER_EVT_DESC_THRESHOLD_EVENT) {
+	push @out, (sprintf "\'THRESHOLD EVENT\' ");
+    }
+    if ($flags & CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW) {
+	push @out, (sprintf "\'POISON LIST OVERFLOW\' ");
+    }
+
+    return join (", ", @out);
+}
+
+sub get_cxl_mem_event_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 2) {
+	return "unknown-type";
+    }
+
+    @types = ("ECC Error",
+	      "Invalid Address",
+	      "Data Path Error");
+
+    return $types[$_[0]];
+}
+
+sub get_cxl_transaction_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 6) {
+	return "unknown-type";
+    }
+
+    @types = ("Unknown",
+	      "Host Read",
+	      "Host Write",
+	      "Host Scan Media",
+	      "Host Inject Poison",
+	      "Internal Media Scrub",
+	      "Internal Media Management");
+
+    return $types[$_[0]];
+}
+
+sub get_cxl_dev_event_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 5) {
+	return "unknown-type";
+    }
+
+    @types = ("Health Status Change",
+	      "Media Status Change",
+	      "Life Used Change",
+	      "Temperature Change",
+	      "Data Path Error",
+	      "LSA Error");
+
+    return $types[$_[0]];
+}
+
+use constant {
+    CXL_DHI_HS_MAINTENANCE_NEEDED => 0x0001,
+    CXL_DHI_HS_PERFORMANCE_DEGRADED => 0x0002,
+    CXL_DHI_HS_HW_REPLACEMENT_NEEDED => 0x0004,
+};
+
+sub get_cxl_health_status_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_DHI_HS_MAINTENANCE_NEEDED) {
+	push @out, (sprintf "\'MAINTENANCE_NEEDED\' ");
+    }
+    if ($flags & CXL_DHI_HS_PERFORMANCE_DEGRADED) {
+	push @out, (sprintf "\'PERFORMANCE_DEGRADED\' ");
+    }
+    if ($flags & CXL_DHI_HS_HW_REPLACEMENT_NEEDED) {
+	push @out, (sprintf "\'REPLACEMENT_NEEDED\' ");
+    }
+
+    return join (", ", @out);
+}
+
+sub get_cxl_media_status
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 9) {
+	return "unknown";
+    }
+
+    @types = ("Normal",
+	      "Not Ready",
+	      "Write Persistency Lost",
+	      "All Data Lost",
+	      "Write Persistency Loss in the Event of Power Loss",
+	      "Write Persistency Loss in Event of Shutdown",
+	      "Write Persistency Loss Imminent",
+	      "All Data Loss in Event of Power Loss",
+	      "All Data loss in the Event of Shutdown",
+	      "All Data Loss Imminent");
+
+    return $types[$_[0]];
 }
 
 sub summary
@@ -1174,7 +1444,7 @@ sub summary
     my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg, $action_result);
     my ($etype, $severity, $etype_string, $severity_string);
     my ($dev_name, $dev);
-    my ($mpidr);
+    my ($mpidr, $memdev);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1185,141 +1455,272 @@ sub summary
     $query_handle->bind_columns(\($err_type, $label, $mc, $top, $mid, $low, $count));
     $out = "";
     while($query_handle->fetch()) {
-        $out .= "\t$err_type on DIMM Label(s): '$label' location: $mc:$top:$mid:$low errors: $count\n";
+	$out .= "\t$err_type on DIMM Label(s): '$label' location: $mc:$top:$mid:$low errors: $count\n";
     }
     if ($out ne "") {
-        print "Memory controller events summary:\n$out\n";
+	print "Memory controller events summary:\n$out\n";
     } else {
-        print "No Memory errors.\n\n";
+	print "No Memory errors.\n\n";
     }
     $query_handle->finish;
 
     # PCIe AER aer_event errors
     if ($has_aer == 1) {
-        $query = "select err_type, err_msg, count(*) from aer_event$conf{opt}{since} group by err_type, err_msg";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_type, $msg, $count));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "\t$count $err_type errors: $msg\n";
-        }
-        if ($out ne "") {
-            print "PCIe AER events summary:\n$out\n";
-        } else {
-            print "No PCIe AER errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select err_type, err_msg, count(*) from aer_event$conf{opt}{since} group by err_type, err_msg";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($err_type, $msg, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$count $err_type errors: $msg\n";
+	}
+	if ($out ne "") {
+	    print "PCIe AER events summary:\n$out\n";
+	} else {
+	    print "No PCIe AER errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # ARM processor arm_event errors
     if ($has_arm == 1) {
-        $query = "select mpidr, count(*) from arm_event$conf{opt}{since} group by mpidr";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($mpidr, $count));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= sprintf "\tCPU(mpidr=0x%x) has %d errors\n", $mpidr, $count;
-        }
-        if ($out ne "") {
-            print "ARM processor events summary:\n$out\n";
-        } else {
-            print "No ARM processor errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select mpidr, count(*) from arm_event$conf{opt}{since} group by mpidr";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($mpidr, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= sprintf "\tCPU(mpidr=0x%x) has %d errors\n", $mpidr, $count;
+	}
+	if ($out ne "") {
+	    print "ARM processor events summary:\n$out\n";
+	} else {
+	    print "No ARM processor errors.\n\n";
+	}
+	$query_handle->finish;
+    }
+
+    # CXL errors
+    if ($has_cxl == 1) {
+	# CXL AER uncorrectable errors
+	$query = "select memdev, count(*) from cxl_aer_ue_event$conf{opt}{since} group by memdev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($memdev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$memdev errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "CXL AER uncorrectable events summary:\n$out\n";
+	} else {
+	    print "No CXL AER uncorrectable errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL AER correctable errors
+	$query = "select memdev, count(*) from cxl_aer_ce_event$conf{opt}{since} group by memdev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($memdev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$memdev errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "CXL AER correctable events summary:\n$out\n";
+	} else {
+	    print "No CXL AER correctable errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL overflow errors
+	$query = "select memdev, count(*) from cxl_overflow_event$conf{opt}{since} group by memdev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($memdev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$memdev errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "CXL overflow events summary:\n$out\n";
+	} else {
+	    print "No CXL overflow errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL poison errors
+	$query = "select memdev, count(*) from cxl_poison_event$conf{opt}{since} group by memdev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($memdev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$memdev errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "CXL poison events summary:\n$out\n";
+	} else {
+	    print "No CXL poison errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL generic errors
+	$query = "select memdev, count(*) from cxl_generic_event$conf{opt}{since} group by memdev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($memdev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$memdev errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "CXL  generic events summary:\n$out\n";
+	} else {
+	    print "No CXL generic errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL general media errors
+	$query = "select memdev, count(*) from cxl_general_media_event$conf{opt}{since} group by memdev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($memdev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$memdev errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "CXL general media events summary:\n$out\n";
+	} else {
+	    print "No CXL general media errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL DRAM errors
+	$query = "select memdev, count(*) from cxl_dram_event$conf{opt}{since} group by memdev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($memdev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$memdev errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "CXL DRAM events summary:\n$out\n";
+	} else {
+	    print "No CXL DRAM errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL memory module errors
+	$query = "select memdev, count(*) from cxl_memory_module_event$conf{opt}{since} group by memdev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($memdev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$memdev errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "CXL memory module events summary:\n$out\n";
+	} else {
+	    print "No CXL memory module errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # extlog errors
     if ($has_extlog == 1) {
-        $query = "select etype, severity, count(*) from extlog_event$conf{opt}{since} group by etype, severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($etype, $severity, $count));
-        $out = "";
-        while($query_handle->fetch()) {
-            $etype_string = get_extlog_type($etype);
-            $severity_string = get_extlog_severity($severity);
-            $out .= "\t$count $etype_string $severity_string errors\n";
-        }
-        if ($out ne "") {
-            print "Extlog records summary:\n$out";
-        } else {
-            print "No Extlog errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select etype, severity, count(*) from extlog_event$conf{opt}{since} group by etype, severity";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($etype, $severity, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $etype_string = get_extlog_type($etype);
+	    $severity_string = get_extlog_severity($severity);
+	    $out .= "\t$count $etype_string $severity_string errors\n";
+	}
+	if ($out ne "") {
+	    print "Extlog records summary:\n$out";
+	} else {
+	    print "No Extlog errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # devlink errors
     if ($has_devlink == 1) {
-        $query = "select dev_name, count(*) from devlink_event$conf{opt}{since} group by dev_name";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($dev_name, $count));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "\t$dev_name has $count errors\n";
-        }
-        if ($out ne "") {
-            print "Devlink records summary:\n$out";
-        } else {
-            print "No devlink errors.\n";
-        }
-        $query_handle->finish;
+	$query = "select dev_name, count(*) from devlink_event$conf{opt}{since} group by dev_name";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($dev_name, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$dev_name has $count errors\n";
+	}
+	if ($out ne "") {
+	    print "Devlink records summary:\n$out";
+	} else {
+	    print "No devlink errors.\n";
+	}
+	$query_handle->finish;
     }
 
     # Disk errors
     if ($has_disk_errors == 1) {
-        $query = "select dev, count(*) from disk_errors$conf{opt}{since} group by dev";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($dev, $count));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "\t$dev has $count errors\n";
-        }
-        if ($out ne "") {
-            print "Disk errors summary:\n$out";
-        } else {
-            print "No disk errors.\n";
-        }
-        $query_handle->finish;
+	$query = "select dev, count(*) from disk_errors$conf{opt}{since} group by dev";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($dev, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$dev has $count errors\n";
+	}
+	if ($out ne "") {
+	    print "Disk errors summary:\n$out";
+	} else {
+	    print "No disk errors.\n";
+	}
+	$query_handle->finish;
     }
 
     # Memory failure errors
     if ($has_mem_failure == 1) {
-        $query = "select action_result, count(*) from memory_failure_event$conf{opt}{since} group by action_result";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($action_result, $count));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "\t$action_result errors: $count\n";
-        }
-        if ($out ne "") {
-            print "Memory failure events summary:\n$out\n";
-        } else {
-            print "No Memory failure errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select action_result, count(*) from memory_failure_event$conf{opt}{since} group by action_result";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($action_result, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$action_result errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "Memory failure events summary:\n$out\n";
+	} else {
+	    print "No Memory failure errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # MCE mce_record errors
     if ($has_mce == 1) {
-        $query = "select error_msg, count(*) from mce_record$conf{opt}{since} group by error_msg";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($msg, $count));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "\t$count $msg errors\n";
-        }
-        if ($out ne "") {
-            print "MCE records summary:\n$out";
-        } else {
-            print "No MCE errors.\n";
-        }
-        $query_handle->finish;
+	$query = "select error_msg, count(*) from mce_record$conf{opt}{since} group by error_msg";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($msg, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$count $msg errors\n";
+	}
+	if ($out ne "") {
+	    print "MCE records summary:\n$out";
+	} else {
+	    print "No MCE errors.\n";
+	}
+	$query_handle->finish;
     }
 
     undef($dbh);
@@ -1329,12 +1730,19 @@ sub errors
 {
     require DBI;
     my ($query, $query_handle, $id, $time, $devname, $count, $type, $msg, $label, $mc, $top, $mid, $low, $addr, $grain, $syndrome, $detail, $out);
-    my ($mcgcap,$mcgstatus, $status, $misc, $ip, $tsc, $walltime, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $mcgstatus_msg, $mcistatus_msg, $user_action, $mc_location);
+    my ($mcgcap,$mcgstatus, $status, $misc, $ip, $tsc, $walltime, $ppin, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $microcode, $bank_name, $mcgstatus_msg, $mcistatus_msg, $mcastatus_msg, $user_action, $mc_location);
     my ($timestamp, $etype, $severity, $etype_string, $severity_string, $fru_id, $fru_text, $cper_data);
     my ($bus_name, $dev_name, $driver_name, $reporter_name);
     my ($dev, $sector, $nr_sector, $error, $rwbs, $cmd);
     my ($error_count, $affinity, $mpidr, $r_state, $psci_state);
     my ($pfn, $page_type, $action_result);
+    my ($memdev, $host, $serial, $error_status, $first_error, $header_log);
+    my ($log_type, $first_ts, $last_ts);
+    my ($trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts);
+    my ($hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $data);
+    my ($dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id);
+    my ($nibble_mask, $bank_group, $row, $column, $cor_mask);
+    my ($event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1342,172 +1750,447 @@ sub errors
     $query = "select id, timestamp, err_count, err_type, err_msg, label, mc, top_layer,middle_layer,lower_layer, address, grain, syndrome, driver_detail from mc_event$conf{opt}{since} order by id";
     $query_handle = $dbh->prepare($query);
     if (!$query_handle) {
-        log_error ("mc_event table missing from $dbname. Run 'rasdaemon --record'.\n");
-        exit -1
+	log_error ("mc_event table missing from $dbname. Run 'rasdaemon --record'.\n");
+	exit -1
     }
     $query_handle->execute();
     $query_handle->bind_columns(\($id, $time, $count, $type, $msg, $label, $mc, $top, $mid, $low, $addr, $grain, $syndrome, $detail));
     $out = "";
     while($query_handle->fetch()) {
-        $out .= "$id $time $count $type error(s): $msg at $label location: $mc:$top:$mid:$low, addr $addr, grain $grain, syndrome $syndrome $detail\n";
+	$out .= "$id $time $count $type error(s): $msg at $label location: $mc:$top:$mid:$low, addr $addr, grain $grain, syndrome $syndrome $detail\n";
     }
     if ($out ne "") {
-        print "Memory controller events:\n$out\n";
+	print "Memory controller events:\n$out\n";
     } else {
-        print "No Memory errors.\n\n";
+	print "No Memory errors.\n\n";
     }
     $query_handle->finish;
 
     # PCIe AER aer_event errors
     if ($has_aer == 1) {
-        $query = "select id, timestamp, dev_name, err_type, err_msg from aer_event$conf{opt}{since} order by id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $time, $devname, $type, $msg));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "$id $time $devname $type error: $msg\n";
-        }
-        if ($out ne "") {
-            print "PCIe AER events:\n$out\n";
-        } else {
-            print "No PCIe AER errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select id, timestamp, dev_name, err_type, err_msg from aer_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $time, $devname, $type, $msg));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $time $devname $type error: $msg\n";
+	}
+	if ($out ne "") {
+	    print "PCIe AER events:\n$out\n";
+	} else {
+	    print "No PCIe AER errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # ARM processor arm_event errors
     if ($has_arm == 1) {
-        $query = "select id, timestamp, error_count, affinity, mpidr, running_state, psci_state from arm_event$conf{opt}{since} order by id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $error_count, $affinity, $mpidr, $r_state, $psci_state));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "$id $timestamp error: ";
-            $out .= "error_count=$error_count, " if ($error_count);
-            $out .= "affinity_level=$affinity, ";
-            $out .= sprintf "mpidr=0x%x, ", $mpidr;
-            $out .= sprintf "running_state=0x%x, ", $r_state;
-            $out .= sprintf "psci_state=0x%x", $psci_state;
-            $out .= "\n";
-        }
-        if ($out ne "") {
-            print "ARM processor events:\n$out\n";
-        } else {
-            print "No ARM processor errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select id, timestamp, error_count, affinity, mpidr, running_state, psci_state from arm_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $error_count, $affinity, $mpidr, $r_state, $psci_state));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "error_count=$error_count, " if ($error_count);
+	    $out .= "affinity_level=$affinity, ";
+	    $out .= sprintf "mpidr=0x%x, ", $mpidr;
+	    $out .= sprintf "running_state=0x%x, ", $r_state;
+	    $out .= sprintf "psci_state=0x%x", $psci_state;
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "ARM processor events:\n$out\n";
+	} else {
+	    print "No ARM processor errors.\n\n";
+	}
+	$query_handle->finish;
+    }
+
+    # CXL errors
+    if ($has_cxl == 1) {
+	# CXL AER uncorrectable errors
+	use constant SZ_512 => 0x200;
+	use constant CXL_HEADERLOG_SIZE_U32 => SZ_512/32;
+	$query = "select id, timestamp, memdev, host, serial, error_status, first_error, header_log from cxl_aer_ue_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $error_status, $first_error, $header_log));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+	    $out .= "host=$host, " if (defined $host && length $host);
+	    $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+	    if (defined $error_status && length $error_status) {
+		$out .= sprintf "error_status: %s, ", get_cxl_ue_error_status_text($error_status);
+	    }
+	    if (defined $first_error && length $first_error) {
+		$out .= sprintf "first_error: %s, ", get_cxl_ue_error_status_text($first_error);
+	    }
+	    if (defined $header_log && length $header_log) {
+		$out .= sprintf "header_log:\n";
+		my @bytes = unpack "C*", $header_log;
+		for (my $i = 0; $i < CXL_HEADERLOG_SIZE_U32; $i++) {
+		    $out .= sprintf "%08x ", $bytes[$i];
+		}
+	    }
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "CXL AER uncorrectable events:\n$out\n";
+	} else {
+	    print "No CXL AER uncorrectable errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL AER correctable errors
+	$query = "select id, timestamp, memdev, host, serial, error_status from cxl_aer_ce_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $error_status));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+	    $out .= "host=$host, " if (defined $host && length $host);
+	    $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+	    if (defined $error_status && length $error_status) {
+		$out .= sprintf "error_status: %s, ", get_cxl_ce_error_status_text($error_status);
+	    }
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "CXL AER correctable events:\n$out\n";
+	} else {
+	    print "No CXL AER correctable errors.\n\n";
+	}
+	$query_handle->finish;
+
+	# CXL overflow errors
+	$query = "select id, timestamp, memdev, host, serial, log_type, count, first_ts, last_ts from cxl_overflow_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $count, $first_ts, $last_ts));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+	    $out .= "host=$host, " if (defined $host && length $host);
+	    $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+	    $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+	    $out .= sprintf "%u records from $first_ts to $last_ts", $count if (defined $count && length $count);
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "CXL overflow events:\n$out\n";
+	} else {
+	    print "No CXL overflow errors.\n\n";
+	}
+
+	# CXL poison errors
+	$query = "select id, timestamp, memdev, host, serial, trace_type, region, region_uuid, hpa, dpa, dpa_length, source, flags, overflow_ts from cxl_poison_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+	    $out .= "host=$host, " if (defined $host && length $host);
+	    $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+	    $out .= "trace_type=$trace_type, " if (defined $trace_type && length $trace_type);
+	    $out .= "region=$region, " if (defined $region && length $region);
+	    $out .= "region_uuid=$region_uuid, " if (defined $region_uuid && length $region_uuid);
+	    $out .= sprintf "hpa=0x%llx, ", $hpa if (defined $hpa && length $hpa);
+	    $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
+	    $out .= sprintf "dpa_length=0x%x, ", $dpa_length if (defined $dpa_length && length $dpa_length);
+	    $out .= "source=$source, " if (defined $source && length $source);
+	    $out .= sprintf "flags=%d, ", $flags if (defined $flags && length $flags);
+	    $out .= "overflow timestamp=$overflow_ts " if (defined $overflow_ts && length $overflow_ts);
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "CXL poison events:\n$out\n";
+	} else {
+	    print "No CXL poison errors.\n\n";
+	}
+
+	# CXL generic errors
+	use constant CXL_EVENT_RECORD_DATA_LENGTH => 0x50;
+	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, data from cxl_generic_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $data));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+	    $out .= "host=$host, " if (defined $host && length $host);
+	    $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+	    $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+	    $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+	    $out .= sprintf "hdr_flags=0x%llx %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+	    $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+	    $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+	    $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+	    $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+	    $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+	    if (defined $data && length $data) {
+		$out .= sprintf "data:\n";
+		my @bytes = unpack "C*", $data;
+		for (my $i = 0; $i < CXL_EVENT_RECORD_DATA_LENGTH; $i++) {
+		    if (($i > 0) && (($i % 16) == 0)) {
+			$out .= sprintf "\n %08x: ", $i;
+		    }
+		    $out .= sprintf "%02x%02x%02x%02x ", $bytes[$i], $bytes[$i + 1], $bytes[$i + 2], $bytes[$i + 3];
+		}
+	    }
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "CXL generic events:\n$out\n";
+	} else {
+	    print "No CXL generic errors.\n\n";
+	}
+
+	# CXL general media errors
+	use constant CXL_EVENT_GEN_MED_COMP_ID_SIZE => 0x10;
+	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, device, comp_id from cxl_general_media_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $dpa, $dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+	    $out .= "host=$host, " if (defined $host && length $host);
+	    $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+	    $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+	    $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+	    $out .= sprintf "hdr_flags=0x%llx %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+	    $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+	    $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+	    $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+	    $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+	    $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+	    $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
+	    $out .= sprintf "dpa_flags: %s, ", get_cxl_dpa_flags_text($dpa_flags) if (defined $dpa_flags && length $dpa_flags);
+	    $out .= sprintf "descriptor_flags: %s, ", get_cxl_descriptor_flags_text($descriptor) if (defined $descriptor && length $descriptor);
+	    $out .= sprintf "memory event type: %s, ", get_cxl_mem_event_type($mem_event_type) if (defined $mem_event_type && length $mem_event_type);
+	    $out .= sprintf "transaction_type: %s, ", get_cxl_transaction_type($transaction_type) if (defined $transaction_type && length $transaction_type);
+	    $out .= sprintf "channel=%u, ", $channel if (defined $channel && length $channel);
+	    $out .= sprintf "rank=%u, ", $rank if (defined $rank && length $rank);
+	    $out .= sprintf "device=0x%x, ", $device if (defined $device && length $device);
+	    if (defined $comp_id && length $comp_id) {
+		$out .= sprintf "component_id:";
+		my @bytes = unpack "C*", $comp_id;
+		for (my $i = 0; $i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; $i++) {
+		    $out .= sprintf "%02x ", $bytes[$i];
+		}
+	    }
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "CXL general media events:\n$out\n";
+	} else {
+	    print "No CXL general media errors.\n\n";
+	}
+
+	# CXL DRAM errors
+	use constant CXL_EVENT_DER_CORRECTION_MASK_SIZE => 0x20;
+	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, nibble_mask, bank_group, bank, row, column, cor_mask from cxl_dram_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $dpa, $dpa_flags, $descriptor, $type, $transaction_type, $channel, $rank, $nibble_mask, $bank_group, $bank, $row, $column, $cor_mask));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+	    $out .= "host=$host, " if (defined $host && length $host);
+	    $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+	    $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+	    $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+	    $out .= sprintf "hdr_flags=0x%llx, %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+	    $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+	    $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+	    $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+	    $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+	    $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+	    $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
+	    $out .= sprintf "dpa_flags: %s, ", get_cxl_dpa_flags_text($dpa_flags) if (defined $dpa_flags && length $dpa_flags);
+	    $out .= sprintf "descriptor_flags: %s, ", get_cxl_descriptor_flags_text($descriptor) if (defined $descriptor && length $descriptor);
+	    $out .= sprintf "memory event type: %s, ", get_cxl_mem_event_type($type) if (defined $type && length $type);
+	    $out .= sprintf "transaction_type: %s, ", get_cxl_transaction_type($transaction_type) if (defined $transaction_type && length $transaction_type);
+	    $out .= sprintf "channel=%u, ", $channel if (defined $channel && length $channel);
+	    $out .= sprintf "rank=%u, ", $rank if (defined $rank && length $rank);
+	    $out .= sprintf "nibble_mask=%u, ", $nibble_mask if (defined $nibble_mask && length $nibble_mask);
+	    $out .= sprintf "bank_group=%u, ", $bank_group if (defined $bank_group && length $bank_group);
+	    $out .= sprintf "bank=%u, ", $bank if (defined $bank && length $bank);
+	    $out .= sprintf "row=%u, ", $row if (defined $row && length $row);
+	    $out .= sprintf "column=%u, ", $column if (defined $column && length $column);
+	    if (defined $cor_mask && length $cor_mask) {
+		$out .= sprintf "correction_mask:";
+		my @bytes = unpack "C*", $cor_mask;
+		for (my $i = 0; $i < CXL_EVENT_DER_CORRECTION_MASK_SIZE; $i++) {
+		    $out .= sprintf "%02x ", $bytes[$i];
+		}
+	    }
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "CXL DRAM events:\n$out\n";
+	} else {
+	    print "No CXL DRAM errors.\n\n";
+	}
+
+	# CXL memory module errors
+	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, event_type, health_status, media_status, life_used, dirty_shutdown_cnt, cor_vol_err_cnt, cor_per_err_cnt, device_temp, add_status from cxl_memory_module_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "memdev=$memdev, "  if (defined $memdev && length $memdev);
+	    $out .= "host=$host, " if (defined $host && length $host);
+	    $out .= sprintf "serial=0x%llx, ", $serial if (defined $serial && length $serial);
+	    $out .= "log=$log_type, " if (defined $log_type && length $log_type);
+	    $out .= "hdr_uuid=$hdr_uuid, " if (defined $hdr_uuid && length $hdr_uuid);
+	    $out .= sprintf "hdr_flags=0x%llx, %s, ", $hdr_flags, get_cxl_hdr_flags_text($hdr_flags) if (defined $hdr_flags && length $hdr_flags);
+	    $out .= sprintf "hdr_handle=0x%x, ", $hdr_handle if (defined $hdr_handle && length $hdr_handle);
+	    $out .= sprintf "hdr_related_handle=0x%x, ", $hdr_related_handle if (defined $hdr_related_handle && length $hdr_related_handle);
+	    $out .= "hdr_timestamp=$hdr_ts, " if (defined $hdr_ts && length $hdr_ts);
+	    $out .= sprintf "hdr_length=%u, ", $hdr_length if (defined $hdr_length && length $hdr_length);
+	    $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
+	    $out .= sprintf "event_type: %s, ", get_cxl_dev_event_type($event_type)  if (defined $event_type && length $event_type);
+	    $out .= sprintf "health_status: %s, ", get_cxl_health_status_text($health_status)  if (defined $health_status && length $health_status);
+	    $out .= sprintf "media_status: %s, ", get_cxl_media_status($media_status)  if (defined $media_status && length $media_status);
+	    $out .= sprintf "life_used=%u, ", $life_used  if (defined $life_used && length $life_used);
+	    $out .= sprintf "dirty_shutdown_cnt=%u, ", $dirty_shutdown_cnt  if (defined $dirty_shutdown_cnt && length $dirty_shutdown_cnt);
+	    $out .= sprintf "cor_vol_err_cnt=%u, ", $cor_vol_err_cnt  if (defined $cor_vol_err_cnt && length $cor_vol_err_cnt);
+	    $out .= sprintf "cor_per_err_cnt=%u, ", $cor_per_err_cnt  if (defined $cor_per_err_cnt && length $cor_per_err_cnt);
+	    $out .= sprintf "device_temp=%u, ", $device_temp  if (defined $device_temp && length $device_temp);
+	    $out .= sprintf "add_status=%u ", $add_status  if (defined $add_status && length $add_status);
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "CXL memory module events:\n$out\n";
+	} else {
+	    print "No CXL memory module errors.\n\n";
+	}
     }
 
     # Extlog errors
     if ($has_extlog == 1) {
-        $query = "select id, timestamp, etype, severity, address, fru_id, fru_text, cper_data from extlog_event$conf{opt}{since} order by id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $etype, $severity, $addr, $fru_id, $fru_text, $cper_data));
-        $out = "";
-        while($query_handle->fetch()) {
-            $etype_string = get_extlog_type($etype);
-            $severity_string = get_extlog_severity($severity);
-            $out .= "$id $timestamp error: ";
-            $out .= "type=$etype_string, ";
-            $out .= "severity=$severity_string, ";
-            $out .= sprintf "address=0x%08x, ", $addr;
-            $out .= sprintf "fru_id=%s, ", get_uuid_le($fru_id);
-            $out .= "fru_text='$fru_text', ";
-            $out .= get_cper_data_text($cper_data) if ($cper_data);
-            $out .= "\n";
-        }
-        if ($out ne "") {
-            print "Extlog events:\n$out\n";
-        } else {
-            print "No Extlog errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select id, timestamp, etype, severity, address, fru_id, fru_text, cper_data from extlog_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $etype, $severity, $addr, $fru_id, $fru_text, $cper_data));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $etype_string = get_extlog_type($etype);
+	    $severity_string = get_extlog_severity($severity);
+	    $out .= "$id $timestamp error: ";
+	    $out .= "type=$etype_string, ";
+	    $out .= "severity=$severity_string, ";
+	    $out .= sprintf "address=0x%08x, ", $addr;
+	    $out .= sprintf "fru_id=%s, ", get_uuid_le($fru_id);
+	    $out .= "fru_text='$fru_text', ";
+	    $out .= get_cper_data_text($cper_data) if ($cper_data);
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "Extlog events:\n$out\n";
+	} else {
+	    print "No Extlog errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # devlink errors
     if ($has_devlink == 1) {
-        $query = "select id, timestamp, bus_name, dev_name, driver_name, reporter_name, msg from devlink_event$conf{opt}{since} order by id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $bus_name, $dev_name, $driver_name, $reporter_name, $msg));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "$id $timestamp error: ";
-            $out .= "bus_name=$bus_name, ";
-            $out .= "dev_name=$dev_name, ";
-            $out .= "driver_name=$driver_name, ";
-            $out .= "reporter_name=$reporter_name, ";
-            $out .= "message='$msg', ";
-            $out .= "\n";
-        }
-        if ($out ne "") {
-            print "Devlink events:\n$out\n";
-        } else {
-            print "No devlink errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select id, timestamp, bus_name, dev_name, driver_name, reporter_name, msg from devlink_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $bus_name, $dev_name, $driver_name, $reporter_name, $msg));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "bus_name=$bus_name, ";
+	    $out .= "dev_name=$dev_name, ";
+	    $out .= "driver_name=$driver_name, ";
+	    $out .= "reporter_name=$reporter_name, ";
+	    $out .= "message='$msg', ";
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "Devlink events:\n$out\n";
+	} else {
+	    print "No devlink errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # Disk errors
     if ($has_disk_errors == 1) {
-        $query = "select id, timestamp, dev, sector, nr_sector, error, rwbs, cmd from disk_errors$conf{opt}{since} order by id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $dev, $sector, $nr_sector, $error, $rwbs, $cmd));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "$id $timestamp error: ";
-            $out .= "dev=$dev, ";
-            $out .= "sector=$sector, ";
-            $out .= "nr_sector=$nr_sector, ";
-            $out .= "error='$error', ";
-            $out .= "rwbs='$rwbs', ";
-            $out .= "cmd='$cmd', ";
-            $out .= "\n";
-        }
-        if ($out ne "") {
-            print "Disk errors\n$out\n";
-        } else {
-            print "No disk errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select id, timestamp, dev, sector, nr_sector, error, rwbs, cmd from disk_errors$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $dev, $sector, $nr_sector, $error, $rwbs, $cmd));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "dev=$dev, ";
+	    $out .= "sector=$sector, ";
+	    $out .= "nr_sector=$nr_sector, ";
+	    $out .= "error='$error', ";
+	    $out .= "rwbs='$rwbs', ";
+	    $out .= "cmd='$cmd', ";
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "Disk errors:\n$out\n";
+	} else {
+	    print "No disk errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # Memory failure errors
     if ($has_mem_failure == 1) {
-        $query = "select id, timestamp, pfn, page_type, action_result from memory_failure_event$conf{opt}{since} order by id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $pfn, $page_type, $action_result));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "$id $timestamp error: ";
-            $out .= "pfn=$pfn, page_type=$page_type, action_result=$action_result\n";
-        }
-        if ($out ne "") {
-            print "Memory failure events:\n$out\n";
-        } else {
-            print "No Memory failure errors.\n\n";
-        }
-        $query_handle->finish;
+	$query = "select id, timestamp, pfn, page_type, action_result from memory_failure_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $pfn, $page_type, $action_result));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "pfn=$pfn, page_type=$page_type, action_result=$action_result\n";
+	}
+	if ($out ne "") {
+	    print "Memory failure events:\n$out\n";
+	} else {
+	    print "No Memory failure errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     # MCE mce_record errors
     if ($has_mce == 1) {
-        $query = "select id, timestamp, mcgcap, mcgstatus, status, addr, misc, ip, tsc, walltime, cpu, cpuid, apicid, socketid, cs, bank, cpuvendor, bank_name, error_msg, mcgstatus_msg, mcistatus_msg, user_action, mc_location from mce_record$conf{opt}{since} order by id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $time, $mcgcap,$mcgstatus, $status, $addr, $misc, $ip, $tsc, $walltime, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $bank_name, $msg, $mcgstatus_msg, $mcistatus_msg, $user_action, $mc_location));
-        $out = "";
-        while($query_handle->fetch()) {
-            $out .= "$id $time error: $msg";
+	$query = "select id, timestamp, mcgcap, mcgstatus, status, addr, misc, ip, tsc, walltime, ppin, cpu, cpuid, apicid, socketid, cs, bank, cpuvendor, microcode, bank_name, error_msg, mcgstatus_msg, mcistatus_msg, mcastatus_msg, user_action, mc_location from mce_record$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $time, $mcgcap,$mcgstatus, $status, $addr, $misc, $ip, $tsc, $walltime, $ppin, $cpu, $cpuid, $apicid, $socketid, $cs, $bank, $cpuvendor, $microcode, $bank_name, $msg, $mcgstatus_msg, $mcistatus_msg, $mcastatus_msg, $user_action, $mc_location));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $time error: $msg";
 	    $out .= ", CPU $cpuvendor" if ($cpuvendor);
 	    $out .= ", bank $bank_name" if ($bank_name);
 	    $out .= ", mcg $mcgstatus_msg" if ($mcgstatus_msg);
 	    $out .= ", mci $mcistatus_msg" if ($mcistatus_msg);
+		$out .= ", mca $mcastatus_msg" if ($mcastatus_msg);
 	    $out .= ", $mc_location" if ($mc_location);
 	    $out .= ", $user_action" if ($user_action);
 	    $out .= sprintf ", mcgcap=0x%08x", $mcgcap if ($mcgcap);
@@ -1518,21 +2201,23 @@ sub errors
 	    $out .= sprintf ", ip=0x%08x", $ip if ($ip);
 	    $out .= sprintf ", tsc=0x%08x", $tsc if ($tsc);
 	    $out .= sprintf ", walltime=0x%08x", $walltime if ($walltime);
+		$out .= sprintf ", ppin=0x%08x", $ppin if ($ppin);
 	    $out .= sprintf ", cpu=0x%08x", $cpu if ($cpu);
 	    $out .= sprintf ", cpuid=0x%08x", $cpuid if ($cpuid);
 	    $out .= sprintf ", apicid=0x%08x", $apicid if ($apicid);
 	    $out .= sprintf ", socketid=0x%08x", $socketid if ($socketid);
 	    $out .= sprintf ", cs=0x%08x", $cs if ($cs);
 	    $out .= sprintf ", bank=0x%08x", $bank if ($bank);
+		$out .= sprintf ", microcode=0x%08x", $microcode if ($microcode);
 
 	    $out .= "\n";
-        }
-        if ($out ne "") {
-            print "MCE events:\n$out\n";
-        } else {
-            print "No MCE errors.\n\n";
-        }
-        $query_handle->finish;
+	}
+	if ($out ne "") {
+	    print "MCE events:\n$out\n";
+	} else {
+	    print "No MCE errors.\n\n";
+	}
+	$query_handle->finish;
     }
 
     undef($dbh);
@@ -1541,6 +2226,8 @@ sub errors
 # Definitions of the vendor platform IDs.
 use constant {
     HISILICON_KUNPENG_9XX => "KunPeng9xx",
+    THEAD_YITIAN_7XX      => "YiTian7XX",
+    JM_CORSICA_DPU1XX => "CorsicaDpu1xx",
 };
 
 sub vendor_errors_summary
@@ -1548,17 +2235,18 @@ sub vendor_errors_summary
     require DBI;
     my ($num_args, $platform_id, $found_platform);
     my ($query, $query_handle, $count, $out);
-    my ($module_id, $sub_module_id, $err_severity, $err_sev);
+    my ($module_id, $sub_module_id, $err_severity, $err_sev, $subsystem);
+    my ($address);
 
     $num_args = $#ARGV + 1;
     $platform_id = 0;
     $found_platform = 0;
 
     if ($num_args ne 0) {
-        $platform_id = $ARGV[0];
+	$platform_id = $ARGV[0];
     } else {
-        usage(1);
-        return;
+	usage(1);
+	return;
     }
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
@@ -1566,81 +2254,122 @@ sub vendor_errors_summary
     # HiSilicon KunPeng9xx errors
     if ($platform_id eq HISILICON_KUNPENG_9XX) {
 	$found_platform = 1;
-        $query = "select err_severity, module_id, count(*) from hip08_oem_type1_event_v2$conf{opt}{since} group by err_severity, module_id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_severity, $module_id, $count));
-        $out = "";
-        $err_sev = "";
-        while($query_handle->fetch()) {
-            if ($err_severity ne $err_sev) {
-                $out .= "$err_severity errors:\n";
-                $err_sev = $err_severity;
-            }
-            $out .= "\t$module_id: $count\n";
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx OEM type1 error events summary:\n$out\n";
-        }
-        $query_handle->finish;
+	$query = "select err_severity, module_id, count(*) from hip08_oem_type1_event_v2$conf{opt}{since} group by err_severity, module_id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($err_severity, $module_id, $count));
+	$out = "";
+	$err_sev = "";
+	while($query_handle->fetch()) {
+	    if ($err_severity ne $err_sev) {
+		$out .= "$err_severity errors:\n";
+		$err_sev = $err_severity;
+	    }
+	    $out .= "\t$module_id: $count\n";
+	}
+	if ($out ne "") {
+	    print "HiSilicon KunPeng9xx OEM type1 error events summary:\n$out\n";
+	}
+	$query_handle->finish;
 
-        $query = "select err_severity, module_id, count(*) from hip08_oem_type2_event_v2$conf{opt}{since} group by err_severity, module_id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_severity, $module_id, $count));
-        $out = "";
-        $err_sev = "";
-        while($query_handle->fetch()) {
-            if ($err_severity ne $err_sev) {
-                $out .= "$err_severity errors:\n";
-                $err_sev = $err_severity;
-            }
-            $out .= "\t$module_id: $count\n";
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx OEM type2 error events summary:\n$out\n";
-        }
-        $query_handle->finish;
+	$query = "select err_severity, module_id, count(*) from hip08_oem_type2_event_v2$conf{opt}{since} group by err_severity, module_id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($err_severity, $module_id, $count));
+	$out = "";
+	$err_sev = "";
+	while($query_handle->fetch()) {
+	    if ($err_severity ne $err_sev) {
+		$out .= "$err_severity errors:\n";
+		$err_sev = $err_severity;
+	    }
+	    $out .= "\t$module_id: $count\n";
+	}
+	if ($out ne "") {
+	    print "HiSilicon KunPeng9xx OEM type2 error events summary:\n$out\n";
+	}
+	$query_handle->finish;
 
-        $query = "select err_severity, sub_module_id, count(*) from hip08_pcie_local_event_v2$conf{opt}{since} group by err_severity, sub_module_id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_severity, $sub_module_id, $count));
-        $out = "";
-        $err_sev = "";
-        while($query_handle->fetch()) {
-            if ($err_severity ne $err_sev) {
-                $out .= "$err_severity errors:\n";
-                $err_sev = $err_severity;
-            }
-            $out .= "\t$sub_module_id: $count\n";
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx PCIe controller error events summary:\n$out\n";
-        }
-        $query_handle->finish;
+	$query = "select err_severity, sub_module_id, count(*) from hip08_pcie_local_event_v2$conf{opt}{since} group by err_severity, sub_module_id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($err_severity, $sub_module_id, $count));
+	$out = "";
+	$err_sev = "";
+	while($query_handle->fetch()) {
+	    if ($err_severity ne $err_sev) {
+		$out .= "$err_severity errors:\n";
+		$err_sev = $err_severity;
+	    }
+	    $out .= "\t$sub_module_id: $count\n";
+	}
+	if ($out ne "") {
+	    print "HiSilicon KunPeng9xx PCIe controller error events summary:\n$out\n";
+	}
+	$query_handle->finish;
 
-        $query = "select err_severity, module_id, count(*) from hisi_common_section_v2$conf{opt}{since} group by err_severity, module_id";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($err_severity, $module_id, $count));
-        $out = "";
-        $err_sev = "";
-        while($query_handle->fetch()) {
-            if ($err_severity ne $err_sev) {
-                $out .= "$err_severity errors:\n";
-                $err_sev = $err_severity;
-            }
-            $out .= "\t$module_id: $count\n";
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx common error events summary:\n$out\n";
-        }
-        $query_handle->finish;
+	$query = "select err_severity, module_id, count(*) from hisi_common_section_v2$conf{opt}{since} group by err_severity, module_id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($err_severity, $module_id, $count));
+	$out = "";
+	$err_sev = "";
+	while($query_handle->fetch()) {
+	    if ($err_severity ne $err_sev) {
+		$out .= "$err_severity errors:\n";
+		$err_sev = $err_severity;
+	    }
+	    $out .= "\t$module_id: $count\n";
+	}
+	if ($out ne "") {
+	    print "HiSilicon KunPeng9xx common error events summary:\n$out\n";
+	}
+	$query_handle->finish;
     }
 
+    # THead Yitian710 DDR errors
+    if ($platform_id eq THEAD_YITIAN_7XX) {
+		$found_platform = 1;
+	$query = "select address, count(*) from yitian_ddr_reg_dump_event";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($address, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\terrors: $count";
+	}
+	if ($out ne "") {
+	    print "THead YiTian710 DDR error dump events summary:\n$out\n";
+	} else {
+	    print "No THead YiTian710 DDR error dump errors.\n\n";
+	}
+	$query_handle->finish;
+    }
+    # JaguarMicro CorsicaDpu1xx errors
+    if ($platform_id eq JM_CORSICA_DPU1XX) {
+    $found_platform = 1;
+	$query = "select err_severity, subsystem, count(*) from jm_payload0_event$conf{opt}{since} group by err_severity, subsystem";
+	$query_handle = $dbh->prepare($query);
+	if ($query_handle) {
+	    $query_handle->execute();
+	    $query_handle->bind_columns(\($err_severity, $subsystem, $count));
+	    $out = "";
+	    $err_sev = "";
+	    while($query_handle->fetch()) {
+		if ($err_severity ne $err_sev) {
+		    $out .= "$err_severity errors:\n";
+		    $err_sev = $err_severity;
+		}
+		$out .= "\t$subsystem: $count\n";
+	    }
+	    if ($out ne "") {
+		print "JaguarMicro CorsicaDpu1xx OEM type0 error events summary:\n$out\n";
+	    }
+	    $query_handle->finish;
+	}
+    }
     if ($platform_id && !($found_platform)) {
-        print "Platform ID $platform_id is not valid\n";
+	print "Platform ID $platform_id is not valid\n";
     }
 
     undef($dbh);
@@ -1649,10 +2378,11 @@ sub vendor_errors_summary
 sub vendor_errors
 {
     require DBI;
-    my ($num_args, $platform_id, $found_platform, $module, $found_module);
+    my ($num_args, $platform_id, $found_platform, $module, $found_module, $module_name, $sub_module);
     my ($query, $query_handle, $id, $timestamp, $out);
     my ($version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $core_id, $port_id);
-    my ($module_id, $sub_module_id, $err_severity, $err_type, $pcie_info, $regs);
+    my ($module_id, $sub_module_id, $err_severity, $err_type, $pcie_info, $regs, $subsystem, $dev, $dev_id);
+    my ($address, $regs_dump);
 
     $num_args = $#ARGV + 1;
     $platform_id = 0;
@@ -1660,13 +2390,13 @@ sub vendor_errors
     $module = 0;
     $found_module = 0;
     if ($num_args ne 0) {
-        $platform_id = $ARGV[0];
-        if ($num_args gt 1) {
-            $module = $ARGV[1];
-        }
+	$platform_id = $ARGV[0];
+	if ($num_args gt 1) {
+	    $module = $ARGV[1];
+	}
     } else {
-        usage(1);
-        return;
+	usage(1);
+	return;
     }
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
@@ -1674,129 +2404,186 @@ sub vendor_errors
     # HiSilicon KunPeng9xx errors
     if ($platform_id eq HISILICON_KUNPENG_9XX) {
 	$found_platform = 1;
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2$conf{opt}{since} order by id, module_id, err_severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
-        $out = "";
-        while($query_handle->fetch()) {
-            if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
-                $out .= "$id. $timestamp Error Info: ";
-                $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs " if ($regs);
-                $out .= "\n\n";
-                $found_module = 1;
+	$query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type1_event_v2$conf{opt}{since} order by id, module_id, err_severity";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
+	$out = "";
+	while($query_handle->fetch()) {
+	    if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
+		$out .= "$id. $timestamp Error Info: ";
+		$out .= "version=$version, ";
+		$out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+		$out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+		$out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+		$out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+		$out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+		$out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+		$out .= "Error Registers: $regs " if (defined $regs && length $regs);
+		$out .= "\n\n";
+		$found_module = 1;
 	    }
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx OEM type1 error events:\n$out\n";
-        }
-        $query_handle->finish;
+	}
+	if ($out ne "") {
+	    print "HiSilicon KunPeng9xx OEM type1 error events:\n$out\n";
+	}
+	$query_handle->finish;
 
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type2_event_v2$conf{opt}{since} order by id, module_id, err_severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
-        $out = "";
-        while($query_handle->fetch()) {
-            if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
-                $out .= "$id. $timestamp Error Info: ";
-                $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs " if ($regs);
-                $out .= "\n\n";
-                $found_module = 1;
+	$query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, module_id, sub_module_id, err_severity, regs_dump from hip08_oem_type2_event_v2$conf{opt}{since} order by id, module_id, err_severity";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $module_id, $sub_module_id, $err_severity, $regs));
+	$out = "";
+	while($query_handle->fetch()) {
+	    if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
+		$out .= "$id. $timestamp Error Info: ";
+		$out .= "version=$version, ";
+		$out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+		$out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+		$out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+		$out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+		$out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+		$out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+		$out .= "Error Registers: $regs " if (defined $regs && length $regs);
+		$out .= "\n\n";
+		$found_module = 1;
 	    }
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx OEM type2 error events:\n$out\n";
-        }
-        $query_handle->finish;
+	}
+	if ($out ne "") {
+	    print "HiSilicon KunPeng9xx OEM type2 error events:\n$out\n";
+	}
+	$query_handle->finish;
 
-        $query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, sub_module_id, core_id, port_id, err_severity, err_type, regs_dump from hip08_pcie_local_event_v2$conf{opt}{since} order by id, sub_module_id, err_severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $sub_module_id, $core_id, $port_id, $err_severity, $err_type, $regs));
-        $out = "";
-        while($query_handle->fetch()) {
-            if ($module eq 0 || ($sub_module_id && uc($module) eq uc($sub_module_id))) {
-                $out .= "$id. $timestamp Error Info: ";
-                $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "core_id=$core_id, " if ($core_id);
-                $out .= "port_id=$port_id, " if ($port_id);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "err_type=$err_type, " if ($err_type);
-                $out .= "Error Registers: $regs " if ($regs);
-                $out .= "\n\n";
-                $found_module = 1;
+	$query = "select id, timestamp, version, soc_id, socket_id, nimbus_id, sub_module_id, core_id, port_id, err_severity, err_type, regs_dump from hip08_pcie_local_event_v2$conf{opt}{since} order by id, sub_module_id, err_severity";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $nimbus_id, $sub_module_id, $core_id, $port_id, $err_severity, $err_type, $regs));
+	$out = "";
+	while($query_handle->fetch()) {
+	    if ($module eq 0 || ($sub_module_id && uc($module) eq uc($sub_module_id))) {
+		$out .= "$id. $timestamp Error Info: ";
+		$out .= "version=$version, ";
+		$out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+		$out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+		$out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+		$out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+		$out .= "core_id=$core_id, " if (defined $core_id && length $core_id);
+		$out .= "port_id=$port_id, " if (defined $port_id && length $port_id);
+		$out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+		$out .= "err_type=$err_type, " if (defined $err_type && length $err_type);
+		$out .= "Error Registers: $regs " if (defined $regs && length $regs);
+		$out .= "\n\n";
+		$found_module = 1;
 	    }
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx PCIe controller error events:\n$out\n";
-        }
-        $query_handle->finish;
+	}
+	if ($out ne "") {
+	    print "HiSilicon KunPeng9xx PCIe controller error events:\n$out\n";
+	}
+	$query_handle->finish;
 
-        $query = "select id, timestamp, version, soc_id, socket_id, totem_id, nimbus_id, sub_system_id, module_id, sub_module_id, core_id, port_id, err_type, pcie_info, err_severity, regs_dump from hisi_common_section_v2$conf{opt}{since} order by id, module_id, err_severity";
-        $query_handle = $dbh->prepare($query);
-        $query_handle->execute();
-        $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $module_id, $sub_module_id, $core_id, $port_id, $err_type, $pcie_info, $err_severity, $regs));
-        $out = "";
-        while($query_handle->fetch()) {
-            if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
-                $out .= "$id. $timestamp Error Info: ";
-                $out .= "version=$version, ";
-                $out .= "soc_id=$soc_id, " if ($soc_id);
-                $out .= "socket_id=$socket_id, " if ($socket_id);
-                $out .= "totem_id=$totem_id, " if ($totem_id);
-                $out .= "nimbus_id=$nimbus_id, " if ($nimbus_id);
-                $out .= "sub_system_id=$sub_system_id, " if ($sub_system_id);
-                $out .= "module_id=$module_id, " if ($module_id);
-                $out .= "sub_module_id=$sub_module_id, " if ($sub_module_id);
-                $out .= "core_id=$core_id, " if ($core_id);
-                $out .= "port_id=$port_id, " if ($port_id);
-                $out .= "err_type=$err_type, " if ($err_type);
-                $out .= "pcie_info=$pcie_info, " if ($pcie_info);
-                $out .= "err_severity=$err_severity, " if ($err_severity);
-                $out .= "Error Registers: $regs" if ($regs);
-                $out .= "\n\n";
-                $found_module = 1;
+	$query = "select id, timestamp, version, soc_id, socket_id, totem_id, nimbus_id, sub_system_id, module_id, sub_module_id, core_id, port_id, err_type, pcie_info, err_severity, regs_dump from hisi_common_section_v2$conf{opt}{since} order by id, module_id, err_severity";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $socket_id, $totem_id, $nimbus_id, $sub_system_id, $module_id, $sub_module_id, $core_id, $port_id, $err_type, $pcie_info, $err_severity, $regs));
+	$out = "";
+	while($query_handle->fetch()) {
+	    if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
+		$out .= "$id. $timestamp Error Info: ";
+		$out .= "version=$version, ";
+		$out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+		$out .= "socket_id=$socket_id, " if (defined $socket_id && length $socket_id);
+		$out .= "totem_id=$totem_id, " if (defined $totem_id && length $totem_id);
+		$out .= "nimbus_id=$nimbus_id, " if (defined $nimbus_id && length $nimbus_id);
+		$out .= "sub_system_id=$sub_system_id, " if (defined $sub_system_id && length $sub_system_id);
+		$out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+		$out .= "sub_module_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+		$out .= "core_id=$core_id, " if (defined $core_id && length $core_id );
+		$out .= "port_id=$port_id, " if (defined $port_id && length $port_id);
+		$out .= "err_type=$err_type, " if (defined $err_type && length $err_type);
+		$out .= "pcie_info=$pcie_info, " if (defined $pcie_info && length $pcie_info);
+		$out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+		$out .= "Error Registers: $regs" if (defined $regs && length $regs);
+		$out .= "\n\n";
+		$found_module = 1;
 	    }
-        }
-        if ($out ne "") {
-            print "HiSilicon KunPeng9xx common error events:\n$out\n";
-        }
-        $query_handle->finish;
+	}
+	if ($out ne "") {
+	    print "HiSilicon KunPeng9xx common error events:\n$out\n";
+	}
+	$query_handle->finish;
     }
 
+    # THead Yitian7xx ddr errors
+    if ($platform_id eq THEAD_YITIAN_7XX) {
+		$found_platform = 1;
+	$query = "select id, timestamp, address, regs_dump from yitian_ddr_reg_dump_event order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $address, $regs_dump));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id. $timestamp ";
+	    $out .= "Error Address: $address ";
+	    $out .= "Error Registers Dump: $regs_dump" if ($regs_dump);
+	    $out .= "\n\n";
+	}
+	if ($out ne "") {
+	    print "THead Yitian710 DDRC error events:\n$out\n";
+	} else {
+	    print "No THead Yitian710 DDRC error events.\n";
+	}
+	$query_handle->finish;
+    }
+
+    # JaguarMicro CorsicaDpu1xx errors
+    if ($platform_id eq JM_CORSICA_DPU1XX) {
+	$found_platform = 1;
+	$query = "select id, timestamp, version, soc_id, subsystem, module, module_id, sub_module, submodule_id, dev, dev_id, err_type, err_severity, regs_dump from jm_payload0_event$conf{opt}{since} order by id, module_id, err_severity";
+	$query_handle = $dbh->prepare($query);
+	if ($query_handle) {
+	    $query_handle->execute();
+	    $query_handle->bind_columns(\($id, $timestamp, $version, $soc_id, $subsystem, $module_name, $module_id, $sub_module, $sub_module_id, $dev, $dev_id, $err_type, $err_severity, $regs));
+	    $out = "";
+	    while($query_handle->fetch()) {
+		if ($module eq 0 || ($module_id && uc($module) eq uc($module_id))) {
+		    $out .= "$id. $timestamp Error Info: ";
+		    $out .= "version=$version, ";
+		    $out .= "soc_id=$soc_id, " if (defined $soc_id && length $soc_id);
+		    $out .= "subsystem=$subsystem, " if (defined $subsystem && length $subsystem);
+		    $out .= "module=$module_name, " if (defined $module_name && length $module_name);
+		    $out .= "module_id=$module_id, " if (defined $module_id && length $module_id);
+		    $out .= "sub_module=$sub_module, " if (defined $sub_module && length $sub_module);
+		    $out .= "submodule_id=$sub_module_id, " if (defined $sub_module_id && length $sub_module_id);
+		    $out .= "dev=$dev, " if (defined $dev && length $dev);
+		    $out .= "dev_id=$dev_id, " if (defined $dev_id && length $dev_id);
+		    $out .= "err_type=$err_type, " if (defined $err_type && length $err_type);
+		    $out .= "err_severity=$err_severity, " if (defined $err_severity && length $err_severity);
+		    $out .= "Error Registers: $regs " if (defined $regs && length $regs);
+		    $out .= "\n\n";
+		    $found_module = 1;
+		}
+	    }
+	    if ($out ne "") {
+		print "JaguarMicro Corsica DPU1xx OEM type0 error events:\n$out\n";
+	    }
+	    $query_handle->finish;
+	}
+    }
     if ($platform_id && !($found_platform)) {
-        print "Platform ID $platform_id is not valid\n";
+	print "Platform ID $platform_id is not valid\n";
     } elsif ($module && !($found_module)) {
-        print "No error record for the module $module\n";
+	print "No error record for the module $module\n";
     }
-
     undef($dbh);
 }
 
 sub vendor_platforms
 {
-        print "\nSupported platforms for the vendor-specific errors:\n";
-        print "\tHiSilicon KunPeng9xx, platform-id=\"", HISILICON_KUNPENG_9XX, "\"\n";
-        print "\n";
+	print "\nSupported platforms for the vendor-specific errors:\n";
+	print "\tHiSilicon KunPeng9xx, platform-id=\"", HISILICON_KUNPENG_9XX, "\"\n";
+	print "\tTHead Yitian7xx, platform-id=\"", THEAD_YITIAN_7XX, "\"\n";
+	print "\tJaguarMicro CorsicaDpu1xx, platform-id=\"", JM_CORSICA_DPU1XX, "\"\n";
+	print "\n";
 }
 
 sub log_msg   { print STDERR "$prog: ", @_ unless $conf{opt}{quiet}; }

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 Name:			@PACKAGE@
 Version:		@PACKAGE_VERSION@
 Release:		1%{?dist}
@@ -59,6 +61,7 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_mandir}/*/*
 %{_unitdir}/*.service
 %{_sysconfdir}/ras/dimm_labels.d
+%{_sysconfdir}/ras/*/*
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 
 %changelog

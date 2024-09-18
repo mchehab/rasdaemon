@@ -1,31 +1,21 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
- * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
-#include "ras-aer-handler.h"
-#include "ras-record.h"
-#include "ras-logger.h"
+#include <unistd.h>
+
 #include "bitfield.h"
+#include "ras-aer-handler.h"
+#include "ras-logger.h"
 #include "ras-report.h"
 #include "unified-sel.h"
+#include "types.h"
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {
@@ -38,6 +28,7 @@ static const char *aer_cor_errors[32] = {
 	[13] = "Advisory Non-Fatal",
 	[14] = "Corrected Internal",
 	[15] = "Header Log Overflow",
+	[16] = "Corrected Internal Error",
 };
 
 /* bit field meaning for uncorrectable error */
@@ -86,9 +77,11 @@ int ras_aer_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct ras_aer_event ev;
 	char buf[BUF_LEN];
+#ifdef HAVE_AMP_NS_DECODE
 	char ipmi_add_sel[105];
 	uint8_t sel_data[5];
-	int seg, bus, dev, fn;
+	int seg, bus, dev, fn, rc;
+#endif
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -100,7 +93,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -151,19 +144,27 @@ int ras_aer_event_handler(struct trace_seq *s,
 	switch (severity_val) {
 	case HW_EVENT_AER_UNCORRECTED_NON_FATAL:
 		ev.error_type = "Uncorrected (Non-Fatal)";
+#ifdef HAVE_AMP_NS_DECODE
 		sel_data[0] = 0xca;
+#endif
 		break;
 	case HW_EVENT_AER_UNCORRECTED_FATAL:
 		ev.error_type = "Uncorrected (Fatal)";
+#ifdef HAVE_AMP_NS_DECODE
 		sel_data[0] = 0xca;
+#endif
 		break;
 	case HW_EVENT_AER_CORRECTED:
 		ev.error_type = "Corrected";
+#ifdef HAVE_AMP_NS_DECODE
 		sel_data[0] = 0xbf;
+#endif
 		break;
 	default:
 		ev.error_type = "Unknown severity";
+#ifdef HAVE_AMP_NS_DECODE
 		sel_data[0] = 0xbf;
+#endif
 	}
 	trace_seq_puts(s, ev.error_type);
 
@@ -181,7 +182,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 	/*
 	 * Get PCIe AER error source seg/bus/dev/fn and save it into
 	 * BMC OEM SEL, ipmitool raw 0x0a 0x44 is IPMI command-Add SEL
-	 * entry, please refer IPMI specificaiton chapter 31.6. 0xcd3a
+	 * entry, please refer IPMI specification chapter 31.6. 0xcd3a
 	 * is manufactuer ID(ampere),byte 12 is sensor num(CE is 0xBF,
 	 * UE is 0xCA), byte 13~14 is segment number, byte 15 is bus
 	 * number, byte 16[7:3] is device number, byte 16[2:0] is
@@ -194,11 +195,13 @@ int ras_aer_event_handler(struct trace_seq *s,
 	sel_data[3] = bus;
 	sel_data[4] = (((dev & 0x1f) << 3) | (fn & 0x7));
 
-	sprintf(ipmi_add_sel,
-	  "ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 0x00 0x3a 0xcd 0x00 0xc0 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
-	  sel_data[0], sel_data[1], sel_data[2], sel_data[3], sel_data[4]);
+	snprintf(ipmi_add_sel, sizeof(ipmi_add_sel),
+		 "ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 0x00 0x3a 0xcd 0x00 0xc0 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
+		 sel_data[0], sel_data[1], sel_data[2], sel_data[3], sel_data[4]);
 
-	system(ipmi_add_sel);
+	rc = system(ipmi_add_sel);
+	if (rc)
+		log(SYSLOG, LOG_WARNING, "Failed to execute ipmitool\n");
 #endif
 
 #ifdef HAVE_OPENBMC_UNIFIED_SEL

@@ -1,29 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
+ * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  *
- * The code below were adapted from Andi Kleen/Intel/SuSe mcelog code,
+ * The code below were adapted from Andi Kleen/Intel/SUSE mcelog code,
  * released under GNU Public General License, v.2
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 #include <stdio.h>
 #include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 #define K8_MCE_THRESHOLD_BASE        (MCE_EXTENDED_BANK + 1)      /* MCE_AMD */
 #define K8_MCE_THRESHOLD_TOP         (K8_MCE_THRESHOLD_BASE + 6 * 9)
@@ -33,17 +20,17 @@
 #define K8_MCELOG_THRESHOLD_L3_CACHE (4 * 9 + 2)
 #define K8_MCELOG_THRESHOLD_FBDIMM   (4 * 9 + 3)
 
-static const char *k8bank[] = {
+static const char * const k8bank[] = {
 	"data cache",
 	"instruction cache",
 	"bus unit",
 	"load/store unit",
 	"northbridge",
-	"fixed-issue reoder"
+	"fixed-issue reorder"
 };
 
-static const char *k8threshold[] = {
-	[0 ... K8_MCELOG_THRESHOLD_DRAM_ECC - 1] = "Unknow threshold counter",
+static const char * const k8threshold[] = {
+	[0 ... K8_MCELOG_THRESHOLD_DRAM_ECC - 1] = "Unknown threshold counter",
 	[K8_MCELOG_THRESHOLD_DRAM_ECC] = "MC4_MISC0 DRAM threshold",
 	[K8_MCELOG_THRESHOLD_LINK] = "MC4_MISC1 Link threshold",
 	[K8_MCELOG_THRESHOLD_L3_CACHE] = "MC4_MISC2 L3 Cache threshold",
@@ -53,29 +40,35 @@ static const char *k8threshold[] = {
 		"Unknown threshold counter",
 };
 
-static const char *transaction[] = {
+static const char * const transaction[] = {
 	"instruction", "data", "generic", "reserved"
 };
-static const char *cachelevel[] = {
+
+static const char * const cachelevel[] = {
 	"0", "1", "2", "generic"
 };
-static const char *memtrans[] = {
+
+static const char * const memtrans[] = {
 	"generic error", "generic read", "generic write", "data read",
 	"data write", "instruction fetch", "prefetch", "evict", "snoop",
 	"?", "?", "?", "?", "?", "?", "?"
 };
-static const char *partproc[] = {
+
+static const char * const partproc[] = {
 	"local node origin", "local node response",
 	"local node observed", "generic participation"
 };
-static const char *timeout[] = {
+
+static const char * const timeout[] = {
 	"request didn't time out",
 	"request timed out"
 };
-static const char *memoryio[] = {
+
+static const char * const memoryio[] = {
 	"memory", "res.", "i/o", "generic"
 };
-static const char *nbextendederr[] = {
+
+static const char * const nbextendederr[] = {
 	"RAM ECC error",
 	"CRC error",
 	"Sync error",
@@ -96,7 +89,8 @@ static const char *nbextendederr[] = {
 	"L3 Cache Tag Error",
 	"L3 Cache LRU Error"
 };
-static const char *highbits[32] = {
+
+static const char * const highbits[32] = {
 	[31] = "valid",
 	[30] = "error overflow (multiple errors)",
 	[29] = "error uncorrected",
@@ -164,7 +158,7 @@ static void decode_k8_dc_mc(struct mce_event *e)
 	if (e->status & (3ULL << 45)) {
 		mce_snprintf(e->error_msg,
 			     "Data cache ECC error (syndrome %x)",
-			      (uint32_t) (e->status >> 47) & 0xff);
+			     (uint32_t)(e->status >> 47) & 0xff);
 		if (e->status & (1ULL << 40))
 			mce_snprintf(e->error_msg, "found by scrubber");
 	}
@@ -185,7 +179,7 @@ static void decode_k8_ic_mc(struct mce_event *e)
 
 	if ((errcode & 0xfff0) == 0x0010)
 		mce_snprintf(e->error_msg, "TLB parity error in %s array",
-			    (exterrcode == 0) ? "physical" : "virtual");
+			     (exterrcode == 0) ? "physical" : "virtual");
 }
 
 static void decode_k8_bu_mc(struct mce_event *e)
@@ -196,10 +190,10 @@ static void decode_k8_bu_mc(struct mce_event *e)
 		mce_snprintf(e->error_msg, "L2 cache ECC error");
 
 	mce_snprintf(e->error_msg, "%s array error",
-		    !exterrcode ? "Bus or cache" : "Cache tag");
+		     !exterrcode ? "Bus or cache" : "Cache tag");
 }
 
-static void decode_k8_nb_mc(struct mce_event *e, unsigned *memerr)
+static void decode_k8_nb_mc(struct mce_event *e, unsigned int *memerr)
 {
 	unsigned short exterrcode = (e->status >> 16) & 0x0f;
 
@@ -209,13 +203,13 @@ static void decode_k8_nb_mc(struct mce_event *e, unsigned *memerr)
 	case 0:
 		*memerr = 1;
 		mce_snprintf(e->error_msg, "ECC syndrome = %x",
-			    (uint32_t) (e->status >> 47) & 0xff);
+			     (uint32_t)(e->status >> 47) & 0xff);
 		break;
 	case 8:
 		*memerr = 1;
 		mce_snprintf(e->error_msg, "Chipkill ECC syndrome = %x",
-			    (uint32_t) ((((e->status >> 24) & 0xff) << 8)
-			    | ((e->status >> 47) & 0xff)));
+			     (uint32_t)((((e->status >> 24) & 0xff) << 8)
+			     | ((e->status >> 47) & 0xff)));
 		break;
 	case 1:
 	case 2:
@@ -223,7 +217,7 @@ static void decode_k8_nb_mc(struct mce_event *e, unsigned *memerr)
 	case 4:
 	case 6:
 		mce_snprintf(e->error_msg, "link number = %x",
-			     (uint32_t) (e->status >> 36) & 0xf);
+			     (uint32_t)(e->status >> 36) & 0xf);
 		break;
 	}
 }
@@ -251,14 +245,14 @@ static void bank_name(struct mce_event *e)
 
 int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
 {
-	unsigned ismemerr = 0;
+	unsigned int ismemerr = 0;
 
 	/* Don't handle GART errors */
 	if (e->bank == 4) {
 		unsigned short exterrcode = (e->status >> 16) & 0x0f;
-		if (exterrcode == 5 && (e->status & (1ULL << 61))) {
+
+		if (exterrcode == 5 && (e->status & (1ULL << 61)))
 			return -1;
-		}
 	}
 
 	bank_name(e);
@@ -290,7 +284,8 @@ int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e)
 		decode_k8_threashold(e);
 		break;
 	default:
-		strcpy(e->error_msg, "Don't know how to decode this bank");
+		strscpy(e->error_msg, "Don't know how to decode this bank",
+			sizeof(e->error_msg));
 	}
 
 	/* IP doesn't matter on memory errors */

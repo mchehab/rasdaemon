@@ -1,33 +1,21 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
- * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ */
 
 #ifndef __RAS_EVENTS_H
 #define __RAS_EVENTS_H
 
-#include "ras-record.h"
-
 #include <pthread.h>
 #include <time.h>
 
-#define MAX_PATH 1024
-#define STR(x) #x
+#include "types.h"
+
+extern char *choices_disable;
 
 struct mce_priv;
+struct ras_mc_offline_event;
 
 enum {
 	MC_EVENT,
@@ -42,6 +30,11 @@ enum {
 	CXL_POISON_EVENT,
 	CXL_AER_UE_EVENT,
 	CXL_AER_CE_EVENT,
+	CXL_OVERFLOW_EVENT,
+	CXL_GENERIC_EVENT,
+	CXL_GENERAL_MEDIA_EVENT,
+	CXL_DRAM_EVENT,
+	CXL_MEMORY_MODULE_EVENT,
 	NR_EVENTS
 };
 
@@ -79,7 +72,6 @@ struct pthread_data {
 	int			cpu;
 };
 
-
 /* Should match the code at Kernel's include/linux/edac.c */
 enum hw_event_mc_err_type {
 	HW_EVENT_ERR_CORRECTED,
@@ -105,6 +97,8 @@ enum ghes_severity {
 
 /* Function prototypes */
 int toggle_ras_mc_event(int enable);
+int handle_ras_events(int record_events, int enable_ipmitool);
+int ras_offline_mce_event(struct ras_mc_offline_event *event);
 int handle_ras_events(int record_events, int enable_ipmitool);
 
 #endif

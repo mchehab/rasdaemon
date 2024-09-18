@@ -1,27 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0
+
 /*
- * The code below came from Andi Kleen/Intel/SuSe mcelog code,
+ * The code below came from Andi Kleen/Intel/SUSE mcelog code,
  * released under GNU Public General License, v.2
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 /* See IA32 SDM Vol3B Appendix E.3.2 ff */
 
@@ -112,9 +100,9 @@ void nehalem_decode_model(struct mce_event *e)
 	uint64_t status = e->status;
 	uint32_t mca = status & 0xffff;
 	uint64_t misc = e->misc;
-	unsigned channel, dimm;
+	unsigned int channel, dimm;
 
-	if ((mca >> 11) == 1) { 	/* bus and interconnect QPI */
+	if ((mca >> 11) == 1) {	/* bus and interconnect QPI */
 		decode_bitfield(e, status, qpi_status);
 		if (status & MCI_STATUS_MISCV) {
 			decode_numfield(e, misc, qpi_numbers);
@@ -143,6 +131,7 @@ void xeon75xx_decode_model(struct mce_event *e)
 {
 	uint64_t status = e->status;
 	uint32_t mca = status & 0xffff;
+
 	if (mca == 0x0001) { /* internal unspecified */
 		decode_bitfield(e, status, internal_error_status);
 		decode_numfield(e, status, internal_error_numbers);

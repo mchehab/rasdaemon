@@ -1,35 +1,25 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (C) 2019 Cong Wang <xiyou.wangcong@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
+
 #define _GNU_SOURCE
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/sysmacros.h>
+#include <traceevent/kbuffer.h>
+
+#include "ras-diskerror-handler.h"
+#include "ras-logger.h"
+#include "ras-report.h"
+#include "types.h"
+
 #ifndef __dev_t_defined
 #include <sys/types.h>
 #endif /* __dev_t_defined */
-#include <string.h>
-#include <errno.h>
-#include <sys/sysmacros.h>
-#include <traceevent/kbuffer.h>
-#include "ras-diskerror-handler.h"
-#include "ras-record.h"
-#include "ras-logger.h"
-#include "ras-report.h"
-
 
 static const struct {
 	int             error;
@@ -52,7 +42,7 @@ static const struct {
 
 static const char *get_blk_error(int err)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(blk_errors); i++)
 		if (blk_errors[i].error == err)
@@ -82,7 +72,7 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 

@@ -1,18 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2021-2021. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
+
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "queue.h"
 #include "ras-logger.h"
 
@@ -29,7 +23,7 @@ struct link_queue *init_queue(void)
 	struct link_queue *queue = NULL;
 
 	queue = (struct link_queue *)malloc(sizeof(struct link_queue));
-	if (queue == NULL) {
+	if (!queue) {
 		log(TERM, LOG_ERR, "Failed to allocate memory for queue.\n");
 		return NULL;
 	}
@@ -43,13 +37,13 @@ struct link_queue *init_queue(void)
 
 void clear_queue(struct link_queue *queue)
 {
-	if (queue == NULL)
+	if (!queue)
 		return;
 
 	struct queue_node *node = queue->head;
 	struct queue_node *tmp = NULL;
 
-	while (node != NULL) {
+	while (node) {
 		tmp = node;
 		node = node->next;
 		free(tmp);
@@ -68,11 +62,11 @@ void free_queue(struct link_queue *queue)
 		free(queue);
 }
 
-/* It should be guranteed that the param is not NULL */
+/* It should be guaranteed that the param is not NULL */
 void push(struct link_queue *queue, struct queue_node *node)
 {
 	/* there is no element in the queue */
-	if (queue->head == NULL)
+	if (!queue->head)
 		queue->head = node;
 	else
 		queue->tail->next = node;
@@ -85,7 +79,7 @@ int pop(struct link_queue *queue)
 {
 	struct queue_node *tmp = NULL;
 
-	if (queue == NULL || is_empty(queue))
+	if (!queue || is_empty(queue))
 		return -1;
 
 	tmp = queue->head;
@@ -98,7 +92,7 @@ int pop(struct link_queue *queue)
 
 struct queue_node *front(struct link_queue *queue)
 {
-	if (queue == NULL)
+	if (!queue)
 		return NULL;
 
 	return queue->head;
@@ -109,7 +103,7 @@ struct queue_node *node_create(time_t time, unsigned int value)
 	struct queue_node *node = NULL;
 
 	node = (struct queue_node *)malloc(sizeof(struct queue_node));
-	if (node != NULL) {
+	if (node) {
 		node->time = time;
 		node->value = value;
 		node->next = NULL;

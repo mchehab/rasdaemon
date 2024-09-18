@@ -1,14 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (c) 2018, The AMD, Inc. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #include <stdio.h>
@@ -26,26 +18,31 @@
 static char *transaction[] = {
 	"instruction", "data", "generic", "reserved"
 };
+
 /* Error codes: cache level (LL) */
 static char *cachelevel[] = {
 	"reserved", "L1", "L2", "L3/generic"
 };
+
 /* Error codes: memory transaction type (RRRR) */
 static char *memtrans[] = {
 	"generic", "generic read", "generic write", "data read",
 	"data write", "instruction fetch", "prefetch", "evict", "snoop",
 	"?", "?", "?", "?", "?", "?", "?"
 };
+
 /* Participation Processor */
 static char *partproc[] = {
 	"local node origin", "local node response",
 	"local node observed", "generic participation"
 };
+
 /* Timeout */
 static char *timeout[] = {
 	"request didn't time out",
 	"request timed out"
 };
+
 /* internal unclassified error code */
 static char *internal[] = { "reserved",
 			    "reserved",
@@ -75,16 +72,22 @@ void decode_amd_errcode(struct mce_event *e)
 
 	if (e->status & MCI_STATUS_UC) {
 		if (e->status & MCI_STATUS_PCC)
-			strcpy(e->error_msg, "System Fatal error.");
+			strscpy(e->error_msg, "System Fatal error.",
+				sizeof(e->error_msg));
 		if (e->mcgstatus & MCG_STATUS_RIPV)
-			strcpy(e->error_msg,
-			       "Uncorrected, software restartable error.");
-		strcpy(e->error_msg,
-		       "Uncorrected, software containable error.");
-	} else if (e->status & MCI_STATUS_DEFERRED)
-		strcpy(e->error_msg, "Deferred error, no action required.");
-	else
-		strcpy(e->error_msg, "Corrected error, no action required.");
+			strscpy(e->error_msg,
+				"Uncorrected, software restartable error.",
+				sizeof(e->error_msg));
+		strscpy(e->error_msg,
+			"Uncorrected, software containable error.",
+			sizeof(e->error_msg));
+	} else if (e->status & MCI_STATUS_DEFERRED) {
+		strscpy(e->error_msg, "Deferred error, no action required.",
+			sizeof(e->error_msg));
+	} else {
+		strscpy(e->error_msg, "Corrected error, no action required.",
+			sizeof(e->error_msg));
+	}
 
 	if (!(e->status & MCI_STATUS_VAL))
 		mce_snprintf(e->mcistatus_msg, "MCE_INVALID");
@@ -117,6 +120,4 @@ void decode_amd_errcode(struct mce_event *e)
 			     "Bus Error '%s, %s, mem-tx: %s, level: %s'",
 			     PP_MSG(ec), TO_MSG(ec),
 			     R4_MSG(ec), LL_MSG(ec));
-	return;
-
 }

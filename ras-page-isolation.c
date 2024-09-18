@@ -1,25 +1,18 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2020. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-*/
+ */
 
 #include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
+#include <unistd.h>
+
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
 
@@ -53,7 +46,7 @@ static struct isolation cycle = {
 	.unit = "h",
 };
 
-static const char *kernel_offline[] = {
+static const char * const kernel_offline[] = {
 	[OFFLINE_SOFT]		 = "/sys/devices/system/memory/soft_offline_page",
 	[OFFLINE_HARD]		 = "/sys/devices/system/memory/hard_offline_page",
 	[OFFLINE_SOFT_THEN_HARD] = "/sys/devices/system/memory/soft_offline_page",
@@ -68,7 +61,7 @@ static const struct config offline_choice[] = {
 	{}
 };
 
-static const char *page_state[] = {
+static const char * const page_state[] = {
 	[PAGE_ONLINE]		= "online",
 	[PAGE_OFFLINE]		= "offlined",
 	[PAGE_OFFLINE_FAILED]	= "offline-failed",
@@ -116,7 +109,7 @@ static void parse_isolation_env(struct isolation *config)
 	int unit_matched = 0;
 	unsigned long value, tmp;
 
-	/* check if env is vaild */
+	/* check if env is valid */
 	if (env && strlen(env)) {
 		/* All the character before unit must be digit */
 		for (i = 0; i < strlen(env) - 1; i++) {
@@ -125,7 +118,7 @@ static void parse_isolation_env(struct isolation *config)
 		}
 		if (sscanf(env, "%lu", &value) < 1 || !value)
 			goto parse;
-		/* check if the unit is vaild */
+		/* check if the unit is valid */
 		unit = env + strlen(env) - 1;
 		/* no unit, all the character are value character */
 		if (isdigit(*unit)) {
@@ -150,8 +143,8 @@ parse:
 		if (!no_unit)
 			config->unit = unit;
 	} else {
-		 log(TERM, LOG_INFO, "Improper %s, set to default %s.\n",
-				 config->name, config->env);
+		log(TERM, LOG_INFO, "Improper %s, set to default %s.\n",
+		    config->name, config->env);
 	}
 
 	/* if env value string is greater than ulong_max, truncate the last digit */
@@ -171,18 +164,19 @@ parse:
 	config->unit = no_unit ? config->unit : "";
 }
 
-static void parse_env_string(struct isolation *config, char *str)
+static void parse_env_string(struct isolation *config, char *str, unsigned int size)
 {
 	int i;
 
 	if (config->overflow) {
 		/* when overflow, use basic unit */
-		for (i = 0; config->units[i].name; i++) ;
-		sprintf(str, "%lu%s", config->val, config->units[i-1].name);
+		for (i = 0; config->units[i].name; i++)
+			;
+		snprintf(str, size, "%lu%s", config->val, config->units[i - 1].name);
 		log(TERM, LOG_INFO, "%s is set overflow(%s), truncate it\n",
-				config->name, config->env);
+		    config->name, config->env);
 	} else {
-		sprintf(str, "%s%s", config->env, config->unit);
+		snprintf(str, size, "%s%s", config->env, config->unit);
 	}
 }
 
@@ -199,10 +193,10 @@ static void page_isolation_init(void)
 
 	parse_isolation_env(&threshold);
 	parse_isolation_env(&cycle);
-	parse_env_string(&threshold, threshold_string);
-	parse_env_string(&cycle, cycle_string);
+	parse_env_string(&threshold, threshold_string, sizeof(threshold_string));
+	parse_env_string(&cycle, cycle_string, sizeof(cycle_string));
 	log(TERM, LOG_INFO, "Threshold of memory Corrected Errors is %s / %s\n",
-			threshold_string, cycle_string);
+	    threshold_string, cycle_string);
 }
 
 void ras_page_account_init(void)
@@ -218,15 +212,18 @@ static int do_page_offline(unsigned long long addr, enum otype type)
 
 	fd = open(kernel_offline[type], O_WRONLY);
 	if (fd == -1) {
-		log(TERM, LOG_ERR, "[%s]:open file: %s failed\n", __func__, kernel_offline[type]);
+		log(TERM, LOG_ERR, "[%s]:open file: %s failed\n", __func__,
+		    kernel_offline[type]);
 		return -1;
 	}
 
-	sprintf(buf, "%#llx", addr);
+	snprintf(buf, sizeof(buf), "%#llx", addr);
 	rc = write(fd, buf, strlen(buf));
-	if (rc < 0) {
-		log(TERM, LOG_ERR, "page offline addr(%s) by %s failed, errno:%d\n", buf, kernel_offline[type], errno);
-	}
+	if (rc < 0)
+		log(TERM, LOG_ERR,
+		    "page offline addr(%s) by %s failed, errno:%d\n",
+		    buf, kernel_offline[type], errno);
+
 	close(fd);
 	return rc;
 }
@@ -239,7 +236,7 @@ static void page_offline(struct page_record *pr)
 	/* Offlining page is not required */
 	if (offline <= OFFLINE_ACCOUNT) {
 		log(TERM, LOG_INFO, "PAGE_CE_ACTION=%s, ignore to offline page at %#llx\n",
-				offline_choice[offline].name, addr);
+		    offline_choice[offline].name, addr);
 		return;
 	}
 
@@ -264,7 +261,7 @@ static void page_offline(struct page_record *pr)
 	    addr, page_state[pr->offlined]);
 }
 
-static void page_record(struct page_record *pr, unsigned count, time_t time)
+static void page_record(struct page_record *pr, unsigned int count, time_t time)
 {
 	unsigned long period = time - pr->start;
 	unsigned long tolerate;
@@ -272,7 +269,7 @@ static void page_record(struct page_record *pr, unsigned count, time_t time)
 	if (period >= cycle.val) {
 		/**
 		 * Since we don't refresh automatically, it is possible that the period
-		 * between two occurences will be longer than the pre-configured refresh cycle.
+		 * between two occurrences will be longer than the pre-configured refresh cycle.
 		 * In this case, we tolerate the frequency of the whole period up to
 		 * the pre-configured threshold.
 		 */
@@ -306,13 +303,12 @@ static struct page_record *page_lookup_insert(unsigned long long addr)
 	while (*entry) {
 		parent = *entry;
 		pr = rb_entry(parent, struct page_record, entry);
-		if (addr == pr->addr) {
+		if (addr == pr->addr)
 			return pr;
-		} else if (addr < pr->addr) {
+		else if (addr < pr->addr)
 			entry = &(*entry)->rb_left;
-		} else {
+		else
 			entry = &(*entry)->rb_right;
-		}
 	}
 
 	find = calloc(1, sizeof(struct page_record));
@@ -328,7 +324,7 @@ static struct page_record *page_lookup_insert(unsigned long long addr)
 	return find;
 }
 
-void ras_record_page_error(unsigned long long addr, unsigned count, time_t time)
+void ras_record_page_error(unsigned long long addr, unsigned int count, time_t time)
 {
 	struct page_record *pr = NULL;
 
