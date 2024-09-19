@@ -912,7 +912,7 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 	return 0;
 }
 
-int handle_ras_events(int record_events)
+int handle_ras_events(int record_events, int enable_ipmitool)
 {
 	int rc, page_size, i;
 	int num_events = 0;
@@ -967,6 +967,7 @@ int handle_ras_events(int record_events)
 		    "ras", "mc_event");
 
 #ifdef HAVE_AER
+	ras_aer_handler_init(enable_ipmitool);
 	rc = add_event_handler(ras, pevent, page_size, "ras", "aer_event",
 			       ras_aer_event_handler, NULL, AER_EVENT);
 	if (!rc)

@@ -192,6 +192,16 @@ AS_IF([test "x$enable_amp_ns_decode" = "xyes" || test "x$enable_all" = "xyes"], 
 AM_CONDITIONAL([WITH_AMP_NS_DECODE], [test x$enable_amp_ns_decode = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_AMP_NS_DECODE], [USE_AMP_NS_DECODE="yes"], [USE_AMP_NS_DECODE="no"])
 
+AC_ARG_ENABLE([openbmc_unified_sel],
+    AS_HELP_STRING([--enable-openbmc-unified-sel], [enable OPENBMC_UNIFIED_SEL events (currently experimental)]))
+
+AS_IF([test "x$enable_openbmc_unified_sel" = "xyes" || test "x$enable_all" = "xyes"], [
+  AC_DEFINE(HAVE_OPENBMC_UNIFIED_SEL,1,"have OpenBMC unified SEL")
+  AC_SUBST([WITH_OPENBMC_UNIFIED_SEL])
+])
+AM_CONDITIONAL([WITH_OPENBMC_UNIFIED_SEL], [test x$enable_openbmc_unified_sel = xyes || test x$enable_all = xyes])
+AM_COND_IF([WITH_OPENBMC_UNIFIED_SEL], [USE_OPENBMC_UNIFIED_SEL="yes"], [USE_OPENBMC_UNIFIED_SEL="no"])
+
 AC_ARG_ENABLE([jaguar_ns_decode],
     AS_HELP_STRING([--enable-jaguar-ns-decode], [enable JAGUAR_NS_DECODE events (currently experimental)]))
 
@@ -263,6 +273,7 @@ compile time options summary
     CXL events          : $USE_CXL
     Memory CE PFA       : $USE_MEMORY_CE_PFA
     AMP RAS errors      : $USE_AMP_NS_DECODE
+    OpenBMC unified     : $USE_OPENBMC_UNIFIED_SEL
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION
     YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
     JAGUAR RAS errors   : $USE_JAGUAR_NS_DECODE
