@@ -899,6 +899,13 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 #define CXL_DER_VALID_COLUMN			BIT(6)
 #define CXL_DER_VALID_CORRECTION_MASK		BIT(7)
 
+static const char * const cxl_der_mem_event_type[] = {
+	"Media ECC Error",
+	"Scrub Media ECC Error",
+	"Invalid Address",
+	"Data Path Error",
+};
+
 int ras_cxl_dram_event_handler(struct trace_seq *s,
 			       struct tep_record *record,
 			       struct tep_event *event, void *context)
@@ -945,9 +952,9 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s,  event, "type", record, &val, 1) < 0)
 		return -1;
 	ev.type = val;
-	if (trace_seq_printf(s, "type:%s ",
-			     get_cxl_type_str(cxl_gmer_mem_event_type,
-					      ARRAY_SIZE(cxl_gmer_mem_event_type),
+	if (trace_seq_printf(s, "memory_event_type:%s ",
+			     get_cxl_type_str(cxl_der_mem_event_type,
+					      ARRAY_SIZE(cxl_der_mem_event_type),
 					      ev.type)) <= 0)
 		return -1;
 
