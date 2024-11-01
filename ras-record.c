@@ -780,23 +780,25 @@ int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow
 
 static int ras_store_cxl_common_hdr(sqlite3_stmt *stmt, struct ras_cxl_event_common_hdr *hdr)
 {
+	int idx = 1;
+
 	if (!stmt || !hdr)
-		return 0;
+		return -1;
 
-	sqlite3_bind_text(stmt, 1, hdr->timestamp, -1, NULL);
-	sqlite3_bind_text(stmt, 2, hdr->memdev, -1, NULL);
-	sqlite3_bind_text(stmt, 3, hdr->host, -1, NULL);
-	sqlite3_bind_int64(stmt, 4, hdr->serial);
-	sqlite3_bind_text(stmt, 5, hdr->log_type, -1, NULL);
-	sqlite3_bind_text(stmt, 6, hdr->hdr_uuid, -1, NULL);
-	sqlite3_bind_int(stmt, 7, hdr->hdr_flags);
-	sqlite3_bind_int(stmt, 8, hdr->hdr_handle);
-	sqlite3_bind_int(stmt, 9, hdr->hdr_related_handle);
-	sqlite3_bind_text(stmt, 10, hdr->hdr_timestamp, -1, NULL);
-	sqlite3_bind_int(stmt, 11, hdr->hdr_length);
-	sqlite3_bind_int(stmt, 12, hdr->hdr_maint_op_class);
+	sqlite3_bind_text(stmt, idx++, hdr->timestamp, -1, NULL);
+	sqlite3_bind_text(stmt, idx++, hdr->memdev, -1, NULL);
+	sqlite3_bind_text(stmt, idx++, hdr->host, -1, NULL);
+	sqlite3_bind_int64(stmt, idx++, hdr->serial);
+	sqlite3_bind_text(stmt, idx++, hdr->log_type, -1, NULL);
+	sqlite3_bind_text(stmt, idx++, hdr->hdr_uuid, -1, NULL);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_flags);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_handle);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_related_handle);
+	sqlite3_bind_text(stmt, idx++, hdr->hdr_timestamp, -1, NULL);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_length);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_maint_op_class);
 
-	return 0;
+	return idx;
 }
 
 /*
@@ -827,15 +829,19 @@ static const struct db_table_descriptor cxl_generic_event_tab = {
 
 int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
 {
-	int rc;
 	struct sqlite3_priv *priv = ras->db_priv;
+	int idx;
+	int rc;
 
 	if (!priv || !priv->stmt_cxl_generic_event)
-		return 0;
+		return -1;
 	log(TERM, LOG_INFO, "cxl_generic_event store: %p\n", priv->stmt_cxl_generic_event);
 
-	ras_store_cxl_common_hdr(priv->stmt_cxl_generic_event, &ev->hdr);
-	sqlite3_bind_blob(priv->stmt_cxl_generic_event, 13, ev->data,
+	idx = ras_store_cxl_common_hdr(priv->stmt_cxl_generic_event, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+
+	sqlite3_bind_blob(priv->stmt_cxl_generic_event, idx++, ev->data,
 			  CXL_EVENT_RECORD_DATA_LENGTH, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_generic_event);
@@ -891,28 +897,31 @@ static const struct db_table_descriptor cxl_general_media_event_tab = {
 int ras_store_cxl_general_media_event(struct ras_events *ras,
 				      struct ras_cxl_general_media_event *ev)
 {
-	int rc;
 	struct sqlite3_priv *priv = ras->db_priv;
+	int idx;
+	int rc;
 
 	if (!priv || !priv->stmt_cxl_general_media_event)
-		return 0;
+		return -1;
 	log(TERM, LOG_INFO, "cxl_general_media_event store: %p\n",
 	    priv->stmt_cxl_general_media_event);
 
-	ras_store_cxl_common_hdr(priv->stmt_cxl_general_media_event, &ev->hdr);
-	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, 13, ev->dpa);
-	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 14, ev->dpa_flags);
-	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 15, ev->descriptor);
-	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 16, ev->type);
-	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 17, ev->transaction_type);
-	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 18, ev->channel);
-	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 19, ev->rank);
-	sqlite3_bind_int(priv->stmt_cxl_general_media_event, 20, ev->device);
-	sqlite3_bind_blob(priv->stmt_cxl_general_media_event, 21, ev->comp_id,
+	idx = ras_store_cxl_common_hdr(priv->stmt_cxl_general_media_event, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, idx++, ev->dpa);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->dpa_flags);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->descriptor);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->type);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->transaction_type);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->channel);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->rank);
+	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->device);
+	sqlite3_bind_blob(priv->stmt_cxl_general_media_event, idx++, ev->comp_id,
 			  CXL_EVENT_GEN_MED_COMP_ID_SIZE, NULL);
-	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, 22, ev->hpa);
-	sqlite3_bind_text(priv->stmt_cxl_general_media_event, 23, ev->region, -1, NULL);
-	sqlite3_bind_text(priv->stmt_cxl_general_media_event, 24, ev->region_uuid, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, idx++, ev->hpa);
+	sqlite3_bind_text(priv->stmt_cxl_general_media_event, idx++, ev->region, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_general_media_event, idx++, ev->region_uuid, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_general_media_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -970,32 +979,35 @@ static const struct db_table_descriptor cxl_dram_event_tab = {
 
 int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
 {
-	int rc;
 	struct sqlite3_priv *priv = ras->db_priv;
+	int idx;
+	int rc;
 
 	if (!priv || !priv->stmt_cxl_dram_event)
-		return 0;
+		return -1;
 	log(TERM, LOG_INFO, "cxl_dram_event store: %p\n",
 	    priv->stmt_cxl_dram_event);
 
-	ras_store_cxl_common_hdr(priv->stmt_cxl_dram_event, &ev->hdr);
-	sqlite3_bind_int64(priv->stmt_cxl_dram_event, 13, ev->dpa);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 14, ev->dpa_flags);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 15, ev->descriptor);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 16, ev->type);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 17, ev->transaction_type);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 18, ev->channel);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 19, ev->rank);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 20, ev->nibble_mask);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 21, ev->bank_group);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 22, ev->bank);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 23, ev->row);
-	sqlite3_bind_int(priv->stmt_cxl_dram_event, 24, ev->column);
-	sqlite3_bind_blob(priv->stmt_cxl_dram_event, 25, ev->cor_mask,
+	idx = ras_store_cxl_common_hdr(priv->stmt_cxl_dram_event, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+	sqlite3_bind_int64(priv->stmt_cxl_dram_event, idx++, ev->dpa);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->dpa_flags);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->descriptor);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->type);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->transaction_type);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->channel);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->rank);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->nibble_mask);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->bank_group);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->bank);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->row);
+	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->column);
+	sqlite3_bind_blob(priv->stmt_cxl_dram_event, idx++, ev->cor_mask,
 			  CXL_EVENT_DER_CORRECTION_MASK_SIZE, NULL);
-	sqlite3_bind_int64(priv->stmt_cxl_dram_event, 26, ev->hpa);
-	sqlite3_bind_text(priv->stmt_cxl_dram_event, 27, ev->region, -1, NULL);
-	sqlite3_bind_text(priv->stmt_cxl_dram_event, 28, ev->region_uuid, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_dram_event, idx++, ev->hpa);
+	sqlite3_bind_text(priv->stmt_cxl_dram_event, idx++, ev->region, -1, NULL);
+	sqlite3_bind_text(priv->stmt_cxl_dram_event, idx++, ev->region_uuid, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_dram_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -1047,24 +1059,27 @@ static const struct db_table_descriptor cxl_memory_module_event_tab = {
 int ras_store_cxl_memory_module_event(struct ras_events *ras,
 				      struct ras_cxl_memory_module_event *ev)
 {
-	int rc;
 	struct sqlite3_priv *priv = ras->db_priv;
+	int idx;
+	int rc;
 
 	if (!priv || !priv->stmt_cxl_memory_module_event)
-		return 0;
+		return -1;
 	log(TERM, LOG_INFO, "cxl_memory_module_event store: %p\n",
 	    priv->stmt_cxl_memory_module_event);
 
-	ras_store_cxl_common_hdr(priv->stmt_cxl_memory_module_event, &ev->hdr);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 13, ev->event_type);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 14, ev->health_status);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 15, ev->media_status);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 16, ev->life_used);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 17, ev->dirty_shutdown_cnt);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 18, ev->cor_vol_err_cnt);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 19, ev->cor_per_err_cnt);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 20, ev->device_temp);
-	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, 21, ev->add_status);
+	idx = ras_store_cxl_common_hdr(priv->stmt_cxl_memory_module_event, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->event_type);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->health_status);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->media_status);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->life_used);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->dirty_shutdown_cnt);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->cor_vol_err_cnt);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->cor_per_err_cnt);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->device_temp);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->add_status);
 
 	rc = sqlite3_step(priv->stmt_cxl_memory_module_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
