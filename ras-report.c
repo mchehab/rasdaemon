@@ -507,7 +507,8 @@ static int set_cxl_generic_event_backtrace(char *buf, struct ras_cxl_generic_eve
 		"hdr_related_handle=0x%x\n"
 		"hdr_timestamp=%s\n"
 		"hdr_length=%u\n"
-		"hdr_maint_op_class=%u\n",
+		"hdr_maint_op_class=%u\n"
+		"hdr_maint_op_sub_class=%u\n",
 		ev->hdr.timestamp,
 		ev->hdr.memdev,
 		ev->hdr.host,
@@ -519,7 +520,8 @@ static int set_cxl_generic_event_backtrace(char *buf, struct ras_cxl_generic_eve
 		ev->hdr.hdr_related_handle,
 		ev->hdr.hdr_timestamp,
 		ev->hdr.hdr_length,
-		ev->hdr.hdr_maint_op_class);
+		ev->hdr.hdr_maint_op_class,
+		ev->hdr.hdr_maint_op_sub_class);
 
 	return 0;
 }

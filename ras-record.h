@@ -179,6 +179,7 @@ struct ras_cxl_event_common_hdr {
 	char hdr_timestamp[64];
 	uint8_t hdr_length;
 	uint8_t hdr_maint_op_class;
+	uint8_t hdr_maint_op_sub_class;
 };
 
 struct ras_cxl_generic_event {

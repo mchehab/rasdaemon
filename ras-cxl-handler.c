@@ -576,18 +576,20 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 
 /*
  * Common Event Record Format
- * CXL 3.0 section 8.2.9.2.1; Table 8-42
+ * CXL 3.1 section 8.2.9.2.1; Table 8-43
  */
 #define CXL_EVENT_RECORD_FLAG_PERMANENT		BIT(2)
 #define CXL_EVENT_RECORD_FLAG_MAINT_NEEDED	BIT(3)
 #define CXL_EVENT_RECORD_FLAG_PERF_DEGRADED	BIT(4)
 #define CXL_EVENT_RECORD_FLAG_HW_REPLACE	BIT(5)
+#define CXL_EVENT_RECORD_FLAG_MAINT_OP_SUB_CLASS_VALID	BIT(6)
 
 static const struct  cxl_event_flags cxl_hdr_flags[] = {
 	{ .bit = CXL_EVENT_RECORD_FLAG_PERMANENT, .flag = "PERMANENT_CONDITION" },
 	{ .bit = CXL_EVENT_RECORD_FLAG_MAINT_NEEDED, .flag = "MAINTENANCE_NEEDED" },
 	{ .bit = CXL_EVENT_RECORD_FLAG_PERF_DEGRADED, .flag = "PERFORMANCE_DEGRADED" },
 	{ .bit = CXL_EVENT_RECORD_FLAG_HW_REPLACE, .flag = "HARDWARE_REPLACEMENT_NEEDED" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_MAINT_OP_SUB_CLASS_VALID, .flag = "MAINT_OP_SUB_CLASS_VALID" },
 };
 
 static int handle_ras_cxl_common_hdr(struct trace_seq *s,
@@ -669,6 +671,12 @@ static int handle_ras_cxl_common_hdr(struct trace_seq *s,
 		return -1;
 	hdr->hdr_maint_op_class = val;
 	if (trace_seq_printf(s, "hdr_maint_op_class:%u ", hdr->hdr_maint_op_class) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "hdr_maint_op_sub_class", record, &val, 1) < 0)
+		return -1;
+	hdr->hdr_maint_op_sub_class = val;
+	if (trace_seq_printf(s, "hdr_maint_op_sub_class:%u ", hdr->hdr_maint_op_sub_class) <= 0)
 		return -1;
 
 	return 0;
