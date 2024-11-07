@@ -358,20 +358,8 @@ static void report_mce_event(struct ras_events *ras,
 	if (!e->vdata_len)
 		return;
 
-	if (strlen(e->frutext)) {
+	if (strlen(e->frutext))
 		trace_seq_printf(s, ", FRU Text= %s", e->frutext);
-		trace_seq_printf(s, ", Vendor Data= ");
-		for (int i = 2; i < e->vdata_len / 8; i++) {
-			trace_seq_printf(s, "0x%lx", e->vdata[i]);
-			trace_seq_printf(s, " ");
-		}
-	} else {
-		trace_seq_printf(s, ", Vendor Data= ");
-		for (int i = 0; i < e->vdata_len / 8; i++) {
-			trace_seq_printf(s, "0x%lx", e->vdata[i]);
-			trace_seq_printf(s, " ");
-		}
-	}
 
 	/*
 	 * FIXME: The original mcelog userspace tool uses DMI to map from
