@@ -1339,7 +1339,7 @@ sub get_cxl_descriptor_flags_text
     return join (", ", @out);
 }
 
-sub get_cxl_mem_event_type
+sub get_cxl_gmer_mem_event_type
 {
     my @types;
 
@@ -1348,6 +1348,22 @@ sub get_cxl_mem_event_type
     }
 
     @types = ("ECC Error",
+	      "Invalid Address",
+	      "Data Path Error");
+
+    return $types[$_[0]];
+}
+
+sub get_cxl_der_mem_event_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 3) {
+	return "unknown-type";
+    }
+
+    @types = ("Media ECC Error",
+	      "Scrub Media ECC Error",
 	      "Invalid Address",
 	      "Data Path Error");
 
@@ -1978,7 +1994,7 @@ sub errors
 	    $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
 	    $out .= sprintf "dpa_flags: %s, ", get_cxl_dpa_flags_text($dpa_flags) if (defined $dpa_flags && length $dpa_flags);
 	    $out .= sprintf "descriptor_flags: %s, ", get_cxl_descriptor_flags_text($descriptor) if (defined $descriptor && length $descriptor);
-	    $out .= sprintf "memory event type: %s, ", get_cxl_mem_event_type($mem_event_type) if (defined $mem_event_type && length $mem_event_type);
+	    $out .= sprintf "memory event type: %s, ", get_cxl_gmer_mem_event_type($mem_event_type) if (defined $mem_event_type && length $mem_event_type);
 	    $out .= sprintf "transaction_type: %s, ", get_cxl_transaction_type($transaction_type) if (defined $transaction_type && length $transaction_type);
 	    $out .= sprintf "channel=%u, ", $channel if (defined $channel && length $channel);
 	    $out .= sprintf "rank=%u, ", $rank if (defined $rank && length $rank);
@@ -2024,7 +2040,7 @@ sub errors
 	    $out .= sprintf "dpa=0x%llx, ", $dpa if (defined $dpa && length $dpa);
 	    $out .= sprintf "dpa_flags: %s, ", get_cxl_dpa_flags_text($dpa_flags) if (defined $dpa_flags && length $dpa_flags);
 	    $out .= sprintf "descriptor_flags: %s, ", get_cxl_descriptor_flags_text($descriptor) if (defined $descriptor && length $descriptor);
-	    $out .= sprintf "memory event type: %s, ", get_cxl_mem_event_type($type) if (defined $type && length $type);
+	    $out .= sprintf "memory event type: %s, ", get_cxl_der_mem_event_type($type) if (defined $type && length $type);
 	    $out .= sprintf "transaction_type: %s, ", get_cxl_transaction_type($transaction_type) if (defined $transaction_type && length $transaction_type);
 	    $out .= sprintf "channel=%u, ", $channel if (defined $channel && length $channel);
 	    $out .= sprintf "rank=%u, ", $rank if (defined $rank && length $rank);
