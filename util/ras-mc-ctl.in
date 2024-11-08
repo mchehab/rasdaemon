@@ -1339,19 +1339,63 @@ sub get_cxl_descriptor_flags_text
     return join (", ", @out);
 }
 
+#CXL rev 3.1 Section 8.2.9.2.1.1; Table 8-45
+#General Media Event Record - GMER
 sub get_cxl_gmer_mem_event_type
 {
     my @types;
 
-    if ($_[0] < 0 || $_[0] > 2) {
+    if ($_[0] < 0 || $_[0] > 6) {
 	return "unknown-type";
     }
 
     @types = ("ECC Error",
 	      "Invalid Address",
-	      "Data Path Error");
+	      "Data Path Error",
+	      "TE State Violation",
+	      "Scrub Media ECC Error",
+	      "Advanced Programmable CME Counter Expiration",
+	      "CKID Violation");
 
     return $types[$_[0]];
+}
+
+# CXL rev 3.1 Section 8.2.9.2.1.1; Table 8-45
+sub get_cxl_mem_event_sub_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 5) {
+	return "unknown-type";
+    }
+
+    @types = ("Not Reported",
+	      "Internal Datapath Error",
+	      "Media Link Command Training Error",
+	      "Media Link Control Training Error",
+	      "Media Link Data Training Error",
+	      "Media Link CRC Error");
+
+    return $types[$_[0]];
+}
+
+use constant {
+    CXL_EVT_FLAG_CME_MULTIPLE_MEDIA => 0x0001,
+    CXL_EVT_FLAG_THRESHOLD_EXCEEDED => 0x0002,
+};
+sub get_cxl_cme_threshold_ev_flags_text
+{
+    my $flags = $_[0];
+    my @out;
+
+    if ($flags & CXL_EVT_FLAG_CME_MULTIPLE_MEDIA) {
+	push @out, (sprintf "\'Corrected Memory Errors in Multiple Media Components\' ");
+    }
+    if ($flags & CXL_EVT_FLAG_THRESHOLD_EXCEEDED) {
+	push @out, (sprintf "\'Exceeded Programmable Threshold\' ");
+    }
+
+    return join (", ", @out);
 }
 
 sub get_cxl_der_mem_event_type
@@ -1370,11 +1414,12 @@ sub get_cxl_der_mem_event_type
     return $types[$_[0]];
 }
 
+# CXL rev 3.1 Section 8.2.9.2.1.1; Table 8-45
 sub get_cxl_transaction_type
 {
     my @types;
 
-    if ($_[0] < 0 || $_[0] > 6) {
+    if ($_[0] < 0 || $_[0] > 8) {
 	return "unknown-type";
     }
 
@@ -1384,7 +1429,9 @@ sub get_cxl_transaction_type
 	      "Host Scan Media",
 	      "Host Inject Poison",
 	      "Internal Media Scrub",
-	      "Internal Media Management");
+	      "Internal Media Management",
+	      "Internal Media Error Check Scrub",
+	      "Media Initialization");
 
     return $types[$_[0]];
 }
@@ -1451,6 +1498,19 @@ sub get_cxl_media_status
 	      "All Data Loss Imminent");
 
     return $types[$_[0]];
+}
+
+# arg0 - name of the id
+# arg1 - id
+# arg2 - size(bytes) of id
+# arg3 - out log buffer
+sub print_cxl_dev_id
+{
+    $_[3] .= sprintf "%s:", $_[0];
+    my @bytes = unpack "C*", $_[1];
+    for (my $i = 0; $i < $_[2]; $i++) {
+        $_[3] .= sprintf "%02x ", $bytes[$i];
+    }
 }
 
 sub summary
@@ -1756,9 +1816,10 @@ sub errors
     my ($log_type, $first_ts, $last_ts);
     my ($trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts);
     my ($hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $data);
-    my ($dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id);
+    my ($dpa_flags, $descriptor, $mem_event_type, $mem_event_sub_type, $transaction_type, $channel, $rank, $device, $comp_id, $pldm_entity_id, $pldm_res_id);
     my ($nibble_mask, $bank_group, $row, $column, $cor_mask);
     my ($event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status);
+    my ($sub_type, $cme_threshold_ev_flags, $cme_count);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -1974,10 +2035,12 @@ sub errors
 
 	# CXL general media errors
 	use constant CXL_EVENT_GEN_MED_COMP_ID_SIZE => 0x10;
-	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, hdr_maint_op_sub_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, device, comp_id, hpa, region, region_uuid from cxl_general_media_event$conf{opt}{since} order by id";
+	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, hdr_maint_op_sub_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, device, comp_id, hpa, region, region_uuid, pldm_entity_id, pldm_resource_id, sub_type, cme_threshold_ev_flags, cme_count from cxl_general_media_event$conf{opt}{since} order by id";
 	$query_handle = $dbh->prepare($query);
 	$query_handle->execute();
-	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $dpa, $dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id, $hpa, $region, $region_uuid));
+	use constant CXL_EVENT_GEN_PLDM_ENTITY_ID_SIZE => 0x6;
+	use constant CXL_EVENT_GEN_PLDM_RES_ID_SIZE => 0x4;
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $dpa, $dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id, $hpa, $region, $region_uuid, $pldm_entity_id, $pldm_res_id, $sub_type, $cme_threshold_ev_flags, $cme_count));
 	$out = "";
 	while($query_handle->fetch()) {
 	    $out .= "$id $timestamp error: ";
@@ -1997,20 +2060,25 @@ sub errors
 	    $out .= sprintf "dpa_flags: %s, ", get_cxl_dpa_flags_text($dpa_flags) if (defined $dpa_flags && length $dpa_flags);
 	    $out .= sprintf "descriptor_flags: %s, ", get_cxl_descriptor_flags_text($descriptor) if (defined $descriptor && length $descriptor);
 	    $out .= sprintf "memory event type: %s, ", get_cxl_gmer_mem_event_type($mem_event_type) if (defined $mem_event_type && length $mem_event_type);
+            $out .= sprintf "memory event sub type: %s, ", get_cxl_mem_event_sub_type($mem_event_sub_type) if (defined $mem_event_sub_type && length $mem_event_sub_type);
 	    $out .= sprintf "transaction_type: %s, ", get_cxl_transaction_type($transaction_type) if (defined $transaction_type && length $transaction_type);
 	    $out .= sprintf "channel=%u, ", $channel if (defined $channel && length $channel);
 	    $out .= sprintf "rank=%u, ", $rank if (defined $rank && length $rank);
 	    $out .= sprintf "device=0x%x, ", $device if (defined $device && length $device);
 	    if (defined $comp_id && length $comp_id) {
-		$out .= sprintf "component_id:";
-		my @bytes = unpack "C*", $comp_id;
-		for (my $i = 0; $i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; $i++) {
-		    $out .= sprintf "%02x ", $bytes[$i];
-		}
+                print_cxl_dev_id("component_id", $comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE, $out);
 	    }
+            if (defined $pldm_entity_id && length $pldm_entity_id) {
+                print_cxl_dev_id("pldm_entity_id", $pldm_entity_id, CXL_EVENT_GEN_PLDM_ENTITY_ID_SIZE, $out);
+            }
+            if (defined $pldm_res_id && length $pldm_res_id) {
+                print_cxl_dev_id("pldm_resource_id", $pldm_res_id, CXL_EVENT_GEN_PLDM_RES_ID_SIZE, $out);
+            }
             $out .= sprintf "hpa=0x%llx, ", $hpa if (defined $hpa && length $hpa);
             $out .= "region=$region, " if (defined $region && length $region);
             $out .= "region_uuid=$region_uuid, " if (defined $region_uuid && length $region_uuid);
+            $out .= sprintf "cme_threshold_ev_flags: %s, ", get_cxl_cme_threshold_ev_flags_text($cme_threshold_ev_flags) if (defined $cme_threshold_ev_flags && length $cme_threshold_ev_flags);
+            $out .= sprintf "cme_count=%u, ", $cme_count if (defined $cme_count && length $cme_count);
 	    $out .= "\n";
 	}
 	if ($out ne "") {
