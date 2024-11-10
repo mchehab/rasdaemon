@@ -1439,11 +1439,12 @@ sub get_cxl_transaction_type
     return $types[$_[0]];
 }
 
+# CXL rev 3.1 section 8.2.9.2.1.3; Table 8-47
 sub get_cxl_dev_event_type
 {
     my @types;
 
-    if ($_[0] < 0 || $_[0] > 5) {
+    if ($_[0] < 0 || $_[0] > 8) {
 	return "unknown-type";
     }
 
@@ -1452,15 +1453,37 @@ sub get_cxl_dev_event_type
 	      "Life Used Change",
 	      "Temperature Change",
 	      "Data Path Error",
-	      "LSA Error");
+	      "LSA Error",
+	      "Unrecoverable Internal Sideband Bus Error",
+	      "Memory Media FRU Error",
+	      "Power Management Fault");
 
     return $types[$_[0]];
 }
 
+sub get_cxl_dev_event_sub_type
+{
+    my @types;
+
+    if ($_[0] < 0 || $_[0] > 3) {
+	return "unknown-type";
+    }
+
+    @types = ("Not Reported",
+	      "Invalid Config Data",
+	      "Unsupported Config Data",
+	      "Unsupported Memory Media FRU");
+
+    return $types[$_[0]];
+}
+
+#CXL rev 3.1 section 8.2.9.9.3.1; Table 8-133
 use constant {
     CXL_DHI_HS_MAINTENANCE_NEEDED => 0x0001,
     CXL_DHI_HS_PERFORMANCE_DEGRADED => 0x0002,
     CXL_DHI_HS_HW_REPLACEMENT_NEEDED => 0x0004,
+    CXL_DHI_HS_HW_REPLACEMENT_NEEDED => 0x0004,
+    CXL_DHI_HS_MEM_CAPACITY_DEGRADED => 0x0008,
 };
 
 sub get_cxl_health_status_text
@@ -1476,6 +1499,9 @@ sub get_cxl_health_status_text
     }
     if ($flags & CXL_DHI_HS_HW_REPLACEMENT_NEEDED) {
 	push @out, (sprintf "\'REPLACEMENT_NEEDED\' ");
+    }
+    if ($flags & CXL_DHI_HS_MEM_CAPACITY_DEGRADED) {
+	push @out, (sprintf "\'MEM_CAPACITY_DEGRADED\' ");
     }
 
     return join (", ", @out);
@@ -1821,7 +1847,7 @@ sub errors
     my ($hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $data);
     my ($dpa_flags, $descriptor, $mem_event_type, $mem_event_sub_type, $transaction_type, $channel, $rank, $device, $comp_id, $pldm_entity_id, $pldm_res_id);
     my ($nibble_mask, $bank_group, $row, $column, $cor_mask);
-    my ($event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status);
+    my ($event_type, $event_sub_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status);
     my ($sub_type, $sub_channel, $cme_threshold_ev_flags, $cme_count, $cvme_count);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
@@ -2155,10 +2181,10 @@ sub errors
 	}
 
 	# CXL memory module errors
-	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, hdr_maint_op_sub_class, event_type, health_status, media_status, life_used, dirty_shutdown_cnt, cor_vol_err_cnt, cor_per_err_cnt, device_temp, add_status from cxl_memory_module_event$conf{opt}{since} order by id";
+	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, hdr_maint_op_sub_class, event_type, health_status, media_status, life_used, dirty_shutdown_cnt, cor_vol_err_cnt, cor_per_err_cnt, device_temp, add_status, event_sub_type, comp_id, pldm_entity_id, pldm_resource_id from cxl_memory_module_event$conf{opt}{since} order by id";
 	$query_handle = $dbh->prepare($query);
 	$query_handle->execute();
-	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status));
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $event_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status, $event_sub_type, $comp_id, $pldm_entity_id, $pldm_res_id));
 	$out = "";
 	while($query_handle->fetch()) {
 	    $out .= "$id $timestamp error: ";
@@ -2175,6 +2201,7 @@ sub errors
 	    $out .= sprintf "hdr_maint_op_class=%u, ", $hdr_maint_op_class if (defined $hdr_maint_op_class && length $hdr_maint_op_class);
 	    $out .= sprintf "hdr_maint_op_sub_class=%u, ", $hdr_maint_op_sub_class if (defined $hdr_maint_op_sub_class && length $hdr_maint_op_sub_class);
 	    $out .= sprintf "event_type: %s, ", get_cxl_dev_event_type($event_type)  if (defined $event_type && length $event_type);
+	    $out .= sprintf "event_sub_type: %s, ", get_cxl_dev_event_sub_type($event_sub_type)  if (defined $event_sub_type && length $event_sub_type);
 	    $out .= sprintf "health_status: %s, ", get_cxl_health_status_text($health_status)  if (defined $health_status && length $health_status);
 	    $out .= sprintf "media_status: %s, ", get_cxl_media_status($media_status)  if (defined $media_status && length $media_status);
 	    $out .= sprintf "life_used=%u, ", $life_used  if (defined $life_used && length $life_used);
@@ -2183,6 +2210,15 @@ sub errors
 	    $out .= sprintf "cor_per_err_cnt=%u, ", $cor_per_err_cnt  if (defined $cor_per_err_cnt && length $cor_per_err_cnt);
 	    $out .= sprintf "device_temp=%u, ", $device_temp  if (defined $device_temp && length $device_temp);
 	    $out .= sprintf "add_status=%u ", $add_status  if (defined $add_status && length $add_status);
+	    if (defined $comp_id && length $comp_id) {
+                print_cxl_dev_id("component_id", $comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE, $out);
+	    }
+	    if (defined $pldm_entity_id && length $pldm_entity_id) {
+                print_cxl_dev_id("pldm_entity_id", $pldm_entity_id, CXL_EVENT_GEN_PLDM_ENTITY_ID_SIZE, $out);
+	    }
+	    if (defined $pldm_res_id && length $pldm_res_id) {
+                print_cxl_dev_id("pldm_resource_id", $pldm_res_id, CXL_EVENT_GEN_PLDM_RES_ID_SIZE, $out);
+	    }
 	    $out .= "\n";
 	}
 	if ($out ne "") {
