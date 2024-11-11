@@ -1003,7 +1003,7 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 /*
  * DRAM Event Record - DER
  *
- * CXL rev 3.0 section 8.2.9.2.1.2; Table 8-44
+ * CXL rev 3.1 section 8.2.9.2.1.2; Table 8-46
  */
 #define CXL_DER_VALID_CHANNEL			BIT(0)
 #define CXL_DER_VALID_RANK			BIT(1)
@@ -1013,19 +1013,25 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 #define CXL_DER_VALID_ROW			BIT(5)
 #define CXL_DER_VALID_COLUMN			BIT(6)
 #define CXL_DER_VALID_CORRECTION_MASK		BIT(7)
+#define CXL_DER_VALID_COMPONENT_ID		BIT(8)
+#define CXL_DER_VALID_COMPONENT_ID_FORMAT	BIT(9)
+#define CXL_DER_VALID_SUB_CHANNEL		BIT(10)
 
 static const char * const cxl_der_mem_event_type[] = {
 	"Media ECC Error",
 	"Scrub Media ECC Error",
 	"Invalid Address",
 	"Data Path Error",
+	"TE State Violation",
+	"Advanced Programmable CME Counter Expiration",
+	"CKID Violation",
 };
 
 int ras_cxl_dram_event_handler(struct trace_seq *s,
 			       struct tep_record *record,
 			       struct tep_event *event, void *context)
 {
-	int len, i;
+	int len, i, rc;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	struct ras_cxl_dram_event ev;
@@ -1067,6 +1073,15 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 					      ev.type)) <= 0)
 		return -1;
 
+	if (tep_get_field_val(s,  event, "sub_type", record, &val, 1) < 0)
+		return -1;
+	ev.sub_type = val;
+	if (trace_seq_printf(s, "memory_event_sub_type:%s ",
+			     get_cxl_type_str(cxl_mem_event_sub_type,
+					      ARRAY_SIZE(cxl_mem_event_sub_type),
+					      ev.sub_type)) <= 0)
+		return -1;
+
 	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
 		return -1;
 	ev.transaction_type = val;
@@ -1105,6 +1120,14 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 			return -1;
 		ev.channel = val;
 		if (trace_seq_printf(s, "channel:%u ", ev.channel) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_SUB_CHANNEL) {
+		if (tep_get_field_val(s,  event, "sub_channel", record, &val, 1) < 0)
+			return -1;
+		ev.sub_channel = val;
+		if (trace_seq_printf(s, "sub_channel:%u ", ev.sub_channel) <= 0)
 			return -1;
 	}
 
@@ -1167,6 +1190,46 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 				break;
 		}
 	}
+
+	if (ev.validity_flags & CXL_DER_VALID_COMPONENT_ID) {
+		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
+		if (!ev.comp_id)
+			return -1;
+		if (trace_seq_printf(s, "comp_id:") <= 0)
+			return -1;
+		for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++) {
+			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
+				break;
+		}
+
+		if (ev.validity_flags & CXL_DER_VALID_COMPONENT_ID_FORMAT) {
+			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
+				return -1;
+			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
+				return -1;
+
+			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			if (rc)
+				return rc;
+		}
+	}
+
+	if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
+		return -1;
+	ev.cme_threshold_ev_flags = val;
+	if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
+				   cxl_cme_threshold_ev_flags,
+				   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "cvme_count", record, &val, 1) < 0)
+		return -1;
+	ev.cvme_count = val;
+	if (trace_seq_printf(s, "CVME Count:%u ", ev.cvme_count) <= 0)
+		return -1;
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3

@@ -218,8 +218,10 @@ struct ras_cxl_dram_event {
 	uint8_t dpa_flags;
 	uint8_t descriptor;
 	uint8_t type;
+	uint8_t sub_type;
 	uint8_t transaction_type;
 	uint8_t channel;
+	uint8_t sub_channel;
 	uint8_t rank;
 	uint32_t nibble_mask;
 	uint8_t bank_group;
@@ -231,6 +233,11 @@ struct ras_cxl_dram_event {
 	uint64_t hpa;
 	const char *region;
 	const char *region_uuid;
+	uint8_t *comp_id;
+	uint8_t entity_id[CXL_PLDM_ENTITY_ID_LEN];
+	uint8_t res_id[CXL_PLDM_RES_ID_LEN];
+	uint8_t cme_threshold_ev_flags;
+	uint32_t cvme_count;
 };
 
 struct ras_cxl_memory_module_event {
