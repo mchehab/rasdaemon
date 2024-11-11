@@ -137,6 +137,9 @@ struct ras_cxl_poison_event {
 #define CXL_EVENT_GEN_MED_COMP_ID_SIZE	0x10
 #define CXL_EVENT_DER_CORRECTION_MASK_SIZE	0x20
 
+#define CXL_PLDM_ENTITY_ID_LEN	6
+#define CXL_PLDM_RES_ID_LEN	4
+
 struct ras_cxl_aer_ue_event {
 	char timestamp[64];
 	const char *memdev;

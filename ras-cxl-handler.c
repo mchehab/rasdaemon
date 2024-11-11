@@ -575,6 +575,47 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 }
 
 /*
+ * Component ID Format
+ * CXL 3.1 section 8.2.9.2.1; Table 8-44
+ */
+#define CXL_PLDM_COMPONENT_ID_ENTITY_VALID	BIT(0)
+#define CXL_PLDM_COMPONENT_ID_RES_VALID		BIT(1)
+static const struct  cxl_event_flags cxl_pldm_comp_id_flags[] = {
+	{ .bit = CXL_PLDM_COMPONENT_ID_ENTITY_VALID, .flag = "PLDM Entity ID" },
+	{ .bit = CXL_PLDM_COMPONENT_ID_RES_VALID, .flag = "Resource ID" },
+};
+
+static int ras_cxl_print_component_id(struct trace_seq *s, uint8_t *comp_id,
+				      uint8_t *entity_id, uint8_t *res_id)
+{
+	int i;
+
+	if (comp_id[0] & CXL_PLDM_COMPONENT_ID_ENTITY_VALID) {
+		if (trace_seq_printf(s, "PLDM Entity ID:") <= 0)
+			return -1;
+		for (i = 1; i < 7; i++) {
+			if (trace_seq_printf(s, "%02x ", comp_id[i]) <= 0)
+				return -1;
+		}
+		if (entity_id)
+			memcpy(entity_id, &comp_id[1], CXL_PLDM_ENTITY_ID_LEN);
+	}
+
+	if (comp_id[0] & CXL_PLDM_COMPONENT_ID_RES_VALID) {
+		if (trace_seq_printf(s, "Resource ID:") <= 0)
+			return -1;
+		for (i = 7; i < 11; i++) {
+			if (trace_seq_printf(s, "%02x ", comp_id[i]) <= 0)
+				return -1;
+		}
+		if (res_id)
+			memcpy(res_id, &comp_id[7], CXL_PLDM_RES_ID_LEN);
+	}
+
+	return 0;
+}
+
+/*
  * Common Event Record Format
  * CXL 3.1 section 8.2.9.2.1; Table 8-43
  */
