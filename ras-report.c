@@ -555,13 +555,16 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		"dpa_flags=%u\n"
 		"descriptor=%u\n"
 		"type=%u\n"
+		"sub_type=0x%x\n"
 		"transaction_type=%u\n"
 		"hpa=0x%lx\n"
 		"region=%s\n"
 		"region_uuid=%s\n"
 		"channel=%u\n"
 		"rank=%u\n"
-		"device=0x%x\n",
+		"device=0x%x\n"
+		"cme_threshold_ev_flags=0x%x\n"
+		"cme_count=0x%x\n",
 		ev->hdr.timestamp,
 		ev->hdr.memdev,
 		ev->hdr.host,
@@ -578,13 +581,16 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		ev->dpa_flags,
 		ev->descriptor,
 		ev->type,
+		ev->sub_type,
 		ev->transaction_type,
 		ev->hpa,
 		ev->region,
 		ev->region_uuid,
 		ev->channel,
 		ev->rank,
-		ev->device);
+		ev->device,
+		ev->cme_threshold_ev_flags,
+		ev->cme_count);
 
 	return 0;
 }

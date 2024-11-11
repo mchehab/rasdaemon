@@ -773,9 +773,32 @@ static const struct cxl_event_flags cxl_dpa_flags[] = {
 	{ .bit = CXL_DPA_NOT_REPAIRABLE, .flag = "NOT_REPAIRABLE" },
 };
 
+/* CXL rev 3.1 Section 8.2.9.2.1.1; Table 8-45 */
+static const char * const cxl_mem_event_sub_type[] = {
+	"Not Reported",
+	"Internal Datapath Error",
+	"Media Link Command Training Error",
+	"Media Link Control Training Error",
+	"Media Link Data Training Error",
+	"Media Link CRC Error",
+};
+
+#define CXL_CME_EV_FLAG_CME_MULTIPLE_MEDIA	BIT(0)
+#define CXL_CME_EV_FLAG_THRESHOLD_EXCEEDED	BIT(1)
+static const struct cxl_event_flags cxl_cme_threshold_ev_flags[] = {
+	{
+		.bit = CXL_CME_EV_FLAG_CME_MULTIPLE_MEDIA,
+		.flag = "Corrected Memory Errors in Multiple Media Components"
+	},
+	{
+		.bit = CXL_CME_EV_FLAG_THRESHOLD_EXCEEDED,
+		.flag = "Exceeded Programmable Threshold"
+	},
+};
+
 /*
  * General Media Event Record - GMER
- * CXL rev 3.0 Section 8.2.9.2.1.1; Table 8-43
+ * CXL rev 3.1 Section 8.2.9.2.1.1; Table 8-45
  */
 #define CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT		BIT(0)
 #define CXL_GMER_EVT_DESC_THRESHOLD_EVENT		BIT(1)
@@ -791,11 +814,16 @@ static const struct cxl_event_flags cxl_gmer_event_desc_flags[] = {
 #define CXL_GMER_VALID_RANK			BIT(1)
 #define CXL_GMER_VALID_DEVICE			BIT(2)
 #define CXL_GMER_VALID_COMPONENT		BIT(3)
+#define CXL_GMER_VALID_COMPONENT_ID_FORMAT	BIT(4)
 
 static const char * const cxl_gmer_mem_event_type[] = {
 	"ECC Error",
 	"Invalid Address",
 	"Data Path Error",
+	"TE State Violation",
+	"Scrub Media ECC Error",
+	"Advanced Programmable CME Counter Expiration",
+	"CKID Violation",
 };
 
 static const char * const cxl_gmer_trans_type[] = {
@@ -806,13 +834,15 @@ static const char * const cxl_gmer_trans_type[] = {
 	"Host Inject Poison",
 	"Internal Media Scrub",
 	"Internal Media Management",
+	"Internal Media Error Check Scrub",
+	"Media Initialization",
 };
 
 int ras_cxl_general_media_event_handler(struct trace_seq *s,
 					struct tep_record *record,
 					struct tep_event *event, void *context)
 {
-	int len, i;
+	int len, i, rc;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	struct ras_cxl_general_media_event ev;
@@ -847,9 +877,18 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s,  event, "type", record, &val, 1) < 0)
 		return -1;
 	ev.type = val;
-	if (trace_seq_printf(s, "type:%s ",
+	if (trace_seq_printf(s, "memory_event_type:%s ",
 			     get_cxl_type_str(cxl_gmer_mem_event_type,
 					      ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "sub_type", record, &val, 1) < 0)
+		return -1;
+	ev.sub_type = val;
+	if (trace_seq_printf(s, "memory_event_sub_type:%s ",
+			     get_cxl_type_str(cxl_mem_event_sub_type,
+					      ARRAY_SIZE(cxl_mem_event_sub_type),
+					      ev.sub_type)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
@@ -919,7 +958,35 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
 				break;
 		}
+
+		if (ev.validity_flags & CXL_GMER_VALID_COMPONENT_ID_FORMAT) {
+			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
+				return -1;
+			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
+				return -1;
+
+			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			if (rc)
+				return rc;
+		}
 	}
+
+	if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
+		return -1;
+	ev.cme_threshold_ev_flags = val;
+	if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
+				   cxl_cme_threshold_ev_flags,
+				   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "cme_count", record, &val, 1) < 0)
+		return -1;
+	ev.cme_count = val;
+	if (trace_seq_printf(s, "Corrected Memory Error Count:%u ", ev.cme_count) <= 0)
+		return -1;
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
