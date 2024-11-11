@@ -624,17 +624,21 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		"dpa_flags=%u\n"
 		"descriptor=%u\n"
 		"type=%u\n"
+		"sub_type=0x%x\n"
 		"transaction_type=%u\n"
 		"hpa=0x%lx\n"
 		"region=%s\n"
 		"region_uuid=%s\n"
 		"channel=%u\n"
+		"sub_channel=%u\n"
 		"rank=%u\n"
 		"nibble_mask=%u\n"
 		"bank_group=%u\n"
 		"bank=%u\n"
 		"row=%u\n"
-		"column=%u\n",
+		"column=%u\n"
+		"cme_threshold_ev_flags=0x%x\n"
+		"cvme_count=0x%x\n",
 		ev->hdr.timestamp,
 		ev->hdr.memdev,
 		ev->hdr.host,
@@ -651,17 +655,21 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		ev->dpa_flags,
 		ev->descriptor,
 		ev->type,
+		ev->sub_type,
 		ev->transaction_type,
 		ev->hpa,
 		ev->region,
 		ev->region_uuid,
 		ev->channel,
+		ev->sub_channel,
 		ev->rank,
 		ev->nibble_mask,
 		ev->bank_group,
 		ev->bank,
 		ev->row,
-		ev->column);
+		ev->column,
+		ev->cme_threshold_ev_flags,
+		ev->cvme_count);
 
 	return 0;
 }
