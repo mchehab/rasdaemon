@@ -1261,7 +1261,7 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 /*
  * Memory Module Event Record - MMER
  *
- * CXL res 3.0 section 8.2.9.2.1.3; Table 8-45
+ * CXL res 3.1 section 8.2.9.2.1.3; Table 8-47
  */
 static const char * const cxl_dev_evt_type[] = {
 	"Health Status Change",
@@ -1270,21 +1270,33 @@ static const char * const cxl_dev_evt_type[] = {
 	"Temperature Change",
 	"Data Path Error",
 	"LSA Error",
+	"Unrecoverable Internal Sideband Bus Error",
+	"Memory Media FRU Error",
+	"Power Management Fault",
+};
+
+static const char * const cxl_dev_evt_sub_type[] = {
+	"Not Reported",
+	"Invalid Config Data",
+	"Unsupported Config Data",
+	"Unsupported Memory Media FRU",
 };
 
 /*
  * Device Health Information - DHI
  *
- * CXL res 3.0 section 8.2.9.8.3.1; Table 8-100
+ * CXL res 3.1 section 8.2.9.9.3.1; Table 8-133
  */
 #define CXL_DHI_HS_MAINTENANCE_NEEDED				BIT(0)
 #define CXL_DHI_HS_PERFORMANCE_DEGRADED				BIT(1)
 #define CXL_DHI_HS_HW_REPLACEMENT_NEEDED			BIT(2)
+#define CXL_DHI_HS_MEM_CAPACITY_DEGRADED			BIT(3)
 
 static const struct cxl_event_flags cxl_health_status[] = {
 	{ .bit = CXL_DHI_HS_MAINTENANCE_NEEDED, .flag = "MAINTENANCE_NEEDED" },
 	{ .bit = CXL_DHI_HS_PERFORMANCE_DEGRADED, .flag = "PERFORMANCE_DEGRADED" },
 	{ .bit = CXL_DHI_HS_HW_REPLACEMENT_NEEDED, .flag = "REPLACEMENT_NEEDED" },
+	{ .bit = CXL_DHI_HS_MEM_CAPACITY_DEGRADED, .flag = "MEM_CAPACITY_DEGRADED" },
 };
 
 static const char * const cxl_media_status[] = {
@@ -1316,10 +1328,14 @@ static const char * const cxl_one_bit_status[] = {
 #define CXL_DHI_AS_COR_VOL_ERR_CNT(as)	(((as) & 0x10) >> 4)
 #define CXL_DHI_AS_COR_PER_ERR_CNT(as)	(((as) & 0x20) >> 5)
 
+#define CXL_MMER_VALID_COMPONENT_ID		BIT(0)
+#define CXL_MMER_VALID_COMPONENT_ID_FORMAT	BIT(1)
+
 int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 					struct tep_record *record,
 					struct tep_event *event, void *context)
 {
+	int len, i, rc;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	struct ras_cxl_memory_module_event ev;
@@ -1335,6 +1351,15 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 			     get_cxl_type_str(cxl_dev_evt_type,
 					      ARRAY_SIZE(cxl_dev_evt_type),
 					      ev.event_type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "event_sub_type", record, &val, 1) < 0)
+		return -1;
+	ev.event_sub_type = val;
+	if (trace_seq_printf(s, "event_sub_type:%s ",
+			     get_cxl_type_str(cxl_dev_evt_sub_type,
+					      ARRAY_SIZE(cxl_dev_evt_sub_type),
+					      ev.event_sub_type)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "health_status", record, &val, 1) < 0)
@@ -1409,6 +1434,33 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "cor_per_err_cnt:%u ", ev.cor_per_err_cnt) <= 0)
 		return -1;
 
+	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
+		return -1;
+	ev.validity_flags = val;
+
+	if (ev.validity_flags & CXL_MMER_VALID_COMPONENT_ID) {
+		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
+		if (!ev.comp_id)
+			return -1;
+		if (trace_seq_printf(s, "comp_id:") <= 0)
+			return -1;
+		for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++) {
+			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
+				break;
+		}
+
+		if (ev.validity_flags & CXL_MMER_VALID_COMPONENT_ID_FORMAT) {
+			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
+				return -1;
+			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
+				return -1;
+
+			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			if (rc)
+				return rc;
+		}
+	}
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
 	ras_store_cxl_memory_module_event(ras, &ev);

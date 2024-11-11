@@ -1084,6 +1084,10 @@ static const struct db_fields cxl_memory_module_event_fields[] = {
 	{ .name = "cor_per_err_cnt",	.type = "INTEGER" },
 	{ .name = "device_temp",	.type = "INTEGER" },
 	{ .name = "add_status",		.type = "INTEGER" },
+	{ .name = "event_sub_type",	.type = "INTEGER" },
+	{ .name = "comp_id",		.type = "BLOB" },
+	{ .name = "pldm_entity_id",	.type = "BLOB" },
+	{ .name = "pldm_resource_id",	.type = "BLOB" },
 };
 
 static const struct db_table_descriptor cxl_memory_module_event_tab = {
@@ -1116,6 +1120,13 @@ int ras_store_cxl_memory_module_event(struct ras_events *ras,
 	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->cor_per_err_cnt);
 	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->device_temp);
 	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->add_status);
+	sqlite3_bind_int(priv->stmt_cxl_memory_module_event, idx++, ev->event_sub_type);
+	sqlite3_bind_blob(priv->stmt_cxl_memory_module_event, idx++, ev->comp_id,
+			  CXL_EVENT_GEN_MED_COMP_ID_SIZE, NULL);
+	sqlite3_bind_blob(priv->stmt_cxl_memory_module_event, idx++, ev->entity_id,
+			  CXL_PLDM_ENTITY_ID_LEN, NULL);
+	sqlite3_bind_blob(priv->stmt_cxl_memory_module_event, idx++, ev->res_id,
+			  CXL_PLDM_RES_ID_LEN, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_memory_module_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)

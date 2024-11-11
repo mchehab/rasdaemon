@@ -700,6 +700,7 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 		"hdr_length=%u\n"
 		"hdr_maint_op_class=%u\n"
 		"event_type=%u\n"
+		"event_sub_type=0x%x\n"
 		"health_status=%u\n"
 		"media_status=%u\n"
 		"life_used=%u\n"
@@ -721,6 +722,7 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 		ev->hdr.hdr_length,
 		ev->hdr.hdr_maint_op_class,
 		ev->event_type,
+		ev->event_sub_type,
 		ev->health_status,
 		ev->media_status,
 		ev->life_used,

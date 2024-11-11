@@ -243,6 +243,7 @@ struct ras_cxl_dram_event {
 struct ras_cxl_memory_module_event {
 	struct ras_cxl_event_common_hdr hdr;
 	uint8_t event_type;
+	uint8_t event_sub_type;
 	uint8_t health_status;
 	uint8_t media_status;
 	uint8_t life_used;
@@ -251,6 +252,10 @@ struct ras_cxl_memory_module_event {
 	uint32_t cor_per_err_cnt;
 	int16_t device_temp;
 	uint8_t add_status;
+	uint16_t validity_flags;
+	uint8_t *comp_id;
+	uint8_t entity_id[CXL_PLDM_ENTITY_ID_LEN];
+	uint8_t res_id[CXL_PLDM_RES_ID_LEN];
 };
 
 struct ras_mc_event;
