@@ -163,7 +163,8 @@ parse:
 			 */
 			if (units->val == 1) {
 				char *endptr;
-				unsigned long converted_value = strtoul(config->env, &endptr, 10);
+
+				strtoul(config->env, &endptr, 10);
 				if (errno == ERANGE || *endptr != '\0')
 					config->overflow = true;
 			}
