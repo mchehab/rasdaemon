@@ -83,8 +83,6 @@ struct memory_location_field {
 	const char	*anchor_str;
 	const int	value_base;
 };
-extern const struct memory_location_field apei_fields[];
-extern const struct memory_location_field dsm_fields[];
 
 struct page_addr {
 	LIST_ENTRY(page_addr)	entry;

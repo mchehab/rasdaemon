@@ -432,26 +432,90 @@ void ras_record_page_error(unsigned long long addr, unsigned int count, time_t t
 /* memory page CE threshold policy ends */
 
 /* memory row CE threshold policy starts */
-const struct memory_location_field apei_fields[] = {
-	[APEI_NODE] = {.name = "node", .anchor_str = "node:", .value_base = 10},
-	[APEI_CARD] = {.name = "card", .anchor_str = "card:", .value_base = 10},
-	[APEI_MODULE] = {.name = "module", .anchor_str = "module:", .value_base = 10},
-	[APEI_RANK] = {.name = "rank", .anchor_str = "rank:", .value_base = 10},
-	[APEI_DEVICE] = {.name = "device", .anchor_str = "device:", .value_base = 10},
-	[APEI_BANK] = {.name = "bank", .anchor_str = "bank:", .value_base = 10},
-	[APEI_ROW] = {.name = "row", .anchor_str = "row:", .value_base = 10},
+static const struct memory_location_field apei_fields[] = {
+	[APEI_NODE] = {
+		.name = "node",
+		.anchor_str = "node:",
+		.value_base = 10
+	},
+	[APEI_CARD] = {
+		.name = "card",
+		.anchor_str = "card:",
+		.value_base = 10
+	},
+	[APEI_MODULE] = {
+		.name = "module",
+		.anchor_str = "module:",
+		.value_base = 10
+	},
+	[APEI_RANK] = {
+		.name = "rank",
+		.anchor_str = "rank:",
+		.value_base = 10
+	},
+	[APEI_DEVICE] = {
+		.name = "device",
+		.anchor_str = "device:",
+		.value_base = 10
+	},
+	[APEI_BANK] = {
+		.name = "bank",
+		.anchor_str = "bank:",
+		.value_base = 10
+	},
+	[APEI_ROW] = {
+		.name = "row",
+		.anchor_str = "row:",
+		.value_base = 10
+	},
 };
 
-const struct memory_location_field dsm_fields[] = {
-	[DSM_ProcessorSocketId] = {.name = "ProcessorSocketId", .anchor_str = "ProcessorSocketId:", .value_base = 16},
-	[DSM_MemoryControllerId] = {.name = "MemoryControllerId", .anchor_str = "MemoryControllerId:", .value_base = 16},
-	[DSM_ChannelId] = {.name = "ChannelId", .anchor_str = "ChannelId:", .value_base = 16},
-	[DSM_DimmSlotId] = {.name = "DimmSlotId", .anchor_str = "DimmSlotId:", .value_base = 16},
-	[DSM_PhysicalRankId] = {.name = "PhysicalRankId", .anchor_str = "PhysicalRankId:", .value_base = 16},
-	[DSM_ChipId] = {.name = "ChipId", .anchor_str = "ChipId:", .value_base = 16},
-	[DSM_BankGroup] = {.name = "BankGroup", .anchor_str = "BankGroup:", .value_base = 16},
-	[DSM_Bank] = {.name = "Bank", .anchor_str = "Bank:", .value_base = 16},
-	[DSM_Row] = {.name = "Row", .anchor_str = "Row:", .value_base = 16},
+static const struct memory_location_field dsm_fields[] = {
+	[DSM_ProcessorSocketId] = {
+		.name = "ProcessorSocketId",
+		.anchor_str = "ProcessorSocketId:",
+		.value_base = 16
+	},
+	[DSM_MemoryControllerId] = {
+		.name = "MemoryControllerId",
+		.anchor_str = "MemoryControllerId:",
+		.value_base = 16
+	},
+	[DSM_ChannelId] = {
+		.name = "ChannelId",
+		.anchor_str = "ChannelId:",
+		.value_base = 16
+	},
+	[DSM_DimmSlotId] = {
+		.name = "DimmSlotId",
+		.anchor_str = "DimmSlotId:",
+		.value_base = 16
+	},
+	[DSM_PhysicalRankId] = {
+		.name = "PhysicalRankId",
+		.anchor_str = "PhysicalRankId:",
+		.value_base = 16
+	},
+	[DSM_ChipId] = {
+		.name = "ChipId",
+		.anchor_str = "ChipId:",
+		.value_base = 16
+	},
+	[DSM_BankGroup] = {
+		.name = "BankGroup",
+		.anchor_str = "BankGroup:",
+		.value_base = 16
+	},
+	[DSM_Bank] = {
+		.name = "Bank",
+		.anchor_str = "Bank:",
+		.value_base = 16
+	},
+	[DSM_Row] = {
+		.name = "Row",
+		.anchor_str = "Row:",
+		.value_base = 16
+	},
 };
 
 static void row_record_get_id(struct row_record *rr,
