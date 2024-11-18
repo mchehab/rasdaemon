@@ -250,11 +250,6 @@ static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 		mce_snprintf(e->mcastatus_msg,
 			     "%s CACHE %s %s Error", type, level,
 			     get_RRRR_str((mca & CACHE_RRRR_MASK) >> CACHE_RRRR_SHIFT));
-#if 0
-		/* FIXME: We shouldn't mix parsing with actions */
-		if (track == 2)
-			run_yellow_trigger(e->cpu, typenum, levelnum, type, level, e->socket);
-#endif
 	} else if (test_prefix(10, mca)) {
 		if (mca == 0x400)
 			mce_snprintf(e->mcastatus_msg,
