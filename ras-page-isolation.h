@@ -118,10 +118,6 @@ void ras_record_page_error(unsigned long long addr,
 			   unsigned int count, time_t time);
 void ras_row_account_init(void);
 void ras_record_row_error(const char *detail, unsigned count, time_t time, unsigned long long addr);
-
-bool row_record_is_same_row(struct row_record *rr1, struct row_record *rr2);
-void row_record_copy(struct row_record *dst, struct row_record *src);
-void row_record_free(struct row_record *rr);
 void row_record_infos_free(void);
 
 #endif

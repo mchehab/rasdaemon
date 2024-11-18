@@ -489,7 +489,8 @@ static void row_record_get_id(struct row_record *rr,
 	buffer[pos] = '\0';
 }
 
-bool row_record_is_same_row(struct row_record *rr1, struct row_record *rr2)
+static bool row_record_is_same_row(struct row_record *rr1,
+				   struct row_record *rr2)
 {
 	if (!rr1 || !rr2 || rr1->type != rr2->type)
 		return false;
@@ -508,7 +509,7 @@ bool row_record_is_same_row(struct row_record *rr1, struct row_record *rr2)
 	return true;
 }
 
-void row_record_copy(struct row_record *dst, struct row_record *src)
+static void row_record_copy(struct row_record *dst, struct row_record *src)
 {
 	if (!dst || !src)
 		return;
