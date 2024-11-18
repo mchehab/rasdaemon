@@ -454,13 +454,14 @@ const struct memory_location_field dsm_fields[] = {
 	[DSM_Row] = {.name = "Row", .anchor_str = "Row:", .value_base = 16},
 };
 
-void row_record_get_id(struct row_record *rr, char *buffer)
+static void row_record_get_id(struct row_record *rr,
+			      char *buffer, unsigned int size)
 {
+	const struct memory_location_field *fields;
+	int pos = 0, field_num = 0, len;
+
 	if (!rr || !buffer)
 		return;
-
-	int len = 0, field_num = 0;
-	const struct memory_location_field *fields;
 
 	if (rr->type == GHES) {
 		field_num = APEI_FIELD_NUM_CONST;
@@ -469,16 +470,23 @@ void row_record_get_id(struct row_record *rr, char *buffer)
 		field_num = DSM_FIELD_NUM_CONST;
 		fields = dsm_fields;
 	}
-	len += sprintf(buffer + len, "{");
+	len = snprintf(buffer + pos, size, "{");
+	pos += len;
+	size -= len;
 	for (int idx = 0; idx < field_num; idx++)
 	{
 		if (idx == field_num - 1)
-			len += sprintf(buffer + len, "%s:%d", fields[idx].name, rr->location_fields[idx]);
+			len = snprintf(buffer + pos, size, "%s:%d",
+				       fields[idx].name, rr->location_fields[idx]);
 		else
-			len += sprintf(buffer + len, "%s:%d,", fields[idx].name, rr->location_fields[idx]);
+			len = snprintf(buffer + pos, size, "%s:%d,",
+				       fields[idx].name, rr->location_fields[idx]);
+
+		pos += len;
+		size -= len;
 	}
-	len += sprintf(buffer + len, "}");
-	buffer[len] = '\0';
+	pos += snprintf(buffer + pos, size, "}");
+	buffer[pos] = '\0';
 }
 
 bool row_record_is_same_row(struct row_record *rr1, struct row_record *rr2)
@@ -577,7 +585,7 @@ static void row_offline(struct row_record *rr, time_t time)
 
 	if (!rr)
 		return;
-	row_record_get_id(rr, row_id);
+	row_record_get_id(rr, row_id, ROW_ID_MAX_LEN);
 	/* Offlining row is not required */
 	if (row_offline_action <= OFFLINE_ACCOUNT) {
 		log(TERM, LOG_INFO, "ROW_CE_ACTION=%s, ignore to offline row at %s\n",
@@ -654,7 +662,7 @@ static void row_record(struct row_record *rr, time_t time)
 
 	char row_id[ROW_ID_MAX_LEN] = {0};
 
-	row_record_get_id(rr, row_id);
+	row_record_get_id(rr, row_id, ROW_ID_MAX_LEN);
 	if (rr->count >= row_threshold.val) {
 		log(TERM, LOG_INFO, "Corrected Errors of row %s exceeded row CE threshold, count=%lu\n", row_id, rr->count);
 		row_offline(rr, time);
