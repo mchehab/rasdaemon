@@ -69,7 +69,9 @@ endif
 if WITH_HISI_NS_DECODE
    rasdaemon_SOURCES += non-standard-hisi_hip08.c non-standard-hisilicon.c
 endif
-rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
+if WITH_PFA
+   rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
+endif
 if WITH_AMP_NS_DECODE
    rasdaemon_SOURCES += non-standard-ampere.c
 endif

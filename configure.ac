@@ -192,6 +192,8 @@ AS_IF([test "x$enable_memory_row_ce_pfa" = "xyes" || test "x$enable_all" == "xye
 AM_CONDITIONAL([WITH_MEMORY_ROW_CE_PFA], [test x$enable_memory_row_ce_pfa = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_MEMORY_ROW_CE_PFA], [USE_MEMORY_ROW_CE_PFA="yes"], [USE_MEMORY_ROW_CE_PFA="no"])
 
+AM_CONDITIONAL([WITH_PFA], [test x$USE_MEMORY_CE_PFA = xyes || test x$USE_MEMORY_ROW_CE_PFA = xyes])
+
 AC_ARG_ENABLE([amp_ns_decode],
     AS_HELP_STRING([--enable-amp-ns-decode], [enable AMP_NS_DECODE events (currently experimental)]))
 
