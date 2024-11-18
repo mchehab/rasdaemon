@@ -181,7 +181,7 @@ parse:
 			value *= units->val;
 			if (tmp != 0 && value / tmp != units->val)
 				config->overflow = true;
-			/**
+			/*
 			 * if units->val is 1,  config->env is greater than ulong_max, so it is can strtoul
 			 * if failed, the value is greater than ulong_max, set config->overflow = true
 			 */
@@ -220,7 +220,7 @@ static void page_isolation_init(void)
 {
 	char threshold_string[PARSED_ENV_LEN];
 	char cycle_string[PARSED_ENV_LEN];
-	/**
+	/*
 	 * It's unnecessary to parse threshold configuration when offline
 	 * choice is off.
 	 */
@@ -269,7 +269,7 @@ static void row_isolation_init(void)
 {
 	char threshold_string[PARSED_ENV_LEN];
 	char cycle_string[PARSED_ENV_LEN];
-	/**
+	/*
 	 * It's unnecessary to parse threshold configuration when offline
 	 * choice is off.
 	 */
@@ -358,7 +358,7 @@ static void page_record(struct page_record *pr, unsigned int count, time_t time)
 	unsigned long tolerate;
 
 	if (period >= cycle.val) {
-		/**
+		/*
 		 * Since we don't refresh automatically, it is possible that the period
 		 * between two occurrences will be longer than the pre-configured refresh cycle.
 		 * In this case, we tolerate the frequency of the whole period up to
@@ -374,7 +374,7 @@ static void page_record(struct page_record *pr, unsigned int count, time_t time)
 	if (pr->count >= threshold.val) {
 		log(TERM, LOG_INFO, "Corrected Errors at %#llx exceeded threshold\n", pr->addr);
 
-		/**
+		/*
 		 * Backup ce count of current cycle to enable next round, which actually
 		 * should never happen if we can disable overflow completely in the same
 		 * time unit (but sadly we can't).
