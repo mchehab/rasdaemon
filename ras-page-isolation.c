@@ -252,7 +252,7 @@ static void row_offline_init(void)
 		}
 	}
 
-	if (!matched){
+	if (!matched) {
 		log(TERM, LOG_INFO, "Improper %s, set to default off\n", env);
 	}
 
@@ -281,7 +281,7 @@ static void row_isolation_init(void)
 	parse_env_string(&row_threshold, threshold_string, sizeof(threshold_string));
 	parse_env_string(&row_cycle, cycle_string, sizeof(cycle_string));
 	log(TERM, LOG_INFO, "Threshold of memory row Corrected Errors is %s / %s\n",
-			threshold_string, cycle_string);
+	    threshold_string, cycle_string);
 }
 
 void ras_row_account_init(void)
@@ -290,7 +290,6 @@ void ras_row_account_init(void)
 	row_isolation_init();
 	log(TERM, LOG_INFO, "ras_row_account_init done\n");
 }
-
 
 void ras_page_account_init(void)
 {
@@ -431,6 +430,7 @@ void ras_record_page_error(unsigned long long addr, unsigned int count, time_t t
 		page_record(pr, count, time);
 	}
 }
+
 /* memory page CE threshold policy ends */
 
 /* memory row CE threshold policy starts */
@@ -463,6 +463,7 @@ void row_record_get_id(struct row_record *rr, char *buffer)
 
 	int len = 0, field_num = 0;
 	const struct memory_location_field *fields;
+
 	if (rr->type == GHES) {
 		field_num = APEI_FIELD_NUM_CONST;
 		fields = apei_fields;
@@ -488,6 +489,7 @@ bool row_record_is_same_row(struct row_record *rr1, struct row_record *rr2)
 		return false;
 
 	int field_num = 0;
+
 	if (rr1->type == GHES) {
 		field_num = APEI_FIELD_NUM_CONST;
 	} else {
@@ -510,7 +512,8 @@ void row_record_copy(struct row_record *dst, struct row_record *src)
 	}
 }
 
-static int parse_value(const char* str, const char *anchor_str, int value_base, int *value) {
+static int parse_value(const char *str, const char *anchor_str, int value_base, int *value)
+{
 	char *start, *endptr;
 	int tmp;
 
@@ -518,6 +521,7 @@ static int parse_value(const char* str, const char *anchor_str, int value_base, 
 		return 1;
 
 	char *pos = strstr(str, anchor_str);
+
 	if (!pos)
 		return 1;
 
@@ -530,7 +534,7 @@ static int parse_value(const char* str, const char *anchor_str, int value_base, 
 		return 1;
 	}
 
-	if (endptr == start){
+	if (endptr == start) {
 		log(TERM, LOG_ERR, "parse_value error, start: %s, value_base: %d\n", start, value_base);
 		return 1;
 	}
@@ -538,7 +542,8 @@ static int parse_value(const char* str, const char *anchor_str, int value_base, 
 	return 0;
 }
 
-static int parse_row_info(const char *detail, struct row_record *r) {
+static int parse_row_info(const char *detail, struct row_record *r)
+{
 	const struct memory_location_field *fields = NULL;
 	int field_num;
 
@@ -577,7 +582,7 @@ static void row_offline(struct row_record *rr, time_t time)
 	/* Offlining row is not required */
 	if (row_offline_action <= OFFLINE_ACCOUNT) {
 		log(TERM, LOG_INFO, "ROW_CE_ACTION=%s, ignore to offline row at %s\n",
-			offline_choice[row_offline_action].name, row_id);
+		    offline_choice[row_offline_action].name, row_id);
 		return;
 	}
 
@@ -585,6 +590,7 @@ static void row_offline(struct row_record *rr, time_t time)
 	// do offline
 	unsigned long long addr_list[SAME_PAGE_IN_ROW];
 	int addr_list_size = 0;
+
 	LIST_FOREACH(page_info, &rr->page_head, entry) {
 		/* Ignore offlined pages */
 		if (page_info->offlined == PAGE_OFFLINE && (addr_list_size < SAME_PAGE_IN_ROW)) {
@@ -593,6 +599,7 @@ static void row_offline(struct row_record *rr, time_t time)
 		}
 
 		int found = 0;
+
 		for (int i = 0; i < addr_list_size; i++) {
 			if (addr_list[i] ==  page_info->addr) {
 				found = 1;
@@ -600,7 +607,7 @@ static void row_offline(struct row_record *rr, time_t time)
 			}
 		}
 
-		if(found){
+		if (found) {
 			page_info->offlined = PAGE_OFFLINE;
 			continue;
 		}
@@ -617,7 +624,7 @@ static void row_offline(struct row_record *rr, time_t time)
 		page_info->offlined  = ret < 0 ? PAGE_OFFLINE_FAILED : PAGE_OFFLINE;
 
 		log(TERM, LOG_INFO, "Result of offlining page at %#llx of row %s: %s\n",
-			page_info->addr, row_id, page_state[page_info->offlined ]);
+		    page_info->addr, row_id, page_state[page_info->offlined]);
 
 		if (page_info->offlined == PAGE_OFFLINE && (addr_list_size < SAME_PAGE_IN_ROW))
 			addr_list[addr_list_size++] = page_info->addr;
@@ -631,6 +638,7 @@ static void row_record(struct row_record *rr, time_t time)
 
 	if (time - rr->start > row_cycle.val) {
 		struct page_addr *page_info = NULL, *tmp_page_info = NULL;
+
 		page_info = LIST_FIRST(&rr->page_head);
 		while (page_info) {
 			// delete exceeds row_cycle.val
@@ -646,6 +654,7 @@ static void row_record(struct row_record *rr, time_t time)
 	}
 
 	char row_id[ROW_ID_MAX_LEN] = {0};
+
 	row_record_get_id(rr, row_id);
 	if (rr->count >= row_threshold.val) {
 		log(TERM, LOG_INFO, "Corrected Errors of row %s exceeded row CE threshold, count=%lu\n", row_id, rr->count);
@@ -653,10 +662,10 @@ static void row_record(struct row_record *rr, time_t time)
 	}
 }
 
-static struct row_record *row_lookup_insert(struct row_record *r, unsigned count, unsigned long long addr, time_t time)
+static struct row_record *row_lookup_insert(struct row_record *r, unsigned int count, unsigned long long addr, time_t time)
 {
 	struct row_record *rr = NULL, *new_row_record = NULL;
-	struct page_addr *new_page_addr = NULL, *tail_page_addr = NULL;;
+	struct page_addr *new_page_addr = NULL, *tail_page_addr = NULL;
 	int found = 0;
 
 	if (!r)
@@ -671,7 +680,7 @@ static struct row_record *row_lookup_insert(struct row_record *r, unsigned count
 	}
 
 	// new row
-	if (!found){
+	if (!found) {
 		new_row_record = calloc(1, sizeof(struct row_record));
 		if (!new_row_record) {
 			log(TERM, LOG_ERR, "No memory for new row record\n");
@@ -697,6 +706,7 @@ static struct row_record *row_lookup_insert(struct row_record *r, unsigned count
 
 	struct page_addr *record = NULL;
 	int not_empty = 0;
+
 	LIST_FOREACH(record, &new_row_record->page_head, entry) {
 		tail_page_addr = record;
 		not_empty = 1;
@@ -711,7 +721,7 @@ static struct row_record *row_lookup_insert(struct row_record *r, unsigned count
 	return new_row_record;
 }
 
-void ras_record_row_error(const char *detail, unsigned count, time_t time, unsigned long long addr)
+void ras_record_row_error(const char *detail, unsigned int count, time_t time, unsigned long long addr)
 {
 	struct row_record *pr = NULL;
 	struct row_record r = {0};
@@ -723,7 +733,7 @@ void ras_record_row_error(const char *detail, unsigned count, time_t time, unsig
 		return;
 
 	pr = row_lookup_insert(&r, count, addr, time);
-	if (!pr){
+	if (!pr) {
 		log(TERM, LOG_ERR, "insert CE page structure into CE row structure failed\n");
 		return;
 	}
@@ -751,4 +761,5 @@ void row_record_infos_free(void)
 		row_record = tmp_row_record;
 	}
 }
+
 /* memory row CE threshold policy ends */

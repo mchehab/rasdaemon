@@ -32,8 +32,8 @@ static const char *cor_error_ids[32] = {
 
 static int verify_id_log_sel(uint64_t status,
 			     const char **idarray,
-			     unsigned bus,
-			     unsigned dev_fn)
+			     unsigned int bus,
+			     unsigned int dev_fn)
 {
 	int i;
 	char openbmc_ipmi_add_sel[105];

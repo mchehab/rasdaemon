@@ -103,6 +103,7 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 static int wait_access(char *path, int ms)
 {
 	int i;
+
 	for (i = 0; i < ms; i++) {
 		if (access(path, F_OK) == 0)
 			return 0;
