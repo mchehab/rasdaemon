@@ -252,9 +252,8 @@ static void row_offline_init(void)
 		}
 	}
 
-	if (!matched) {
+	if (!matched)
 		log(TERM, LOG_INFO, "Improper %s, set to default off\n", env);
-	}
 
 	if (row_offline_action > OFFLINE_ACCOUNT && access(kernel_offline[row_offline_action], W_OK)) {
 		log(TERM, LOG_INFO, "Kernel does not support row offline interface\n");
@@ -489,11 +488,11 @@ bool row_record_is_same_row(struct row_record *rr1, struct row_record *rr2)
 
 	int field_num = 0;
 
-	if (rr1->type == GHES) {
+	if (rr1->type == GHES)
 		field_num = APEI_FIELD_NUM_CONST;
-	} else {
+	else
 		field_num = DSM_FIELD_NUM_CONST;
-	}
+
 	for (int idx = 0; idx < field_num; idx++) {
 		if (rr1->location_fields[idx] != rr2->location_fields[idx])
 			return false;
@@ -506,9 +505,8 @@ void row_record_copy(struct row_record *dst, struct row_record *src)
 	if (!dst || !src)
 		return;
 
-	for (int i = 0; i < ROW_LOCATION_FIELDS_NUM; i++) {
+	for (int i = 0; i < ROW_LOCATION_FIELDS_NUM; i++)
 		dst->location_fields[i] = src->location_fields[i];
-	}
 }
 
 static int parse_value(const char *str, const char *anchor_str, int value_base, int *value)

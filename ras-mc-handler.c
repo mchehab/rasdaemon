@@ -276,9 +276,9 @@ int ras_mc_event_handler(struct trace_seq *s,
 	// even if the error_count is reported 0.
 	if (ev.error_count == 0)
 		ev.error_count = 1;
-	if (clock_gettime(clk_id, &ts) == 0 && !strcmp(ev.error_type, "Corrected")) {
-		ras_record_row_error(ev.driver_detail, ev.error_count, ts.tv_sec, ev.address);
-	}
+	if (clock_gettime(clk_id, &ts) == 0 && !strcmp(ev.error_type, "Corrected"))
+		ras_record_row_error(ev.driver_detail, ev.error_count,
+				     ts.tv_sec, ev.address);
 #endif
 
 #ifdef HAVE_ABRT_REPORT
