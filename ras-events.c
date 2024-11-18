@@ -110,7 +110,8 @@ static int wait_access(char *path, int ms)
 		usleep(1000);
 	}
 
-	log(ALL, LOG_WARNING, "wait_access() failed, %s not created in %d ms\n", path, ms);
+	log(ALL, LOG_WARNING, "%s failed, %s not created in %d ms\n",
+	    __func__, path, ms);
 	return -1;
 }
 

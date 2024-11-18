@@ -288,7 +288,6 @@ void ras_row_account_init(void)
 {
 	row_offline_init();
 	row_isolation_init();
-	log(TERM, LOG_INFO, "ras_row_account_init done\n");
 }
 
 void ras_page_account_init(void)
@@ -530,12 +529,14 @@ static int parse_value(const char *str, const char *anchor_str, int value_base, 
 	tmp = (int)strtol(start, &endptr, value_base);
 
 	if (errno != 0) {
-		log(TERM, LOG_ERR, "parse_value error, start: %s, value_base: %d, errno: %d\n", start, value_base, errno);
+		log(TERM, LOG_ERR, "%s error, start: %s, value_base: %d, errno: %d\n",
+		    __func__, start, value_base, errno);
 		return 1;
 	}
 
 	if (endptr == start) {
-		log(TERM, LOG_ERR, "parse_value error, start: %s, value_base: %d\n", start, value_base);
+		log(TERM, LOG_ERR, "%s error, start: %s, value_base: %d\n",
+		    __func__, start, value_base);
 		return 1;
 	}
 	*value = tmp;
