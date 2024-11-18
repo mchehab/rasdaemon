@@ -537,8 +537,7 @@ static void row_record_get_id(struct row_record *rr,
 	len = snprintf(buffer + pos, size, "{");
 	pos += len;
 	size -= len;
-	for (int idx = 0; idx < field_num; idx++)
-	{
+	for (int idx = 0; idx < field_num; idx++) {
 		if (idx == field_num - 1)
 			len = snprintf(buffer + pos, size, "%s:%d",
 				       fields[idx].name, rr->location_fields[idx]);
@@ -635,8 +634,11 @@ static int parse_row_info(const char *detail, struct row_record *r)
 	}
 
 	for (int idx = 0; idx < field_num; idx++) {
-		if (parse_value(detail,  fields[idx].anchor_str, fields[idx].value_base, &r->location_fields[idx])) {
-			log(TERM, LOG_INFO, "Cannot parse memory row info from CE detail: %s missing\n", fields[idx].name);
+		if (parse_value(detail,  fields[idx].anchor_str,
+				fields[idx].value_base, &r->location_fields[idx])) {
+			log(TERM, LOG_INFO,
+			    "Cannot parse memory row info from CE detail: %s missing\n",
+			    fields[idx].name);
 			return 1;
 		}
 	}
@@ -665,7 +667,8 @@ static void row_offline(struct row_record *rr, time_t time)
 
 	LIST_FOREACH(page_info, &rr->page_head, entry) {
 		/* Ignore offlined pages */
-		if (page_info->offlined == PAGE_OFFLINE && (addr_list_size < SAME_PAGE_IN_ROW)) {
+		if (page_info->offlined == PAGE_OFFLINE &&
+		    addr_list_size < SAME_PAGE_IN_ROW) {
 			addr_list[addr_list_size++] = page_info->addr;
 			continue;
 		}
@@ -695,10 +698,12 @@ static void row_offline(struct row_record *rr, time_t time)
 
 		page_info->offlined  = ret < 0 ? PAGE_OFFLINE_FAILED : PAGE_OFFLINE;
 
-		log(TERM, LOG_INFO, "Result of offlining page at %#llx of row %s: %s\n",
+		log(TERM, LOG_INFO,
+		    "Result of offlining page at %#llx of row %s: %s\n",
 		    page_info->addr, row_id, page_state[page_info->offlined]);
 
-		if (page_info->offlined == PAGE_OFFLINE && (addr_list_size < SAME_PAGE_IN_ROW))
+		if (page_info->offlined == PAGE_OFFLINE &&
+		    addr_list_size < SAME_PAGE_IN_ROW)
 			addr_list[addr_list_size++] = page_info->addr;
 	}
 }
@@ -729,12 +734,17 @@ static void row_record(struct row_record *rr, time_t time)
 
 	row_record_get_id(rr, row_id, ROW_ID_MAX_LEN);
 	if (rr->count >= row_threshold.val) {
-		log(TERM, LOG_INFO, "Corrected Errors of row %s exceeded row CE threshold, count=%lu\n", row_id, rr->count);
+		log(TERM, LOG_INFO,
+		    "Corrected Errors of row %s exceeded row CE threshold, count=%lu\n",
+		    row_id, rr->count);
 		row_offline(rr, time);
 	}
 }
 
-static struct row_record *row_lookup_insert(struct row_record *r, unsigned int count, unsigned long long addr, time_t time)
+static struct row_record *row_lookup_insert(struct row_record *r,
+					    unsigned int count,
+					    unsigned long long addr,
+					    time_t time)
 {
 	struct row_record *rr = NULL, *new_row_record = NULL;
 	struct page_addr *new_page_addr = NULL, *tail_page_addr = NULL;
