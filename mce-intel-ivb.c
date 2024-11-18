@@ -140,30 +140,3 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
 	else
 		mce_snprintf(e->mc_location, "rank=%d", rank1);
 }
-
-/*
- * Ivy Bridge EP and EX processors (family 6, model 62) support additional
- * logging for corrected errors in the integrated memory controller (IMC)
- * banks. The mode is off by default, but can be enabled by setting the
- * "MemError Log Enable" * bit in MSR_ERROR_CONTROL (MSR 0x17f).
- * The SDM leaves it as an exercise for the reader to convert the
- * faling rank to a DIMM slot.
- */
-#if 0
-static int failrank2dimm(unsigned int failrank, int socket, int channel)
-{
-	switch (failrank) {
-	case 0: case 1: case 2: case 3:
-		return 0;
-	case 4: case 5:
-		return 1;
-	case 6: case 7:
-		if (get_memdimm(socket, channel, 2, 0))
-			return 2;
-		else
-			return 1;
-	}
-	return -1;
-}
-#endif
-

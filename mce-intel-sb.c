@@ -132,37 +132,3 @@ void snb_decode_model(struct ras_events *ras, struct mce_event *e)
 	else
 		mce_snprintf(e->mc_location, "rank=%d", rank1);
 }
-
-#if 0
-/*
- * Sandy Bridge EP and EP4S processors (family 6, model 45) support additional
- * logging for corrected errors in the integrated memory controller (IMC)
- * banks. The mode is off by default, but can be enabled by setting the
- * "MemError Log Enable" * bit in MSR_ERROR_CONTROL (MSR 0x17f).
- * The documentation in the August 2012 edition of Intel's Software developer
- * manual has some minor errors because the wrong version of table 16-16
- * "Intel IMC MC Error Codes for IA32_MCi_MISC (i= 8, 11)" was included.
- * Corrections are:
- *  Bit 62 is the "VALID" bit for the "first-device" bits in MISC and STATUS
- *  Bit 63 is the "VALID" bit for the "second-device" bits in MISC
- *  Bits 58:56 and 61:59 should be marked as "reserved".
- * There should also be a footnote explaining how the "failing rank" fields
- * can be converted to a DIMM number within a channel for systems with either
- * two or three DIMMs per channel.
- */
-static int failrank2dimm(unsigned int failrank, int socket, int channel)
-{
-	switch (failrank) {
-	case 0: case 1: case 2: case 3:
-		return 0;
-	case 4: case 5:
-		return 1;
-	case 6: case 7:
-		if (get_memdimm(socket, channel, 2, 0))
-			return 2;
-		else
-			return 1;
-	}
-	return -1;
-}
-#endif
