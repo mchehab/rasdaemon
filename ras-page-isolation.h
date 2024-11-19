@@ -75,8 +75,8 @@ enum dsm_location_field_index {
 	DSM_FIELD_NUM
 };
 
-#define  APEI_FIELD_NUM_CONST (int)APEI_FIELD_NUM
-#define  DSM_FIELD_NUM_CONST (int)DSM_FIELD_NUM
+#define  APEI_FIELD_NUM_CONST ((int)APEI_FIELD_NUM)
+#define  DSM_FIELD_NUM_CONST ((int)DSM_FIELD_NUM)
 
 struct memory_location_field {
 	const char	*name;
@@ -92,7 +92,9 @@ struct page_addr {
 	time_t			start;
 };
 
-#define ROW_LOCATION_FIELDS_NUM (DSM_FIELD_NUM_CONST > DSM_FIELD_NUM_CONST ? DSM_FIELD_NUM_CONST : APEI_FIELD_NUM_CONST)
+#define ROW_LOCATION_FIELDS_NUM ((DSM_FIELD_NUM_CONST > APEI_FIELD_NUM_CONST ? \
+				 DSM_FIELD_NUM_CONST : APEI_FIELD_NUM_CONST))
+
 struct row_record {
 	LIST_ENTRY(row_record)	entry;
 	LIST_HEAD(page_listhead, page_addr)	page_head;
