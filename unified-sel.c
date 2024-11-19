@@ -73,7 +73,9 @@ int openbmc_unified_sel_log(uint64_t severity, const char *dev_name, uint64_t st
 {
 	int bus, dev, dev_fn, fn;
 
-	sscanf(dev_name, "%*x:%x:%x.%x", &bus, &dev, &fn);
+	if (sscanf(dev_name, "%*x:%x:%x.%x", &bus, &dev, &fn) != 3)
+		return -1;
+
 	dev_fn = (((dev & 0x1f) << 3) | (fn & 0x7));
 
 	/*

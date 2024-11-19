@@ -187,18 +187,19 @@ int ras_aer_event_handler(struct trace_seq *s,
 	 * number, byte 16[7:3] is device number, byte 16[2:0] is
 	 * function number
 	 */
-	sscanf(ev.dev_name, "%x:%x:%x.%x", &seg, &bus, &dev, &fn);
+	rc = sscanf(ev.dev_name, "%x:%x:%x.%x", &seg, &bus, &dev, &fn);
+	if (rc == 4) {
+		sel_data[1] = seg & 0xff;
+		sel_data[2] = (seg & 0xff00) >> 8;
+		sel_data[3] = bus;
+		sel_data[4] = (((dev & 0x1f) << 3) | (fn & 0x7));
 
-	sel_data[1] = seg & 0xff;
-	sel_data[2] = (seg & 0xff00) >> 8;
-	sel_data[3] = bus;
-	sel_data[4] = (((dev & 0x1f) << 3) | (fn & 0x7));
+		snprintf(ipmi_add_sel, sizeof(ipmi_add_sel),
+			 "ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 0x00 0x3a 0xcd 0x00 0xc0 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
+			 sel_data[0], sel_data[1], sel_data[2], sel_data[3], sel_data[4]);
 
-	snprintf(ipmi_add_sel, sizeof(ipmi_add_sel),
-		 "ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 0x00 0x3a 0xcd 0x00 0xc0 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
-		 sel_data[0], sel_data[1], sel_data[2], sel_data[3], sel_data[4]);
-
-	rc = system(ipmi_add_sel);
+		rc = system(ipmi_add_sel);
+	}
 	if (rc)
 		log(SYSLOG, LOG_WARNING, "Failed to execute ipmitool\n");
 #endif
