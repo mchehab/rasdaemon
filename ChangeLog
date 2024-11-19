@@ -1,3 +1,58 @@
+2024-07-19      Mauro Carvalho Chehab <mchehab@kernel.org>
+	- Version 0.8.2
+
+	* ChangeLog: fix 0.8.1 release date
+	* checkpatch.pl: warn also about strcat and sprintf usages
+	* ci.yml: run checkpatch when doing tests
+	* Makefile: add types.h to the list of headers
+	* Makefile: only enable rbtree if needed
+	* mce-intel: drop a code commented a long time ago with an action
+	* mce-intel-ivb/mce-intel-sb: remove code commented with #if 0
+	* New feature: support memory row CE threshold policy
+	* non-standard-jaguarmicro: avoid CamelCase
+	* ras-arm-handler: cope with latest upstream changes
+	* ras-arm-handler: Parse and log ARM Processor Error Info table
+	* ras-arm-handler: use GENMASK() macro
+	* rasdaemon: add .editorconfig file to follow our coding style
+	* rasdaemon: alphabetically sort includes
+	* rasdaemon: check if sscanf() processed all arguments on dev_name
+	* rasdaemon: cleanup coding style
+	* rasdaemon: coding style cleanup
+	* rasdaemon: CXL: Extract, log and record region info from cxl_general_media and cxl_dram events
+	* rasdaemon: CXL: Fix uncorrectable macro spelling
+	* rasdaemon: don't use braces for single statement blocks
+	* rasdaemon: don't use unsafe strcpy, strcat and sprintf
+	* rasdaemon: enforce SPDX license tags
+	* rasdaemon: fix a coding style issue
+	* rasdaemon: fix checkpatch warnings
+	* rasdaemon: fix initialization potential issues
+	* rasdaemon: fix for compilation warning in ras-memory-failure-handler.c
+	* rasdaemon: fix mem_fail_event build breakage
+	* rasdaemon: fix some coding style issues
+	* rasdaemon: fix some typos and correct spelling
+	* rasdaemon: ipmitool SEL logging of AER CEs on OpenBMC platforms
+	* rasdaemon: modify support for vendor-specific machine check error information
+	* rasdaemon: move type macros to a separate header (types.h)
+	* rasdaemon: rbtree: removed unused definition for RB_ROOT
+	* rasdaemon: use __func__ instead of the name of the function
+	* ras-events: demote log information about trace being enabled/disabled
+	* ras-events: drop a dead code to check number of CPUs
+	* ras-events: fix -d option to work again
+	* ras-events: fix warning ‘filter_ras_mc_event’ defined but not used
+	* ras-events: make returned error code consistent
+	* ras-mc-ctl: log hpa and region info from cxl_general_media and cxl_dram tables
+	* ras-page-isolation: drop an unused variable
+	* ras-page-isolation: fix location_fields size
+	* ras-page-isolation: fix an overflow bug when units->val=1
+	* ras-page-isolation: use snprintf() instead of sprintf()
+	* scripts/checkpatch.pl: add support for checking SPDX
+	* scripts/checkpatch.pl: do some additional cleanups
+	* scripts/checkpatch.pl: set default mode to strict
+	* scripts/checkpatch.pl: some improvements to reduce false positives
+	* types.h: add an implementation for strscpy() and strscat()
+	* types.h: don't depend on linux/bits.h
+	* unified-sel: convert license boilerplate to SPDX
+
 2024-07-16      Mauro Carvalho Chehab <mchehab@kernel.org>
 	- Version 0.8.1
 
