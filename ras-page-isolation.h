@@ -93,8 +93,8 @@ struct page_addr {
 	time_t			start;
 };
 
-#define ROW_LOCATION_FIELDS_NUM ((DSM_FIELD_NUM_CONST > APEI_FIELD_NUM_CONST ? \
-				 DSM_FIELD_NUM_CONST : APEI_FIELD_NUM_CONST))
+#define ROW_LOCATION_FIELDS_NUM (DSM_FIELD_NUM_CONST > APEI_FIELD_NUM_CONST ? \
+				 DSM_FIELD_NUM_CONST : APEI_FIELD_NUM_CONST)
 
 struct row_record {
 	LIST_ENTRY(row_record)	entry;
