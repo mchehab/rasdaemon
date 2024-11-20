@@ -966,7 +966,7 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
 		return -1;
 
-	ev.region = tep_get_field_raw(s, event, "region", record, &len, 1);
+	ev.region = tep_get_field_raw(s, event, "region_name", record, &len, 1);
 	if (!ev.region)
 		return -1;
 	if (trace_seq_printf(s, "region:%s ", ev.region) <= 0)
