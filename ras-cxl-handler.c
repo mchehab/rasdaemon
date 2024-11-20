@@ -917,6 +917,12 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "dpa:0x%llx ", (unsigned long long)ev.dpa) <= 0)
 		return -1;
 
+	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
+		return -1;
+	ev.hpa = val;
+	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+		return -1;
+
 	if (tep_get_field_val(s,  event, "dpa_flags", record, &val, 1) < 0)
 		return -1;
 	ev.dpa_flags = val;
@@ -1044,6 +1050,13 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 				break;
 		}
 	}
+
+#ifdef HAVE_MEMORY_CE_PFA
+	/* Page offline for CE when threeshold is set */
+	if (!(ev.descriptor & CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT) &&
+	    (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT))
+		ras_hw_threshold_pageoffline(ev.hpa);
+#endif
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
