@@ -206,6 +206,7 @@ struct ras_cxl_general_media_event {
 struct ras_cxl_dram_event {
 	struct ras_cxl_event_common_hdr hdr;
 	uint64_t dpa;
+	uint64_t hpa;
 	uint8_t dpa_flags;
 	uint8_t descriptor;
 	uint8_t type;

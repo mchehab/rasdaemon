@@ -429,6 +429,13 @@ void ras_record_page_error(unsigned long long addr, unsigned int count, time_t t
 	}
 }
 
+void ras_hw_threshold_pageoffline(unsigned long long addr)
+{
+	time_t now = time(NULL);
+
+	ras_record_page_error(addr, threshold.val, now);
+}
+
 /* memory page CE threshold policy ends */
 
 /* memory row CE threshold policy starts */
