@@ -117,7 +117,7 @@ static const char * const soc_desc[] = {
 #define JM_SUB_SYS_IMU1		14
 
 static const char * const subsystem_desc[] = {
-	"N2",
+	"AP",
 	"CMN",
 	"DDRH",
 	"DDRV",
@@ -132,6 +132,10 @@ static const char * const subsystem_desc[] = {
 	"HAC",
 	"TCM",
 	"IMU1",
+};
+
+static const char * const csub_module_desc[] = {
+	"CORE",
 };
 
 static const char * const cmn_module_desc[] = {
@@ -318,6 +322,10 @@ static const char *get_jm_module_desc(uint8_t subsys_id, uint8_t mod_id)
 	int tbl_size;
 
 	switch (subsys_id) {
+	case JM_SUB_SYS_CSUB:
+		module = csub_module_desc;
+		tbl_size = sizeof(csub_module_desc) / sizeof(char *);
+		break;
 	case JM_SUB_SYS_CMN:
 		module = cmn_module_desc;
 		tbl_size = sizeof(cmn_module_desc) / sizeof(char *);
@@ -463,8 +471,10 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 				      const struct jm_common_sec_head *err,
 					struct jm_event *event)
 {
+	JM_SNPRINTF(event->error_msg, "[");
+
 	if (err->val_bits & BIT(JM_COMMON_VALID_SOC_ID)) {
-		JM_SNPRINTF(event->error_msg, "[ table_version=%hhu decode_version:%hhu",
+		JM_SNPRINTF(event->error_msg, "table_version=%hhu decode_version:%hhu",
 			    err->version, PAYLOAD_VERSION);
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
 			       JM_PAYLOAD_FIELD_VERSION,
@@ -472,14 +482,14 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SOC_ID)) {
-		JM_SNPRINTF(event->error_msg, " soc=%s", get_jm_soc_desc(err->soc_id));
+		JM_SNPRINTF(event->error_msg, "soc=%s", get_jm_soc_desc(err->soc_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
 			       JM_PAYLOAD_FIELD_SOC_ID,
 				err->soc_id, NULL);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SUBSYSTEM_ID)) {
-		JM_SNPRINTF(event->error_msg, " sub system=%s",
+		JM_SNPRINTF(event->error_msg, "sub system=%s",
 			    get_jm_subsystem_desc(err->subsystem_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_SUB_SYS,
@@ -487,7 +497,7 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_MODULE_ID)) {
-		JM_SNPRINTF(event->error_msg, " module=%s",
+		JM_SNPRINTF(event->error_msg, "module=%s",
 			    get_jm_module_desc(err->subsystem_id, err->module_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_MODULE,
@@ -498,7 +508,7 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SUBMODULE_ID)) {
-		JM_SNPRINTF(event->error_msg, " sub module=%s",
+		JM_SNPRINTF(event->error_msg, "sub module=%s",
 			    get_jm_submod_desc(err->subsystem_id,
 					       err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
@@ -512,7 +522,7 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_DEV_ID)) {
-		JM_SNPRINTF(event->error_msg, " dev=%s",
+		JM_SNPRINTF(event->error_msg, "dev=%s",
 			    get_jm_dev_desc(err->subsystem_id,
 					    err->module_id, err->submodule_id));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
@@ -525,14 +535,14 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_ERR_TYPE)) {
-		JM_SNPRINTF(event->error_msg, " err_type=%hu", err->err_type);
+		JM_SNPRINTF(event->error_msg, "err_type=%hu", err->err_type);
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
 			       JM_PAYLOAD_FIELD_ERR_TYPE,
 					err->err_type, NULL);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_ERR_SEVERITY)) {
-		JM_SNPRINTF(event->error_msg, " err_severity=%s",
+		JM_SNPRINTF(event->error_msg, "err_severity=%s",
 			    jm_err_severity(err->err_severity));
 		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_ERR_SEVERITY,
@@ -550,10 +560,12 @@ static void decode_jm_common_sec_tail(struct ras_ns_ev_decoder *ev_decoder,
 		int i;
 
 		JM_SNPRINTF(event->reg_msg, "Extended Register Dump:");
+		JM_SNPRINTF(event->reg_msg, "[");
 		for (i = 0; i < err->reg_array_size; i++) {
 			JM_SNPRINTF(event->reg_msg, "reg%02d=0x%08x",
 				    i, err->reg_array[i]);
 		}
+		JM_SNPRINTF(event->reg_msg, "]");
 	}
 }
 
@@ -669,71 +681,73 @@ static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	struct jm_event jmevent;
 
 	memset(&jmevent, 0, sizeof(struct jm_event));
-	trace_seq_printf(s, "\nJaguar Micro Common Error Section:\n");
+	trace_seq_printf(s, " Jaguar Micro Common Error Section:");
 	decode_jm_common_sec_head(ev_decoder, common_head, &jmevent);
-	trace_seq_printf(s, "%s\n", jmevent.error_msg);
+	trace_seq_printf(s, "%s", jmevent.error_msg);
+	JM_SNPRINTF(jmevent.reg_msg, "[");
 
 	//display lock_control
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->lock_control);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->lock_control);
 
 	//display lock_function
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->lock_function);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->lock_function);
 
 	//display cfg_ram_id
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->cfg_ram_id);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->cfg_ram_id);
 
 	//display err_fr_low32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->err_fr_low32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->err_fr_low32);
 
 	//display err_fr_high32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->err_fr_high32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->err_fr_high32);
 
 	//display err_ctlr_low32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->err_ctlr_low32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->err_ctlr_low32);
 
 	//display ecc_status_low32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_status_low32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_status_low32);
 
 	//display ecc_addr_low32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_addr_low32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_addr_low32);
 
 	//display ecc_addr_high32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_addr_high32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_addr_high32);
 
 	//display ecc_misc0_low32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_misc0_low32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_misc0_low32);
 
 	//display ecc_misc0_high32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_misc0_high32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_misc0_high32);
 
 	//display ecc_misc1_low32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_misc1_low32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_misc1_low32);
 
 	//display ecc_misc1_high32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_misc1_high32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_misc1_high32);
 
 	//display ecc_misc2_low32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->ecc_misc2_low32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_misc2_low32);
 
 	//display ecc_misc2_high32
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload0_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x\n", err->ecc_misc2_high32);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload0_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->ecc_misc2_high32);
+	JM_SNPRINTF(jmevent.reg_msg, "]");
 
-	trace_seq_printf(s, "Register Dump:\n");
+	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
@@ -754,31 +768,33 @@ static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	struct jm_event jmevent;
 
 	memset(&jmevent, 0, sizeof(struct jm_event));
-	trace_seq_printf(s, "\nJaguarMicro Common Error Section:\n");
+	trace_seq_printf(s, " JaguarMicro Common Error Section:");
 	decode_jm_common_sec_head(ev_decoder, common_head, &jmevent);
-	trace_seq_printf(s, "%s\n", jmevent.error_msg);
+	trace_seq_printf(s, "%s", jmevent.error_msg);
 
+	JM_SNPRINTF(jmevent.reg_msg, "[");
 	//display smmu csr(Inturrpt status)
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload1_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->smmu_csr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload1_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->smmu_csr);
 
 	//display ERRFR
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload1_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->errfr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload1_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->errfr);
 
 	//display ERRCTLR
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload1_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->errctlr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload1_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->errctlr);
 
 	//display ERRSTATUS
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload1_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x; ", err->errstatus);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload1_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->errstatus);
 
 	//display ERRGEN
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload1_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%x\n", err->errgen);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload1_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%x", err->errgen);
+	JM_SNPRINTF(jmevent.reg_msg, "]");
 
-	trace_seq_printf(s, "Register Dump:\n");
+	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
@@ -799,27 +815,29 @@ static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	struct jm_event jmevent;
 
 	memset(&jmevent, 0, sizeof(struct jm_event));
-	trace_seq_printf(s, "\nJaguarMicro Common Error Section:\n");
+	trace_seq_printf(s, " JaguarMicro Common Error Section:");
 	decode_jm_common_sec_head(ev_decoder, common_head, &jmevent);
-	trace_seq_printf(s, "%s\n", jmevent.error_msg);
+	trace_seq_printf(s, "%s", jmevent.error_msg);
+	JM_SNPRINTF(jmevent.reg_msg, "[");
 
 	//display ecc_1bit_error_interrupt_low
-	JM_SNPRINTF(jmevent.reg_msg,  " %s", disp_payload2_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg,  " 0x%x; ", err->ecc_1bit_int_low);
+	JM_SNPRINTF(jmevent.reg_msg,  "%s", disp_payload2_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg,  "0x%x", err->ecc_1bit_int_low);
 
 	//display ecc_1bit_error_interrupt_high
-	JM_SNPRINTF(jmevent.reg_msg,  " %s", disp_payload2_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg,  " 0x%x; ", err->ecc_1bit_int_high);
+	JM_SNPRINTF(jmevent.reg_msg,  "%s", disp_payload2_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg,  "0x%x", err->ecc_1bit_int_high);
 
 	//display ecc_2bit_error_interrupt_low
-	JM_SNPRINTF(jmevent.reg_msg,  " %s", disp_payload2_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg,  " 0x%x; ", err->ecc_2bit_int_low);
+	JM_SNPRINTF(jmevent.reg_msg,  "%s", disp_payload2_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg,  "0x%x", err->ecc_2bit_int_low);
 
 	//display ecc_2bit_error_interrupt_high
-	JM_SNPRINTF(jmevent.reg_msg,  " %s", disp_payload2_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg,  " 0x%x\n", err->ecc_2bit_int_high);
+	JM_SNPRINTF(jmevent.reg_msg,  "%s", disp_payload2_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg,  "0x%x", err->ecc_2bit_int_high);
+	JM_SNPRINTF(jmevent.reg_msg, "]");
 
-	trace_seq_printf(s, "Register Dump:\n");
+	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
@@ -840,67 +858,69 @@ static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	struct jm_event jmevent;
 
 	memset(&jmevent, 0, sizeof(struct jm_event));
-	trace_seq_printf(s, "\nJaguarMicro Common Error Section:\n");
+	trace_seq_printf(s, " JaguarMicro Common Error Section:");
 	decode_jm_common_sec_head(ev_decoder, common_head, &jmevent);
-	trace_seq_printf(s, "%s\n", jmevent.error_msg);
+	trace_seq_printf(s, "%s", jmevent.error_msg);
 
+	JM_SNPRINTF(jmevent.reg_msg, "[");
 	//display cfgm_mxp_0
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->cfgm_mxp_0);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->cfgm_mxp_0);
 
 	//display cfgm_hnf_0
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->cfgm_hnf_0);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->cfgm_hnf_0);
 
 	//display cfgm_hni_0
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->cfgm_hni_0);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->cfgm_hni_0);
 
 	//display cfgm_sbsx_0
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->cfgm_sbsx_0);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->cfgm_sbsx_0);
 
 	//display errfr_NS
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->errfr_NS);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->errfr_NS);
 
 	//display errctlrr_NS
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->errctlrr_NS);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->errctlrr_NS);
 
 	//display errstatusr_NS
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->errstatusr_NS);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->errstatusr_NS);
 
 	//display erraddrr_NS
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->erraddrr_NS);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->erraddrr_NS);
 
 	//display errmiscr_NS
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->errmiscr_NS);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->errmiscr_NS);
 
 	//display errfr
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->errfr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->errfr);
 
 	//display errctlr
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->errctlr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->errctlr);
 
 	//display errstatus
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->errstatus);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->errstatus);
 
 	//display erraddr
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->erraddr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->erraddr);
 
 	//display errmisc
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload5_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx\n", (unsigned long long)err->errmisc);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload5_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->errmisc);
+	JM_SNPRINTF(jmevent.reg_msg, "]");
 
-	trace_seq_printf(s, "Register Dump:\n");
+	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
@@ -921,42 +941,45 @@ static void decode_jm_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	struct jm_event jmevent;
 
 	memset(&jmevent, 0, sizeof(struct jm_event));
-	trace_seq_printf(s, "\nJaguarMicro Common Error Section:\n");
+	trace_seq_printf(s, " JaguarMicro Common Error Section:");
 	decode_jm_common_sec_head(ev_decoder, common_head, &jmevent);
-	trace_seq_printf(s, "%s\n", jmevent.error_msg);
+	trace_seq_printf(s, "%s", jmevent.error_msg);
+
+	JM_SNPRINTF(jmevent.reg_msg, "[");
 	//display RECORD_ID
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->record_id);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->record_id);
 
 	//display GICT_ERR_FR
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->gict_err_fr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_err_fr);
 
 	//display GICT_ERR_CTLR
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->gict_err_ctlr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_err_ctlr);
 
 	//display GICT_ERR_STATUS
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->gict_err_status);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_err_status);
 
 	//display GICT_ERR_ADDR
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->gict_err_addr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_err_addr);
 
 	//display GICT_ERR_MISC0
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->gict_err_misc0);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_err_misc0);
 
 	//display GICT_ERR_MISC1
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx; ", (unsigned long long)err->gict_err_misc1);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_err_misc1);
 
 	//display GICT_ERRGSR
-	JM_SNPRINTF(jmevent.reg_msg, " %s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, " 0x%llx\n", (unsigned long long)err->gict_errgsr);
+	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_errgsr);
+	JM_SNPRINTF(jmevent.reg_msg, "]");
 
-	trace_seq_printf(s, "Register Dump:\n");
+	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
