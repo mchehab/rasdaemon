@@ -76,6 +76,7 @@ struct pthread_data {
 enum hw_event_mc_err_type {
 	HW_EVENT_ERR_CORRECTED,
 	HW_EVENT_ERR_UNCORRECTED,
+	HW_EVENT_ERR_DEFERRED,
 	HW_EVENT_ERR_FATAL,
 	HW_EVENT_ERR_INFO,
 };
