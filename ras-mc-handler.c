@@ -153,6 +153,9 @@ int ras_mc_event_handler(struct trace_seq *s,
 	case HW_EVENT_ERR_UNCORRECTED:
 		ev.error_type = "Uncorrected";
 		break;
+	case HW_EVENT_ERR_DEFERRED:
+		ev.error_type = "Deferred";
+		break;
 	case HW_EVENT_ERR_FATAL:
 		ev.error_type = "Fatal";
 		break;
