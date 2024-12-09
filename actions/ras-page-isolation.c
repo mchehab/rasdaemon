@@ -24,7 +24,6 @@
 #include "events/ras-cxl-handler.h"
 #include "events/ras-mc-handler.h"
 
-#define PARSED_ENV_LEN 50
 #define ROW_ID_MAX_LEN 200
 #define SAME_PAGE_IN_ROW 200
 #define MAX_PAGE_RECORDS 65536
@@ -69,17 +68,21 @@ static const char * const page_state[] = {
 
 #ifdef HAVE_MEMORY_CE_PFA
 static struct isolation threshold = {
-	.name = "PAGE_CE_THRESHOLD",
-	.units = threshold_units,
-	.env = "50",
-	.unit = "",
+	.props = {
+		.name = "PAGE_CE_THRESHOLD",
+		.units = threshold_units,
+		.default_value = 50,
+		.default_unit = "",
+	},
 };
 
 static struct isolation cycle = {
-	.name = "PAGE_CE_REFRESH_CYCLE",
-	.units = cycle_units,
-	.env = "24h",
-	.unit = "h",
+	.props = {
+		.name = "PAGE_CE_REFRESH_CYCLE",
+		.units = cycle_units,
+		.default_value = 24 * 60 * 60,
+		.default_unit = "h",
+	},
 };
 
 static enum otype offline = OFFLINE_SOFT;
@@ -90,17 +93,21 @@ static const struct ras_event_consumer page_isolation_consumer;
 
 #ifdef HAVE_MEMORY_ROW_CE_PFA
 static struct isolation row_threshold = {
-	.name = "ROW_CE_THRESHOLD",
-	.units = threshold_units,
-	.env = "50",
-	.unit = "",
+	.props = {
+		.name = "ROW_CE_THRESHOLD",
+		.units = threshold_units,
+		.default_value = 50,
+		.default_unit = "",
+	},
 };
 
 static struct isolation row_cycle = {
-	.name = "ROW_CE_REFRESH_CYCLE",
-	.units = cycle_units,
-	.env = "24h",
-	.unit = "h",
+	.props = {
+		.name = "ROW_CE_REFRESH_CYCLE",
+		.units = cycle_units,
+		.default_value = 24 * 60 * 60,
+		.default_unit = "h",
+	},
 };
 
 static enum otype row_offline_action = OFFLINE_OFF;
@@ -148,106 +155,87 @@ static void page_offline_init(void)
 }
 #endif /* HAVE_MEMORY_CE_PFA */
 
-static void parse_isolation_env(struct isolation *config)
+/*
+ * The 'parse_isolation_value' will parse the real value from the env settings
+ * in config file. The valid format of the env is pure positive number
+ * (like '12345') or a positive number with specific units (like '24h').
+ * When the unit is not set, we use the default unit (threshold for '' and
+ * cycle for 'h').
+ *
+ * The number is only supported in decimal, while others will produce errors.
+ *
+ * This function will parse the high level units to base units (like 'h' is
+ * a high level unit and 's' is a base unit).
+ *
+ * The valid value range is [1, UNLONG_MAX], and when the value is out of
+ * range (whether the origin pure number without units or the parsed number
+ * with the base units), the value will be set to the default value.
+ */
+static int parse_isolation_value(struct isolation *config, const char *text)
 {
-	char *env = getenv(config->name);
-	char *unit = NULL;
-	const struct config *units = NULL;
-	int i, no_unit;
-	int valid = 0;
-	int unit_matched = 0;
-	unsigned long value, tmp;
+	const struct config *unit;
+	unsigned long value;
+	const char *suffix;
+	char *end;
 
-	/* check if env is valid */
-	if (env && strlen(env)) {
-		/* All the character before unit must be digit */
-		for (i = 0; i < strlen(env) - 1; i++) {
-			if (!isdigit(env[i]))
-				goto parse;
-		}
-		if (sscanf(env, "%lu", &value) < 1 || !value)
-			goto parse;
-		/* check if the unit is valid */
-		unit = env + strlen(env) - 1;
-		/* no unit, all the character are value character */
-		if (isdigit(*unit)) {
-			valid = 1;
-			no_unit = 1;
-			goto parse;
-		}
-		for (units = config->units; units->name; units++) {
-			/* value character and unit character are both valid */
-			if (!strcasecmp(unit, units->name)) {
-				valid = 1;
-				no_unit = 0;
-				break;
-			}
-		}
+	config->value = config->props.default_value;
+	if (!text || !isdigit((unsigned char)*text))
+		return -EINVAL;
+
+	errno = 0;
+	value = strtoul(text, &end, 10);
+	if (errno == ERANGE)
+		return -ERANGE;
+	if (end == text || !value)
+		return -EINVAL;
+	if (*end && end[1])
+		return -EINVAL;
+	suffix = *end ? end : config->props.default_unit;
+
+	for (unit = config->props.units; unit->name; unit++)
+		if (!strcasecmp(suffix, unit->name))
+			break;
+	if (!unit->name)
+		return -EINVAL;
+
+	for (; unit->name; unit++) {
+		if (unit->val && value > ULONG_MAX / unit->val)
+			return -ERANGE;
+		value *= unit->val;
 	}
 
-parse:
-	/* if invalid, use default env */
-	if (valid) {
-		config->env = env;
-		if (!no_unit)
-			config->unit = unit;
-	} else {
-		log(TERM, LOG_INFO, "Improper %s, set to default %s.\n",
-		    config->name, config->env);
-	}
-
-	/* if env value string is greater than ulong_max, truncate the last digit */
-	sscanf(config->env, "%lu", &value);
-	for (units = config->units; units->name; units++) {
-		if (!strcasecmp(config->unit, units->name))
-			unit_matched = 1;
-		if (unit_matched) {
-			tmp = value;
-			value *= units->val;
-			if (tmp != 0 && value / tmp != units->val)
-				config->overflow = true;
-			/*
-			 * if units->val is 1,  config->env is greater than ulong_max, so it is can strtoul
-			 * if failed, the value is greater than ulong_max, set config->overflow = true
-			 */
-			if (units->val == 1) {
-				char *endptr;
-
-				errno = 0;
-				strtoul(config->env, &endptr, 10);
-				if (errno == ERANGE || endptr == config->env ||
-				    (*endptr != '\0' && endptr != unit))
-					config->overflow = true;
-			}
-			unit_matched = 0;
-		}
-	}
-	config->val = value;
-	/* In order to output value and unit perfectly */
-	config->unit = no_unit ? config->unit : "";
+	config->value = value;
+	return 0;
 }
 
-static void parse_env_string(struct isolation *config, char *str, unsigned int size)
+static const char *isolation_base_unit(const struct isolation *config)
 {
-	int i;
+	const struct config *unit = config->props.units;
 
-	if (config->overflow) {
-		/* when overflow, use basic unit */
-		for (i = 0; config->units[i].name; i++)
-			;
-		snprintf(str, size, "%lu%s", config->val, config->units[i - 1].name);
-		log(TERM, LOG_INFO, "%s is set overflow(%s), truncate it\n",
-		    config->name, config->env);
-	} else {
-		snprintf(str, size, "%s%s", config->env, config->unit);
-	}
+	while (unit[1].name)
+		unit++;
+	return unit->name;
+}
+
+static void parse_isolation_env(struct isolation *config)
+{
+	const char *env = getenv(config->props.name);
+	int rc = parse_isolation_value(config, env);
+
+	if (rc == -ERANGE)
+		log(TERM, LOG_INFO,
+		    "%s is set overflow(%s), set to default %lu%s\n",
+		    config->props.name, env, config->props.default_value,
+		    isolation_base_unit(config));
+	else if (rc)
+		log(TERM, LOG_INFO, "Improper %s, set to default %lu%s.\n",
+		    config->props.name, config->props.default_value,
+		    isolation_base_unit(config));
 }
 
 #ifdef HAVE_MEMORY_CE_PFA
 static void page_isolation_init(void)
 {
-	char threshold_string[PARSED_ENV_LEN];
-	char cycle_string[PARSED_ENV_LEN];
 	/*
 	 * It's unnecessary to parse threshold configuration when offline
 	 * choice is off.
@@ -257,10 +245,10 @@ static void page_isolation_init(void)
 
 	parse_isolation_env(&threshold);
 	parse_isolation_env(&cycle);
-	parse_env_string(&threshold, threshold_string, sizeof(threshold_string));
-	parse_env_string(&cycle, cycle_string, sizeof(cycle_string));
-	log(TERM, LOG_INFO, "Threshold of memory Corrected Errors is %s / %s\n",
-	    threshold_string, cycle_string);
+	log(TERM, LOG_INFO,
+	    "Threshold of memory Corrected Errors is %lu%s / %lu%s\n",
+	    threshold.value, isolation_base_unit(&threshold),
+	    cycle.value, isolation_base_unit(&cycle));
 }
 #endif /* HAVE_MEMORY_CE_PFA */
 
@@ -296,8 +284,6 @@ static void row_offline_init(void)
 
 static void row_isolation_init(void)
 {
-	char threshold_string[PARSED_ENV_LEN];
-	char cycle_string[PARSED_ENV_LEN];
 	/*
 	 * It's unnecessary to parse threshold configuration when offline
 	 * choice is off.
@@ -307,10 +293,10 @@ static void row_isolation_init(void)
 
 	parse_isolation_env(&row_threshold);
 	parse_isolation_env(&row_cycle);
-	parse_env_string(&row_threshold, threshold_string, sizeof(threshold_string));
-	parse_env_string(&row_cycle, cycle_string, sizeof(cycle_string));
-	log(TERM, LOG_INFO, "Threshold of memory row Corrected Errors is %s / %s\n",
-	    threshold_string, cycle_string);
+	log(TERM, LOG_INFO,
+	    "Threshold of memory row Corrected Errors is %lu%s / %lu%s\n",
+	    row_threshold.value, isolation_base_unit(&row_threshold),
+	    row_cycle.value, isolation_base_unit(&row_cycle));
 }
 
 static int ras_row_account_init(struct ras_module_ctx *ctx)
@@ -412,21 +398,21 @@ static void page_record(struct page_record *pr, unsigned int count, time_t time)
 		pr->start = time;
 	period = time - pr->start;
 
-	if (period >= cycle.val) {
+	if (period >= cycle.value) {
 		/*
 		 * Since we don't refresh automatically, it is possible that the period
 		 * between two occurrences will be longer than the pre-configured refresh cycle.
 		 * In this case, we tolerate the frequency of the whole period up to
 		 * the pre-configured threshold.
 		 */
-		tolerate = (period / (double)cycle.val) * threshold.val;
+		tolerate = (period / (double)cycle.value) * threshold.value;
 		pr->count -= (tolerate > pr->count) ? pr->count : tolerate;
 		pr->start = time;
 		pr->excess = 0;
 	}
 
 	pr->count += count;
-	if (pr->count >= threshold.val) {
+	if (pr->count >= threshold.value) {
 		log(TERM, LOG_INFO, "Corrected Errors at %#llx exceeded threshold\n", pr->addr);
 
 		/*
@@ -443,8 +429,8 @@ static void page_record(struct page_record *pr, unsigned int count, time_t time)
 static void page_records_expire(time_t now)
 {
 	struct rb_node *node = rb_first(&page_records);
-	time_t retention = cycle.val > (unsigned long)(LONG_MAX / 2) ?
-		LONG_MAX : (time_t)(cycle.val * 2);
+	time_t retention = cycle.value > (unsigned long)(LONG_MAX / 2) ?
+		LONG_MAX : (time_t)(cycle.value * 2);
 
 	while (node) {
 		struct rb_node *next = rb_next(node);
@@ -532,7 +518,7 @@ static void ras_hw_threshold_pageoffline(unsigned long long addr)
 {
 	time_t now = time(NULL);
 
-	ras_record_page_error(addr, threshold.val, now);
+	ras_record_page_error(addr, threshold.value, now);
 }
 
 static int page_isolation_consume(struct ras_events *ras, int event,
@@ -587,31 +573,45 @@ size_t ras_page_isolation_test_record_count(void)
 }
 #endif /* HAVE_MEMORY_CE_PFA */
 
+static int test_parse_isolation_value(const struct isolation_props *props,
+				      const char *text, unsigned long *value)
+{
+	struct isolation config = { .props = *props };
+	int rc = parse_isolation_value(&config, text);
+
+	*value = config.value;
+	return rc;
+}
+
 int ras_page_isolation_test_parse_value(const char *text, bool row,
 					unsigned long *value)
 {
-	struct isolation config;
-
 	if (row) {
 #ifdef HAVE_MEMORY_ROW_CE_PFA
-		config = row_threshold;
+		return test_parse_isolation_value(&row_threshold.props, text,
+						  value);
 #else
 		return -EINVAL;
 #endif /* HAVE_MEMORY_ROW_CE_PFA */
 	} else {
 #ifdef HAVE_MEMORY_CE_PFA
-		config = threshold;
+		return test_parse_isolation_value(&threshold.props, text, value);
 #else
 		return -EINVAL;
 #endif /* HAVE_MEMORY_CE_PFA */
 	}
+}
 
-	config.env = (char *)text;
-	config.unit = "";
-	config.overflow = false;
-	parse_isolation_env(&config);
-	*value = config.val;
-	return config.overflow ? -ERANGE : 0;
+int ras_page_isolation_test_parse_cycle(const char *text,
+					unsigned long *value)
+{
+#ifdef HAVE_MEMORY_CE_PFA
+	return test_parse_isolation_value(&cycle.props, text, value);
+#elif defined(HAVE_MEMORY_ROW_CE_PFA)
+	return test_parse_isolation_value(&row_cycle.props, text, value);
+#else
+	return -EINVAL;
+#endif
 }
 #endif /* HAVE_UNITTEST */
 
@@ -915,14 +915,14 @@ static void row_record(struct row_record *rr, time_t time)
 	if (!rr)
 		return;
 
-	if (time >= rr->start && time - rr->start > (time_t)row_cycle.val) {
+	if (time >= rr->start && time - rr->start > (time_t)row_cycle.value) {
 		struct page_addr *page_info = NULL, *tmp_page_info = NULL;
 
 		page_info = LIST_FIRST(&rr->page_head);
 		while (page_info) {
-			// delete exceeds row_cycle.val
+			// delete exceeds row_cycle.value
 			if (time < page_info->start ||
-			    time - page_info->start <= (time_t)row_cycle.val)
+			    time - page_info->start <= (time_t)row_cycle.value)
 				break;
 			tmp_page_info = LIST_NEXT(page_info, entry);
 			rr->count -= page_info->count;
@@ -937,7 +937,7 @@ static void row_record(struct row_record *rr, time_t time)
 	char row_id[ROW_ID_MAX_LEN] = {0};
 
 	row_record_get_id(rr, row_id, ROW_ID_MAX_LEN);
-	if (rr->count >= row_threshold.val) {
+	if (rr->count >= row_threshold.value) {
 		log(TERM, LOG_INFO,
 		    "Corrected Errors of row %s exceeded row CE threshold, count=%lu\n",
 		    row_id, rr->count);
@@ -956,7 +956,8 @@ static void row_records_expire(time_t now)
 		while (page) {
 			struct page_addr *next_page = LIST_NEXT(page, entry);
 
-			if (now >= page->start && now - page->start > (time_t)row_cycle.val) {
+			if (now >= page->start &&
+			    now - page->start > (time_t)row_cycle.value) {
 				rr->count -= page->count;
 				LIST_REMOVE(page, entry);
 				free(page);

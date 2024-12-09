@@ -9,7 +9,9 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -799,12 +801,37 @@ static void test_page_pfa_configuration_and_accounting(void **state)
 	};
 #endif
 	unsigned long value;
+	char overflow[64];
 
 	assert_true(module_is_registered("page-isolation"));
 	unsetenv("PAGE_CE_THRESHOLD");
 	assert_int_equal(ras_page_isolation_test_parse_value("50", false,
 							     &value), 0);
 	assert_int_equal(value, 50);
+	assert_int_equal(ras_page_isolation_test_parse_value("1m", false,
+							     &value), 0);
+	assert_int_equal(value, 1000000);
+	assert_int_equal(ras_page_isolation_test_parse_value("7", false,
+							     &value), 0);
+	assert_int_equal(value, 7);
+	assert_int_equal(ras_page_isolation_test_parse_cycle("2", &value), 0);
+	assert_int_equal(value, 2 * 60 * 60);
+	assert_int_equal(ras_page_isolation_test_parse_value("12x", false,
+							     &value), -EINVAL);
+	assert_int_equal(value, 50);
+	assert_int_equal(ras_page_isolation_test_parse_value("-1", false,
+							     &value), -EINVAL);
+	assert_int_equal(value, 50);
+	assert_int_equal(ras_page_isolation_test_parse_value(
+			 "184467440737095516160", false, &value), -ERANGE);
+	assert_int_equal(value, 50);
+	snprintf(overflow, sizeof(overflow), "%lud", ULONG_MAX / 24 + 1);
+	assert_int_equal(ras_page_isolation_test_parse_cycle(overflow, &value),
+			 -ERANGE);
+	assert_int_equal(value, 24 * 60 * 60);
+	assert_int_equal(ras_page_isolation_test_parse_value("2k", false,
+							     &value), 0);
+	assert_int_equal(value, 2000);
 	setenv("PAGE_CE_ACTION", "account", 1);
 	setenv("PAGE_CE_THRESHOLD", "2", 1);
 	setenv("PAGE_CE_REFRESH_CYCLE", "10s", 1);

@@ -105,17 +105,22 @@ struct row_record {
 	unsigned long		count;
 };
 
-struct isolation {
-	char			*name;
-	char			*env;
+struct isolation_props {
+	const char		*name;
 	const struct config	*units;
-	unsigned long		val;
-	bool			overflow;
-	char			*unit;
+	unsigned long		default_value;
+	const char		*default_unit;
+};
+
+struct isolation {
+	const struct isolation_props props;
+	unsigned long		value;
 };
 
 #ifdef HAVE_UNITTEST
 int ras_page_isolation_test_parse_value(const char *text, bool row,
+					unsigned long *value);
+int ras_page_isolation_test_parse_cycle(const char *text,
 					unsigned long *value);
 #ifdef HAVE_MEMORY_CE_PFA
 size_t ras_page_isolation_test_record_count(void);
