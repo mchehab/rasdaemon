@@ -40,6 +40,7 @@ static struct isolation threshold = {
 	.units = threshold_units,
 	.env = "50",
 	.unit = "",
+	.val = 50,
 };
 
 static struct isolation row_threshold = {
@@ -47,6 +48,7 @@ static struct isolation row_threshold = {
 	.units = threshold_units,
 	.env = "50",
 	.unit = "",
+	.val = 50,
 };
 
 static struct isolation cycle = {
@@ -54,6 +56,7 @@ static struct isolation cycle = {
 	.units = cycle_units,
 	.env = "24h",
 	.unit = "h",
+	.val = 86400,
 };
 
 static struct isolation row_cycle = {
@@ -61,6 +64,7 @@ static struct isolation row_cycle = {
 	.units = cycle_units,
 	.env = "24h",
 	.unit = "h",
+	.val = 86400,
 };
 
 static const char * const kernel_offline[] = {
@@ -123,10 +127,24 @@ static void page_offline_init(void)
 	    offline_choice[offline].name);
 }
 
+/*
+ * The 'parse_isolation_env' will parse the real value from the env settings
+ * in config file. The valid format of the env is pure positive number
+ * (like '12345') or a positive number with specific units (like '24h').
+ * When the unit is not set, we use the default unit (threshold for '' and
+ * cycle for 'h').
+ * The number is only supported in decimal, while others will produce errors.
+ * This function will parse the high level units to base units (like 'h' is
+ * a high level unit and 's' is a base unit).
+ * The valid value range is [1, UNLONG_MAX], and when the value is out of
+ * range (whether the origin pure number without units or the parsed number
+ * with the base units), the value will be set to the default value.
+ */
 static void parse_isolation_env(struct isolation *config)
 {
 	char *env = getenv(config->name);
 	char *unit = NULL;
+	char *endptr = NULL;
 	const struct config *units = NULL;
 	int i, no_unit;
 	int valid = 0;
@@ -163,56 +181,41 @@ static void parse_isolation_env(struct isolation *config)
 parse:
 	/* if invalid, use default env */
 	if (valid) {
-		config->env = env;
 		if (!no_unit)
 			config->unit = unit;
 	} else {
+		env = config->env;
 		log(TERM, LOG_INFO, "Improper %s, set to default %s.\n",
 		    config->name, config->env);
 	}
 
 	/* if env value string is greater than ulong_max, truncate the last digit */
-	sscanf(config->env, "%lu", &value);
+	errno = 0;
+	value = strtoul(env, &endptr, 10);
+	if (errno == ERANGE)
+		config->overflow = true;
 	for (units = config->units; units->name; units++) {
 		if (!strcasecmp(config->unit, units->name))
 			unit_matched = 1;
 		if (unit_matched) {
 			tmp = value;
 			value *= units->val;
-			if (tmp != 0 && value / tmp != units->val)
+			if (tmp != 0 && value / tmp != units->val) {
 				config->overflow = true;
-			/*
-			 * if units->val is 1,  config->env is greater than ulong_max, so it is can strtoul
-			 * if failed, the value is greater than ulong_max, set config->overflow = true
-			 */
-			if (units->val == 1) {
-				char *endptr;
-
-				strtoul(config->env, &endptr, 10);
-				if (errno == ERANGE || *endptr != '\0')
-					config->overflow = true;
+				break;
 			}
-			unit_matched = 0;
 		}
 	}
-	config->val = value;
-	/* In order to output value and unit perfectly */
-	config->unit = no_unit ? config->unit : "";
-}
-
-static void parse_env_string(struct isolation *config, char *str, unsigned int size)
-{
-	int i;
-
-	if (config->overflow) {
-		/* when overflow, use basic unit */
-		for (i = 0; config->units[i].name; i++)
-			;
-		snprintf(str, size, "%lu%s", config->val, config->units[i - 1].name);
-		log(TERM, LOG_INFO, "%s is set overflow(%s), truncate it\n",
-		    config->name, config->env);
+	if (!config->overflow) {
+		config->val = value;
+		config->env = env;
+		/* In order to output value and unit perfectly */
+		config->unit = no_unit ? config->unit : "";
 	} else {
-		snprintf(str, size, "%s%s", config->env, config->unit);
+		log(TERM, LOG_INFO, "%s is set overflow(%s), set to default %s\n",
+		    config->name, env, config->env);
+		/* In order to output value and unit perfectly */
+		config->unit = "";
 	}
 }
 
@@ -229,8 +232,8 @@ static void page_isolation_init(void)
 
 	parse_isolation_env(&threshold);
 	parse_isolation_env(&cycle);
-	parse_env_string(&threshold, threshold_string, sizeof(threshold_string));
-	parse_env_string(&cycle, cycle_string, sizeof(cycle_string));
+	snprintf(threshold_string, sizeof(threshold_string), "%s%s", threshold.env, threshold.unit);
+	snprintf(cycle_string, sizeof(cycle_string), "%s%s", cycle.env, cycle.unit);
 	log(TERM, LOG_INFO, "Threshold of memory Corrected Errors is %s / %s\n",
 	    threshold_string, cycle_string);
 }
@@ -277,8 +280,8 @@ static void row_isolation_init(void)
 
 	parse_isolation_env(&row_threshold);
 	parse_isolation_env(&row_cycle);
-	parse_env_string(&row_threshold, threshold_string, sizeof(threshold_string));
-	parse_env_string(&row_cycle, cycle_string, sizeof(cycle_string));
+	snprintf(threshold_string, sizeof(threshold_string), "%s%s", row_threshold.env, row_threshold.unit);
+	snprintf(cycle_string, sizeof(cycle_string), "%s%s", row_cycle.env, row_cycle.unit);
 	log(TERM, LOG_INFO, "Threshold of memory row Corrected Errors is %s / %s\n",
 	    threshold_string, cycle_string);
 }
