@@ -260,6 +260,16 @@ AS_IF([test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_memory_row_ce_pf
 ])
 AM_CONDITIONAL([WITH_POISON_PAGE_STAT], [test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_memory_row_ce_pfa" = "xyes" || test "x$enable_memory_failure" = "xyes" || test "x$enable_all" == "xyes" ])
 
+AC_ARG_ENABLE([erst],
+    AS_HELP_STRING([--enable-erst], [enable erst (currently experimental)]))
+
+AS_IF([test "x$enable_erst" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_ERST,1,"have ERST")
+  AC_SUBST([WITH_ERST])
+])
+AM_CONDITIONAL([WITH_ERST], [test x$enable_erst = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_ERST], [USE_ERST="yes"], [USE_ERST="no"])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
@@ -307,4 +317,5 @@ compile time options summary
     YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
     JAGUAR RAS errors   : $USE_JAGUAR_NS_DECODE
     Signal              : $USE_SIGNAL
+    ERST                : $USE_ERST
 EOF

@@ -120,6 +120,10 @@ if WITH_POISON_PAGE_STAT
    rasdaemon_SOURCES += ras-poison-page-stat.c
 endif
 
+if WITH_ERST
+   rasdaemon_SOURCES += ras-erst.c
+endif
+
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS)
 rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS)
 
@@ -130,7 +134,7 @@ include_HEADERS = config.h types.h ras-events.h ras-logger.h ras-mc-handler.h \
 		  non-standard-hisilicon.h non-standard-ampere.h ras-memory-failure-handler.h \
 		  ras-cxl-handler.h ras-cpu-isolation.h queue.h non-standard-yitian.h \
 		  non-standard-jaguarmicro.h trigger.h unified-sel.h ras-signal-handler.h \
-		  ras-poison-page-stat.h
+		  ras-poison-page-stat.h ras-erst.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that

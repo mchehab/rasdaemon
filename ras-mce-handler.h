@@ -78,6 +78,7 @@ struct mce_event {
 	char		mcastatus_msg[1024];
 	char		user_action[4096];
 	char		mc_location[256];
+	int		erst;
 };
 
 struct mce_priv {
@@ -108,6 +109,7 @@ int register_mce_handler(struct ras_events *ras, unsigned int ncpus);
 int ras_mce_event_handler(struct trace_seq *s,
 			  struct tep_record *record,
 			  struct tep_event *event, void *context);
+int init_mce_priv(struct ras_events *ras);
 
 /* enables intel iMC logs */
 int set_intel_imc_log(enum cputype cputype, unsigned int ncpus);
@@ -170,4 +172,6 @@ int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e);
 
 int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e);
 
+void report_mce_event(struct ras_events *ras, struct tep_record *record,
+		      struct trace_seq *s, struct mce_event *e);
 #endif

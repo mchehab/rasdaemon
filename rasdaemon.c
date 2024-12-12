@@ -10,6 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "ras-erst.h"
 #include "ras-events.h"
 #include "ras-logger.h"
 #include "ras-poison-page-stat.h"
@@ -224,6 +225,16 @@ int main(int argc, char *argv[])
 	if (!args.foreground)
 		if (daemon(0, 0))
 			exit(EXIT_FAILURE);
+
+#ifdef HAVE_ERST
+#ifdef HAVE_MCE
+	if (choices_disable && strlen(choices_disable) != 0 &&
+	    strstr(choices_disable, "ras:erst"))
+		log(ALL, LOG_INFO, "Disabled ras:erst from config\n");
+	else
+		handle_erst();
+#endif
+#endif
 
 	handle_ras_events(args.record_events, args.enable_ipmitool);
 
