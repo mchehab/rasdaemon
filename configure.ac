@@ -244,6 +244,16 @@ AS_IF([test "x$enable_yitian_ns_decode" = "xyes" || test "x$enable_all" == "xyes
 AM_CONDITIONAL([WITH_YITIAN_NS_DECODE], [test x$enable_yitian_ns_decode = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_YITIAN_NS_DECODE], [USE_YITIAN_NS_DECODE="yes"], [USE_YITIAN_NS_DECODE="no"])
 
+AC_ARG_ENABLE([erst],
+    AS_HELP_STRING([--enable-erst], [enable erst (currently experimental)]))
+
+AS_IF([test "x$enable_erst" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_ERST,1,"have ERST")
+  AC_SUBST([WITH_ERST])
+])
+AM_CONDITIONAL([WITH_ERST], [test x$enable_erst = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_ERST], [USE_ERST="yes"], [USE_ERST="no"])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
@@ -290,4 +300,5 @@ compile time options summary
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION
     YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
     JAGUAR RAS errors   : $USE_JAGUAR_NS_DECODE
+    ERST                : $USE_ERST
 EOF

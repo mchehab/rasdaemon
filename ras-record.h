@@ -27,6 +27,7 @@ struct ras_mc_event {
 	signed char top_layer, middle_layer, lower_layer;
 	unsigned long long address, grain, syndrome;
 	const char *driver_detail;
+	int erst;
 };
 
 struct ras_mc_offline_event {
@@ -45,6 +46,9 @@ struct ras_aer_event {
 	uint8_t tlp_header_valid;
 	uint32_t *tlp_header;
 	const char *msg;
+	int erst;
+	uint16_t vendor_id;
+	uint16_t device_id;
 };
 
 struct ras_extlog_event {
