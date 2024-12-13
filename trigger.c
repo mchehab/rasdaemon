@@ -11,6 +11,7 @@
 #include "types.h"
 #include "trigger.h"
 
+#include "ras-events.h"
 #include "ras-mce-handler.h"
 
 #define MAX_ENV 30
@@ -95,6 +96,9 @@ struct event_trigger aer_ce_trigger = {"aer_event", "AER_CE_TRIGGER"};
 struct event_trigger aer_ue_trigger = {"aer_event", "AER_UE_TRIGGER"};
 struct event_trigger aer_fatal_trigger = {"aer_event", "AER_FATAL_TRIGGER"};
 
+struct event_trigger pre_page_offline_trigger = {"page_offline", "PRE_PAGE_OFFLINE_TRIGGER"};
+struct event_trigger post_page_offline_trigger = {"page_offline", "POST_PAGE_OFFLINE_TRIGGER"};
+
 static struct event_trigger *event_triggers[] = {
 	&mc_ue_trigger,
 #ifdef HAVE_MCE
@@ -108,6 +112,10 @@ static struct event_trigger *event_triggers[] = {
 	&aer_ce_trigger,
 	&aer_ue_trigger,
 	&aer_fatal_trigger,
+#endif
+#ifdef HAVE_MEMORY_CE_PFA
+	&pre_page_offline_trigger,
+	&post_page_offline_trigger,
 #endif
 };
 
@@ -357,6 +365,31 @@ static void __run_aer_trigger(struct ras_aer_event *ev, struct event_trigger *tr
 			     ev->tlp_header[2], ev->tlp_header[3]) < 0)
 			goto free;
 	if (asprintf(&env[ei++], "MSG=%s", ev->msg) < 0)
+	env[ei] = NULL;
+	assert(ei < MAX_ENV);
+
+	run_trigger(trigger, NULL, env);
+
+free:
+	for (i = 0; i < ei; i++)
+		free(env[i]);
+}
+
+static void __run_page_offline_trigger(unsigned long long addr, int otype,
+				       struct event_trigger *trigger)
+{
+	char *env[MAX_ENV];
+	int ei = 0;
+	int i;
+
+	if (!trigger->path || !strcmp(trigger->path, ""))
+		return;
+
+	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
+		goto free;
+	if (asprintf(&env[ei++], "ADDR=%#llx", addr) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "OTYPE=%d", otype) < 0)
 		goto free;
 
 	env[ei] = NULL;
@@ -378,3 +411,12 @@ void run_aer_event_trigger(struct ras_aer_event *e)
 	else if (!strcmp(e->error_type, "Uncorrected (Fatal)"))
 		__run_aer_trigger(e, &aer_fatal_trigger);
 }
+
+void run_page_offline_trigger(unsigned long long addr, int otype, int type)
+{
+	if (type == POST)
+		__run_page_offline_trigger(addr, otype, &post_page_offline_trigger);
+	else
+		__run_page_offline_trigger(addr, otype, &pre_page_offline_trigger);
+}
+

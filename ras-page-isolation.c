@@ -15,6 +15,7 @@
 
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
+#include "trigger.h"
 
 #define PARSED_ENV_LEN 50
 #define ROW_ID_MAX_LEN 200
@@ -293,6 +294,7 @@ void ras_page_account_init(void)
 {
 	page_offline_init();
 	page_isolation_init();
+	setup_event_trigger("page_offline");
 }
 
 static int do_page_offline(unsigned long long addr, enum otype type)
@@ -300,6 +302,7 @@ static int do_page_offline(unsigned long long addr, enum otype type)
 	int fd, rc;
 	char buf[20];
 
+	run_page_offline_trigger(addr, type, PRE);
 	fd = open(kernel_offline[type], O_WRONLY);
 	if (fd == -1) {
 		log(TERM, LOG_ERR, "[%s]:open file: %s failed\n", __func__,
@@ -315,6 +318,7 @@ static int do_page_offline(unsigned long long addr, enum otype type)
 		    buf, kernel_offline[type], errno);
 
 	close(fd);
+	run_page_offline_trigger(addr, type, POST);
 	return rc;
 }
 

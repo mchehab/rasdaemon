@@ -1,0 +1,25 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+#  This shell script can be executed by rasdaemon in daemon mode when a
+#  memory_failure_event is occured, environment variables include all
+#  information reported by tracepoint.
+
+# environment:
+# TIMESTAMP             Timestamp when error occurred
+# ADDR                  Address
+# OTYPE                 POST | PRE
+#
+
+[ -x ./page_offline_pre_trigger.local ] && . ./page_offline_pre_trigger.local
+
+if [ -d page_offline_pre_trigger.extern ]
+then
+    ls page_offline_pre_trigger.extern |
+    while read item
+    do
+        [ -x ./page_offline_pre_trigger.extern/$item ] && . ./page_offline_pre_trigger.extern/$item $1
+    done
+fi
+
+
+exit 0
