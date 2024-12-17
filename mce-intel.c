@@ -221,6 +221,8 @@ static char *get_RRRR_str(uint8_t rrrr)
 static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 {
 	uint32_t mca = e->status & 0xffffL;
+	uint64_t status = e->status;
+	uint64_t misc = e->misc;
 
 	if (mca & (1UL << 12)) {
 		mce_snprintf(e->mcastatus_msg,
@@ -265,6 +267,16 @@ static void decode_mca(struct mce_event *e, uint64_t track, int *ismemerr)
 			     get_RRRR_str((mca & BUS_RRRR_MASK) >> BUS_RRRR_SHIFT),
 			     decode_attr(II, (mca & BUS_II_MASK) >> BUS_II_SHIFT),
 			     decode_attr(T, (mca & BUS_T_MASK) >> BUS_T_SHIFT));
+		if ((status & MCI_STATUS_MISCV) && (status & 0xefff) == 0x0e0b) {
+			int seg, bus, dev, fn;
+
+			seg = EXTRACT(misc, 32, 39);
+			bus = EXTRACT(misc, 24, 31);
+			dev = EXTRACT(misc, 19, 23);
+			fn = EXTRACT(misc, 16, 18);
+			mce_snprintf(e->mcastatus_msg, "IO MCA reported by root port %x:%02x:%02x.%x",
+				     seg, bus, dev, fn);
+		}
 	} else if (test_prefix(7, mca)) {
 		decode_memory_controller(e, mca);
 		*ismemerr = 1;
