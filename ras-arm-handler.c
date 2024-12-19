@@ -535,7 +535,7 @@ int ras_arm_event_handler(struct trace_seq *s,
 	trace_seq_printf(s, " psci_state: %d", ev.psci_state);
 
 	/* Upstream Kernels up to version 6.10 don't decode UEFI 2.6+ N.17 table */
-	if (tep_get_field_val(s, event, "pei_len", record, &val, 1) >= 0) {
+	if (tep_get_field_val(s, event, "pei_len", record, &val, 0) >= 0) {
 		bool legacy_patch = false;
 
 		ev.pei_len = val;
