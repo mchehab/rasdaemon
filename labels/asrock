@@ -17,6 +17,10 @@
 #
 
 Vendor: ASRock
+  Model: X370 Taichi
+    DDR4_A1:  0.0.1, 0.1.1;    DDR4_A2:  0.2.1, 0.3.1;
+    DDR4_B1:  0.0.0, 0.1.0;    DDR4_B2:  0.2.0, 0.3.0;
+
   Model: X570 Phantom Gaming X
     DIMM_A1:  0.0.1, 0.1.1;    DIMM_A2:   0.2.1, 0.3.1;
     DIMM_B1:  0.0.0, 0.1.0;    DIMM_B2:   0.2.0, 0.3.0;
