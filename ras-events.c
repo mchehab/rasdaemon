@@ -376,7 +376,7 @@ static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
 
 static int get_pagesize(struct ras_events *ras, struct tep_handle *pevent)
 {
-	int fd, len, page_size = 4096;
+	int fd, len, page_size = 8192;
 	char buf[page_size];
 
 	fd = open_trace(ras, "events/header_page", O_RDONLY);
@@ -827,7 +827,8 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 			     unsigned int page_size, char *group, char *event,
 			     tep_event_handler_func func, char *filter_str, int id)
 {
-	int fd, size, rc;
+	int fd, rc;
+	int size = 0;
 	char *page, fname[MAX_PATH + 1];
 	struct tep_event_filter *filter = NULL;
 
@@ -857,13 +858,17 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 		return rc;
 	}
 
-	size = read(fd, page, page_size);
+	do {
+		rc = read(fd, page + size, page_size);
+		if (rc < 0) {
+			log(TERM, LOG_ERR, "Can't get arch page size\n");
+			free(page);
+			close(fd);
+			return size;
+		}
+		size += rc;
+	} while (rc > 0);
 	close(fd);
-	if (size < 0) {
-		log(TERM, LOG_ERR, "Can't get arch page size\n");
-		free(page);
-		return size;
-	}
 
 	/* Registers the special event handlers */
 	rc = tep_register_event_handler(pevent, -1, group, event, func, ras);
