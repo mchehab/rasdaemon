@@ -24,7 +24,7 @@ enum hisi_oem_data_type {
 };
 
 /* helper functions */
-static inline char *err_severity(uint8_t err_sev)
+static inline const char *err_severity(uint8_t err_sev)
 {
 	switch (err_sev) {
 	case HISI_ERR_SEVERITY_NFE: return "recoverable";
