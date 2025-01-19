@@ -462,7 +462,7 @@ static const char * const oem_submodule_name(const struct hisi_module_info *info
 	return "unknown";
 }
 
-static char *pcie_local_sub_module_name(uint8_t id)
+static const char *pcie_local_sub_module_name(uint8_t id)
 {
 	switch (id) {
 	case HISI_PCIE_SUB_MODULE_ID_AP: return "AP_Layer";
