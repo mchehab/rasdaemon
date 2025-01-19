@@ -318,12 +318,12 @@ struct sqlite3_priv {
 };
 
 struct db_fields {
-	char *name;
-	char *type;
+	const char *name;
+	const char *type;
 };
 
 struct db_table_descriptor {
-	char                    *name;
+	const char              *name;
 	const struct db_fields  *fields;
 	size_t                  num_fields;
 };
