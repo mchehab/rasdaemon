@@ -141,7 +141,6 @@ int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 }
 #endif
 
-#ifdef HAVE_SQLITE3
 static const struct db_fields hisi_common_section_fields[] = {
 	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
 	{ .name = "timestamp",		.type = "TEXT" },
@@ -161,6 +160,7 @@ static const struct db_fields hisi_common_section_fields[] = {
 	{ .name = "regs_dump",		.type = "TEXT" },
 };
 
+#ifdef HAVE_SQLITE3
 static const struct db_table_descriptor hisi_common_section_tab = {
 	.name = "hisi_common_section_v2",
 	.fields = hisi_common_section_fields,
@@ -242,81 +242,33 @@ static void decode_module(struct ras_ns_ev_decoder *ev_decoder,
 	}
 }
 
-static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
-					   const struct hisi_common_error_section *err,
-					  struct hisi_event *event)
+static void decode_int_fields(struct ras_ns_ev_decoder *ev_decoder, int id,
+			      uint16_t data, struct hisi_event *event, bool valid)
 {
-	HISI_SNPRINTF(event->error_msg, "[ table_version=%hhu", err->version);
-	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-			   HISI_COMMON_FIELD_VERSION,
-			   err->version, NULL);
-	if (err->val_bits & BIT(HISI_COMMON_VALID_SOC_ID)) {
-		HISI_SNPRINTF(event->error_msg, "soc=%s", get_soc_desc(err->soc_id));
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_SOC_ID,
-				   err->soc_id, NULL);
+	if (!valid)
+		return;
+
+	if (id == HISI_COMMON_FIELD_SOC_ID) {
+		HISI_SNPRINTF(event->error_msg, "soc=%s", get_soc_desc(data));
+	} else {
+		HISI_SNPRINTF(event->error_msg, "%s=%hu",
+			      hisi_common_section_fields[id].name, data);
 	}
 
-	if (err->val_bits & BIT(HISI_COMMON_VALID_SOCKET_ID)) {
-		HISI_SNPRINTF(event->error_msg, "socket_id=%hhu", err->socket_id);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_SOCKET_ID,
-				   err->socket_id, NULL);
-	}
+	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT, id, data, NULL);
+}
 
-	if (err->val_bits & BIT(HISI_COMMON_VALID_TOTEM_ID)) {
-		HISI_SNPRINTF(event->error_msg, "totem_id=%hhu", err->totem_id);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_TOTEM_ID,
-				   err->totem_id, NULL);
-	}
+static void decode_text_fields(struct ras_ns_ev_decoder *ev_decoder, int id,
+			       const struct hisi_common_error_section *err,
+			       struct hisi_event *event, bool valid)
+{
+	if (!valid)
+		return;
 
-	if (err->val_bits & BIT(HISI_COMMON_VALID_NIMBUS_ID)) {
-		HISI_SNPRINTF(event->error_msg, "nimbus_id=%hhu", err->nimbus_id);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_NIMBUS_ID,
-				   err->nimbus_id, NULL);
-	}
-
-	if (err->val_bits & BIT(HISI_COMMON_VALID_SUBSYSTEM_ID)) {
-		HISI_SNPRINTF(event->error_msg, "subsystem_id=%hhu", err->subsystem_id);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_SUB_SYSTEM_ID,
-				   err->subsystem_id, NULL);
-	}
-
-	if (err->val_bits & BIT(HISI_COMMON_VALID_MODULE_ID))
+	if (id == HISI_COMMON_FIELD_MODULE_ID)
 		decode_module(ev_decoder, event, err->module_id);
 
-	if (err->val_bits & BIT(HISI_COMMON_VALID_SUBMODULE_ID)) {
-		HISI_SNPRINTF(event->error_msg, "submodule_id=%hhu", err->submodule_id);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_SUB_MODULE_ID,
-				   err->submodule_id, NULL);
-	}
-
-	if (err->val_bits & BIT(HISI_COMMON_VALID_CORE_ID)) {
-		HISI_SNPRINTF(event->error_msg, "core_id=%hhu", err->core_id);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_CORE_ID,
-				   err->core_id, NULL);
-	}
-
-	if (err->val_bits & BIT(HISI_COMMON_VALID_PORT_ID)) {
-		HISI_SNPRINTF(event->error_msg, "port_id=%hhu", err->port_id);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_PORT_ID,
-				   err->port_id, NULL);
-	}
-
-	if (err->val_bits & BIT(HISI_COMMON_VALID_ERR_TYPE)) {
-		HISI_SNPRINTF(event->error_msg, "err_type=%hu", err->err_type);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT,
-				   HISI_COMMON_FIELD_ERR_TYPE,
-				   err->err_type, NULL);
-	}
-
-	if (err->val_bits & BIT(HISI_COMMON_VALID_PCIE_INFO)) {
+	if (id == HISI_COMMON_FIELD_PCIE_INFO) {
 		HISI_SNPRINTF(event->error_msg, "pcie_device_id=%04x:%02x:%02x.%x",
 			      err->pcie_info.segment, err->pcie_info.bus,
 			      err->pcie_info.device, err->pcie_info.function);
@@ -324,16 +276,51 @@ static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
 			      err->pcie_info.segment, err->pcie_info.bus,
 			      err->pcie_info.device, err->pcie_info.function);
 		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
-				   HISI_COMMON_FIELD_PCIE_INFO,
-				   0, event->pcie_info);
+				   id, 0, event->pcie_info);
 	}
 
-	if (err->val_bits & BIT(HISI_COMMON_VALID_ERR_SEVERITY)) {
-		HISI_SNPRINTF(event->error_msg, "err_severity=%s", err_severity(err->err_severity));
+	if (id == HISI_COMMON_FIELD_ERR_SEVERITY) {
+		HISI_SNPRINTF(event->error_msg, "err_severity=%s",
+			      err_severity(err->err_severity));
 		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
-				   HISI_COMMON_FIELD_ERR_SEVERITY,
-				   0, err_severity(err->err_severity));
+				   id, 0, err_severity(err->err_severity));
 	}
+}
+
+static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
+					   const struct hisi_common_error_section *err,
+					   struct hisi_event *event)
+{
+	HISI_SNPRINTF(event->error_msg, "[");
+
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_VERSION, err->version, event, 1);
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_SOC_ID, err->soc_id, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_SOC_ID));
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_SOCKET_ID, err->socket_id, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_SOCKET_ID));
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_TOTEM_ID, err->totem_id, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_TOTEM_ID));
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_NIMBUS_ID, err->nimbus_id, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_NIMBUS_ID));
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_SUB_SYSTEM_ID, err->subsystem_id, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_SUBSYSTEM_ID));
+
+	decode_text_fields(ev_decoder, HISI_COMMON_FIELD_MODULE_ID, err, event,
+			   err->val_bits & BIT(HISI_COMMON_VALID_MODULE_ID));
+
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_SUB_MODULE_ID, err->submodule_id, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_SUBMODULE_ID));
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_CORE_ID, err->core_id, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_CORE_ID));
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_PORT_ID, err->port_id, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_PORT_ID));
+	decode_int_fields(ev_decoder, HISI_COMMON_FIELD_ERR_TYPE, err->err_type, event,
+			  err->val_bits & BIT(HISI_COMMON_VALID_ERR_TYPE));
+
+	decode_text_fields(ev_decoder, HISI_COMMON_FIELD_PCIE_INFO, err, event,
+			   err->val_bits & BIT(HISI_COMMON_VALID_PCIE_INFO));
+	decode_text_fields(ev_decoder, HISI_COMMON_FIELD_ERR_SEVERITY, err, event,
+			   err->val_bits & BIT(HISI_COMMON_VALID_ERR_SEVERITY));
 
 	HISI_SNPRINTF(event->error_msg, "]");
 }
