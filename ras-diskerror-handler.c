@@ -9,17 +9,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/sysmacros.h>
 #include <traceevent/kbuffer.h>
 
 #include "ras-diskerror-handler.h"
 #include "ras-logger.h"
 #include "ras-report.h"
 #include "types.h"
-
-#ifndef __dev_t_defined
-#include <sys/types.h>
-#endif /* __dev_t_defined */
 
 static const struct {
 	int             error;
@@ -60,7 +55,7 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 	time_t now;
 	struct tm *tm;
 	struct diskerror_event ev;
-	dev_t dev;
+	uint32_t dev;
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -84,8 +79,8 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 
 	if (tep_get_field_val(s, event, "dev", record, &val, 1) < 0)
 		return -1;
-	dev = (dev_t)val;
-	if (asprintf(&ev.dev, "%u:%u", major(dev), minor(dev)) < 0)
+	dev = (uint32_t)val;
+	if (asprintf(&ev.dev, "%u:%u", MAJOR(dev), MINOR(dev)) < 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "sector", record, &val, 1) < 0)
