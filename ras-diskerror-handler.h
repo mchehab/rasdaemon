@@ -29,14 +29,23 @@
  *	field:char rwbs[8];	offset:34;	size:8;	signed:0;
  *	field:__data_loc char[] cmd;	offset:44;	size:4;	signed:0;
  *
- * print fmt: "%d,%d %s (%s) %llu + %u %s,%u,%u [%d]", ((unsigned int) ((REC->dev) >> 20)), ((unsigned int) ((REC->dev) & ((1U << 20) - 1))), REC->rwbs, __get_str(cmd), (unsigned long long)REC->sector, REC->nr_sector, __print_symbolic((((REC->ioprio) >> 13) & (8 - 1)), { IOPRIO_CLASS_NONE, "none" }, { IOPRIO_CLASS_RT, "rt" }, { IOPRIO_CLASS_BE, "be" }, { IOPRIO_CLASS_IDLE, "idle" }, { IOPRIO_CLASS_INVALID, "invalid"}), (((REC->ioprio) >> 3) & ((1 << 10) - 1)), ((REC->ioprio) & ((1 << 3) - 1)), REC->error
+ * print fmt: "%d,%d %s (%s) %llu + %u %s,%u,%u [%d]",
+ *	((unsigned int) ((REC->dev) >> 20)),
+ *	((unsigned int) ((REC->dev) & ((1U << 20) - 1))),
+ *	REC->rwbs, __get_str(cmd), (unsigned long long)REC->sector,
+ *	REC->nr_sector, __print_symbolic((((REC->ioprio) >> 13) & (8 - 1)),
+ *	{ IOPRIO_CLASS_NONE, "none" }, { IOPRIO_CLASS_RT, "rt" },
+ *	{ IOPRIO_CLASS_BE, "be" }, { IOPRIO_CLASS_IDLE, "idle" },
+ *	{ IOPRIO_CLASS_INVALID, "invalid"}),
+ *	(((REC->ioprio) >> 3) & ((1 << 10) - 1)),
+ *	((REC->ioprio) & ((1 << 3) - 1)), REC->error
  */
 #define MINORBITS	20
 #define MINORMASK	((1U << MINORBITS) - 1)
 
-#define MAJOR(dev)	((unsigned int) ((dev) >> MINORBITS))
-#define MINOR(dev)	((unsigned int) ((dev) & MINORMASK))
-#define MKDEV(ma,mi)	(((ma) << MINORBITS) | (mi))
+#define MAJOR(dev)	((unsigned int)((dev) >> MINORBITS))
+#define MINOR(dev)	((unsigned int)((dev) & MINORMASK))
+#define MKDEV(ma, mi)	(((ma) << MINORBITS) | (mi))
 int ras_diskerror_event_handler(struct trace_seq *s,
 				struct tep_record *record,
 				struct tep_event *event, void *context);
