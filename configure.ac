@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 
-AC_INIT([RASdaemon],[0.8.2])
+AC_INIT([RASdaemon],[0.8.3])
 AM_SILENT_RULES([yes])
 AC_CANONICAL_TARGET
 AC_CONFIG_MACRO_DIR([m4])

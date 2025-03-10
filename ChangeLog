@@ -1,3 +1,35 @@
+2024-03-10      Mauro Carvalho Chehab <mchehab@kernel.org>
+	- Version 0.8.3
+
+        * ras-diskerror-handler: fix checkpatch warnings
+        * ras-diskerror-handler: Use the right dev_t decoding for diskerror handler
+        * rasdaemon: Add new modules supported by HiSilicon common section
+        * rasdaemon: Fix some static check warning
+        * rasdaemon: Fix few compilation warnings in non standard hisilicon code
+        * rasdaemon: Fix some compilation alarms in ras-record.h.
+        * rasdaemon: ras-mc-ctl: Update logging of CXL memory module data to align with CXL spec rev 3.1
+        * rasdaemon: ras-mc-ctl: Update logging of CXL DRAM event data to align with CXL spec rev 3.1
+        * rasdaemon: ras-mc-ctl: Update logging of CXL general media event data to align with CXL spec rev 3.1
+        * rasdaemon: ras-mc-ctl: Update logging of common event data to align with CXL spec rev 3.1
+        * rasdaemon: ras-mc-ctl: Fix logging of memory event type in CXL DRAM error table
+        * rasdaemon: cxl: Update memory module event to CXL spec rev 3.1
+        * rasdaemon: cxl: Update CXL DRAM event to CXL spec rev 3.1
+        * rasdaemon: cxl: Update CXL general media event to CXL spec rev 3.1
+        * rasdaemon: cxl: Add Component Identifier formatting for CXL spec rev 3.1
+        * rasdaemon: cxl: Update common event to CXL spec rev 3.1
+        * rasdaemon: cxl: Add automatic indexing for storing CXL fields in SQLite database
+        * rasdaemon: cxl: Fix mismatch in region field's name with kernel DRAM trace event
+        * rasdaemon: cxl: Fix logging of memory event type of DRAM trace event
+        * rasdaemon: Fix for parsing error when trace event's format file is larger than PAGE_SIZE
+        * rasdaemon: Add page offline support for cxl memory
+        * Add labels for ASRock X370 Taichi
+        * Add labels for ASRock X570 Creator
+        * Add labels for ASRock X570S PG Riptide
+        * rasdaemon: mce: decode io port for bus error
+        * rasdaemon: arm: do not print error msg if field not found
+        * rasdaemon: add DE error type for AMD
+        * rasdaemon: Fix the display format of JaguarMicro vendor no standard errors
+
 2024-07-19      Mauro Carvalho Chehab <mchehab@kernel.org>
 	- Version 0.8.2
 
