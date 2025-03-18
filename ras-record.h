@@ -9,6 +9,7 @@
 #define __RAS_RECORD_H
 
 #include <sqlite3.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -258,6 +259,17 @@ struct ras_cxl_memory_module_event {
 	uint8_t res_id[CXL_PLDM_RES_ID_LEN];
 };
 
+struct ras_signal_event {
+	char timestamp[64];
+	int sig;
+	int error_no;
+	int code;
+	char *comm;
+	pid_t pid;
+	int group;
+	int result;
+};
+
 struct ras_mc_event;
 struct ras_aer_event;
 struct ras_extlog_event;
@@ -275,6 +287,7 @@ struct ras_cxl_generic_event;
 struct ras_cxl_general_media_event;
 struct ras_cxl_dram_event;
 struct ras_cxl_memory_module_event;
+struct ras_signal_event;
 
 #ifdef HAVE_SQLITE3
 
@@ -314,6 +327,9 @@ struct sqlite3_priv {
 	sqlite3_stmt	*stmt_cxl_general_media_event;
 	sqlite3_stmt	*stmt_cxl_dram_event;
 	sqlite3_stmt	*stmt_cxl_memory_module_event;
+#endif
+#ifdef HAVE_SIGNAL
+	sqlite3_stmt	*stmt_signal_event;
 #endif
 };
 
@@ -361,6 +377,8 @@ int ras_store_cxl_dram_event(struct ras_events *ras,
 			     struct ras_cxl_dram_event *ev);
 int ras_store_cxl_memory_module_event(struct ras_events *ras,
 				      struct ras_cxl_memory_module_event *ev);
+int ras_store_signal_event(struct ras_events *ras,
+			   struct ras_signal_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned int cpu,
@@ -401,6 +419,8 @@ static inline int ras_store_cxl_dram_event(struct ras_events *ras,
 					   struct ras_cxl_dram_event *ev) { return 0; };
 static inline int ras_store_cxl_memory_module_event(struct ras_events *ras,
 						    struct ras_cxl_memory_module_event *ev) { return 0; };
+static inline int ras_store_signal_event(struct ras_events *ras,
+					 struct ras_signal_event *ev) { return 0; };
 
 #endif
 
