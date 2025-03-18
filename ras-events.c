@@ -34,6 +34,7 @@
 #include "ras-memory-failure-handler.h"
 #include "ras-non-standard-handler.h"
 #include "ras-page-isolation.h"
+#include "ras-signal-handler.h"
 #include "ras-record.h"
 #include "trigger.h"
 
@@ -315,6 +316,10 @@ int toggle_ras_mc_event(int enable)
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_module", enable);
 #endif
 
+#ifdef HAVE_SIGNAL
+	rc |= __toggle_ras_mc_event(ras, "signal", "signal_generate", enable);
+#endif
+
 free_ras:
 	free(ras);
 	if (rc)
@@ -335,7 +340,7 @@ static void setup_event_trigger(char *event)
 }
 
 #ifdef HAVE_DISKERROR
-#ifndef HAVE_BLK_RQ_ERROR
+#if (!defined(HAVE_BLK_RQ_ERROR)) || defined(HAVE_SIGNAL)
 /*
  * Set kernel filter. libtrace doesn't provide an API for setting filters
  * in kernel, we have to implement it here.
@@ -943,6 +948,10 @@ int handle_ras_events(int record_events, int enable_ipmitool)
 #ifdef HAVE_DEVLINK
 	char *filter_str = NULL;
 #endif
+#ifdef HAVE_SIGNAL
+	char signal_filter[64];
+#endif
+
 
 	ras = calloc(1, sizeof(*ras));
 	if (!ras) {
@@ -1171,6 +1180,22 @@ int handle_ras_events(int record_events, int enable_ipmitool)
 	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "memory_module");
+#endif
+
+#ifdef HAVE_SIGNAL
+	snprintf(signal_filter, sizeof(signal_filter), "sig == %d && code >= %d", SIGBUS, BUS_OBJERR);
+	// ensure filter enabled
+	usleep(30000);
+	rc = filter_ras_mc_event(ras, "signal", "signal_generate", signal_filter);
+	if (!rc) {
+		rc = add_event_handler(ras, pevent, page_size, "signal", "signal_generate",
+				       ras_signal_event_handler, NULL, SIGNAL_EVENT);
+		if (!rc)
+			num_events++;
+		else if (rc != -EINVAL)
+			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+			    "signal", "signal_generate");
+	}
 #endif
 
 	if (!num_events) {
