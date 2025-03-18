@@ -34,7 +34,8 @@ rasdaemon \- RAS daemon to log the RAS events.
 The \fBrasdaemon\fR program is a daemon which monitors the platform
 Reliablity, Availability and Serviceability (RAS) reports from the
 Linux kernel trace events. These trace events are logged in
-/sys/kernel/debug/tracing, reporting them via syslog/journald.
+/sys/kernel/debug/tracing, reporting them via syslog/journald. If
+syslog-ng is installed, the events will logged at @localstatedir@/log/rasdaemon.
 
 .SH OPTIONS
 .TP

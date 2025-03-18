@@ -5,27 +5,42 @@ ACLOCAL_AMFLAGS=-I m4
 SUBDIRS = util man
 SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in misc/ras-mc-ctl.service.in
 SYSTEMD_SERVICES = $(SYSTEMD_SERVICES_IN:.service.in=.service)
+SYSLOG_SERVICES_IN = misc/rasdaemon.syslog-ng.in
+SYSLOG_SERVICES = $(SYSLOG_SERVICES_IN:.syslog-ng.in=.syslog-ng)
+LOGROTATE_SERVICES_IN = misc/rasdaemon.logrotate.in
+LOGROTATE_SERVICES = $(LOGROTATE_SERVICES_IN:.logrotate.in=.logrotate)
 EXTRA_DIST = \
-	$(SYSTEMD_SERVICES_IN) misc/rasdaemon.env \
+	$(SYSTEMD_SERVICES_IN) \
+	$(SYSLOG_SERVICES_IN) \
+	$(LOGROTATE_SERVICES_IN) \
+	misc/rasdaemon.env \
 	contrib/mc_event_trigger \
 	contrib/mem_fail_trigger
 
 CLEANFILES= \
 	misc/ras-mc-ctl.service	\
-	misc/rasdaemon.service
+	misc/rasdaemon.service \
+	misc/rasdaemon.syslog-ng \
+	misc/rasdaemon.logrotate
 
 DISTCLEANFILES = misc/rasdaemon.spec
 
 # This rule is needed because \@sbindir\@ is expanded to \${exec_prefix\}/sbin
 # during ./configure phase, therefore it is not possible to add .service.in
 # files to AC_CONFIG_FILES in configure.ac
-SUFFIXES = .service.in .service
+SUFFIXES = .service.in .service .logrotate.in .logrotate .syslog-ng.in .syslog-ng
 .service.in.service:
 	sed -e s,\@sbindir\@,$(sbindir),g -e s,\@SYSCONFDEFDIR\@,@SYSCONFDEFDIR@,g $< > $@
 
+.logrotate.in.logrotate:
+	sed -e s,\@sbindir\@,$(sbindir),g -e s,\@localstatedir\@,${localstatedir},g $< > $@
+
+.syslog-ng.in.syslog-ng:
+	sed -e s,\@sbindir\@,$(sbindir),g -e s,\@localstatedir\@,${localstatedir},g $< > $@
+
 # This rule is needed because the service files must be generated on target
 # system after ./configure phase
-all-local: $(SYSTEMD_SERVICES)
+all-local: $(SYSTEMD_SERVICES) $(SYSLOG_SERVICES) $(LOGROTATE_SERVICES)
 
 sbin_PROGRAMS = rasdaemon
 rasdaemon_SOURCES = rasdaemon.c ras-events.c ras-mc-handler.c \
@@ -131,6 +146,12 @@ upload:
 install-data-local:
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d"
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/triggers"
-	$(install_sh) @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@SYSCONFDEFDIR@/rasdaemon"
+	install -D -p -m 0655 @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@SYSCONFDEFDIR@/rasdaemon"
 	$(install_sh) @abs_srcdir@/contrib/mc_event_trigger "$(DESTDIR)@sysconfdir@/ras/triggers/mc_event_trigger"
 	$(install_sh) @abs_srcdir@/contrib/mem_fail_trigger "$(DESTDIR)@sysconfdir@/ras/triggers/mem_fail_trigger"
+	if [ -d "$(DESTDIR)@sysconfdir@/syslog-ng/conf.d" ]; then \
+		install -D -p -m 0655 @abs_srcdir@/misc/rasdaemon.syslog-ng "$(DESTDIR)@sysconfdir@/syslog-ng/conf.d/rasdaemon.conf"; \
+	fi
+	if [ -d "$(DESTDIR)@sysconfdir@/logrotate.d" ]; then \
+		install -D -p -m 0655 @abs_srcdir@/misc/rasdaemon.logrotate "$(DESTDIR)@sysconfdir@/logrotate.d/rasdaemon"; \
+	fi
