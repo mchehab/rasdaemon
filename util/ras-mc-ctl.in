@@ -35,6 +35,7 @@ my $has_disk_errors = 0;
 my $has_extlog = 0;
 my $has_mem_failure = 0;
 my $has_mce = 0;
+my $has_signal = 0;
 
 @WITH_AER_TRUE@$has_aer = 1;
 @WITH_ARM_TRUE@$has_arm = 1;
@@ -44,6 +45,7 @@ my $has_mce = 0;
 @WITH_EXTLOG_TRUE@$has_extlog = 1;
 @WITH_MEMORY_FAILURE_TRUE@$has_mem_failure = 1;
 @WITH_MCE_TRUE@$has_mce = 1;
+@WITH_SIGNAL_TRUE@$has_signal = 1;
 
 my %conf        = ();
 my %bus         = ();
@@ -1546,7 +1548,7 @@ sub summary
 {
     require DBI;
     my ($query, $query_handle, $out);
-    my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg, $action_result);
+    my ($err_type, $label, $mc, $top, $mid, $low, $count, $msg, $action_result, $sigcode);
     my ($etype, $severity, $etype_string, $severity_string);
     my ($dev_name, $dev);
     my ($mpidr, $memdev);
@@ -1828,6 +1830,24 @@ sub summary
 	$query_handle->finish;
     }
 
+    # Signal event
+    if ($has_signal == 1) {
+	$query = "select code, count(*) from signal_event$conf{opt}{since} group by code";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($sigcode, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "\t$sigcode errors: $count\n";
+	}
+	if ($out ne "") {
+	    print "SIGNAL events summary:\n$out\n";
+	} else {
+	    print "No SIGNAL.\n\n";
+	}
+	$query_handle->finish;
+    }
+
     undef($dbh);
 }
 
@@ -1849,6 +1869,7 @@ sub errors
     my ($nibble_mask, $bank_group, $row, $column, $cor_mask);
     my ($event_type, $event_sub_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status);
     my ($sub_type, $sub_channel, $cme_threshold_ev_flags, $cme_count, $cvme_count);
+    my ($signal, $errorno, $code, $comm, $pid, $grp, $res);
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
 
@@ -2362,6 +2383,25 @@ sub errors
 	    print "MCE events:\n$out\n";
 	} else {
 	    print "No MCE errors.\n\n";
+	}
+	$query_handle->finish;
+    }
+
+    # SIGNAL event
+    if ($has_signal == 1) {
+	$query = "select id, timestamp, signal, errorno, code, comm, pid, grp, res from signal_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	$query_handle->bind_columns(\($id, $timestamp, $signal, $errorno, $code, $comm, $pid, $grp, $res));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "signal=$signal, errorno=$errorno, code=$code, comm=$comm, pid=$pid, grp=$grp, res=$res\n";
+	}
+	if ($out ne "") {
+	    print "SIGNAL events:\n$out\n";
+	} else {
+	    print "No SIGNAL event.\n\n";
 	}
 	$query_handle->finish;
     }
