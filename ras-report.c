@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "ras-report.h"
+#include "ras-record.h"
 
 static int setup_report_socket(void)
 {
@@ -735,6 +736,37 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 	return 0;
 }
 
+static int set_signal_event_backtrace(char *buf, struct ras_signal_event *ev)
+{
+	unsigned int size = MAX_BACKTRACE_SIZE;
+
+	if (!buf || !ev)
+		return -1;
+
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
+		"timestamp=%s\n"
+		"signal=%d\n"
+		"errorno=%d\n"
+		"code=%d\n"
+		"comm=%s\n"
+		"grp=%d\n"
+		"res=%d\n",
+		ev->timestamp,
+		ev->sig,
+		ev->error_no,
+		ev->code,
+		ev->comm,
+		ev->group,
+		ev->result);
+
+	return 0;
+}
+
 static int commit_report_backtrace(int sockfd, int type, void *ev)
 {
 	char buf[MAX_BACKTRACE_SIZE];
@@ -811,6 +843,10 @@ static int commit_report_backtrace(int sockfd, int type, void *ev)
 	case CXL_MEMORY_MODULE_EVENT:
 		rc = set_cxl_memory_module_event_backtrace(buf,
 							   (struct ras_cxl_memory_module_event *)ev);
+		break;
+	case SIGNAL_EVENT:
+		rc = set_signal_event_backtrace(buf,
+						(struct ras_signal_event *)ev);
 		break;
 	default:
 		return -1;
@@ -1543,6 +1579,52 @@ int ras_report_cxl_memory_module_event(struct ras_events *ras,
 	done = 1;
 
 cxl_memory_module_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	if (done)
+		return 0;
+
+	return -1;
+}
+
+int ras_report_signal_event(struct ras_events *ras,
+			    struct ras_signal_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int done = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return -1;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto signal_fail;
+
+	rc = commit_report_backtrace(sockfd, SIGNAL_EVENT, ev);
+	if (rc < 0)
+		goto signal_fail;
+
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
+		 "rasdaemon-signal_event");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto signal_fail;
+
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "SIGBUS for Hardware error");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto signal_fail;
+
+	done = 1;
+
+signal_fail:
 
 	if (sockfd >= 0)
 		close(sockfd);
