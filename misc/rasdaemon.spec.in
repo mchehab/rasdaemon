@@ -21,6 +21,7 @@ Provides:		bundled(kernel-event-lib)
 Requires:		hwdata
 Requires:		perl-DBD-SQLite
 Requires:		libtraceevent
+Requires:		syslog-ng
 %ifarch %{ix86} x86_64
 Requires:		dmidecode
 %endif
@@ -52,6 +53,8 @@ make install DESTDIR=%{buildroot}
 install -D -p -m 0644 misc/rasdaemon.service %{buildroot}%{_unitdir}/rasdaemon.service
 install -D -p -m 0644 misc/ras-mc-ctl.service %{buildroot}%{_unitdir}/ras-mc-ctl.service
 install -D -p -m 0655 misc/rasdaemon.env %{buildroot}%{_sysconfdir}/sysconfig/%{name}
+install -D -p -m 0655 misc/rasdaemon.syslog %{buildroot}%{_sysconfdir}/syslog-ng/conf.d/rasdaemon.conf
+install -D -p -m 0655 misc/rasdaemon.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/rasdaemon
 rm INSTALL %{buildroot}/usr/include/*.h
 
 %files
@@ -63,6 +66,28 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_sysconfdir}/ras/dimm_labels.d
 %{_sysconfdir}/ras/*/*
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+%config(noreplace) %{_sysconfdir}/sysconfig/syslog-ng/conf.d/rasdaemon.conf
+%config(noreplace) %{_sysconfdir}/sysconfig/logrotate.d/rasdaemon
+
+%post
+systemctl daemon-reload
+if systemctl is-enabled --quiet syslog-ng.service && systemctl is-active --quiet syslog-ng.service; then
+    echo "Syslog service is enabled and running";
+    systemctl restart syslog-ng.service;
+fi
+systemctl enable rasdaemon.service
+systemctl restart rasdaemon.service
+
+%preun
+systemctl stop rasdaemon.service
+systemctl disable rasdaemon.service
+
+%postun
+systemctl daemon-reload
+if systemctl is-enabled --quiet syslog-ng.service && systemctl is-active --quiet syslog-ng.service; then
+    echo "Syslog service is enabled and running";
+    systemctl restart syslog-ng.service;
+fi
 
 %changelog
 
