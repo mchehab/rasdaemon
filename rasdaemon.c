@@ -13,6 +13,7 @@
 #include "ras-events.h"
 #include "ras-logger.h"
 #include "ras-record.h"
+#include "ras-mc-handler.h"
 #include "types.h"
 
 /*
@@ -23,6 +24,7 @@
 #define TOOL_DESCRIPTION "RAS daemon to log the RAS events."
 #define ARGS_DOC "<options>"
 #define DISABLE "DISABLE"
+#define MC_CE_STAT_THRESHOLD "MC_CE_STAT_THRESHOLD"
 
 const char *argp_program_version = TOOL_NAME " " VERSION;
 const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.org>";
@@ -125,6 +127,11 @@ int main(int argc, char *argv[])
 	int idx = -1;
 
 	choices_disable = getenv(DISABLE);
+
+	if (getenv(MC_CE_STAT_THRESHOLD))
+		mc_ce_stat_threshold = strtoull(getenv(MC_CE_STAT_THRESHOLD), NULL, 0);
+	if (mc_ce_stat_threshold)
+		log(TERM, LOG_INFO, "Threshold of memory Corrected Errors statistics is %lld\n", mc_ce_stat_threshold);
 
 #ifdef HAVE_MCE
 	const struct argp_option offline_options[] = {
