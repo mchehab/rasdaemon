@@ -821,6 +821,18 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	return 0;
 }
 
+static bool check_event_exist(struct ras_events *ras, char *group, char *event)
+{
+	char fname[MAX_PATH + 256];
+
+	snprintf(fname, sizeof(fname), "%s/tracing/events/%s/%s",
+		 ras->debugfs, group, event);
+	if (access(fname, F_OK) == 0)
+		return true;
+
+	return false;
+}
+
 #define EVENT_DISABLED	1
 
 static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
@@ -831,6 +843,12 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 	int size = 0;
 	char *page, fname[MAX_PATH + 1];
 	struct tep_event_filter *filter = NULL;
+
+	if (!check_event_exist(ras, group, event)) {
+		log(ALL, LOG_WARNING, "%s:%s event not exist\n",
+		    group, event);
+		return -EINVAL;
+	}
 
 	snprintf(fname, sizeof(fname), "events/%s/%s/format", group, event);
 
