@@ -21,7 +21,7 @@ Provides:		bundled(kernel-event-lib)
 Requires:		hwdata
 Requires:		perl-DBD-SQLite
 Requires:		libtraceevent
-%ifarch %{ix86} x86_64
+%ifarch %{ix86} x86_64 riscv64
 Requires:		dmidecode
 %endif
 
