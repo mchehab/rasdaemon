@@ -10,6 +10,7 @@
 #include <traceevent/event-parse.h>
 
 #include "ras-events.h"
+extern unsigned long long mc_ce_stat_threshold;
 
 void mc_event_trigger_setup(void);
 
