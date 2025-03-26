@@ -11,6 +11,8 @@
 
 #include "ras-events.h"
 
+extern unsigned long long poison_stat_threshold;
+
 void mem_fail_event_trigger_setup(void);
 int ras_memory_failure_event_handler(struct trace_seq *s,
 				     struct tep_record *record,
