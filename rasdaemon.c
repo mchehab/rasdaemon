@@ -12,6 +12,7 @@
 
 #include "ras-events.h"
 #include "ras-logger.h"
+#include "ras-poison-page-stat.h"
 #include "ras-record.h"
 #include "ras-mc-handler.h"
 #include "types.h"
@@ -25,6 +26,7 @@
 #define ARGS_DOC "<options>"
 #define DISABLE "DISABLE"
 #define MC_CE_STAT_THRESHOLD "MC_CE_STAT_THRESHOLD"
+#define POISON_STAT_THRESHOLD "POISON_STAT_THRESHOLD"
 
 const char *argp_program_version = TOOL_NAME " " VERSION;
 const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.org>";
@@ -132,6 +134,13 @@ int main(int argc, char *argv[])
 		mc_ce_stat_threshold = strtoull(getenv(MC_CE_STAT_THRESHOLD), NULL, 0);
 	if (mc_ce_stat_threshold)
 		log(TERM, LOG_INFO, "Threshold of memory Corrected Errors statistics is %lld\n", mc_ce_stat_threshold);
+
+#ifdef HAVE_POISON_PAGE_STAT
+	if (getenv(POISON_STAT_THRESHOLD))
+		poison_stat_threshold = strtoull(getenv(POISON_STAT_THRESHOLD), NULL, 0);
+	if (poison_stat_threshold)
+		log(TERM, LOG_INFO, "Threshold of poison page statistics is %lld kB\n", poison_stat_threshold);
+#endif
 
 #ifdef HAVE_MCE
 	const struct argp_option offline_options[] = {

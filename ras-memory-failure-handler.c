@@ -12,6 +12,7 @@
 
 #include "ras-logger.h"
 #include "ras-memory-failure-handler.h"
+#include "ras-poison-page-stat.h"
 #include "ras-report.h"
 #include "trigger.h"
 #include "types.h"
@@ -207,6 +208,10 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 		return -1;
 	ev.action_result = get_action_result(val);
 	trace_seq_printf(s, "action_result=%s ", ev.action_result);
+
+#ifdef HAVE_POISON_PAGE_STAT
+	ras_poison_page_stat();
+#endif
 
 	/* Store data into the SQLite DB */
 #ifdef HAVE_SQLITE3

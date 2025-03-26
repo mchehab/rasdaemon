@@ -254,6 +254,12 @@ AS_IF([test "x$enable_signal" = "xyes" || test "x$enable_all" == "xyes"], [
 AM_CONDITIONAL([WITH_SIGNAL], [test x$enable_signal = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_SIGNAL], [USE_SIGNAL="yes"], [USE_SIGNAL="no"])
 
+AS_IF([test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_memory_row_ce_pfa" = "xyes" || test "x$enable_memory_failure" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_POISON_PAGE_STAT,1,"have poison page statistics")
+  AC_SUBST([WITH_POISON_PAGE_STAT])
+])
+AM_CONDITIONAL([WITH_POISON_PAGE_STAT], [test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_memory_row_ce_pfa" = "xyes" || test "x$enable_memory_failure" = "xyes" || test "x$enable_all" == "xyes" ])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"

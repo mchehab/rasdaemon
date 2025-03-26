@@ -15,6 +15,8 @@
 
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
+#include "ras-poison-page-stat.h"
+#include "ras-record.h"
 
 #define PARSED_ENV_LEN 50
 #define ROW_ID_MAX_LEN 200
@@ -349,6 +351,10 @@ static void page_offline(struct page_record *pr)
 
 	log(TERM, LOG_INFO, "Result of offlining page at %#llx: %s\n",
 	    addr, page_state[pr->offlined]);
+
+#ifdef HAVE_POISON_PAGE_STAT
+	ras_poison_page_stat();
+#endif
 }
 
 static void page_record(struct page_record *pr, unsigned int count, time_t time)
