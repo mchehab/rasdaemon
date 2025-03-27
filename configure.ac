@@ -54,6 +54,14 @@ AC_ARG_ENABLE([aer],
 AS_IF([test "x$enable_aer" = "xyes" || test "x$enable_all" = "xyes"], [
   AC_DEFINE(HAVE_AER,1,"have PCIe AER events collect")
   AC_SUBST([WITH_AER])
+
+  has_libpci_ver=0
+  dnl check for pciutils library
+  PKG_CHECK_MODULES([LIBPCI], [libpci], [has_libpci_ver=1])
+
+  AS_IF([test "$has_libpci_ver" -eq 0], [
+    AC_MSG_ERROR([libpci is required but were not found])
+])
 ])
 AM_CONDITIONAL([WITH_AER], [test x$enable_aer = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_AER], [USE_AER="yes"], [USE_AER="no"])
