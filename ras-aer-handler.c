@@ -4,6 +4,7 @@
  * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
+#include <pci/pci.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,6 +64,45 @@ void ras_aer_handler_init(int enable_ipmitool)
 
 #define BUF_LEN	1024
 
+static void get_pci_dev_name(char *bdf, char *pci_name, ssize_t len, u16 *vendor_id, u16 *device_id)
+{
+	struct pci_access *pacc;
+	struct pci_dev *dev;
+	struct pci_filter filter = {0};
+	char *err;
+
+	if (!pci_name)
+		return;
+
+	pacc = pci_alloc();
+	if (!pacc)
+		return;
+
+	pci_init(pacc);
+	pci_scan_bus(pacc);
+	pci_filter_init(pacc, &filter);
+	err = pci_filter_parse_slot(&filter, bdf);
+	if (err) {
+		log(TERM, LOG_ERR, "Invalid PCI device name %s\n", bdf);
+		goto free;
+	}
+
+	for (dev = pacc->devices; dev; dev = dev->next) {
+		if (pci_filter_match(&filter, dev)) {
+			pci_fill_info(dev, PCI_FILL_IDENT);
+			*vendor_id = dev->vendor_id;
+			*device_id = dev->device_id;
+			pci_lookup_name(pacc, pci_name, len,
+					PCI_LOOKUP_VENDOR | PCI_LOOKUP_DEVICE,
+					dev->vendor_id, dev->device_id);
+			break;
+		}
+	}
+
+free:
+	pci_cleanup(pacc);
+}
+
 int ras_aer_event_handler(struct trace_seq *s,
 			  struct tep_record *record,
 			  struct tep_event *event, void *context)
@@ -75,7 +115,8 @@ int ras_aer_event_handler(struct trace_seq *s,
 	time_t now;
 	struct tm *tm;
 	struct ras_aer_event ev;
-	char buf[BUF_LEN];
+	char buf[BUF_LEN] = { 0 };
+	uint16_t vendor_id = 0, device_id = 0;
 #ifdef HAVE_AMP_NS_DECODE
 	char ipmi_add_sel[105];
 	uint8_t sel_data[5];
@@ -107,6 +148,9 @@ int ras_aer_event_handler(struct trace_seq *s,
 	if (!ev.dev_name)
 		return -1;
 	trace_seq_printf(s, "%s ", ev.dev_name);
+
+	get_pci_dev_name(ev.dev_name, buf, sizeof(buf), &vendor_id, &device_id);
+	trace_seq_printf(s, "(%s - vendor_id: %#x device_id: %#x) ", buf, vendor_id, device_id);
 
 	if (tep_get_field_val(s,  event, "status", record, &status_val, 1) < 0)
 		return -1;
