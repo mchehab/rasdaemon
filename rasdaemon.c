@@ -8,11 +8,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/syslog.h>
 #include <unistd.h>
 
 #include "ras-events.h"
 #include "ras-logger.h"
 #include "ras-record.h"
+#include "ras-pcie-edpc.h"
 #include "types.h"
 
 /*
@@ -208,6 +210,11 @@ int main(int argc, char *argv[])
 	if (!args.foreground)
 		if (daemon(0, 0))
 			exit(EXIT_FAILURE);
+
+	if (getenv(PCIE_EDPC_ENABLE) && atoi(getenv(PCIE_EDPC_ENABLE)))
+		config_pcie_edpc();
+	else
+		log(TERM, LOG_INFO, "PCIE EDPC config is not enabled\n");
 
 	handle_ras_events(args.record_events, args.enable_ipmitool);
 
