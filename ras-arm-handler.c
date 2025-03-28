@@ -489,6 +489,8 @@ int ras_arm_event_handler(struct trace_seq *s,
 
 	memset(&ev, 0, sizeof(ev));
 
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
+
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would
