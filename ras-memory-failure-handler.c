@@ -171,6 +171,7 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct ras_mf_event ev;
 
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ALERT]);
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would

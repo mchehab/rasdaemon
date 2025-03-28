@@ -83,6 +83,8 @@ int ras_devlink_event_handler(struct trace_seq *s,
 	if (ras->filters[DEVLINK_EVENT] &&
 	    tep_filter_match(ras->filters[DEVLINK_EVENT], record) == FILTER_MATCH)
 		return 0;
+
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would

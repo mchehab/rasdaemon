@@ -274,7 +274,16 @@ static void report_mce_event(struct ras_events *ras,
 	time_t now;
 	struct tm *tm;
 	struct mce_priv *mce = ras->mce_priv;
+	const char *level;
 
+	if (e->status & MCI_STATUS_UC)
+		level = loglevel_str[LOGLEVEL_CRIT];
+	else if (e->status & MCI_STATUS_DEFERRED)
+		level = loglevel_str[LOGLEVEL_CRIT];
+	else
+		level = loglevel_str[LOGLEVEL_ERR];
+
+	trace_seq_printf(s, "%s ", level);
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would

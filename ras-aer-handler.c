@@ -81,6 +81,25 @@ int ras_aer_event_handler(struct trace_seq *s,
 	uint8_t sel_data[5];
 	int seg, bus, dev, fn, rc;
 #endif
+	const char *level;
+
+	if (tep_get_field_val(s, event, "severity", record, &severity_val, 1) < 0)
+		return -1;
+	switch (severity_val) {
+	case HW_EVENT_AER_UNCORRECTED_NON_FATAL:
+		level = loglevel_str[LOGLEVEL_CRIT];
+		break;
+	case HW_EVENT_AER_UNCORRECTED_FATAL:
+		level = loglevel_str[LOGLEVEL_EMERG];
+		break;
+	case HW_EVENT_AER_CORRECTED:
+		level = loglevel_str[LOGLEVEL_ERR];
+		break;
+	default:
+		level = loglevel_str[LOGLEVEL_DEBUG];
+		break;
+	}
+	trace_seq_printf(s, "%s ", level);
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -109,9 +128,6 @@ int ras_aer_event_handler(struct trace_seq *s,
 	trace_seq_printf(s, "%s ", ev.dev_name);
 
 	if (tep_get_field_val(s,  event, "status", record, &status_val, 1) < 0)
-		return -1;
-
-	if (tep_get_field_val(s, event, "severity", record, &severity_val, 1) < 0)
 		return -1;
 
 	/* Fills the error buffer. If it is a correctable error then use the

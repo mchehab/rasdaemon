@@ -71,6 +71,21 @@ environment variables. By default the config file is read from /etc/sysconfig/ra
 
 The general format is environmentname=value.
 
+.SH LOG LEVEL
+
+Each log entry has a level prefix that describes the severity of the log to
+help users determine which logs are more valuable.
+Currently, three levels are used:.TP
+
+.B "ALERT"
+The uncorrected hardware error has been fixed, but cause side effects.
+.TP
+.B "CRIT"
+The uncorrected hardware error has been detected.
+.TP
+.B "ERROR"
+The corrected hardware error has been detected.
+
 .SH SEE ALSO
 \fBras-mc-ctl\fR(8)
 

@@ -114,6 +114,46 @@ int ras_mc_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct ras_mc_event ev;
 	int parsed_fields = 0;
+	const char *level;
+
+	if (tep_get_field_val(s, event, "error_type", record, &val, 1) < 0)
+		goto parse_error;
+	parsed_fields++;
+
+	switch (val) {
+	case HW_EVENT_ERR_CORRECTED:
+		ev.error_type = "Corrected";
+		break;
+	case HW_EVENT_ERR_UNCORRECTED:
+		ev.error_type = "Uncorrected";
+		break;
+	case HW_EVENT_ERR_DEFERRED:
+		ev.error_type = "Deferred";
+		break;
+	case HW_EVENT_ERR_FATAL:
+		ev.error_type = "Fatal";
+		break;
+	case HW_EVENT_ERR_INFO:
+	default:
+		ev.error_type = "Info";
+	}
+
+	switch (val) {
+	case HW_EVENT_ERR_UNCORRECTED:
+	case HW_EVENT_ERR_DEFERRED:
+		level = loglevel_str[LOGLEVEL_CRIT];
+		break;
+	case HW_EVENT_ERR_FATAL:
+		level = loglevel_str[LOGLEVEL_EMERG];
+		break;
+	case HW_EVENT_ERR_CORRECTED:
+		level = loglevel_str[LOGLEVEL_ERR];
+		break;
+	default:
+		level = loglevel_str[LOGLEVEL_DEBUG];
+		break;
+	}
+	trace_seq_printf(s, "%s ", level);
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -141,28 +181,6 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	ev.error_count = val;
 	trace_seq_printf(s, "%d ", ev.error_count);
-
-	if (tep_get_field_val(s, event, "error_type", record, &val, 1) < 0)
-		goto parse_error;
-	parsed_fields++;
-
-	switch (val) {
-	case HW_EVENT_ERR_CORRECTED:
-		ev.error_type = "Corrected";
-		break;
-	case HW_EVENT_ERR_UNCORRECTED:
-		ev.error_type = "Uncorrected";
-		break;
-	case HW_EVENT_ERR_DEFERRED:
-		ev.error_type = "Deferred";
-		break;
-	case HW_EVENT_ERR_FATAL:
-		ev.error_type = "Fatal";
-		break;
-	case HW_EVENT_ERR_INFO:
-	default:
-		ev.error_type = "Info";
-	}
 
 	trace_seq_puts(s, ev.error_type);
 	if (ev.error_count > 1)

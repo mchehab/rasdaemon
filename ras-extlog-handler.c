@@ -208,6 +208,26 @@ static void report_extlog_mem_event(struct ras_events *ras,
 				    struct trace_seq *s,
 				    struct ras_extlog_event *ev)
 {
+	const char *level;
+
+	switch (ev->severity) {
+	case 0:
+		level = loglevel_str[LOGLEVEL_CRIT];
+		break;
+	case 1:
+		level = loglevel_str[LOGLEVEL_EMERG];
+		break;
+	case 2:
+		level = loglevel_str[LOGLEVEL_ERR];
+		break;
+	case 3:
+		level = loglevel_str[LOGLEVEL_INFO];
+		break;
+	default:
+		level = loglevel_str[LOGLEVEL_DEBUG];
+		break;
+	}
+	trace_seq_printf(s, "%s ", level);
 	trace_seq_printf(s, "%d %s error: %s physical addr: 0x%llx mask: 0x%llx%s %s %s",
 			 ev->error_seq, err_severity(ev->severity),
 		err_type(ev->etype), ev->address,

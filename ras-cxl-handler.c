@@ -133,6 +133,7 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	struct ras_events *ras = context;
 	struct ras_cxl_poison_event ev;
 
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
@@ -345,6 +346,7 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 	struct ras_cxl_aer_ue_event ev;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_CRIT]);
 	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
@@ -431,6 +433,7 @@ int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
 	struct ras_events *ras = context;
 	struct ras_cxl_aer_ce_event ev;
 
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
@@ -516,6 +519,7 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 	struct ras_cxl_overflow_event ev;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
@@ -733,6 +737,7 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 	const uint8_t *buf;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
 		return -1;
 
@@ -848,6 +853,7 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 	struct ras_cxl_general_media_event ev;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
 		return -1;
 
@@ -1038,6 +1044,7 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	struct ras_cxl_dram_event ev;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
 		return -1;
 

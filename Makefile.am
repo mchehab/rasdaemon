@@ -29,7 +29,7 @@ all-local: $(SYSTEMD_SERVICES)
 
 sbin_PROGRAMS = rasdaemon
 rasdaemon_SOURCES = rasdaemon.c ras-events.c ras-mc-handler.c \
-		    bitfield.c trigger.c
+		    bitfield.c trigger.c types.c
 if WITH_SQLITE3
    rasdaemon_SOURCES += ras-record.c
 endif

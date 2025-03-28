@@ -15,6 +15,7 @@
 
 #include "ras-logger.h"
 #include "ras-page-isolation.h"
+#include "types.h"
 
 #define PARSED_ENV_LEN 50
 #define ROW_ID_MAX_LEN 200
@@ -347,8 +348,8 @@ static void page_offline(struct page_record *pr)
 
 	pr->offlined = ret < 0 ? PAGE_OFFLINE_FAILED : PAGE_OFFLINE;
 
-	log(TERM, LOG_INFO, "Result of offlining page at %#llx: %s\n",
-	    addr, page_state[pr->offlined]);
+	log(TERM, LOG_INFO, "%s Result of offlining page at %#llx: %s\n",
+	    loglevel_str[LOGLEVEL_ALERT], addr, page_state[pr->offlined]);
 }
 
 static void page_record(struct page_record *pr, unsigned int count, time_t time)
