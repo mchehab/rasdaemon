@@ -5,6 +5,7 @@
  */
 
 #include <argp.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +14,7 @@
 #include "ras-events.h"
 #include "ras-logger.h"
 #include "ras-record.h"
+#include "ras-nvgpu.h"
 #include "types.h"
 
 /*
@@ -209,7 +211,32 @@ int main(int argc, char *argv[])
 		if (daemon(0, 0))
 			exit(EXIT_FAILURE);
 
+#ifdef HAVE_NVGPU
+	pthread_t nvgpu_thread = 0, main_thread = pthread_self();
+	bool nvgpu_enable = true;
+
+	if (choices_disable && strlen(choices_disable) != 0 &&
+	    strstr(choices_disable, NVGPU_EVENT_NAME)) {
+		nvgpu_enable = false;
+		log(ALL, LOG_INFO, "Disable nvgpu event.\n");
+	}
+
+	if (nvgpu_enable) {
+		if (pthread_create(&nvgpu_thread, NULL, ras_nvgpu_handle, &main_thread) != 0) {
+			log(ALL, LOG_ERR, "Failed to create XID thread\n");
+			pthread_cancel(nvgpu_thread);
+			exit(EXIT_FAILURE);
+		}
+		pthread_detach(nvgpu_thread);
+		log(ALL, LOG_INFO, "Create pthread to handle NVGPU events.\n");
+	}
+#endif
 	handle_ras_events(args.record_events, args.enable_ipmitool);
+
+#ifdef HAVE_NVGPU
+	if (nvgpu_enable)
+		pthread_cancel(nvgpu_thread);
+#endif
 
 	return 0;
 }

@@ -28,3 +28,4 @@ rasdaemon
 *.h~
 rasdaemon-*.tar.bz2
 rasdaemon-*.src.rpm
+ras-nvgpu-nvml.h
