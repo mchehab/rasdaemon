@@ -17,10 +17,12 @@ BuildRequires:		perl-generators
 BuildRequires:		sqlite-devel
 BuildRequires:		systemd
 BuildRequires:		libtraceevent-devel
+BuildRequires:		pciutils-devel
 Provides:		bundled(kernel-event-lib)
 Requires:		hwdata
 Requires:		perl-DBD-SQLite
 Requires:		libtraceevent
+Requires:		pciutils-devel
 %ifarch %{ix86} x86_64
 Requires:		dmidecode
 %endif

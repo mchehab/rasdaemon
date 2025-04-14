@@ -34,7 +34,7 @@ if WITH_SQLITE3
    rasdaemon_SOURCES += ras-record.c
 endif
 if WITH_AER
-   rasdaemon_SOURCES += ras-aer-handler.c
+   rasdaemon_SOURCES += ras-aer-handler.c  ras-pcie-edpc.c
 endif
 if WITH_NON_STANDARD
    rasdaemon_SOURCES += ras-non-standard-handler.c
@@ -91,8 +91,8 @@ if WITH_JAGUAR_NS_DECODE
    rasdaemon_SOURCES += non-standard-jaguarmicro.c
 endif
 
-rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS)
-rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS)
+rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS) $(LIBPCI_LIBS)
+rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS) $(LIBPCI_CFLAGS)
 
 include_HEADERS = config.h types.h ras-events.h ras-logger.h ras-mc-handler.h \
 		  ras-aer-handler.h ras-mce-handler.h ras-record.h bitfield.h ras-report.h \
@@ -100,7 +100,7 @@ include_HEADERS = config.h types.h ras-events.h ras-logger.h ras-mc-handler.h \
 		  ras-devlink-handler.h ras-diskerror-handler.h rbtree.h ras-page-isolation.h \
 		  non-standard-hisilicon.h non-standard-ampere.h ras-memory-failure-handler.h \
 		  ras-cxl-handler.h ras-cpu-isolation.h queue.h non-standard-yitian.h \
-		  non-standard-jaguarmicro.h trigger.h unified-sel.h
+		  non-standard-jaguarmicro.h trigger.h unified-sel.h ras-pcie-edpc.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that
