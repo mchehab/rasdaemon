@@ -7,10 +7,12 @@ SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in misc/ras-mc-ctl.service.in
 SYSTEMD_SERVICES = $(SYSTEMD_SERVICES_IN:.service.in=.service)
 EXTRA_DIST = \
 	$(SYSTEMD_SERVICES_IN) misc/rasdaemon.env \
+	contrib/nvml.py \
 	contrib/mc_event_trigger \
 	contrib/mem_fail_trigger
 
 CLEANFILES= \
+	ras-nvgpu-nvml.h \
 	misc/ras-mc-ctl.service	\
 	misc/rasdaemon.service
 
@@ -90,8 +92,14 @@ endif
 if WITH_JAGUAR_NS_DECODE
    rasdaemon_SOURCES += non-standard-jaguarmicro.c
 endif
+if WITH_NVGPU
+   BUILT_SOURCES = ras-nvgpu-nvml.h
+ras-nvgpu-nvml.h: contrib/nvml.py
+	python3 $< > $@
+   rasdaemon_SOURCES += ras-nvgpu.c ras-nvgpu-nvml.c
+endif
 
-rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS)
+rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS) -ldl
 rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS)
 
 include_HEADERS = config.h types.h ras-events.h ras-logger.h ras-mc-handler.h \
@@ -100,7 +108,7 @@ include_HEADERS = config.h types.h ras-events.h ras-logger.h ras-mc-handler.h \
 		  ras-devlink-handler.h ras-diskerror-handler.h rbtree.h ras-page-isolation.h \
 		  non-standard-hisilicon.h non-standard-ampere.h ras-memory-failure-handler.h \
 		  ras-cxl-handler.h ras-cpu-isolation.h queue.h non-standard-yitian.h \
-		  non-standard-jaguarmicro.h trigger.h unified-sel.h
+		  non-standard-jaguarmicro.h trigger.h unified-sel.h ras-nvgpu.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that

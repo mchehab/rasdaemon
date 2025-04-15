@@ -244,6 +244,16 @@ AS_IF([test "x$enable_yitian_ns_decode" = "xyes" || test "x$enable_all" == "xyes
 AM_CONDITIONAL([WITH_YITIAN_NS_DECODE], [test x$enable_yitian_ns_decode = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_YITIAN_NS_DECODE], [USE_YITIAN_NS_DECODE="yes"], [USE_YITIAN_NS_DECODE="no"])
 
+AC_ARG_ENABLE([nvgpu],
+    AS_HELP_STRING([--enable-nvgpu], [enable NVGPU events]))
+
+AS_IF([test "x$enable_nvgpu" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_NVGPU,1,"have NVGPU events collect")
+  AC_SUBST([WITH_NVGPU])
+])
+AM_CONDITIONAL([WITH_NVGPU], [test x$enable_nvgpu = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_NVGPU], [USE_NVGPU="yes"], [USE_NVGPU="no"])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
@@ -290,4 +300,5 @@ compile time options summary
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION
     YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
     JAGUAR RAS errors   : $USE_JAGUAR_NS_DECODE
+    NVGPU RAS errors    : $USE_NVGPU
 EOF
