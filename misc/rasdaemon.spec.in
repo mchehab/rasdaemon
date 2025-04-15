@@ -54,6 +54,7 @@ install -D -p -m 0644 misc/ras-mc-ctl.service %{buildroot}%{_unitdir}/ras-mc-ctl
 install -D -p -m 0655 misc/%{name}.env %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 install -D -p -m 0655 misc/%{name}.syslog-ng %{buildroot}/usr/share/%{name}/%{name}.syslog-ng
 install -D -p -m 0655 misc/%{name}.logrotate %{buildroot}/usr/share/%{name}/%{name}.logrotate
+install -D -p -m 0655 misc/%{name}.rsyslog %{buildroot}/usr/share/%{name}/%{name}.rsyslog
 rm INSTALL %{buildroot}/usr/include/*.h
 
 %files
@@ -67,13 +68,20 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %config(noreplace) /usr/share/%{name}/%{name}.syslog-ng
 %config(noreplace) /usr/share/%{name}/%{name}.logrotate
+%config(noreplace) /usr/share/%{name}/%{name}.rsyslog
 
 %post
-if systemctl is-enabled --quiet syslog-ng.service && systemctl is-active --quiet syslog-ng.service; then
+if systemctl is-active --quiet syslog-ng.service; then
     echo "Syslog service is enabled and running, create config file and restart it";
     rm -rf %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf;
     ln -s /usr/share/%{name}/%{name}.syslog-ng %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf;
     systemctl restart syslog-ng.service;
+fi
+if systemctl is-active --quiet rsyslog.service; then
+    echo "Rsyslog service is enabled and running, create config file and restart it";
+    rm -rf %{_sysconfdir}/rsyslog.d/%{name}.conf;
+    ln -s /usr/share/%{name}/%{name}.rsyslog %{_sysconfdir}/rsyslog.d/%{name}.conf;
+    systemctl restart rsyslog.service;
 fi
 if [ -d "%{_sysconfdir}/logrotate.d" ]; then
     rm -rf %{_sysconfdir}/logrotate.d/%{name};
@@ -90,10 +98,15 @@ systemctl stop %{name}.service
 systemctl disable %{name}.service
 
 %postun
-if systemctl is-enabled --quiet syslog-ng.service && systemctl is-active --quiet syslog-ng.service; then
-    echo "Syslog service is enabled and running, delete config file and restart it";
+if systemctl is-active --quiet syslog-ng.service; then
+    echo "Syslog-ng service is enabled and running, delete config file and restart it";
     rm -rf %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf;
     systemctl restart syslog-ng.service;
+fi
+if systemctl is-active --quiet rsyslog.service; then
+    echo "Rsyslog service is enabled and running, delete config file and restart it";
+    rm -rf %{_sysconfdir}/rsyslog.d/%{name}.conf;
+    systemctl restart rsyslog.service;
 fi
 if [ -d "%{_sysconfdir}/logrotate.d" ]; then
     rm -rf %{_sysconfdir}/logrotate.d/%{name};

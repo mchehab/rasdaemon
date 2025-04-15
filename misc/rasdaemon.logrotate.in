@@ -9,6 +9,7 @@
 	copytruncate
 	sharedscripts
 	postrotate
-		@sbindir@/systemctl kill -s HUP syslog-ng.service >/dev/null 2>&1 || true
+		(@sbindir@/systemctl is-active --quiet syslog-ng.service && @sbindir@/systemctl kill -s HUP syslog-ng.service >/dev/null 2>&1) || true
+		(@sbindir@/systemctl is-active --quiet rsyslog.service &&@sbindir@/systemctl kill -s HUP rsyslog.service >/dev/null 2>&1) || true
 	endscript
 }
