@@ -1,0 +1,27 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+#  This shell script can be executed by rasdaemon in daemon mode when a
+#  memory_failure_event is occurred, environment variables include all
+#  information reported by tracepoint.
+
+# environment:
+# TIMESTAMP             Timestamp when error occurred
+# ERROR_TYPE            Corrected | Uncorrected (Non-Fatal) | Uncorrected (Fatal)
+# DEV_NAME              BDF
+# TLP_HEADER_VALID
+# TLP_HEADER
+# MSG
+#
+
+[ -x ./aer_trigger.local ] && . ./aer_trigger.local
+
+if [ -d aer_trigger.extern ]
+then
+    ls aer_trigger.extern |
+    while read item
+    do
+        [ -x ./aer_trigger.extern/$item ] && . ./aer_trigger.extern/$item
+    done
+fi
+
+exit 0

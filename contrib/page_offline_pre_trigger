@@ -6,20 +6,20 @@
 
 # environment:
 # TIMESTAMP             Timestamp when error occurred
-# PFN                   Offlined page PFN
-# PAGE_TYPE             Page type
-# ACTION_RESULT         Action result
+# ADDR                  Address
+# OTYPE                 POST | PRE
 #
 
-[ -x ./mf_trigger.local ] && . ./mf_trigger.local
+[ -x ./page_offline_pre_trigger.local ] && . ./page_offline_pre_trigger.local
 
-if [ -d mf_trigger.extern ]
+if [ -d page_offline_pre_trigger.extern ]
 then
-    ls mf_trigger.extern |
+    ls page_offline_pre_trigger.extern |
     while read item
     do
-        [ -x ./mf_trigger.extern/$item ] && . ./mf_trigger.extern/$item
+        [ -x ./page_offline_pre_trigger.extern/$item ] && . ./page_offline_pre_trigger.extern/$item $1
     done
 fi
+
 
 exit 0

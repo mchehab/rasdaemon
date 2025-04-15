@@ -23,4 +23,13 @@
 
 [ -x ./mc_event_trigger.local ] && . ./mc_event_trigger.local
 
+if [ -d mc_event_trigger.extern ]
+then
+    ls mc_event_trigger.extern |
+    while read item
+    do
+        [ -x ./mc_event_trigger.extern/$item ] && . ./mc_event_trigger.extern/$item
+    done
+fi
+
 exit 0

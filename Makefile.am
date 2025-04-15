@@ -7,8 +7,7 @@ SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in misc/ras-mc-ctl.service.in
 SYSTEMD_SERVICES = $(SYSTEMD_SERVICES_IN:.service.in=.service)
 EXTRA_DIST = \
 	$(SYSTEMD_SERVICES_IN) misc/rasdaemon.env \
-	contrib/mc_event_trigger \
-	contrib/mem_fail_trigger
+	contrib/*_trigger
 
 CLEANFILES= \
 	misc/ras-mc-ctl.service	\
@@ -129,5 +128,4 @@ install-data-local:
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d"
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/triggers"
 	$(install_sh) @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@SYSCONFDEFDIR@/rasdaemon"
-	$(install_sh) @abs_srcdir@/contrib/mc_event_trigger "$(DESTDIR)@sysconfdir@/ras/triggers/mc_event_trigger"
-	$(install_sh) @abs_srcdir@/contrib/mem_fail_trigger "$(DESTDIR)@sysconfdir@/ras/triggers/mem_fail_trigger"
+	$(install_sh) @abs_srcdir@/contrib/*_trigger "$(DESTDIR)@sysconfdir@/ras/triggers/"
