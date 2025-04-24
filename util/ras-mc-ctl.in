@@ -742,8 +742,8 @@ sub print_dimm_labels
     my $format = "%-35s %-20s %-20s\n";
 
     if (!exists $$lref{$vendor}{$model} && !exists $$lref_prod{$pvendor}{$pname}) {
-	log_error ("No dimm labels for $conf{mainboard}{vendor} " .
-		   "model $conf{mainboard}{model}\n");
+	print "No dimm labels for $conf{mainboard}{vendor} " .
+		   "model $conf{mainboard}{model}\n" unless $conf{opt}{quiet};
 	return;
     }
 
@@ -799,8 +799,8 @@ sub register_dimm_labels
     my $sysfs  = "/sys/devices/system/edac/mc";
 
     if (!exists $$lref{$vendor}{$model} && !exists $$lref_prod{$pvendor}{$pname}) {
-	log_error ("No dimm labels for $conf{mainboard}{vendor} " .
-				      "model $conf{mainboard}{model}\n");
+	print "No dimm labels for $conf{mainboard}{vendor} " .
+				      "model $conf{mainboard}{model}\n" unless $conf{opt}{quiet};
 	return 0;
     }
     my $sysfs_dir = "/sys/devices/system/edac/mc";
