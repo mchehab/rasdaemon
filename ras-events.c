@@ -376,7 +376,7 @@ static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
 
 static int get_pagesize(struct ras_events *ras, struct tep_handle *pevent)
 {
-	int fd, len, page_size = 8192;
+	int fd, len, page_size = 4096;
 	char buf[page_size];
 
 	fd = open_trace(ras, "events/header_page", O_RDONLY);
