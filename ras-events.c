@@ -864,7 +864,7 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 			log(TERM, LOG_ERR, "Can't get arch page size\n");
 			free(page);
 			close(fd);
-			return size;
+			return rc;
 		}
 		size += rc;
 	} while (rc > 0);
