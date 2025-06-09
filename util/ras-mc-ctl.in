@@ -1863,7 +1863,7 @@ sub errors
     my ($pfn, $page_type, $action_result);
     my ($memdev, $host, $serial, $error_status, $first_error, $header_log);
     my ($log_type, $first_ts, $last_ts);
-    my ($trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts);
+    my ($trace_type, $region, $region_uuid, $hpa, $hpa_alias0, $dpa, $dpa_length, $source, $flags, $overflow_ts);
     my ($hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $data);
     my ($dpa_flags, $descriptor, $mem_event_type, $mem_event_sub_type, $transaction_type, $channel, $rank, $device, $comp_id, $pldm_entity_id, $pldm_res_id);
     my ($nibble_mask, $bank_group, $row, $column, $cor_mask);
@@ -2017,10 +2017,10 @@ sub errors
 	}
 
 	# CXL poison errors
-	$query = "select id, timestamp, memdev, host, serial, trace_type, region, region_uuid, hpa, dpa, dpa_length, source, flags, overflow_ts from cxl_poison_event$conf{opt}{since} order by id";
+	$query = "select id, timestamp, memdev, host, serial, trace_type, region, region_uuid, hpa, dpa, dpa_length, source, flags, overflow_ts, hpa_alias0 from cxl_poison_event$conf{opt}{since} order by id";
 	$query_handle = $dbh->prepare($query);
 	$query_handle->execute();
-	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts));
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $trace_type, $region, $region_uuid, $hpa, $dpa, $dpa_length, $source, $flags, $overflow_ts, $hpa_alias0));
 	$out = "";
 	while($query_handle->fetch()) {
 	    $out .= "$id $timestamp error: ";
@@ -2035,7 +2035,8 @@ sub errors
 	    $out .= sprintf "dpa_length=0x%x, ", $dpa_length if (defined $dpa_length && length $dpa_length);
 	    $out .= "source=$source, " if (defined $source && length $source);
 	    $out .= sprintf "flags=%d, ", $flags if (defined $flags && length $flags);
-	    $out .= "overflow timestamp=$overflow_ts " if (defined $overflow_ts && length $overflow_ts);
+	    $out .= "overflow timestamp=$overflow_ts, " if (defined $overflow_ts && length $overflow_ts);
+	    $out .= sprintf "hpa_alias0=0x%llx, ", $hpa_alias0 if (defined $hpa_alias0 && length $hpa_alias0);
 	    $out .= "\n";
 	}
 	if ($out ne "") {
@@ -2085,12 +2086,12 @@ sub errors
 
 	# CXL general media errors
 	use constant CXL_EVENT_GEN_MED_COMP_ID_SIZE => 0x10;
-	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, hdr_maint_op_sub_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, device, comp_id, hpa, region, region_uuid, pldm_entity_id, pldm_resource_id, sub_type, cme_threshold_ev_flags, cme_count from cxl_general_media_event$conf{opt}{since} order by id";
+	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, hdr_maint_op_sub_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, device, comp_id, hpa, region, region_uuid, pldm_entity_id, pldm_resource_id, sub_type, cme_threshold_ev_flags, cme_count, hpa_alias0 from cxl_general_media_event$conf{opt}{since} order by id";
 	$query_handle = $dbh->prepare($query);
 	$query_handle->execute();
 	use constant CXL_EVENT_GEN_PLDM_ENTITY_ID_SIZE => 0x6;
 	use constant CXL_EVENT_GEN_PLDM_RES_ID_SIZE => 0x4;
-	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $dpa, $dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id, $hpa, $region, $region_uuid, $pldm_entity_id, $pldm_res_id, $sub_type, $cme_threshold_ev_flags, $cme_count));
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $dpa, $dpa_flags, $descriptor, $mem_event_type, $transaction_type, $channel, $rank, $device, $comp_id, $hpa, $region, $region_uuid, $pldm_entity_id, $pldm_res_id, $sub_type, $cme_threshold_ev_flags, $cme_count, $hpa_alias0));
 	$out = "";
 	while($query_handle->fetch()) {
 	    $out .= "$id $timestamp error: ";
@@ -2129,6 +2130,7 @@ sub errors
             $out .= "region_uuid=$region_uuid, " if (defined $region_uuid && length $region_uuid);
             $out .= sprintf "cme_threshold_ev_flags: %s, ", get_cxl_cme_threshold_ev_flags_text($cme_threshold_ev_flags) if (defined $cme_threshold_ev_flags && length $cme_threshold_ev_flags);
             $out .= sprintf "cme_count=%u, ", $cme_count if (defined $cme_count && length $cme_count);
+            $out .= sprintf "hpa_alias0=0x%llx, ", $hpa_alias0 if (defined $hpa_alias0 && length $hpa_alias0);
 	    $out .= "\n";
 	}
 	if ($out ne "") {
@@ -2139,10 +2141,10 @@ sub errors
 
 	# CXL DRAM errors
 	use constant CXL_EVENT_DER_CORRECTION_MASK_SIZE => 0x20;
-	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, hdr_maint_op_sub_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, nibble_mask, bank_group, bank, row, column, cor_mask, hpa, region, region_uuid, comp_id, pldm_entity_id, pldm_resource_id, sub_type, sub_channel, cme_threshold_ev_flags, cvme_count from cxl_dram_event$conf{opt}{since} order by id";
+	$query = "select id, timestamp, memdev, host, serial, log_type, hdr_uuid, hdr_flags, hdr_handle, hdr_related_handle, hdr_ts, hdr_length, hdr_maint_op_class, hdr_maint_op_sub_class, dpa, dpa_flags, descriptor, type, transaction_type, channel, rank, nibble_mask, bank_group, bank, row, column, cor_mask, hpa, region, region_uuid, comp_id, pldm_entity_id, pldm_resource_id, sub_type, sub_channel, cme_threshold_ev_flags, cvme_count, hpa_alias0 from cxl_dram_event$conf{opt}{since} order by id";
 	$query_handle = $dbh->prepare($query);
 	$query_handle->execute();
-	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $dpa, $dpa_flags, $descriptor, $type, $transaction_type, $channel, $rank, $nibble_mask, $bank_group, $bank, $row, $column, $cor_mask, $hpa, $region, $region_uuid, $comp_id, $pldm_entity_id, $pldm_res_id, $mem_event_sub_type, $sub_channel, $cme_threshold_ev_flags, $cvme_count));
+	$query_handle->bind_columns(\($id, $timestamp, $memdev, $host, $serial, $log_type, $hdr_uuid, $hdr_flags, $hdr_handle, $hdr_related_handle, $hdr_ts, $hdr_length, $hdr_maint_op_class, $hdr_maint_op_sub_class, $dpa, $dpa_flags, $descriptor, $type, $transaction_type, $channel, $rank, $nibble_mask, $bank_group, $bank, $row, $column, $cor_mask, $hpa, $region, $region_uuid, $comp_id, $pldm_entity_id, $pldm_res_id, $mem_event_sub_type, $sub_channel, $cme_threshold_ev_flags, $cvme_count, $hpa_alias0));
 	$out = "";
 	while($query_handle->fetch()) {
 	    $out .= "$id $timestamp error: ";
@@ -2193,6 +2195,7 @@ sub errors
             }
             $out .= sprintf "cme_threshold_ev_flags: %s, ", get_cxl_cme_threshold_ev_flags_text($cme_threshold_ev_flags) if (defined $cme_threshold_ev_flags && length $cme_threshold_ev_flags);
             $out .= sprintf "cvme_count=%u, ", $cvme_count if (defined $cvme_count && length $cvme_count);
+            $out .= sprintf "hpa_alias0=0x%llx, ", $hpa_alias0 if (defined $hpa_alias0 && length $hpa_alias0);
 	    $out .= "\n";
 	}
 	if ($out ne "") {
