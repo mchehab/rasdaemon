@@ -192,7 +192,13 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
 		return -1;
 	ev.hpa = val;
-	if (trace_seq_printf(s, "poison list: hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hpa_alias0", record, &val, 1) < 0)
+		return -1;
+	ev.hpa_alias0 = val;
+	if (trace_seq_printf(s, "hpa_alias0:0x%llx ", (unsigned long long)ev.hpa_alias0) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "dpa", record, &val, 1) < 0)
@@ -906,6 +912,12 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
 		return -1;
 
+	if (tep_get_field_val(s, event, "hpa_alias0", record, &val, 1) < 0)
+		return -1;
+	ev.hpa_alias0 = val;
+	if (trace_seq_printf(s, "hpa_alias0:0x%llx ", (unsigned long long)ev.hpa_alias0) <= 0)
+		return -1;
+
 	ev.region = tep_get_field_raw(s, event, "region_name", record, &len, 1);
 	if (!ev.region)
 		return -1;
@@ -1047,12 +1059,6 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "dpa:0x%llx ", (unsigned long long)ev.dpa) <= 0)
 		return -1;
 
-	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
-		return -1;
-	ev.hpa = val;
-	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
-		return -1;
-
 	if (tep_get_field_val(s,  event, "dpa_flags", record, &val, 1) < 0)
 		return -1;
 	ev.dpa_flags = val;
@@ -1102,6 +1108,12 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 		return -1;
 	ev.hpa = val;
 	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hpa_alias0", record, &val, 1) < 0)
+		return -1;
+	ev.hpa_alias0 = val;
+	if (trace_seq_printf(s, "hpa_alias0:0x%llx ", (unsigned long long)ev.hpa_alias0) <= 0)
 		return -1;
 
 	ev.region = tep_get_field_raw(s, event, "region_name", record, &len, 1);

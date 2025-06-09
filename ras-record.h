@@ -124,6 +124,7 @@ struct ras_cxl_poison_event {
 	const char *region;
 	const char *uuid;
 	uint64_t hpa;
+	uint64_t hpa_alias0;
 	uint64_t dpa;
 	uint32_t dpa_length;
 	const char *source;
@@ -206,6 +207,7 @@ struct ras_cxl_general_media_event {
 	uint8_t res_id[CXL_PLDM_RES_ID_LEN];
 	uint16_t validity_flags;
 	uint64_t hpa;
+	uint64_t hpa_alias0;
 	const char *region;
 	const char *region_uuid;
 	uint8_t cme_threshold_ev_flags;
@@ -231,6 +233,7 @@ struct ras_cxl_dram_event {
 	uint8_t *cor_mask;
 	uint16_t validity_flags;
 	uint64_t hpa;
+	uint64_t hpa_alias0;
 	const char *region;
 	const char *region_uuid;
 	uint8_t *comp_id;
