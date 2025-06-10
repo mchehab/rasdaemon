@@ -554,6 +554,7 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		"hdr_timestamp=%s\n"
 		"hdr_length=%u\n"
 		"hdr_maint_op_class=%u\n"
+		"hdr_maint_op_sub_class=%u\n"
 		"dpa=0x%lx\n"
 		"dpa_flags=%u\n"
 		"descriptor=%u\n"
@@ -581,6 +582,7 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		ev->hdr.hdr_timestamp,
 		ev->hdr.hdr_length,
 		ev->hdr.hdr_maint_op_class,
+		ev->hdr.hdr_maint_op_sub_class,
 		ev->dpa,
 		ev->dpa_flags,
 		ev->descriptor,
@@ -625,6 +627,7 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		"hdr_timestamp=%s\n"
 		"hdr_length=%u\n"
 		"hdr_maint_op_class=%u\n"
+		"hdr_maint_op_sub_class=%u\n"
 		"dpa=0x%lx\n"
 		"dpa_flags=%u\n"
 		"descriptor=%u\n"
@@ -657,6 +660,7 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		ev->hdr.hdr_timestamp,
 		ev->hdr.hdr_length,
 		ev->hdr.hdr_maint_op_class,
+		ev->hdr.hdr_maint_op_sub_class,
 		ev->dpa,
 		ev->dpa_flags,
 		ev->descriptor,
@@ -706,6 +710,7 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 		"hdr_timestamp=%s\n"
 		"hdr_length=%u\n"
 		"hdr_maint_op_class=%u\n"
+		"hdr_maint_op_sub_class=%u\n"
 		"event_type=%u\n"
 		"event_sub_type=0x%x\n"
 		"health_status=%u\n"
@@ -728,6 +733,7 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 		ev->hdr.hdr_timestamp,
 		ev->hdr.hdr_length,
 		ev->hdr.hdr_maint_op_class,
+		ev->hdr.hdr_maint_op_sub_class,
 		ev->event_type,
 		ev->event_sub_type,
 		ev->health_status,
