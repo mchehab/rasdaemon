@@ -724,11 +724,13 @@ static int handle_ras_cxl_common_hdr(struct trace_seq *s,
 	if (trace_seq_printf(s, "hdr_maint_op_class:%u ", hdr->hdr_maint_op_class) <= 0)
 		return -1;
 
-	if (tep_get_field_val(s,  event, "hdr_maint_op_sub_class", record, &val, 1) < 0)
-		return -1;
-	hdr->hdr_maint_op_sub_class = val;
-	if (trace_seq_printf(s, "hdr_maint_op_sub_class:%u ", hdr->hdr_maint_op_sub_class) <= 0)
-		return -1;
+	if (hdr->hdr_flags & CXL_EVENT_RECORD_FLAG_MAINT_OP_SUB_CLASS_VALID) {
+		if (tep_get_field_val(s,  event, "hdr_maint_op_sub_class", record, &val, 1) < 0)
+			return -1;
+		hdr->hdr_maint_op_sub_class = val;
+		if (trace_seq_printf(s, "hdr_maint_op_sub_class:%u ", hdr->hdr_maint_op_sub_class) <= 0)
+			return -1;
+	}
 
 	return 0;
 }
