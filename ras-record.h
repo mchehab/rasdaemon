@@ -8,7 +8,10 @@
 #ifndef __RAS_RECORD_H
 #define __RAS_RECORD_H
 
+#ifdef HAVE_SQLITE3
 #include <sqlite3.h>
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 
