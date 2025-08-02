@@ -93,22 +93,22 @@ static error_t parse_opt_offline(int key, char *arg,
 		event.smca = true;
 		break;
 	case MODEL:
-		event.model = strtoul(state->argv[state->next], NULL, 0);
+		event.model = strtoul(arg, NULL, 0);
 		break;
 	case FAMILY:
-		event.family = strtoul(state->argv[state->next], NULL, 0);
+		event.family = strtoul(arg, NULL, 0);
 		break;
 	case BANK_NUM:
-		event.bank = atoi(state->argv[state->next]);
+		event.bank = atoi(arg);
 		break;
 	case IPID_REG:
-		event.ipid = strtoull(state->argv[state->next], NULL, 0);
+		event.ipid = strtoull(arg, NULL, 0);
 		break;
 	case STATUS_REG:
-		event.status = strtoull(state->argv[state->next], NULL, 0);
+		event.status = strtoull(arg, NULL, 0);
 		break;
 	case SYNDROME_REG:
-		event.synd = strtoull(state->argv[state->next], NULL, 0);
+		event.synd = strtoull(arg, NULL, 0);
 		break;
 	default:
 		return ARGP_ERR_UNKNOWN;
@@ -129,12 +129,12 @@ int main(int argc, char *argv[])
 #ifdef HAVE_MCE
 	const struct argp_option offline_options[] = {
 		{"smca", SMCA, 0, 0, "AMD SMCA Error Decoding"},
-		{"model", MODEL, 0, 0, "CPU Model"},
-		{"family", FAMILY, 0, 0, "CPU Family"},
-		{"bank", BANK_NUM, 0, 0, "Bank Number"},
-		{"ipid", IPID_REG, 0, 0, "IPID Register (for SMCA systems only)"},
-		{"status", STATUS_REG, 0, 0, "Status Register"},
-		{"synd", SYNDROME_REG, 0, 0, "Syndrome Register"},
+		{"model", MODEL, "MODEL", 0, "CPU Model"},
+		{"family", FAMILY, "FAMILY", 0, "CPU Family"},
+		{"bank", BANK_NUM, "BANK_NUM", 0, "Bank Number"},
+		{"ipid", IPID_REG, "IPID_REG", 0, "IPID Register (for SMCA systems only)"},
+		{"status", STATUS_REG, "STATUS_REG", 0, "Status Register"},
+		{"synd", SYNDROME_REG, "SYNDROME_REG", 0, "Syndrome Register"},
 		{0, 0, 0, 0, 0, 0},
 	};
 
