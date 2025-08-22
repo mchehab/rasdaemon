@@ -634,6 +634,8 @@ static int ras_cxl_print_component_id(struct trace_seq *s, uint8_t *comp_id,
 #define CXL_EVENT_RECORD_FLAG_PERF_DEGRADED	BIT(4)
 #define CXL_EVENT_RECORD_FLAG_HW_REPLACE	BIT(5)
 #define CXL_EVENT_RECORD_FLAG_MAINT_OP_SUB_CLASS_VALID	BIT(6)
+#define CXL_EVENT_RECORD_FLAG_LD_ID_VALID	BIT(7)
+#define CXL_EVENT_RECORD_FLAG_HEAD_ID_VALID	BIT(8)
 
 static const struct  cxl_event_flags cxl_hdr_flags[] = {
 	{ .bit = CXL_EVENT_RECORD_FLAG_PERMANENT, .flag = "PERMANENT_CONDITION" },
@@ -641,6 +643,8 @@ static const struct  cxl_event_flags cxl_hdr_flags[] = {
 	{ .bit = CXL_EVENT_RECORD_FLAG_PERF_DEGRADED, .flag = "PERFORMANCE_DEGRADED" },
 	{ .bit = CXL_EVENT_RECORD_FLAG_HW_REPLACE, .flag = "HARDWARE_REPLACEMENT_NEEDED" },
 	{ .bit = CXL_EVENT_RECORD_FLAG_MAINT_OP_SUB_CLASS_VALID, .flag = "MAINT_OP_SUB_CLASS_VALID" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_LD_ID_VALID, .flag = "LOGICAL_DEV_ID_VALID" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_HEAD_ID_VALID, .flag = "DEV_HEAD_ID_VALID" },
 };
 
 static int handle_ras_cxl_common_hdr(struct trace_seq *s,
@@ -729,6 +733,22 @@ static int handle_ras_cxl_common_hdr(struct trace_seq *s,
 			return -1;
 		hdr->hdr_maint_op_sub_class = val;
 		if (trace_seq_printf(s, "hdr_maint_op_sub_class:%u ", hdr->hdr_maint_op_sub_class) <= 0)
+			return -1;
+	}
+
+	if (hdr->hdr_flags & CXL_EVENT_RECORD_FLAG_LD_ID_VALID) {
+		if (tep_get_field_val(s,  event, "hdr_ld_id", record, &val, 1) < 0)
+			return -1;
+		hdr->hdr_ld_id = val;
+		if (trace_seq_printf(s, "hdr_ld_id:0x%x ", hdr->hdr_ld_id) <= 0)
+			return -1;
+	}
+
+	if (hdr->hdr_flags & CXL_EVENT_RECORD_FLAG_HEAD_ID_VALID) {
+		if (tep_get_field_val(s,  event, "hdr_head_id", record, &val, 1) < 0)
+			return -1;
+		hdr->hdr_head_id = val;
+		if (trace_seq_printf(s, "hdr_head_id:0x%x ", hdr->hdr_head_id) <= 0)
 			return -1;
 	}
 

@@ -800,6 +800,8 @@ static int ras_store_cxl_common_hdr(sqlite3_stmt *stmt, struct ras_cxl_event_com
 	sqlite3_bind_int(stmt, idx++, hdr->hdr_length);
 	sqlite3_bind_int(stmt, idx++, hdr->hdr_maint_op_class);
 	sqlite3_bind_int(stmt, idx++, hdr->hdr_maint_op_sub_class);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_ld_id);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_head_id);
 
 	return idx;
 }
@@ -822,6 +824,8 @@ static const struct db_fields cxl_generic_event_fields[] = {
 	{ .name = "hdr_length",		.type = "INTEGER" },
 	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
 	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
+	{ .name = "hdr_ld_id",		.type = "INTEGER" },
+	{ .name = "hdr_head_id",	.type = "INTEGER" },
 	{ .name = "data",		.type = "BLOB" },
 };
 
@@ -879,6 +883,8 @@ static const struct db_fields cxl_general_media_event_fields[] = {
 	{ .name = "hdr_length",		.type = "INTEGER" },
 	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
 	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
+	{ .name = "hdr_ld_id",		.type = "INTEGER" },
+	{ .name = "hdr_head_id",	.type = "INTEGER" },
 	{ .name = "dpa",		.type = "INTEGER" },
 	{ .name = "dpa_flags",		.type = "INTEGER" },
 	{ .name = "descriptor",		.type = "INTEGER" },
@@ -974,6 +980,8 @@ static const struct db_fields cxl_dram_event_fields[] = {
 	{ .name = "hdr_length",		.type = "INTEGER" },
 	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
 	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
+	{ .name = "hdr_ld_id",		.type = "INTEGER" },
+	{ .name = "hdr_head_id",	.type = "INTEGER" },
 	{ .name = "dpa",		.type = "INTEGER" },
 	{ .name = "dpa_flags",		.type = "INTEGER" },
 	{ .name = "descriptor",		.type = "INTEGER" },
@@ -1081,6 +1089,8 @@ static const struct db_fields cxl_memory_module_event_fields[] = {
 	{ .name = "hdr_length",		.type = "INTEGER" },
 	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
 	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
+	{ .name = "hdr_ld_id",		.type = "INTEGER" },
+	{ .name = "hdr_head_id",	.type = "INTEGER" },
 	{ .name = "event_type",		.type = "INTEGER" },
 	{ .name = "health_status",	.type = "INTEGER" },
 	{ .name = "media_status",	.type = "INTEGER" },
