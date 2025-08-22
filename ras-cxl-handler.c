@@ -1006,21 +1006,23 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 		}
 	}
 
-	if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
-		return -1;
-	ev.cme_threshold_ev_flags = val;
-	if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
-		return -1;
-	if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
-				   cxl_cme_threshold_ev_flags,
-				   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
-		return -1;
+	if (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT) {
+		if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
+			return -1;
+		ev.cme_threshold_ev_flags = val;
+		if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
+			return -1;
+		if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
+					   cxl_cme_threshold_ev_flags,
+					   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
+			return -1;
 
-	if (tep_get_field_val(s,  event, "cme_count", record, &val, 1) < 0)
-		return -1;
-	ev.cme_count = val;
-	if (trace_seq_printf(s, "Corrected Memory Error Count:%u ", ev.cme_count) <= 0)
-		return -1;
+		if (tep_get_field_val(s,  event, "cme_count", record, &val, 1) < 0)
+			return -1;
+		ev.cme_count = val;
+		if (trace_seq_printf(s, "Corrected Memory Error Count:%u ", ev.cme_count) <= 0)
+			return -1;
+	}
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
@@ -1263,21 +1265,23 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 		}
 	}
 
-	if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
-		return -1;
-	ev.cme_threshold_ev_flags = val;
-	if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
-		return -1;
-	if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
-				   cxl_cme_threshold_ev_flags,
-				   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
-		return -1;
+	if (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT) {
+		if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
+			return -1;
+		ev.cme_threshold_ev_flags = val;
+		if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
+			return -1;
+		if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
+					   cxl_cme_threshold_ev_flags,
+					   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
+			return -1;
 
-	if (tep_get_field_val(s,  event, "cvme_count", record, &val, 1) < 0)
-		return -1;
-	ev.cvme_count = val;
-	if (trace_seq_printf(s, "CVME Count:%u ", ev.cvme_count) <= 0)
-		return -1;
+		if (tep_get_field_val(s,  event, "cvme_count", record, &val, 1) < 0)
+			return -1;
+		ev.cvme_count = val;
+		if (trace_seq_printf(s, "CVME Count:%u ", ev.cvme_count) <= 0)
+			return -1;
+	}
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
