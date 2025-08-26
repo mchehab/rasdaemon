@@ -1511,3 +1511,157 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
+/*
+ * Memory Sparing Event Record - MSER
+ *
+ * CXL rev 3.2 section 8.2.10.2.1.4; Table 8-60
+ */
+#define CXL_MSER_VALID_CHANNEL			BIT(0)
+#define CXL_MSER_VALID_RANK			BIT(1)
+#define CXL_MSER_VALID_NIBBLE			BIT(2)
+#define CXL_MSER_VALID_BANK_GROUP		BIT(3)
+#define CXL_MSER_VALID_BANK			BIT(4)
+#define CXL_MSER_VALID_ROW			BIT(5)
+#define CXL_MSER_VALID_COLUMN			BIT(6)
+#define CXL_MSER_VALID_COMPONENT_ID		BIT(7)
+#define CXL_MSER_VALID_COMPONENT_ID_FORMAT	BIT(8)
+#define CXL_MSER_VALID_SUB_CHANNEL		BIT(9)
+
+#define CXL_MSER_QUERY_RES_FLAG		BIT(0)
+#define CXL_MSER_HARD_SPARING_FLAG	BIT(1)
+#define CXL_MSER_DEV_INITIATED_FLAG	BIT(2)
+
+static const struct cxl_event_flags cxl_mser_flags[] = {
+	{ .bit = CXL_MSER_QUERY_RES_FLAG, .flag = "QUERY_RESOURCES" },
+	{ .bit = CXL_MSER_HARD_SPARING_FLAG, .flag = "HARD_SPARING" },
+	{ .bit = CXL_MSER_DEV_INITIATED_FLAG, .flag = "DEVICE_INITIATED" },
+};
+
+int ras_cxl_memory_sparing_event_handler(struct trace_seq *s,
+					 struct tep_record *record,
+					 struct tep_event *event, void *context)
+{
+	int len, i, rc;
+	unsigned long long val;
+	struct ras_cxl_memory_sparing_event ev;
+
+	memset(&ev, 0, sizeof(ev));
+	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "flags", record, &val, 1) < 0)
+		return -1;
+	ev.flags = val;
+	if (trace_seq_printf(s, "flags:0x%x ", ev.flags) <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.flags, cxl_mser_flags,
+				   ARRAY_SIZE(cxl_mser_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "result", record, &val, 1) < 0)
+		return -1;
+	ev.result = val;
+	if (trace_seq_printf(s, "result:0x%x ", ev.result) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
+		return -1;
+	ev.validity_flags = val;
+
+	if (tep_get_field_val(s,  event, "res_avail", record, &val, 1) < 0)
+		return -1;
+	ev.res_avail = val;
+	if (trace_seq_printf(s, "spare resources available:%u ", ev.res_avail) <= 0)
+		return -1;
+
+	if (ev.validity_flags & CXL_MSER_VALID_CHANNEL) {
+		if (tep_get_field_val(s,  event, "channel", record, &val, 1) < 0)
+			return -1;
+		ev.channel = val;
+		if (trace_seq_printf(s, "channel:%u ", ev.channel) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_SUB_CHANNEL) {
+		if (tep_get_field_val(s,  event, "sub_channel", record, &val, 1) < 0)
+			return -1;
+		ev.sub_channel = val;
+		if (trace_seq_printf(s, "sub_channel:%u ", ev.sub_channel) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_RANK) {
+		if (tep_get_field_val(s,  event, "rank", record, &val, 1) < 0)
+			return -1;
+		ev.rank = val;
+		if (trace_seq_printf(s, "rank:%u ", ev.rank) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_NIBBLE) {
+		if (tep_get_field_val(s,  event, "nibble_mask", record, &val, 1) < 0)
+			return -1;
+		ev.nibble_mask = val;
+		if (trace_seq_printf(s, "nibble_mask:%u ", ev.nibble_mask) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_BANK_GROUP) {
+		if (tep_get_field_val(s,  event, "bank_group", record, &val, 1) < 0)
+			return -1;
+		ev.bank_group = val;
+		if (trace_seq_printf(s, "bank_group:%u ", ev.bank_group) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_BANK) {
+		if (tep_get_field_val(s,  event, "bank", record, &val, 1) < 0)
+			return -1;
+		ev.bank = val;
+		if (trace_seq_printf(s, "bank:%u ", ev.bank) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_ROW) {
+		if (tep_get_field_val(s,  event, "row", record, &val, 1) < 0)
+			return -1;
+		ev.row = val;
+		if (trace_seq_printf(s, "row:%u ", ev.row) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_COLUMN) {
+		if (tep_get_field_val(s,  event, "column", record, &val, 1) < 0)
+			return -1;
+		ev.column = val;
+		if (trace_seq_printf(s, "column:%u ", ev.column) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_COMPONENT_ID) {
+		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
+		if (!ev.comp_id)
+			return -1;
+		if (trace_seq_printf(s, "comp_id:") <= 0)
+			return -1;
+		for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++) {
+			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
+				break;
+		}
+
+		if (ev.validity_flags & CXL_MSER_VALID_COMPONENT_ID_FORMAT) {
+			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
+				return -1;
+			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
+				return -1;
+
+			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			if (rc)
+				return rc;
+		}
+	}
+
+	return 0;
+}
