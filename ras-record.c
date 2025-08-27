@@ -582,6 +582,7 @@ static const struct db_fields cxl_poison_event_fields[] = {
 	{ .name = "source",		.type = "TEXT" },
 	{ .name = "flags",		.type = "INTEGER" },
 	{ .name = "overflow_ts",	.type = "TEXT" },
+	{ .name = "hpa_alias0",		.type = "INTEGER" },
 };
 
 static const struct db_table_descriptor cxl_poison_event_tab = {
@@ -612,6 +613,7 @@ int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_eve
 	sqlite3_bind_text(priv->stmt_cxl_poison_event, 11, ev->source, -1, NULL);
 	sqlite3_bind_int(priv->stmt_cxl_poison_event, 12, ev->flags);
 	sqlite3_bind_text(priv->stmt_cxl_poison_event, 13, ev->overflow_ts, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_poison_event, 14, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_poison_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -798,6 +800,8 @@ static int ras_store_cxl_common_hdr(sqlite3_stmt *stmt, struct ras_cxl_event_com
 	sqlite3_bind_int(stmt, idx++, hdr->hdr_length);
 	sqlite3_bind_int(stmt, idx++, hdr->hdr_maint_op_class);
 	sqlite3_bind_int(stmt, idx++, hdr->hdr_maint_op_sub_class);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_ld_id);
+	sqlite3_bind_int(stmt, idx++, hdr->hdr_head_id);
 
 	return idx;
 }
@@ -820,6 +824,8 @@ static const struct db_fields cxl_generic_event_fields[] = {
 	{ .name = "hdr_length",		.type = "INTEGER" },
 	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
 	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
+	{ .name = "hdr_ld_id",		.type = "INTEGER" },
+	{ .name = "hdr_head_id",	.type = "INTEGER" },
 	{ .name = "data",		.type = "BLOB" },
 };
 
@@ -877,6 +883,8 @@ static const struct db_fields cxl_general_media_event_fields[] = {
 	{ .name = "hdr_length",		.type = "INTEGER" },
 	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
 	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
+	{ .name = "hdr_ld_id",		.type = "INTEGER" },
+	{ .name = "hdr_head_id",	.type = "INTEGER" },
 	{ .name = "dpa",		.type = "INTEGER" },
 	{ .name = "dpa_flags",		.type = "INTEGER" },
 	{ .name = "descriptor",		.type = "INTEGER" },
@@ -894,6 +902,7 @@ static const struct db_fields cxl_general_media_event_fields[] = {
 	{ .name = "sub_type",		.type = "INTEGER" },
 	{ .name = "cme_threshold_ev_flags",	.type = "INTEGER" },
 	{ .name = "cme_count",		.type = "INTEGER" },
+	{ .name = "hpa_alias0",		.type = "INTEGER" },
 };
 
 static const struct db_table_descriptor cxl_general_media_event_tab = {
@@ -938,6 +947,7 @@ int ras_store_cxl_general_media_event(struct ras_events *ras,
 	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++,
 			 ev->cme_threshold_ev_flags);
 	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->cme_count);
+	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, idx++, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_general_media_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -970,6 +980,8 @@ static const struct db_fields cxl_dram_event_fields[] = {
 	{ .name = "hdr_length",		.type = "INTEGER" },
 	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
 	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
+	{ .name = "hdr_ld_id",		.type = "INTEGER" },
+	{ .name = "hdr_head_id",	.type = "INTEGER" },
 	{ .name = "dpa",		.type = "INTEGER" },
 	{ .name = "dpa_flags",		.type = "INTEGER" },
 	{ .name = "descriptor",		.type = "INTEGER" },
@@ -993,6 +1005,7 @@ static const struct db_fields cxl_dram_event_fields[] = {
 	{ .name = "sub_channel",	.type = "INTEGER" },
 	{ .name = "cme_threshold_ev_flags",	.type = "INTEGER" },
 	{ .name = "cvme_count",		.type = "INTEGER" },
+	{ .name = "hpa_alias0",		.type = "INTEGER" },
 };
 
 static const struct db_table_descriptor cxl_dram_event_tab = {
@@ -1043,6 +1056,7 @@ int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *
 	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++,
 			 ev->cme_threshold_ev_flags);
 	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->cvme_count);
+	sqlite3_bind_int64(priv->stmt_cxl_dram_event, idx++, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_dram_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -1075,6 +1089,8 @@ static const struct db_fields cxl_memory_module_event_fields[] = {
 	{ .name = "hdr_length",		.type = "INTEGER" },
 	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
 	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
+	{ .name = "hdr_ld_id",		.type = "INTEGER" },
+	{ .name = "hdr_head_id",	.type = "INTEGER" },
 	{ .name = "event_type",		.type = "INTEGER" },
 	{ .name = "health_status",	.type = "INTEGER" },
 	{ .name = "media_status",	.type = "INTEGER" },
