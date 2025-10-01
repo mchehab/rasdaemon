@@ -1024,7 +1024,7 @@ int handle_ras_events(int record_events, int enable_ipmitool)
 	cpus = get_num_cpus(ras);
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
-	ras_cpu_isolation_init(cpus);
+	ras_cpu_isolation_init(sysconf(_SC_NPROCESSORS_CONF));
 #endif
 
 #ifdef HAVE_MCE
