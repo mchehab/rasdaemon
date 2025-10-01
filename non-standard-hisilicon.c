@@ -195,7 +195,7 @@ static const char * const module_name[] = {
 	"L3TAG",
 	"L3DATA",
 	"PCS",
-	"MATA",
+	"HHA",
 	"PCIe Local",
 	"SAS",
 	"SATA",
@@ -227,6 +227,7 @@ static const char * const module_name[] = {
 	"DJTAGM",
 	"CFGBUS",
 	"MPU",
+	"CRG",
 };
 
 static const char * const get_soc_desc(uint8_t soc_id)
