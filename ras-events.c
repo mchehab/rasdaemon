@@ -29,6 +29,7 @@
 #include "ras-events.h"
 #include "ras-extlog-handler.h"
 #include "ras-logger.h"
+#include "ras-aer-handler.h"
 #include "ras-mce-handler.h"
 #include "ras-mc-handler.h"
 #include "ras-memory-failure-handler.h"
@@ -56,6 +57,9 @@ char *choices_disable;
 
 static const struct event_trigger event_triggers[] = {
 	{ "mc_event", &mc_event_trigger_setup },
+#ifdef HAVE_AER
+	{ "aer_event", &aer_event_trigger_setup },
+#endif
 #ifdef HAVE_MEMORY_FAILURE
 	{ "memory_failure_event", &mem_fail_event_trigger_setup },
 #endif
