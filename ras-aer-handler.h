@@ -11,6 +11,7 @@
 
 #include "ras-events.h"
 
+void aer_event_trigger_setup(void);
 int ras_aer_event_handler(struct trace_seq *s,
 			  struct tep_record *record,
 			  struct tep_event *event, void *context);
