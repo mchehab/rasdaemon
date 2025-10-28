@@ -47,9 +47,9 @@
 
 /* Test for a little-endian machine */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	#define ENDIAN KBUFFER_ENDIAN_LITTLE
+	#define ENDIAN TEP_LITTLE_ENDIAN
 #else
-	#define ENDIAN KBUFFER_ENDIAN_BIG
+	#define ENDIAN TEP_BIG_ENDIAN
 #endif
 
 char *choices_disable;
@@ -418,6 +418,7 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 	/* TODO - logging */
 	trace_seq_init(&s);
+	tep_set_file_bigendian(pdata->ras->pevent, ENDIAN);
 	tep_print_event(pdata->ras->pevent, &s, &record,
 			"%16s-%-5d [%03d] %s %6.1000d %s %s",
 			TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
