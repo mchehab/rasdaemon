@@ -492,7 +492,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		return -ENOMEM;
 	}
 
-	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
+	kbuf = kbuffer_alloc(KBUFFER_LSIZE_SAME_AS_HOST, KBUFFER_ENDIAN_SAME_AS_HOST);
 	if (!kbuf) {
 		log(TERM, LOG_ERR, "Can't allocate kbuf\n");
 		free(page);
@@ -699,7 +699,7 @@ static void *handle_ras_events_cpu(void *priv)
 		return NULL;
 	}
 
-	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
+	kbuf = kbuffer_alloc(KBUFFER_LSIZE_SAME_AS_HOST, KBUFFER_ENDIAN_SAME_AS_HOST);
 	if (!kbuf) {
 		log(TERM, LOG_ERR, "Can't allocate kbuf");
 		free(page);
