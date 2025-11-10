@@ -54,6 +54,47 @@ static const char *aer_uncor_errors[32] = {
 
 static bool use_ipmitool = false;
 
+#define MAX_ENV 30
+static const char *aer_ce_trigger = NULL;
+static const char *aer_ue_trigger = NULL;
+
+void aer_event_trigger_setup(void)
+{
+	const char *trigger;
+
+	trigger = getenv("AER_CE_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		aer_ce_trigger = trigger_check(trigger);
+
+		if (!aer_ce_trigger) {
+			log(ALL, LOG_ERR,
+			    "Cannot access aer_event ce trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup aer_event ce trigger `%s`\n",
+			    trigger);
+		}
+	} else {
+		log(TERM, LOG_ERR, "\t no AER_CE_TRIGGER (%p)\n", trigger);
+	}
+
+	trigger = getenv("AER_UE_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		aer_ue_trigger = trigger_check(trigger);
+
+		if (!aer_ue_trigger) {
+			log(ALL, LOG_ERR,
+			    "Cannot access aer_event ue trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup aer_event ue trigger `%s`\n",
+			    trigger);
+		}
+	}
+}
+
 void ras_aer_handler_init(int enable_ipmitool)
 {
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
@@ -62,6 +103,32 @@ void ras_aer_handler_init(int enable_ipmitool)
 }
 
 #define BUF_LEN	1024
+
+static void run_aer_trigger(struct ras_aer_event *ev, const char *aer_trigger)
+{
+	char *env[MAX_ENV];
+	int ei = 0;
+	int i;
+
+	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
+		goto free;
+	if (asprintf(&env[ei++], "TIMESTAMP=%s", ev->timestamp) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "TYPE=%s", ev->error_type) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "MESSAGE=%s", ev->msg) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "NAME=%s", ev->dev_name) < 0)
+		goto free;
+	env[ei] = NULL;
+	assert(ei < MAX_ENV);
+
+	run_trigger(aer_trigger, NULL, env, "aer_event");
+
+free:
+	for (i = 0; i < ei; i++)
+		free(env[i]);
+}
 
 int ras_aer_event_handler(struct trace_seq *s,
 			  struct tep_record *record,
@@ -209,6 +276,12 @@ int ras_aer_event_handler(struct trace_seq *s,
 		if (openbmc_unified_sel_log(severity_val, ev.dev_name, status_val) < 0)
 			return -1;
 #endif
+
+	if (aer_ce_trigger && !strcmp(ev.error_type, "Corrected"))
+		run_aer_trigger(&ev, aer_ce_trigger);
+
+	if (aer_ue_trigger && !strncmp(ev.error_type, "Uncorrected", 11))
+		run_aer_trigger(&ev, aer_ue_trigger);
 
 	return 0;
 }

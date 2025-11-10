@@ -46,15 +46,16 @@
 
 /* Test for a little-endian machine */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	#define ENDIAN KBUFFER_ENDIAN_LITTLE
+	#define ENDIAN TEP_LITLLE_ENDIAN
 #else
-	#define ENDIAN KBUFFER_ENDIAN_BIG
+	#define ENDIAN TEP_BIG_ENDIAN
 #endif
 
 char *choices_disable;
 
 static const struct event_trigger event_triggers[] = {
 	{ "mc_event", &mc_event_trigger_setup },
+	{ "aer_event", &aer_event_trigger_setup },
 #ifdef HAVE_MEMORY_FAILURE
 	{ "memory_failure_event", &mem_fail_event_trigger_setup },
 #endif
@@ -412,6 +413,7 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 	/* TODO - logging */
 	trace_seq_init(&s);
+	tep_set_file_bigendian(pdata->ras->pevent, ENDIAN);
 	tep_print_event(pdata->ras->pevent, &s, &record,
 			"%16s-%-5d [%03d] %s %6.1000d %s %s",
 			TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
@@ -492,7 +494,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		return -ENOMEM;
 	}
 
-	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
+	kbuf = kbuffer_alloc(KBUFFER_LSIZE_SAME_AS_HOST, KBUFFER_ENDIAN_SAME_AS_HOST);
 	if (!kbuf) {
 		log(TERM, LOG_ERR, "Can't allocate kbuf\n");
 		free(page);
@@ -699,7 +701,7 @@ static void *handle_ras_events_cpu(void *priv)
 		return NULL;
 	}
 
-	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
+	kbuf = kbuffer_alloc(KBUFFER_LSIZE_SAME_AS_HOST, KBUFFER_ENDIAN_SAME_AS_HOST);
 	if (!kbuf) {
 		log(TERM, LOG_ERR, "Can't allocate kbuf");
 		free(page);
