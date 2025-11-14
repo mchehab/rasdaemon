@@ -882,6 +882,17 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 	}
 
 	do {
+		if (size > 0) {
+			page = realloc(page, page_size + size);
+                        if (!page) {
+				rc = -errno;
+				log(TERM, LOG_ERR,
+				    "Can't reallocate page to read %s:%s"
+				    " format\n", group, event);
+				close(fd);
+				return rc;
+                        }
+                }
 		rc = read(fd, page + size, page_size);
 		if (rc < 0) {
 			log(TERM, LOG_ERR, "Can't get arch page size\n");
