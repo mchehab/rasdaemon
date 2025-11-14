@@ -77,11 +77,11 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 	sqlite3_bind_int64(priv->stmt_mc_event, 12, ev->syndrome);
 	sqlite3_bind_text(priv->stmt_mc_event, 13, ev->driver_detail, -1, NULL);
 	rc = sqlite3_step(priv->stmt_mc_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do mc_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_mc_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset mc_event on sqlite: error = %d\n",
 		    rc);
@@ -124,11 +124,11 @@ int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 	sqlite3_bind_text(priv->stmt_aer_event,  4, ev->msg, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_aer_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do aer_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_aer_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset aer_event on sqlite: error = %d\n",
 		    rc);
@@ -176,11 +176,11 @@ int ras_store_non_standard_record(struct ras_events *ras, struct ras_non_standar
 	sqlite3_bind_blob(priv->stmt_non_standard_record,  6, ev->error, ev->length, NULL);
 
 	rc = sqlite3_step(priv->stmt_non_standard_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do non_standard_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_non_standard_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset non_standard_event on sqlite: error = %d\n", rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");
@@ -246,11 +246,11 @@ int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 	sqlite3_bind_int64(priv->stmt_arm_record,  14,  ev->phy_fault_addr);
 
 	rc = sqlite3_step(priv->stmt_arm_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do arm_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_arm_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset arm_event on sqlite: error = %d\n",
 		    rc);
@@ -298,11 +298,11 @@ int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event 
 	sqlite3_bind_blob(priv->stmt_extlog_record,  8, ev->cper_data, ev->cper_data_length, NULL);
 
 	rc = sqlite3_step(priv->stmt_extlog_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do extlog_mem_record step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_extlog_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset extlog_mem_record on sqlite: error = %d\n",
 		    rc);
@@ -393,11 +393,11 @@ int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev)
 	sqlite3_bind_text(priv->stmt_mce_record, 25, ev->mc_location, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_mce_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do mce_record step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_mce_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset mce_record on sqlite: error = %d\n",
 		    rc);
@@ -445,11 +445,11 @@ int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 	sqlite3_bind_text(priv->stmt_devlink_event,  6, ev->msg, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_devlink_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do devlink_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_devlink_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset devlink_event on sqlite: error = %d\n",
 		    rc);
@@ -499,11 +499,11 @@ int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev
 	sqlite3_bind_text(priv->stmt_diskerror_event,  7, ev->cmd, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_diskerror_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do diskerror_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_diskerror_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset diskerror_event on sqlite: error = %d\n",
 		    rc);
@@ -547,12 +547,12 @@ int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 	sqlite3_bind_text(priv->stmt_mf_event,  4, ev->action_result, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_mf_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do memory_failure_event step on sqlite: error = %d\n", rc);
 
 	rc = sqlite3_reset(priv->stmt_mf_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset memory_failure_event on sqlite: error = %d\n",
 		    rc);
@@ -616,11 +616,11 @@ int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_eve
 	sqlite3_bind_int64(priv->stmt_cxl_poison_event, 14, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_poison_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do cxl_poison_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_cxl_poison_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset cxl_poison_event on sqlite: error = %d\n",
 		    rc);
@@ -667,11 +667,11 @@ int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_eve
 	sqlite3_bind_blob(priv->stmt_cxl_aer_ue_event, 7, ev->header_log, CXL_HEADERLOG_SIZE, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_aer_ue_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do cxl_aer_ue_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_cxl_aer_ue_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset cxl_aer_ue_event on sqlite: error = %d\n",
 		    rc);
@@ -714,11 +714,11 @@ int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_eve
 	sqlite3_bind_int(priv->stmt_cxl_aer_ce_event, 5, ev->error_status);
 
 	rc = sqlite3_step(priv->stmt_cxl_aer_ce_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do cxl_aer_ce_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_cxl_aer_ce_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset cxl_aer_ce_event on sqlite: error = %d\n",
 		    rc);
@@ -767,11 +767,11 @@ int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow
 	sqlite3_bind_text(priv->stmt_cxl_overflow_event, 8, ev->last_ts, -1, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_overflow_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do cxl_overflow_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_cxl_overflow_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset cxl_overflow_event on sqlite: error = %d\n",
 		    rc);
@@ -853,11 +853,11 @@ int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_e
 			  CXL_EVENT_RECORD_DATA_LENGTH, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_generic_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do stmt_cxl_generic_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_cxl_generic_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset stmt_cxl_generic_event on sqlite: error = %d\n", rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");
@@ -950,11 +950,11 @@ int ras_store_cxl_general_media_event(struct ras_events *ras,
 	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, idx++, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_general_media_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do stmt_cxl_general_media_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_cxl_general_media_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset stmt_cxl_general_media_event on sqlite: error = %d\n", rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");
@@ -1059,11 +1059,11 @@ int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *
 	sqlite3_bind_int64(priv->stmt_cxl_dram_event, idx++, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_dram_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do stmt_cxl_dram_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_cxl_dram_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset stmt_cxl_dram_event on sqlite: error = %d\n", rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");
@@ -1145,11 +1145,11 @@ int ras_store_cxl_memory_module_event(struct ras_events *ras,
 			  CXL_PLDM_RES_ID_LEN, NULL);
 
 	rc = sqlite3_step(priv->stmt_cxl_memory_module_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do stmt_cxl_memory_module_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(priv->stmt_cxl_memory_module_event);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset stmt_cxl_memory_module_event on sqlite: error = %d\n", rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");

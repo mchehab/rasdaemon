@@ -95,11 +95,11 @@ int record_yitian_ddr_reg_dump_event(struct ras_ns_ev_decoder *ev_decoder,
 	sqlite3_bind_text(stmt,  3, ev->reg_msg, -1, NULL);
 
 	rc = sqlite3_step(stmt);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do yitian_ddr_reg_dump_event step on sqlite: error = %d\n", rc);
 	rc = sqlite3_reset(stmt);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed reset yitian_ddr_reg_dump_event on sqlite: error = %d\n", rc);
 	log(TERM, LOG_INFO, "register inserted at db\n");
