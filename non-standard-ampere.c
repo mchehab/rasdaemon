@@ -476,12 +476,12 @@ static int store_amp_err_data(struct ras_ns_ev_decoder *ev_decoder,
 	int rc;
 
 	rc = sqlite3_step(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to do %s step on sqlite: error = %d\n", name, rc);
 
 	rc = sqlite3_reset(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed to reset %s on sqlite: error = %d\n", name, rc);
 
