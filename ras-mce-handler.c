@@ -252,6 +252,7 @@ int init_mce_priv(struct ras_events *ras)
 
 	return rc;
 }
+
 static void set_imc_log(struct mce_priv *mce, unsigned int ncpus)
 {
 	switch (mce->cputype) {
