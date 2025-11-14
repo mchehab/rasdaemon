@@ -582,6 +582,7 @@ static const struct db_fields cxl_poison_event_fields[] = {
 	{ .name = "source",		.type = "TEXT" },
 	{ .name = "flags",		.type = "INTEGER" },
 	{ .name = "overflow_ts",	.type = "TEXT" },
+	{ .name = "hpa_alias0",		.type = "INTEGER" },
 };
 
 static const struct db_table_descriptor cxl_poison_event_tab = {
@@ -612,6 +613,7 @@ int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_eve
 	sqlite3_bind_text(priv->stmt_cxl_poison_event, 11, ev->source, -1, NULL);
 	sqlite3_bind_int(priv->stmt_cxl_poison_event, 12, ev->flags);
 	sqlite3_bind_text(priv->stmt_cxl_poison_event, 13, ev->overflow_ts, -1, NULL);
+	sqlite3_bind_int64(priv->stmt_cxl_poison_event, 14, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_poison_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -894,6 +896,7 @@ static const struct db_fields cxl_general_media_event_fields[] = {
 	{ .name = "sub_type",		.type = "INTEGER" },
 	{ .name = "cme_threshold_ev_flags",	.type = "INTEGER" },
 	{ .name = "cme_count",		.type = "INTEGER" },
+	{ .name = "hpa_alias0",		.type = "INTEGER" },
 };
 
 static const struct db_table_descriptor cxl_general_media_event_tab = {
@@ -938,6 +941,7 @@ int ras_store_cxl_general_media_event(struct ras_events *ras,
 	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++,
 			 ev->cme_threshold_ev_flags);
 	sqlite3_bind_int(priv->stmt_cxl_general_media_event, idx++, ev->cme_count);
+	sqlite3_bind_int64(priv->stmt_cxl_general_media_event, idx++, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_general_media_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
@@ -993,6 +997,7 @@ static const struct db_fields cxl_dram_event_fields[] = {
 	{ .name = "sub_channel",	.type = "INTEGER" },
 	{ .name = "cme_threshold_ev_flags",	.type = "INTEGER" },
 	{ .name = "cvme_count",		.type = "INTEGER" },
+	{ .name = "hpa_alias0",		.type = "INTEGER" },
 };
 
 static const struct db_table_descriptor cxl_dram_event_tab = {
@@ -1043,6 +1048,7 @@ int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *
 	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++,
 			 ev->cme_threshold_ev_flags);
 	sqlite3_bind_int(priv->stmt_cxl_dram_event, idx++, ev->cvme_count);
+	sqlite3_bind_int64(priv->stmt_cxl_dram_event, idx++, ev->hpa_alias0);
 
 	rc = sqlite3_step(priv->stmt_cxl_dram_event);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)

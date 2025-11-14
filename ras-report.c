@@ -373,6 +373,7 @@ static int set_cxl_poison_event_backtrace(char *buf, struct ras_cxl_poison_event
 		"region=%s\n"
 		"region_uuid=%s\n"
 		"hpa=0x%lx\n"
+		"hpa_alias0=0x%lx\n"
 		"dpa=0x%lx\n"
 		"dpa_length=0x%x\n"
 		"source=%s\n"
@@ -386,6 +387,7 @@ static int set_cxl_poison_event_backtrace(char *buf, struct ras_cxl_poison_event
 		ev->region,
 		ev->uuid,
 		ev->hpa,
+		ev->hpa_alias0,
 		ev->dpa,
 		ev->dpa_length,
 		ev->source,
@@ -552,6 +554,7 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		"hdr_timestamp=%s\n"
 		"hdr_length=%u\n"
 		"hdr_maint_op_class=%u\n"
+		"hdr_maint_op_sub_class=%u\n"
 		"dpa=0x%lx\n"
 		"dpa_flags=%u\n"
 		"descriptor=%u\n"
@@ -559,6 +562,7 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		"sub_type=0x%x\n"
 		"transaction_type=%u\n"
 		"hpa=0x%lx\n"
+		"hpa_alias0=0x%lx\n"
 		"region=%s\n"
 		"region_uuid=%s\n"
 		"channel=%u\n"
@@ -578,6 +582,7 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		ev->hdr.hdr_timestamp,
 		ev->hdr.hdr_length,
 		ev->hdr.hdr_maint_op_class,
+		ev->hdr.hdr_maint_op_sub_class,
 		ev->dpa,
 		ev->dpa_flags,
 		ev->descriptor,
@@ -585,6 +590,7 @@ static int set_cxl_general_media_event_backtrace(char *buf, struct ras_cxl_gener
 		ev->sub_type,
 		ev->transaction_type,
 		ev->hpa,
+		ev->hpa_alias0,
 		ev->region,
 		ev->region_uuid,
 		ev->channel,
@@ -621,6 +627,7 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		"hdr_timestamp=%s\n"
 		"hdr_length=%u\n"
 		"hdr_maint_op_class=%u\n"
+		"hdr_maint_op_sub_class=%u\n"
 		"dpa=0x%lx\n"
 		"dpa_flags=%u\n"
 		"descriptor=%u\n"
@@ -628,6 +635,7 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		"sub_type=0x%x\n"
 		"transaction_type=%u\n"
 		"hpa=0x%lx\n"
+		"hpa_alias0=0x%lx\n"
 		"region=%s\n"
 		"region_uuid=%s\n"
 		"channel=%u\n"
@@ -652,6 +660,7 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		ev->hdr.hdr_timestamp,
 		ev->hdr.hdr_length,
 		ev->hdr.hdr_maint_op_class,
+		ev->hdr.hdr_maint_op_sub_class,
 		ev->dpa,
 		ev->dpa_flags,
 		ev->descriptor,
@@ -659,6 +668,7 @@ static int set_cxl_dram_event_backtrace(char *buf, struct ras_cxl_dram_event *ev
 		ev->sub_type,
 		ev->transaction_type,
 		ev->hpa,
+		ev->hpa_alias0,
 		ev->region,
 		ev->region_uuid,
 		ev->channel,
@@ -700,6 +710,7 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 		"hdr_timestamp=%s\n"
 		"hdr_length=%u\n"
 		"hdr_maint_op_class=%u\n"
+		"hdr_maint_op_sub_class=%u\n"
 		"event_type=%u\n"
 		"event_sub_type=0x%x\n"
 		"health_status=%u\n"
@@ -722,6 +733,7 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 		ev->hdr.hdr_timestamp,
 		ev->hdr.hdr_length,
 		ev->hdr.hdr_maint_op_class,
+		ev->hdr.hdr_maint_op_sub_class,
 		ev->event_type,
 		ev->event_sub_type,
 		ev->health_status,
