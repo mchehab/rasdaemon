@@ -970,7 +970,6 @@ int handle_ras_events(int record_events, int enable_ipmitool)
 	char signal_filter[64];
 #endif
 
-
 	ras = calloc(1, sizeof(*ras));
 	if (!ras) {
 		log(TERM, LOG_ERR, "Can't allocate memory for ras struct\n");
