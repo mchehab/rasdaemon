@@ -19,7 +19,7 @@ Tarballs for each release can be found at:
 GOALS
 =====
 
-Its initial goal is to replace the edac-tools that got bitroted after
+Its initial goal is to replace the edac-tools that got bitrotted after
 the addition of the HERM (Hardware Events Report Method )patches[^1] at
 the EDAC Kernel drivers.
 
@@ -41,7 +41,7 @@ This is one of the differences from what it was provided by edac-utils, as
 EDAC 2.0.0 exports errors via a set of sysfs nodes that sums the amount of
 errors per DIMM, per memory channel and per memory controller.
 However, those counters are monotonically increased, and there's no way to
-detect if they're very sparsed in time, if the occurrence is increasing over
+detect if they're very sparse in time, if the occurrence is increasing over
 time, or if they're due to some burst, perhaps due to a Solar Storm hitting
 the ionosphere.
 
@@ -65,13 +65,13 @@ a component that is working degraded, or to simply discard the error.
 So, the approach taken here is to allow storing those errors on a SQLite
 database, in order to allow those data to be latter mining.
 
-It is currently not part of the scope to do sophiscicated data mininy
+It is currently not part of the scope to do sophiscicated data mining
 analysis, as that would require enough statistitical data about hardware
 MTBF. In other words, an abnormal component that needs to be replaced
 shoud be statistically compared with a similar component that operates
 under a normal condition. To do such checks, the analysis tool would
 need to know the probability density function(p. d. f.) of that component,
-and its rellevant parameters (like mean and standard derivation, if the
+and its relevant parameters (like mean and standard derivation, if the
 p. d. f. funcion is a Normal distribution).
 
 While this tool works since Kernel 3.5 (where HERM patches got added),
@@ -232,7 +232,7 @@ AER error injection can use this tool:
 
 # SUBMITTING PATCHES
 
-If you want to help improving this tool, be my guest! We try to follow
+If you want to help improve this tool, be my guest! We try to follow
 the Kernel's CodingStyle and submission rules as a reference.
 
 Before submitting your patch, please check the coding style with:
@@ -256,7 +256,7 @@ Please notice that github is the preferred way. If you're not using
 it, please be kind enough to add an issue there for us to track the
 patch series.
 
-Don't foget to add a description of the patch in the body of the email, adding
+Don't forget to add a description of the patch in the body of the email, adding
 a Signed-off-by: at the end of the patch description (before the unified diff
 with the patch).
 
