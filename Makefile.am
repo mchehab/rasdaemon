@@ -174,3 +174,9 @@ install-data-local:
 	if [ -d "$(DESTDIR)@sysconfdir@/logrotate.d" ]; then \
 		install -D -p -m 0655 @abs_srcdir@/misc/rasdaemon.logrotate "$(DESTDIR)@sysconfdir@/logrotate.d/rasdaemon"; \
 	fi
+	$(install_sh) -d "$(DESTDIR)${datarootdir}/zsh/site-functions"
+	install -D -p -m 0644 @abs_srcdir@/completions/ras-mc-ctl.zsh \
+		$(DESTDIR)${datarootdir}/zsh/site-functions/_ras-mc-ctl
+	$(install_sh) -d "$(DESTDIR)${datarootdir}/bash-completion/completions"
+	install -D -p -m 0644 @abs_srcdir@/completions/ras-mc-ctl.bash \
+		$(DESTDIR)${datarootdir}/bash-completion/completions/ras-mc-ctl
