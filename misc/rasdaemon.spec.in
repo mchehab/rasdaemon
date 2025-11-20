@@ -59,6 +59,8 @@ install -D -p -m 0655 misc/%{name}.env %{buildroot}%{_sysconfdir}/sysconfig/%{na
 install -D -p -m 0655 misc/%{name}.syslog-ng %{buildroot}/usr/share/%{name}/%{name}.syslog-ng
 install -D -p -m 0655 misc/%{name}.logrotate %{buildroot}/usr/share/%{name}/%{name}.logrotate
 install -D -p -m 0655 misc/%{name}.rsyslog %{buildroot}/usr/share/%{name}/%{name}.rsyslog
+install -D -p -m 0644 completions/ras-mc-ctl.bash %{buildroot}%{bash_completions_dir}/ras-mc-ctl
+install -D -p -m 0644 completions/ras-mc-ctl.zsh %{buildroot}%{zsh_completions_dir}/_ras-mc-ctl
 rm INSTALL %{buildroot}/usr/include/*.h
 
 %files
@@ -69,6 +71,8 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_unitdir}/*.service
 %{_sysconfdir}/ras/dimm_labels.d
 %{_sysconfdir}/ras/*/*
+%{bash_completions_dir}/ras-mc-ctl
+%{zsh_completions_dir}/_ras-mc-ctl
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %config(noreplace) /usr/share/%{name}/%{name}.syslog-ng
 %config(noreplace) /usr/share/%{name}/%{name}.logrotate
