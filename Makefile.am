@@ -75,18 +75,58 @@ rasdaemon_SOURCES += ras-mc-handler.c
 rasdaemon_SOURCES += trigger.c
 rasdaemon_SOURCES += types.c
 
-if WITH_SQLITE3
-   rasdaemon_SOURCES += ras-record.c
+# Keep the IFs alphabetically sorted
+
+if WITH_ABRT_REPORT
+   rasdaemon_SOURCES += ras-report.c
 endif
+
 if WITH_AER
    rasdaemon_SOURCES += ras-aer-handler.c
 endif
-if WITH_NON_STANDARD
-   rasdaemon_SOURCES += ras-non-standard-handler.c
+
+if WITH_AMP_NS_DECODE
+   rasdaemon_SOURCES += non-standard-ampere.c
 endif
+
 if WITH_ARM
    rasdaemon_SOURCES += ras-arm-handler.c
 endif
+
+if WITH_CPU_FAULT_ISOLATION
+   rasdaemon_SOURCES += ras-cpu-isolation.c
+   rasdaemon_SOURCES += queue.c
+endif
+
+if WITH_CXL
+   rasdaemon_SOURCES += ras-cxl-handler.c
+endif
+
+if WITH_DEVLINK
+   rasdaemon_SOURCES += ras-devlink-handler.c
+endif
+
+if WITH_DISKERROR
+   rasdaemon_SOURCES += ras-diskerror-handler.c
+endif
+
+if WITH_ERST
+   rasdaemon_SOURCES += ras-erst.c
+endif
+
+if WITH_EXTLOG
+   rasdaemon_SOURCES += ras-extlog-handler.c
+endif
+
+if WITH_HISI_NS_DECODE
+   rasdaemon_SOURCES += non-standard-hisi_hip08.c
+   rasdaemon_SOURCES += non-standard-hisilicon.c
+endif
+
+if WITH_JAGUAR_NS_DECODE
+   rasdaemon_SOURCES += non-standard-jaguarmicro.c
+endif
+
 if WITH_MCE
    rasdaemon_SOURCES += mce-amd.c
    rasdaemon_SOURCES += mce-amd-k8.c
@@ -104,70 +144,43 @@ if WITH_MCE
    rasdaemon_SOURCES += mce-intel-sb.c
    rasdaemon_SOURCES += mce-intel-skylake-xeon.c
    rasdaemon_SOURCES += mce-intel-tulsa.c
-   rasdaemon_SOURCES += ras-events.c
-   rasdaemon_SOURCES += ras-mc-handler.c
    rasdaemon_SOURCES += ras-mce-handler.c
-   rasdaemon_SOURCES += rasdaemon.c
-   rasdaemon_SOURCES += trigger.c
-   rasdaemon_SOURCES += types.c
+endif
 
-endif
-if WITH_EXTLOG
-   rasdaemon_SOURCES += ras-extlog-handler.c
-endif
-if WITH_DEVLINK
-   rasdaemon_SOURCES += ras-devlink-handler.c
-endif
-if WITH_DISKERROR
-   rasdaemon_SOURCES += ras-diskerror-handler.c
-endif
 if WITH_MEMORY_FAILURE
    rasdaemon_SOURCES += ras-memory-failure-handler.c
 endif
-if WITH_ABRT_REPORT
-   rasdaemon_SOURCES += ras-report.c
+
+if WITH_NON_STANDARD
+   rasdaemon_SOURCES += ras-non-standard-handler.c
 endif
-if WITH_HISI_NS_DECODE
-   rasdaemon_SOURCES += non-standard-hisi_hip08.c
-   rasdaemon_SOURCES += non-standard-hisilicon.c
-endif
-if WITH_PFA
-   rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
-endif
-if WITH_AMP_NS_DECODE
-   rasdaemon_SOURCES += non-standard-ampere.c
-endif
-if WITH_CPU_FAULT_ISOLATION
-   rasdaemon_SOURCES += ras-cpu-isolation.c
-   rasdaemon_SOURCES += queue.c
-endif
+
 if WITH_OPENBMC_UNIFIED_SEL
    rasdaemon_SOURCES += unified-sel.c
 endif
-if WITH_CXL
-   rasdaemon_SOURCES += ras-cxl-handler.c
-endif
-if WITH_YITIAN_NS_DECODE
-   rasdaemon_SOURCES += non-standard-yitian.c
-endif
-if WITH_JAGUAR_NS_DECODE
-   rasdaemon_SOURCES += non-standard-jaguarmicro.c
-endif
-if WITH_SIGNAL
-   rasdaemon_SOURCES += ras-signal-handler.c
+
+if WITH_PFA
+   rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
 endif
 
 if WITH_POISON_PAGE_STAT
    rasdaemon_SOURCES += ras-poison-page-stat.c
 endif
 
-if WITH_ERST
-   rasdaemon_SOURCES += ras-erst.c
+if WITH_SIGNAL
+   rasdaemon_SOURCES += ras-signal-handler.c
+endif
+
+if WITH_SQLITE3
+   rasdaemon_SOURCES += ras-record.c
+endif
+
+if WITH_YITIAN_NS_DECODE
+   rasdaemon_SOURCES += non-standard-yitian.c
 endif
 
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS) $(LIBPCI_LIBS)
 rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS) $(LIBPCI_CFLAGS)
-
 
 include_HEADERS = config.h
 
