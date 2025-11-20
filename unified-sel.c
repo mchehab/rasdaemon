@@ -26,23 +26,23 @@ static const char *cor_error_ids[32] = {
 };
 
 static const char *uncor_error_ids[32] = {
-    /* Uncorrectable errors */
-    [4] = "0x20",  /* Data Link Protocol */
-    [5] = "0x21",  /* Surprise Down Error */
-    [12] = "0x22", /* Received Poisoned TLP */
-    [13] = "0x23", /* Flow Control Protocol */
-    [14] = "0x24", /* Completion Timeout */
-    [15] = "0x25", /* Completer Abort */
-    [16] = "0x26", /* Unexpected Completion */
-    [17] = "0x27", /* Receiver Overflow */
-    [18] = "0x28", /* Malformed TLP */
-    [19] = "0x29", /* ECRC */
-    [20] = "0x2A", /* Unsupported Request */
-    [21] = "0x2B", /* ACS Violation */
-    [22] = "0x2C", /* Uncorrected Internal */
-    [23] = "0x2D", /* MC Blocked TLP */
-    [24] = "0x2E", /* AtomicOp Egress Blocked */
-    [25] = "0x2F", /* TLP Prefix Blocked */
+	/* Uncorrectable errors */
+	[4] = "0x20",  /* Data Link Protocol */
+	[5] = "0x21",  /* Surprise Down Error */
+	[12] = "0x22", /* Received Poisoned TLP */
+	[13] = "0x23", /* Flow Control Protocol */
+	[14] = "0x24", /* Completion Timeout */
+	[15] = "0x25", /* Completer Abort */
+	[16] = "0x26", /* Unexpected Completion */
+	[17] = "0x27", /* Receiver Overflow */
+	[18] = "0x28", /* Malformed TLP */
+	[19] = "0x29", /* ECRC */
+	[20] = "0x2A", /* Unsupported Request */
+	[21] = "0x2B", /* ACS Violation */
+	[22] = "0x2C", /* Uncorrected Internal */
+	[23] = "0x2D", /* MC Blocked TLP */
+	[24] = "0x2E", /* AtomicOp Egress Blocked */
+	[25] = "0x2F", /* TLP Prefix Blocked */
 };
 
 static int verify_id_log_sel(uint64_t status,
