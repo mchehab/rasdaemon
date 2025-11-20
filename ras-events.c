@@ -885,15 +885,15 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 	do {
 		if (size > 0) {
 			page = realloc(page, page_size + size);
-                        if (!page) {
+			if (!page) {
 				rc = -errno;
 				log(TERM, LOG_ERR,
-				    "Can't reallocate page to read %s:%s"
-				    " format\n", group, event);
+				    "Can't reallocate page to read %s:%s format\n",
+				    group, event);
 				close(fd);
 				return rc;
-                        }
-                }
+			}
+		}
 		rc = read(fd, page + size, page_size);
 		if (rc < 0) {
 			log(TERM, LOG_ERR, "Can't get arch page size\n");
@@ -927,7 +927,8 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 		filter = tep_filter_alloc(pevent);
 		if (!filter) {
 			log(TERM, LOG_ERR,
-			    "Failed to allocate filter for %s/%s.\n", group, event);
+			    "Failed to allocate filter for %s/%s.\n",
+			    group, event);
 			free(page);
 			return -EINVAL;
 		}
@@ -935,7 +936,8 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 		if (rc < 0) {
 			tep_filter_strerror(filter, rc, error, sizeof(error));
 			log(TERM, LOG_ERR,
-			    "Failed to install filter for %s/%s: %s\n", group, event, error);
+			    "Failed to install filter for %s/%s: %s\n",
+			    group, event, error);
 			tep_filter_free(filter);
 			free(page);
 			return rc;
