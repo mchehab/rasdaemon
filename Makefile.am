@@ -27,6 +27,8 @@ EXTRA_DIST += $(RSYSLOG_SERVICES_IN)
 EXTRA_DIST += $(SYSLOG_SERVICES_IN)
 EXTRA_DIST += $(SYSTEMD_SERVICES_IN)
 
+EXTRA_DIST += completions/ras-mc-ctl.bash
+EXTRA_DIST += completions/ras-mc-ctl.zsh
 EXTRA_DIST += contrib/mem_fail_trigger
 EXTRA_DIST += contrib/mc_event_trigger
 EXTRA_DIST += misc/rasdaemon.env
