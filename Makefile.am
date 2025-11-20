@@ -1,38 +1,54 @@
+# Copyright (C) 2013- Mauro Carvalho Chehab <mchehab@kernel.org>
 # SPDX-License-Identifier: GPL-2.0
+
+# NOTE: For the file variables, please keep each group of dependencies sorted
+# alphabetically. Hopefully, this would make easier to solve merge conflicts
 
 AM_DISTCHECK_CONFIGURE_FLAGS = --enable-all
 ACLOCAL_AMFLAGS=-I m4
 SUBDIRS = util man
-SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in misc/ras-mc-ctl.service.in
+
+SYSTEMD_SERVICES_IN = misc/rasdaemon.service.in
+SYSTEMD_SERVICES_IN += misc/ras-mc-ctl.service.in
+
 SYSTEMD_SERVICES = $(SYSTEMD_SERVICES_IN:.service.in=.service)
+
 SYSLOG_SERVICES_IN = misc/rasdaemon.syslog-ng.in
 SYSLOG_SERVICES = $(SYSLOG_SERVICES_IN:.syslog-ng.in=.syslog-ng)
+
 LOGROTATE_SERVICES_IN = misc/rasdaemon.logrotate.in
 LOGROTATE_SERVICES = $(LOGROTATE_SERVICES_IN:.logrotate.in=.logrotate)
+
 RSYSLOG_SERVICES_IN = misc/rasdaemon.rsyslog.in
 RSYSLOG_SERVICES = $(RSYSLOG_SERVICES_IN:.rsyslog.in=.rsyslog)
-EXTRA_DIST = \
-	$(SYSTEMD_SERVICES_IN) \
-	$(SYSLOG_SERVICES_IN) \
-	$(RSYSLOG_SERVICES_IN) \
-	$(LOGROTATE_SERVICES_IN) \
-	misc/rasdaemon.env \
-	contrib/mc_event_trigger \
-	contrib/mem_fail_trigger
 
-CLEANFILES= \
-	misc/ras-mc-ctl.service	\
-	misc/rasdaemon.service \
-	misc/rasdaemon.syslog-ng \
-	misc/rasdaemon.rsyslog \
-	misc/rasdaemon.logrotate
+EXTRA_DIST = $(LOGROTATE_SERVICES_IN)
+EXTRA_DIST += $(RSYSLOG_SERVICES_IN)
+EXTRA_DIST += $(SYSLOG_SERVICES_IN)
+EXTRA_DIST += $(SYSTEMD_SERVICES_IN)
+
+EXTRA_DIST += contrib/mem_fail_trigger
+EXTRA_DIST += contrib/mc_event_trigger
+EXTRA_DIST += misc/rasdaemon.env
+
+CLEANFILES = misc/rasdaemon.logrotate
+CLEANFILES += misc/rasdaemon.rsyslog
+CLEANFILES += misc/rasdaemon.service
+CLEANFILES += misc/rasdaemon.syslog-ng
+
+CLEANFILES += misc/ras-mc-ctl.service
 
 DISTCLEANFILES = misc/rasdaemon.spec
 
 # This rule is needed because \@sbindir\@ is expanded to \${exec_prefix\}/sbin
 # during ./configure phase, therefore it is not possible to add .service.in
 # files to AC_CONFIG_FILES in configure.ac
-SUFFIXES = .service.in .service .logrotate.in .logrotate .syslog-ng.in .syslog-ng .rsyslog.in .rsyslog
+
+SUFFIXES  = .logrotate .logrotate.in
+SUFFIXES += .rsyslog   .rsyslog.in
+SUFFIXES += .service   .service.in
+SUFFIXES += .syslog-ng .syslog-ng.in
+
 .service.in.service:
 	sed -e s,\@sbindir\@,$(sbindir),g -e s,\@SYSCONFDEFDIR\@,@SYSCONFDEFDIR@,g $< > $@
 
@@ -50,8 +66,15 @@ SUFFIXES = .service.in .service .logrotate.in .logrotate .syslog-ng.in .syslog-n
 all-local: $(SYSTEMD_SERVICES) $(SYSLOG_SERVICES) $(RSYSLOG_SERVICES) $(LOGROTATE_SERVICES)
 
 sbin_PROGRAMS = rasdaemon
-rasdaemon_SOURCES = rasdaemon.c ras-events.c ras-mc-handler.c \
-		    bitfield.c trigger.c types.c
+
+rasdaemon_SOURCES = rasdaemon.c
+
+rasdaemon_SOURCES += bitfield.c
+rasdaemon_SOURCES += ras-events.c
+rasdaemon_SOURCES += ras-mc-handler.c
+rasdaemon_SOURCES += trigger.c
+rasdaemon_SOURCES += types.c
+
 if WITH_SQLITE3
    rasdaemon_SOURCES += ras-record.c
 endif
@@ -65,13 +88,29 @@ if WITH_ARM
    rasdaemon_SOURCES += ras-arm-handler.c
 endif
 if WITH_MCE
-   rasdaemon_SOURCES += ras-mce-handler.c mce-intel.c mce-amd.c \
-			mce-intel-p4-p6.c mce-intel-nehalem.c \
-			mce-intel-dunnington.c mce-intel-tulsa.c \
-			mce-intel-sb.c mce-intel-ivb.c mce-intel-haswell.c \
-			mce-intel-knl.c mce-intel-broadwell-de.c \
-			mce-intel-broadwell-epex.c mce-intel-skylake-xeon.c \
-			mce-amd-k8.c mce-amd-smca.c mce-intel-i10nm.c
+   rasdaemon_SOURCES += mce-amd.c
+   rasdaemon_SOURCES += mce-amd-k8.c
+   rasdaemon_SOURCES += mce-amd-smca.c
+   rasdaemon_SOURCES += mce-intel.c
+   rasdaemon_SOURCES += mce-intel-broadwell-de.c
+   rasdaemon_SOURCES += mce-intel-broadwell-epex.c
+   rasdaemon_SOURCES += mce-intel-dunnington.c
+   rasdaemon_SOURCES += mce-intel-haswell.c
+   rasdaemon_SOURCES += mce-intel-i10nm.c
+   rasdaemon_SOURCES += mce-intel-ivb.c
+   rasdaemon_SOURCES += mce-intel-knl.c
+   rasdaemon_SOURCES += mce-intel-nehalem.c
+   rasdaemon_SOURCES += mce-intel-p4-p6.c
+   rasdaemon_SOURCES += mce-intel-sb.c
+   rasdaemon_SOURCES += mce-intel-skylake-xeon.c
+   rasdaemon_SOURCES += mce-intel-tulsa.c
+   rasdaemon_SOURCES += ras-events.c
+   rasdaemon_SOURCES += ras-mc-handler.c
+   rasdaemon_SOURCES += ras-mce-handler.c
+   rasdaemon_SOURCES += rasdaemon.c
+   rasdaemon_SOURCES += trigger.c
+   rasdaemon_SOURCES += types.c
+
 endif
 if WITH_EXTLOG
    rasdaemon_SOURCES += ras-extlog-handler.c
@@ -89,7 +128,8 @@ if WITH_ABRT_REPORT
    rasdaemon_SOURCES += ras-report.c
 endif
 if WITH_HISI_NS_DECODE
-   rasdaemon_SOURCES += non-standard-hisi_hip08.c non-standard-hisilicon.c
+   rasdaemon_SOURCES += non-standard-hisi_hip08.c
+   rasdaemon_SOURCES += non-standard-hisilicon.c
 endif
 if WITH_PFA
    rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
@@ -98,7 +138,8 @@ if WITH_AMP_NS_DECODE
    rasdaemon_SOURCES += non-standard-ampere.c
 endif
 if WITH_CPU_FAULT_ISOLATION
-   rasdaemon_SOURCES += ras-cpu-isolation.c queue.c
+   rasdaemon_SOURCES += ras-cpu-isolation.c
+   rasdaemon_SOURCES += queue.c
 endif
 if WITH_OPENBMC_UNIFIED_SEL
    rasdaemon_SOURCES += unified-sel.c
@@ -127,14 +168,40 @@ endif
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS) $(LIBPCI_LIBS)
 rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS) $(LIBPCI_CFLAGS)
 
-include_HEADERS = config.h types.h ras-events.h ras-logger.h ras-mc-handler.h \
-		  ras-aer-handler.h ras-mce-handler.h ras-record.h bitfield.h ras-report.h \
-		  ras-extlog-handler.h ras-arm-handler.h ras-non-standard-handler.h \
-		  ras-devlink-handler.h ras-diskerror-handler.h rbtree.h ras-page-isolation.h \
-		  non-standard-hisilicon.h non-standard-ampere.h ras-memory-failure-handler.h \
-		  ras-cxl-handler.h ras-cpu-isolation.h queue.h non-standard-yitian.h \
-		  non-standard-jaguarmicro.h trigger.h unified-sel.h ras-signal-handler.h \
-		  ras-poison-page-stat.h ras-erst.h
+
+include_HEADERS = config.h
+
+include_HEADERS += bitfield.h
+include_HEADERS += queue.h
+include_HEADERS += rbtree.h
+include_HEADERS += trigger.h
+include_HEADERS += types.h
+include_HEADERS += unified-sel.h
+
+include_HEADERS += non-standard-ampere.h
+include_HEADERS += non-standard-hisilicon.h
+include_HEADERS += non-standard-jaguarmicro.h
+include_HEADERS += non-standard-yitian.h
+
+include_HEADERS += ras-aer-handler.h
+include_HEADERS += ras-arm-handler.h
+include_HEADERS += ras-cpu-isolation.h
+include_HEADERS += ras-cxl-handler.h
+include_HEADERS += ras-devlink-handler.h
+include_HEADERS += ras-diskerror-handler.h
+include_HEADERS += ras-erst.h
+include_HEADERS += ras-events.h
+include_HEADERS += ras-extlog-handler.h
+include_HEADERS += ras-logger.h
+include_HEADERS += ras-mc-handler.h
+include_HEADERS += ras-mce-handler.h
+include_HEADERS += ras-memory-failure-handler.h
+include_HEADERS += ras-non-standard-handler.h
+include_HEADERS += ras-page-isolation.h
+include_HEADERS += ras-poison-page-stat.h
+include_HEADERS += ras-record.h
+include_HEADERS += ras-report.h
+include_HEADERS += ras-signal-handler.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that
