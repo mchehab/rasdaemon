@@ -33,5 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: checkpatch
-        run:
-          ./scripts/checkpatch.pl --terse --show-types --no-summary -f $(git ls-files|grep -E '\.[ch]$')
+        run: |
+            ignore_regex=$(grep -Ev '^\s*#' .github/workflows/checkpatch_ignore.txt | tr '\n' '|')
+            ignore_regex=${ignore_regex%|}
+
+            output=$(./scripts/checkpatch.pl --terse --show-types --no-summary \
+                     -f $(git ls-files | grep -E '\.[ch]$') | \
+                     grep -Ev "$ignore_regex" || true); echo $output; \
+            if [ -z "$output" ]; then exit 0; fi; exit 1

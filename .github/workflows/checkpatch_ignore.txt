@@ -1,0 +1,7 @@
+# .github/workflows/checkpatch_ignore.txt
+
+# Ignore a CONSTANT_COMPARISON that only appears in ras-page-isolation.h
+^ras-page-isolation\.h:.*CONSTANT_COMPARISON
+
+# Ignore a MACRO_ARG_PRECEDENCE that only appears in types.h
+^types\.h:.*MACRO_ARG_PRECEDENCE
