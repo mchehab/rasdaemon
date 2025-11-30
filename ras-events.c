@@ -66,7 +66,7 @@ static const struct event_trigger event_triggers[] = {
 #endif
 };
 
-static int get_debugfs_dir(char *tracing_dir, size_t len)
+static int get_mountdir_by_type(char *mount_type, char *tracing_dir, size_t len)
 {
 	FILE *fp;
 	char line[MAX_PATH + 1 + 256];
@@ -94,7 +94,7 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 		if (!type)
 			break;
 
-		if (!strcmp(type, "debugfs")) {
+		if (!strcmp(type, mount_type)) {
 			fclose(fp);
 			strscpy(tracing_dir, dir, len - 1);
 			return 0;
@@ -102,8 +102,19 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 	} while (1);
 
 	fclose(fp);
-	log(ALL, LOG_INFO, "Can't find debugfs\n");
+	log(ALL, LOG_INFO, "Can't find mountdir for type: %s\n", mount_type);
 	return -ENOENT;
+}
+
+static int get_debugfs_dir(char *tracing_dir, size_t len)
+{
+	return get_mountdir_by_type("debugfs", tracing_dir, len);
+}
+
+
+static int get_tracefs_dir(char *tracing_dir, size_t len)
+{
+	return get_mountdir_by_type("tracefs", tracing_dir, len);
 }
 
 static int wait_access(char *path, int ms)
@@ -155,18 +166,26 @@ static int open_trace(struct ras_events *ras, char *name, int flags)
 static int get_tracing_dir(struct ras_events *ras)
 {
 	char		fname[MAX_PATH + 1];
+	char		debugfs[MAX_PATH + 1];
 	int		rc, has_instances = 0;
 	DIR		*dir;
 	struct dirent	*entry;
 
-	get_debugfs_dir(ras->debugfs, sizeof(ras->debugfs));
+	rc = get_tracefs_dir(fname, sizeof(fname));
+	if (rc < 0)
+	{
+		/* check under deprecated debugfs location */
+		rc = get_debugfs_dir(debugfs, sizeof(debugfs));
+		if (rc < 0)
+			return rc;
 
-	rc = strscpy(fname, ras->debugfs, sizeof(fname));
-	if (rc < 0)
-		return rc;
-	rc = strscat(fname, "/tracing", sizeof(fname));
-	if (rc < 0)
-		return rc;
+		rc = strscpy(fname, debugfs, sizeof(fname));
+		if (rc < 0)
+			return rc;
+		rc = strscat(fname, "/tracing", sizeof(fname));
+		if (rc < 0)
+			return rc;
+	}
 
 	dir = opendir(fname);
 	if (!dir)
@@ -180,8 +199,7 @@ static int get_tracing_dir(struct ras_events *ras)
 	}
 	closedir(dir);
 
-	strscpy(ras->tracing, ras->debugfs, sizeof(ras->tracing));
-	strscat(ras->tracing, "/tracing", sizeof(ras->tracing));
+	strscpy(ras->tracing, fname, sizeof(ras->tracing));
 	if (has_instances) {
 		rc = strscat(ras->tracing, "/instances/" TOOL_NAME,
 			     sizeof(ras->tracing));
@@ -841,8 +859,8 @@ static bool check_event_exist(struct ras_events *ras, char *group, char *event)
 {
 	char fname[MAX_PATH + 256];
 
-	snprintf(fname, sizeof(fname), "%s/tracing/events/%s/%s",
-		 ras->debugfs, group, event);
+	snprintf(fname, sizeof(fname), "%s/events/%s/%s",
+		 ras->tracing, group, event);
 	if (access(fname, F_OK) == 0)
 		return true;
 
