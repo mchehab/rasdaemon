@@ -236,11 +236,16 @@ sub run_cmd
 sub print_status
 {
     my $status = 0;
-    open (MODULES, "/proc/modules")
-	 or die "Unable to open /proc/modules: $!\n";
 
-    while (<MODULES>) {
-       $status = 1 if /_edac/;
+    # Check /sys/module/ which contains BOTH built-in and loadable modules
+    if (opendir(my $dh, "/sys/module")) {
+        while (my $entry = readdir($dh)) {
+            if ($entry =~ /edac/) {
+                $status = 1;
+                last;
+            }
+        }
+        closedir($dh);
     }
 
     print "$prog: drivers ", ($status ? "are" : "not"), " loaded.\n"
