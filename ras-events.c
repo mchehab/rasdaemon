@@ -318,7 +318,6 @@ int toggle_ras_mc_event(int enable)
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_general_media", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_dram", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_module", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_sparing", enable);
 #endif
 
 #ifdef HAVE_SIGNAL
@@ -1216,14 +1215,6 @@ int handle_ras_events(int record_events, int enable_ipmitool)
 	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "memory_module");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_memory_sparing",
-			       ras_cxl_memory_sparing_event_handler, NULL, CXL_MEMORY_SPARING_EVENT);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_memory_sparing");
 #endif
 
 #ifdef HAVE_SIGNAL
