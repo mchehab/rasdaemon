@@ -8,7 +8,6 @@
 #ifndef __RAS_RECORD_H
 #define __RAS_RECORD_H
 
-#include <sqlite3.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -319,6 +318,8 @@ struct ras_signal_event;
 struct ras_cxl_memory_sparing_event;
 
 #ifdef HAVE_SQLITE3
+
+#include <sqlite3.h>
 
 struct sqlite3_priv {
 	sqlite3		*db;
