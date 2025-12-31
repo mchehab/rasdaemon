@@ -752,7 +752,7 @@ static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
 
-	trace_seq_printf(s, "%s\n", jmevent.reg_msg);
+	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
 /*decode JaguarMicro specific error payload type 1 and save to sqlite db*/
@@ -799,7 +799,7 @@ static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
 
-	trace_seq_printf(s, "%s\n", jmevent.reg_msg);
+	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
 /*decode JaguarMicro specific error payload type 2 and save to sqlite db*/
@@ -842,7 +842,7 @@ static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
 
-	trace_seq_printf(s, "%s\n", jmevent.reg_msg);
+	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
 /*decode JaguarMicro specific error payload type 5 and save to sqlite db*/
@@ -925,7 +925,7 @@ static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
 
-	trace_seq_printf(s, "%s\n", jmevent.reg_msg);
+	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
 /*decode JaguarMicro specific error payload type 6 and save to sqlite db*/
@@ -983,7 +983,7 @@ static void decode_jm_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
 	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
-	trace_seq_printf(s, "%s\n", jmevent.reg_msg);
+	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
 /* error data decoding functions */
