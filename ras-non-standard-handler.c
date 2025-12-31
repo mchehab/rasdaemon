@@ -1,31 +1,28 @@
+// SPDX-License-Identifier: GPL-2.0
+
 /*
  * Copyright (c) 2016, The Linux Foundation. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
-#include "ras-non-standard-handler.h"
-#include "ras-record.h"
+#include <unistd.h>
+
 #include "ras-logger.h"
+#include "ras-non-standard-handler.h"
 #include "ras-report.h"
+#include "types.h"
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 
-void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index) {
-	trace_seq_printf(s, "%02x%02x%02x%02x", buf[index+3], buf[index+2], buf[index+1], buf[index]);
+void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index)
+{
+	trace_seq_printf(s, "%02x%02x%02x%02x",
+			 buf[index + 3], buf[index + 2],
+			 buf[index + 1], buf[index]);
 }
 
 static char *uuid_le(const char *uu)
@@ -33,10 +30,10 @@ static char *uuid_le(const char *uu)
 	static char uuid[sizeof("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")];
 	char *p = uuid;
 	int i;
-	static const unsigned char le[16] = {3,2,1,0,5,4,7,6,8,9,10,11,12,13,14,15};
+	static const unsigned char le[16] = {3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15};
 
 	for (i = 0; i < 16; i++) {
-		p += sprintf(p, "%.2x", (unsigned char) uu[le[i]]);
+		p += snprintf(p, sizeof(uuid), "%.2x", (unsigned char)uu[le[i]]);
 		switch (i) {
 		case 3:
 		case 5:
@@ -65,6 +62,7 @@ int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 #endif
 	if (!ras_ns_ev_dec_list) {
 		ras_ns_ev_dec_list = ns_ev_decoder;
+		ras_ns_ev_dec_list->ref_count = 0;
 	} else {
 		list = ras_ns_ev_dec_list;
 		while (list->next)
@@ -85,6 +83,8 @@ int ras_ns_add_vendor_tables(struct ras_events *ras)
 		return -1;
 
 	ns_ev_decoder = ras_ns_ev_dec_list;
+	if (ras_ns_ev_dec_list)
+		ras_ns_ev_dec_list->ref_count++;
 	while (ns_ev_decoder) {
 		if (ns_ev_decoder->add_table && !ns_ev_decoder->stmt_dec_record) {
 			error = ns_ev_decoder->add_table(ras, ns_ev_decoder);
@@ -127,6 +127,16 @@ void ras_ns_finalize_vendor_tables(void)
 #ifdef HAVE_SQLITE3
 	struct ras_ns_ev_decoder *ns_ev_decoder = ras_ns_ev_dec_list;
 
+	if (!ras_ns_ev_dec_list)
+		return;
+
+	if (ras_ns_ev_dec_list->ref_count > 0)
+		ras_ns_ev_dec_list->ref_count--;
+	else
+		return;
+	if (ras_ns_ev_dec_list->ref_count > 0)
+		return;
+
 	while (ns_ev_decoder) {
 		if (ns_ev_decoder->stmt_dec_record) {
 			ras_mc_finalize_vendor_table(ns_ev_decoder->stmt_dec_record);
@@ -140,6 +150,9 @@ void ras_ns_finalize_vendor_tables(void)
 static void unregister_ns_ev_decoder(void)
 {
 #ifdef HAVE_SQLITE3
+	if (!ras_ns_ev_dec_list)
+		return;
+	ras_ns_ev_dec_list->ref_count = 1;
 	ras_ns_finalize_vendor_tables();
 #endif
 	ras_ns_ev_dec_list = NULL;
@@ -167,7 +180,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -197,12 +210,12 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 
 	ev.sec_type = tep_get_field_raw(s, event, "sec_type",
 					record, &len, 1);
-	if(!ev.sec_type)
+	if (!ev.sec_type)
 		return -1;
 	if (strcmp(uuid_le(ev.sec_type),
 		   "e8ed898d-df16-43cc-8ecc-54f060ef157f") == 0)
-		trace_seq_printf(s, "\n section type: %s",
-		"Ampere Specific Error\n");
+		trace_seq_printf(s, " section type: %s",
+				 "Ampere Specific Error");
 	else
 		trace_seq_printf(s, " section type: %s",
 				 uuid_le(ev.sec_type));
@@ -219,7 +232,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	trace_seq_printf(s, " length: %d", ev.length);
 
 	ev.error = tep_get_field_raw(s, event, "buf", record, &len, 1);
-	if(!ev.error)
+	if (!ev.error)
 		return -1;
 
 	if (!find_ns_ev_decoder(ev.sec_type, &ns_ev_decoder)) {
@@ -236,8 +249,9 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 			if (++line_count == 4) {
 				trace_seq_printf(s, "\n  %08x: ", i);
 				line_count = 0;
-			} else
+			} else {
 				trace_seq_printf(s, " ");
+			}
 		}
 	}
 

@@ -1,35 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (C) 2019 Cong Wang <xiyou.wangcong@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
+
 #define _GNU_SOURCE
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifndef __dev_t_defined
-#include <sys/types.h>
-#endif /* __dev_t_defined */
 #include <string.h>
-#include <errno.h>
-#include <sys/sysmacros.h>
 #include <traceevent/kbuffer.h>
+
 #include "ras-diskerror-handler.h"
-#include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
-
+#include "types.h"
 
 static const struct {
 	int             error;
@@ -70,8 +55,9 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 	time_t now;
 	struct tm *tm;
 	struct diskerror_event ev;
-	dev_t dev;
+	uint32_t dev;
 
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would
@@ -82,7 +68,7 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -94,8 +80,8 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 
 	if (tep_get_field_val(s, event, "dev", record, &val, 1) < 0)
 		return -1;
-	dev = (dev_t)val;
-	if (asprintf(&ev.dev, "%u:%u", major(dev), minor(dev)) < 0)
+	dev = (uint32_t)val;
+	if (asprintf(&ev.dev, "%u:%u", MAJOR(dev), MINOR(dev)) < 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "sector", record, &val, 1) < 0)

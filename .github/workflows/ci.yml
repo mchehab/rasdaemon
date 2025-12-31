@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 name: CI
 
 on:
@@ -12,15 +14,55 @@ jobs:
     strategy:
       matrix:
         arch: [x64_64, aarch64, ppc64le]
+        config: [--disable-all, --enable-all]
     steps:
       - uses: actions/checkout@v2
       - name: prepare
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libsqlite3-dev sqlite3 libtraceevent-dev libtraceevent1
+          sudo apt-get install -y build-essential libsqlite3-dev sqlite3 libtraceevent-dev libtraceevent1 libpci-dev
       - name: build
         run: |
           autoreconf -vfi
-          ./configure --enable-all
+          ./configure ${{ matrix.config }}
           make
           sudo make install
+
+  Fedora:
+    name: Fedora
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x64_64]
+    container:
+      image: fedora:rawhide
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v2
+      - name: prepare
+        run: |
+          dnf update -y
+          dnf install -y mock rpm-build rpmdevtools \
+                         autoconf automake make gcc libtraceevent-devel
+          ln -sf fedora-rawhide-x86_64.cfg /etc/mock/default.cfg
+          rpmdev-setuptree
+      - name: build
+        run: |
+          autoreconf -vfi
+          ./configure
+          make mock
+
+  Check:
+    name: Source code check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: checkpatch
+        run: |
+            ignore_regex=$(grep -Ev '^\s*#' .github/workflows/checkpatch_ignore.txt | tr '\n' '|')
+            ignore_regex=${ignore_regex%|}
+
+            output=$(./scripts/checkpatch.pl --terse --show-types --no-summary \
+                     -f $(git ls-files | grep -E '\.[ch]$') | \
+                     grep -Ev "$ignore_regex" || true); echo $output; \
+            if [ -z "$output" ]; then exit 0; fi; exit 1

@@ -1,27 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2021-2021. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <errno.h>
 #include <unistd.h>
-#include <limits.h>
+
 #include <ctype.h>
-#include "ras-logger.h"
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include "ras-cpu-isolation.h"
+#include "ras-logger.h"
 
 #define SECOND_OF_MON (30 * 24 * 60 * 60)
 #define SECOND_OF_DAY (24 * 60 * 60)
@@ -84,7 +77,7 @@ static int open_sys_file(unsigned int cpu, int __oflag, const char *format)
 	char real_path[PATH_MAX] = "";
 
 	snprintf(path, sizeof(path), format, cpu);
-	if (strlen(path) > PATH_MAX || realpath(path, real_path) == NULL) {
+	if (strlen(path) > PATH_MAX || !realpath(path, real_path)) {
 		log(TERM, LOG_ERR, "[%s]:open file: %s failed\n", __func__, path);
 		return -1;
 	}
@@ -120,7 +113,7 @@ static int init_cpu_info(unsigned int cpus)
 	cpu_infos = (struct cpu_info *)malloc(sizeof(*cpu_infos) * cpus);
 	if (!cpu_infos) {
 		log(TERM, LOG_ERR,
-			"Failed to allocate memory for cpu infos in %s.\n", __func__);
+		    "Failed to allocate memory for cpu infos in %s.\n", __func__);
 		return -1;
 	}
 
@@ -130,9 +123,9 @@ static int init_cpu_info(unsigned int cpus)
 		cpu_infos[i].state = get_cpu_status(i);
 		cpu_infos[i].ce_queue = init_queue();
 
-		if (cpu_infos[i].ce_queue == NULL) {
+		if (!cpu_infos[i].ce_queue) {
 			log(TERM, LOG_ERR,
-				"Failed to allocate memory for cpu ce queue in %s.\n", __func__);
+			    "Failed to allocate memory for cpu ce queue in %s.\n", __func__);
 			return -1;
 		}
 	}
@@ -147,7 +140,7 @@ static void check_config(struct isolation_param *config)
 {
 	if (config->value > config->limit) {
 		log(TERM, LOG_WARNING, "Value: %lu exceed limit: %lu, set to limit\n",
-			config->value, config->limit);
+		    config->value, config->limit);
 		config->value = config->limit;
 	}
 }
@@ -173,13 +166,14 @@ static int parse_ul_config(struct isolation_param *config, char *env, unsigned l
 	for (int i = 0; i < env_size; ++i) {
 		if (isdigit(env[i])) {
 			if (*value > ULONG_MAX / DEC_CHECK ||
-				(*value == ULONG_MAX / DEC_CHECK && env[i] - '0' > LAST_BIT_OF_UL)) {
+			    (*value == ULONG_MAX / DEC_CHECK && env[i] - '0' > LAST_BIT_OF_UL)) {
 				log(TERM, LOG_ERR, "%s is out of range: %lu\n", env, ULONG_MAX);
 				return -1;
 			}
 			*value = DEC_CHECK * (*value) + (env[i] - '0');
-		} else
+		} else {
 			return -1;
+		}
 	}
 
 	if (!has_unit)
@@ -208,7 +202,7 @@ static void init_config(struct isolation_param *config)
 
 	if (parse_ul_config(config, env, &value) < 0) {
 		log(TERM, LOG_ERR, "Invalid %s: %s! Use default value %lu.\n",
-			config->name, env, config->value);
+		    config->name, env, config->value);
 		return;
 	}
 
@@ -220,7 +214,7 @@ static int check_config_status(void)
 {
 	char *env = getenv("CPU_ISOLATION_ENABLE");
 
-	if (env == NULL || strcasecmp(env, "yes"))
+	if (!env || strcasecmp(env, "yes"))
 		return -1;
 
 	return 0;
@@ -253,14 +247,13 @@ void cpu_infos_free(void)
 static int do_cpu_offline(unsigned int cpu)
 {
 	int fd, rc;
-	char buf[2] = "";
+	char buf[2] = "0";
 
 	cpu_infos[cpu].state = CPU_OFFLINE_FAILED;
 	fd = open_sys_file(cpu, O_RDWR, cpu_path_format);
 	if (fd == -1)
 		return HANDLE_FAILED;
 
-	strcpy(buf, "0");
 	rc = write(fd, buf, strlen(buf));
 	if (rc < 0) {
 		log(TERM, LOG_ERR, "cpu%u offline failed, errno:%d\n", cpu, errno);
@@ -283,10 +276,10 @@ static int do_ce_handler(unsigned int cpu)
 	struct link_queue *queue = cpu_infos[cpu].ce_queue;
 	unsigned int tmp;
 	/*
-	 * Since we just count all error numbers in setted cycle, we store the time
-	 * and error numbers from current event to the queue, then everytime we
+	 * Since we just count all error numbers in set cycle, we store the time
+	 * and error numbers from current event to the queue, then every time we
 	 * calculate the period from beginning time to ending time, if the period
-	 * exceeds setted cycle, we pop the beginning time and error until the period
+	 * exceeds set cycle, we pop the beginning time and error until the period
 	 * from new beginning time to ending time is less than cycle.
 	 */
 	while (queue->head && queue->tail && queue->tail->time - queue->head->time > cycle.value) {
@@ -295,12 +288,12 @@ static int do_ce_handler(unsigned int cpu)
 			cpu_infos[cpu].ce_nums -= tmp;
 	}
 	log(TERM, LOG_INFO,
-		"Current number of Corrected Errors in cpu%d in the cycle is %lu\n",
+	    "Current number of Corrected Errors in cpu%d in the cycle is %lu\n",
 		cpu, cpu_infos[cpu].ce_nums);
 
 	if (cpu_infos[cpu].ce_nums >= threshold.value) {
 		log(TERM, LOG_INFO,
-			"Corrected Errors exceeded threshold %lu, try to offline cpu%u\n",
+		    "Corrected Errors exceeded threshold %lu, try to offline cpu%u\n",
 			threshold.value, cpu);
 		return do_cpu_offline(cpu);
 	}
@@ -341,7 +334,7 @@ static void record_error_info(unsigned int cpu, struct error_info *err_info)
 	{
 		struct queue_node *node = node_create(err_info->time, err_info->nums);
 
-		if (node == NULL) {
+		if (!node) {
 			log(TERM, LOG_ERR, "Fail to allocate memory for queue node\n");
 			return;
 		}
@@ -366,7 +359,7 @@ void ras_record_cpu_error(struct error_info *err_info, int cpu)
 
 	if (cpu >= ncores || cpu < 0) {
 		log(TERM, LOG_ERR,
-			"The current cpu %d has exceed the total number of cpu:%u\n", cpu, ncores);
+		    "The current cpu %d has exceed the total number of cpu:%u\n", cpu, ncores);
 		return;
 	}
 
@@ -385,21 +378,22 @@ void ras_record_cpu_error(struct error_info *err_info, int cpu)
 	 */
 	if (ncores - sysconf(_SC_NPROCESSORS_ONLN) >= cpu_limit.value) {
 		log(TERM, LOG_WARNING,
-			"Offlined cpus have exceeded limit: %lu, choose to do nothing\n",
+		    "Offlined cpus have exceeded limit: %lu, choose to do nothing\n",
 			cpu_limit.value);
 		return;
 	}
 
 	ret = error_handler(cpu, err_info);
-	if (ret == HANDLE_NOTHING)
+	if (ret == HANDLE_NOTHING) {
 		log(TERM, LOG_WARNING, "Doing nothing in the cpu%d\n", cpu);
-	else if (ret == HANDLE_SUCCEED) {
+	} else if (ret == HANDLE_SUCCEED) {
 		log(TERM, LOG_INFO, "Offline cpu%d succeed, the state is %s\n",
-			cpu, cpu_state[cpu_infos[cpu].state]);
+		    cpu, cpu_state[cpu_infos[cpu].state]);
 		clear_queue(cpu_infos[cpu].ce_queue);
 		cpu_infos[cpu].ce_nums = 0;
 		cpu_infos[cpu].uce_nums = 0;
-	} else
+	} else {
 		log(TERM, LOG_WARNING, "Offline cpu%d fail, the state is %s\n",
-			cpu, cpu_state[cpu_infos[cpu].state]);
+		    cpu, cpu_state[cpu_infos[cpu].state]);
+	}
 }

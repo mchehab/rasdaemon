@@ -1,27 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0
+
 /*
  * The code below came from Tony Luck mcelog code,
  * released under GNU Public General License, v.2
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 /* See IA32 SDM Vol3B Table 16-17 */
 
@@ -90,7 +78,7 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
 	struct mce_priv *mce = ras->mce_priv;
 	uint64_t status = e->status;
 	uint32_t mca    = status & 0xffff;
-	unsigned	rank0 = -1, rank1 = -1, chan;
+	unsigned int rank0 = -1, rank1 = -1, chan;
 
 	switch (e->bank) {
 	case 4:
@@ -121,7 +109,7 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
 
 	/* Ignore unless this is an corrected extended error from an iMC bank */
 	if (e->bank < 9 || e->bank > 16 || (status & MCI_STATUS_UC) ||
-		!test_prefix(7, status & 0xefff))
+	    !test_prefix(7, status & 0xefff))
 		return;
 
 	/*
@@ -146,36 +134,9 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
 	 */
 	if (rank0 >= 0 && rank1 >= 0)
 		mce_snprintf(e->mc_location, "ranks=%d and %d",
-				     rank0, rank1);
+			     rank0, rank1);
 	else if (rank0 >= 0)
 		mce_snprintf(e->mc_location, "rank=%d", rank0);
 	else
 		mce_snprintf(e->mc_location, "rank=%d", rank1);
 }
-
-/*
- * Ivy Bridge EP and EX processors (family 6, model 62) support additional
- * logging for corrected errors in the integrated memory controller (IMC)
- * banks. The mode is off by default, but can be enabled by setting the
- * "MemError Log Enable" * bit in MSR_ERROR_CONTROL (MSR 0x17f).
- * The SDM leaves it as an exercise for the reader to convert the
- * faling rank to a DIMM slot.
- */
-#if 0
-static int failrank2dimm(unsigned failrank, int socket, int channel)
-{
-	switch (failrank) {
-	case 0: case 1: case 2: case 3:
-		return 0;
-	case 4: case 5:
-		return 1;
-	case 6: case 7:
-		if (get_memdimm(socket, channel, 2, 0))
-			return 2;
-		else
-			return 1;
-	}
-	return -1;
-}
-#endif
-

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 # RASDAEMON Motherboard DIMM labels Database file.
 #
 #  Vendor-name and model-name are found from the program 'dmidecode'
@@ -64,7 +66,7 @@ Vendor: Supermicro
 		P1_DIMM4B: 1.1.1;
 		P2_DIMM4B: 2.0.1;
 		P2_DIMM4B: 2.1.1;
-  
+
   Model: X11DPH-i, X11DPH-T, X11DPH-TQ
     P1-DIMMA1: 0.0.0;    P1-DIMMA2: 0.0.1;
     P1-DIMMB1: 0.1.0;
@@ -78,7 +80,7 @@ Vendor: Supermicro
     P2-DIMMD1: 3.0.0;    P2-DIMMD2: 3.0.1;
     P2-DIMME1: 3.1.0;
     P2-DIMMF1: 3.2.0;
-    
+
   Model: X10DRI, X10DRI-T
     P1-DIMMA1: 0.0.0;    P1-DIMMA2: 0.0.1;
     P1-DIMMB1: 0.1.0;    P1-DIMMB2: 0.1.1;
@@ -98,7 +100,7 @@ Vendor: Supermicro
     P2-DIMMF1: 1.1.0;
     P2-DIMMG1: 1.2.0;
     P2-DIMMH1: 1.3.0;
-  
+
   Model: X11DDW-NT, X11DDW-L
     P1-DIMMA1: 0.0.0;
     P1-DIMMB1: 0.1.0;
@@ -112,7 +114,25 @@ Vendor: Supermicro
     P2-DIMMD1: 3.0.0;
     P2-DIMME1: 3.1.0;
     P2-DIMMF1: 3.2.0;
-  
+
+  Model: X11DPi-N, X11DPi-NT
+    P1-DIMMA1: 0.0.0;
+    P1-DIMMA2: 0.0.1;
+    P1-DIMMB1: 0.1.0;
+    P1-DIMMC1: 0.2.0;
+    P1-DIMMD1: 1.0.0;
+    P1-DIMMD2: 1.0.1;
+    P1-DIMME1: 1.1.0;
+    P1-DIMMF1: 1.2.0;
+    P2-DIMMA1: 2.0.0;
+    P2-DIMMA2: 2.0.1;
+    P2-DIMMB1: 2.1.0;
+    P2-DIMMC1: 2.2.0;
+    P2-DIMMD1: 3.0.0;
+    P2-DIMMD2: 3.0.1;
+    P2-DIMME1: 3.1.0;
+    P2-DIMMF1: 3.2.0;
+
   Model: X11SPM-F, X11SPM-TF, X11SPM-TPF
     DIMMA1: 0.0.0;
     DIMMB1: 0.1.0;
@@ -120,7 +140,7 @@ Vendor: Supermicro
     DIMMD1: 1.0.0;
     DIMME1: 1.1.0;
     DIMMF1: 1.2.0;
-    
+
   Model: B1DRi
     P1_DIMMA1: 0.0.0;
     P1_DIMMB1: 0.1.0;
@@ -130,13 +150,50 @@ Vendor: Supermicro
     P2_DIMMF1: 1.1.0;
     P2_DIMMG1: 1.2.0;
     P2_DIMMH1: 1.3.0;
-  
+
   Model: X11SCA, X11SCA-F
     DIMMA1:  0.0.0, 0.1.0;    DIMMA2:   0.2.0, 0.3.0;
     DIMMB1:  0.0.1, 0.1.1;    DIMMB2:   0.2.1, 0.3.1;
-    
+
   Model: X11SCW-F
     DIMMA1: 0.1.0;
     DIMMA2: 0.0.0;
     DIMMB1: 0.1.1;
     DIMMB2: 0.0.1;
+
+# Intel Ice Lake-SP
+# Intel 3rd Generation Xeon Scalable CPU: 4 integrated Memory Controllers (iMC), 8 memory channels, and 16 DIMM slots
+
+  Model: X12DPU-6
+    P1-DIMMA1: 0.0.0
+    P1-DIMMA2: 0.0.1
+    P1-DIMMB1: 0.1.0
+    P1-DIMMB2: 0.1.1
+    P1-DIMMC1: 1.0.0
+    P1-DIMMC2: 1.0.1
+    P1-DIMMD1: 1.1.0
+    P1-DIMMD2: 1.1.1
+    P1-DIMME1: 2.0.0
+    P1-DIMME2: 2.0.1
+    P1-DIMMF1: 2.1.0
+    P1-DIMMF2: 2.1.1
+    P1-DIMMG1: 3.0.0
+    P1-DIMMG2: 3.0.1
+    P1-DIMMH1: 3.1.0
+    P1-DIMMH2: 3.1.1
+    P2-DIMMA1: 4.0.0
+    P2-DIMMA2: 4.0.1
+    P2-DIMMB1: 4.1.0
+    P2-DIMMB2: 4.1.1
+    P2-DIMMC1: 5.0.0
+    P2-DIMMC2: 5.0.1
+    P2-DIMMD1: 5.1.0
+    P2-DIMMD2: 5.1.1
+    P2-DIMME1: 6.0.0
+    P2-DIMME2: 6.0.1
+    P2-DIMMF1: 6.1.0
+    P2-DIMMF2: 6.1.1
+    P2-DIMMG1: 7.0.0
+    P2-DIMMG2: 7.0.1
+    P2-DIMMH1: 7.1.0
+    P2-DIMMH2: 7.1.1

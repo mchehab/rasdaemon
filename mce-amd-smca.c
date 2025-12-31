@@ -1,27 +1,19 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (c) 2018, AMD, Inc. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 and
- * only version 2 as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #include <stdio.h>
 #include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 /* MCA_STATUS REGISTER FOR FAMILY 17H
  *********************** Higher 32-bits *****************************
  * 63: VALIDERROR, 62: OVERFLOW, 61: UC, 60: Err ENABLE,
  * 59: Misc Valid, 58: Addr Valid, 57: PCC, 56: ErrCoreID Valid,
- * 55: TCC, 54: RES, 53: Syndrom Valid, 52: Transparanet,
+ * 55: TCC, 54: RES, 53: Syndrome Valid, 52: Transparent,
  * 51: RES, 50: RES, 49: RES, 48: RES,
  * 47: RES, 46: CECC, 45: UECC, 44: Deferred,
  * 43: Poison, 42: RES, 41: RES, 40: RES,
@@ -74,10 +66,10 @@ enum smca_bank_types {
 	SMCA_PCIE,	/* PCI Express Unit */
 	SMCA_PCIE_V2,
 	SMCA_XGMI_PCS,	/* xGMI PCS Unit */
-	SMCA_NBIF,		/*NBIF Unit */
-	SMCA_SHUB,		/* System Hub Unit */
-	SMCA_SATA,		/* SATA Unit */
-	SMCA_USB,		/* USB Unit */
+	SMCA_NBIF,	/* NBIF Unit */
+	SMCA_SHUB,	/* System Hub Unit */
+	SMCA_SATA,	/* SATA Unit */
+	SMCA_USB,	/* USB Unit */
 	SMCA_USR_DP,	/* Ultra Short Reach Data Plane Controller */
 	SMCA_USR_CP,	/* Ultra Short Reach Control Plane Controller */
 	SMCA_GMI_PCS,	/* GMI PCS Unit */
@@ -108,7 +100,7 @@ static const char * const smca_ls_mce_desc[] = {
 	"Store queue parity",
 	"Miss address buffer payload parity",
 	"L1 TLB parity",
-	"Reserved",
+	"DC Tag error type 5",
 	"DC tag error type 6",
 	"DC tag error type 1",
 	"Internal error type 1",
@@ -125,6 +117,12 @@ static const char * const smca_ls_mce_desc[] = {
 	"DC tag error type 3",
 	"DC tag error type 5",
 	"L2 fill data error",
+	"Error on SCB cacheline state or address field",
+	"Error on SCB data, commit pipe 0",
+	"Error on SCB data, commit pipe 1",
+	"Error on SCB data for non-cacheable DRAM or IO",
+	"System Read Data Error detected by write combine buffer",
+	"Hardware Asserts",
 };
 
 static const char * const smca_ls2_mce_desc[] = {
@@ -168,7 +166,7 @@ static const char * const smca_if_mce_desc[] = {
 	"BP L1-BTB Multi-Hit Error",
 	"BP L2-BTB Multi-Hit Error",
 	"L2 Cache Response Poison error",
-	"L2 Cache Error Response",
+	"System Read Data error",
 	"Hardware Assertion Error",
 	"L1-TLB Multi-Hit",
 	"L2-TLB Multi-Hit",
@@ -182,6 +180,7 @@ static const char * const smca_l2_mce_desc[] = {
 	"L2M Data Array ECC Error",
 	"Hardware Assert Error",
 	"SDP Read Response Parity Error",
+	"Error initiated by programmable state machine",
 };
 
 static const char * const smca_de_mce_desc[] = {
@@ -193,7 +192,7 @@ static const char * const smca_de_mce_desc[] = {
 	"Fetch address FIFO parity error",
 	"Patch RAM data parity error",
 	"Patch RAM sequencer parity error",
-	"Micro-op buffer parity error",
+	"Micro-op fetch queue parity error",
 	"Hardware Assertion MCA Error",
 };
 
@@ -235,6 +234,7 @@ static const char * const smca_l3_mce_desc[] = {
 	"L3 victim queue Data Fabric error",
 	"L3 Hardware Assertion",
 	"XI WCB Parity Poison Creation event",
+	"Machine check error initiated by DSM action",
 };
 
 static const char * const smca_cs_mce_desc[] = {
@@ -268,6 +268,9 @@ static const char * const smca_cs2_mce_desc[] = {
 	"Address Violation on the no data channel",
 	"Security Violation on the no data channel",
 	"Hardware Assert Error",
+	"Shadow Tag Array Protocol Error",
+	"Shadow Tag ECC Error",
+	"Shadow Tag Transaction Error",
 };
 
 /*
@@ -303,6 +306,8 @@ static const char * const smca_pie_mce_desc[] = {
 	"A deferred error was detected in the DF",
 	"Watch Dog Timer",
 	"An SRAM ECC error was detected in the CNLI block",
+	"Register access during DF Cstate",
+	"DSM Error",
 };
 
 static const char * const smca_umc_mce_desc[] = {
@@ -318,6 +323,11 @@ static const char * const smca_umc_mce_desc[] = {
 	"ECS Error",
 	"UMC Throttling Error",
 	"Read CRC Error",
+	"Reserved",
+	"Reserved",
+	"Reserved",
+	"Reserved",
+	"RFM SRAM ECC error",
 };
 
 static const char * const smca_umc_quirk_mce_desc[] = {
@@ -391,6 +401,12 @@ static const char * const smca_psp2_mce_desc[] = {
 	"TLB Bank 0 parity error",
 	"TLB Bank 1 parity error",
 	"System Hub Read Buffer ECC or parity error",
+	"FUSE IP SRAM ECC or parity error",
+	"PCRU FUSE SRAM ECC or parity error",
+	"SIB SRAM parity error",
+	"mpASP SECEMC Error",
+	"mpASP A5 Hang",
+	"SIB WDT error",
 };
 
 static const char * const smca_smu_mce_desc[] = {
@@ -409,6 +425,14 @@ static const char * const smca_smu2_mce_desc[] = {
 	"Instruction Tag Cache Bank A ECC or parity error",
 	"Instruction Tag Cache Bank B ECC or parity error",
 	"System Hub Read Buffer ECC or parity error",
+	"PHY RAS ECC Error",
+	[12 ... 57] = "Reserved",
+	"A correctable error from a GFX Sub-IP",
+	"A fatal error from a GFX Sub-IP",
+	"Reserved",
+	"Reserved",
+	"A poison error from a GFX Sub-IP",
+	"Reserved",
 };
 
 static const char * const smca_mp5_mce_desc[] = {
@@ -422,6 +446,7 @@ static const char * const smca_mp5_mce_desc[] = {
 	"Instruction Cache Bank B ECC or parity error",
 	"Instruction Tag Cache Bank A ECC or parity error",
 	"Instruction Tag Cache Bank B ECC or parity error",
+	"Fuse SRAM ECC or parity error",
 };
 
 static const char * const smca_mpdma_mce_desc[] = {
@@ -474,6 +499,7 @@ static const char * const smca_mpdma_mce_desc[] = {
 	"MPDMA PTE Internal Data FIFO ECC or parity error",
 	"MPDMA PTE Command Memory DMA ECC or parity error",
 	"MPDMA PTE Command Memory Internal ECC or parity error",
+	"MPDMA TVF SDP Master Memory 7 ECC or parity error",
 };
 
 static const char * const smca_nbio_mce_desc[] = {
@@ -697,7 +723,7 @@ static struct smca_mce_desc smca_mce_descs[] = {
 };
 
 struct smca_hwid {
-	unsigned int bank_type; /* Use with smca_bank_types for easy indexing.*/
+	enum smca_bank_types bank_type;
 	uint32_t mcatype_hwid;  /* mcatype,hwid bit 63-32 in MCx_IPID Register*/
 };
 
@@ -799,7 +825,7 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_PSP ... SMCA_PSP_V2]	= { "Platform Security Processor" },
 	[SMCA_SMU ... SMCA_SMU_V2]	= { "System Management Unit" },
 	[SMCA_MP5]			= { "Microprocessor 5 Unit" },
-	[SMCA_MPDMA]		= { "MPDMA Unit" },
+	[SMCA_MPDMA]			= { "MPDMA Unit" },
 	[SMCA_NBIO]			= { "Northbridge IO Unit" },
 	[SMCA_PCIE ... SMCA_PCIE_V2]	= { "PCI Express Unit" },
 	[SMCA_XGMI_PCS]			= { "Ext Global Memory Interconnect PCS Unit" },
@@ -817,7 +843,6 @@ static struct smca_bank_name smca_names[] = {
 
 void amd_decode_errcode(struct mce_event *e)
 {
-
 	decode_amd_errcode(e);
 
 	if (e->status & MCI_STATUS_POISON)
@@ -825,8 +850,8 @@ void amd_decode_errcode(struct mce_event *e)
 
 	if (e->status & MCI_STATUS_TCC)
 		mce_snprintf(e->mcistatus_msg, "Task_context_corrupt");
-
 }
+
 /*
  * To find the UMC channel represented by this bank we need to match on its
  * instance_id. The instance_id of a bank is held in the lower 32 bits of its
@@ -856,7 +881,7 @@ static int find_hbm_channel(struct mce_event *e)
 	return (umc % 2) ? tmp + 4 : tmp;
 }
 
-static inline void fixup_hwid(struct mce_priv* m, uint32_t *hwid_mcatype)
+static inline void fixup_hwid(struct mce_priv *m, uint32_t *hwid_mcatype)
 {
 	if (m->family == 0x19) {
 		switch (m->model) {
@@ -919,17 +944,20 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 	}
 
 	if (i >= MAX_NR_BANKS) {
-		strcpy(e->mcastatus_msg, "Couldn't find bank type with IPID");
+		strscpy(e->mcastatus_msg, "Couldn't find bank type with IPID",
+			sizeof(e->mcastatus_msg));
 		return;
 	}
 
 	if (bank_type >= N_SMCA_BANK_TYPES) {
-		strcpy(e->mcastatus_msg, "Don't know how to decode this bank");
+		strscpy(e->mcastatus_msg, "Don't know how to decode this bank",
+			sizeof(e->mcastatus_msg));
 		return;
 	}
 
 	if (bank_type == SMCA_RESERVED) {
-		strcpy(e->mcastatus_msg, "Bank 4 is reserved.\n");
+		strscpy(e->mcastatus_msg, "Bank 4 is reserved.\n",
+			sizeof(e->mcastatus_msg));
 		return;
 	}
 
@@ -945,7 +973,7 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 			     xec);
 
 	if ((bank_type == SMCA_UMC || bank_type == SMCA_UMC_QUIRK) && xec == 0) {
-		if ((m->family == 0x19) && (m->model >= 0x90 && m->model <= 0x9f)) {
+		if (m->family == 0x19 && (m->model >= 0x90 && m->model <= 0x9f)) {
 			/* MCA_IPID[InstanceIdHi] give the AMD Node Die ID */
 			mce_snprintf(e->mc_location, "memory_die_id=%d", mcatype_instancehi / 4);
 		} else {
@@ -965,6 +993,8 @@ void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 			     channel, csrow);
 	}
 
+	if (e->vdata_len)
+		memcpy(e->frutext, e->vdata, 16);
 }
 
 int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e)
@@ -972,7 +1002,7 @@ int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e)
 	uint64_t mcgstatus = e->mcgstatus;
 
 	mce_snprintf(e->mcgstatus_msg, "mcgstatus=%lld",
-		    (long long)e->mcgstatus);
+		     (long long)e->mcgstatus);
 
 	if (mcgstatus & MCG_STATUS_RIPV)
 		mce_snprintf(e->mcgstatus_msg, "RIPV");

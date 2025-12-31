@@ -1,27 +1,22 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
+#include <endian.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <traceevent/kbuffer.h>
+#include <unistd.h>
+
 #include "ras-cxl-handler.h"
-#include "ras-record.h"
+#include "ras-page-isolation.h"
 #include "ras-logger.h"
+#include "ras-record.h"
 #include "ras-report.h"
-#include <endian.h>
+#include "types.h"
 
 /* Common Functions */
 static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size)
@@ -38,7 +33,7 @@ static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size
 		strftime(ts_ptr, size, "%Y-%m-%d %H:%M:%S %z", tm);
 
 	if (!ts || !tm)
-		strncpy(ts_ptr, "1970-01-01 00:00:00 +0000",
+		strscpy(ts_ptr, "1970-01-01 00:00:00 +0000",
 			size);
 }
 
@@ -53,7 +48,7 @@ static void get_timestamp(struct trace_seq *s, struct tep_record *record,
 	if (tm)
 		strftime(ts_ptr, size, "%Y-%m-%d %H:%M:%S %z", tm);
 	else
-		strncpy(ts_ptr, "1970-01-01 00:00:00 +0000", size);
+		strscpy(ts_ptr, "1970-01-01 00:00:00 +0000", size);
 }
 
 struct cxl_event_flags {
@@ -83,7 +78,7 @@ static char *uuid_be(const char *uu)
 	static const unsigned char be[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
 	for (i = 0; i < 16; i++) {
-		p += sprintf(p, "%.2x", (unsigned char) uu[be[i]]);
+		p += snprintf(p, sizeof(uuid), "%.2x", (unsigned char)uu[be[i]]);
 		switch (i) {
 		case 3:
 		case 5:
@@ -99,7 +94,8 @@ static char *uuid_be(const char *uu)
 	return uuid;
 }
 
-static const char* get_cxl_type_str(const char** type_array, uint8_t num_elems, uint8_t type)
+static const char * const get_cxl_type_str(const char * const *type_array,
+					   uint8_t num_elems, uint8_t type)
 {
 	if (type >= num_elems)
 		return "Unknown";
@@ -137,6 +133,7 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	struct ras_events *ras = context;
 	struct ras_cxl_poison_event ev;
 
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
@@ -196,7 +193,13 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
 		return -1;
 	ev.hpa = val;
-	if (trace_seq_printf(s, "poison list: hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hpa_alias0", record, &val, 1) < 0)
+		return -1;
+	ev.hpa_alias0 = val;
+	if (trace_seq_printf(s, "hpa_alias0:0x%llx ", (unsigned long long)ev.hpa_alias0) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "dpa", record, &val, 1) < 0)
@@ -244,9 +247,12 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	if (ev.flags & CXL_POISON_FLAG_OVERFLOW) {
 		if (tep_get_field_val(s,  event, "overflow_ts", record, &val, 1) < 0)
 			return -1;
-		convert_timestamp(val, ev.overflow_ts, sizeof(ev.overflow_ts));		
-	} else
-		strncpy(ev.overflow_ts, "1970-01-01 00:00:00 +0000", sizeof(ev.overflow_ts));
+		convert_timestamp(val, ev.overflow_ts, sizeof(ev.overflow_ts));
+	} else {
+		strscpy(ev.overflow_ts, "1970-01-01 00:00:00 +0000",
+			sizeof(ev.overflow_ts));
+	}
+
 	if (trace_seq_printf(s, "overflow timestamp:%s\n", ev.overflow_ts) <= 0)
 		return -1;
 
@@ -346,6 +352,7 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 	struct ras_cxl_aer_ue_event ev;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_CRIT]);
 	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
@@ -399,7 +406,7 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 	for (i = 0; i < CXL_HEADERLOG_SIZE_U32; i++) {
 		if (trace_seq_printf(s, "%08x ", ev.header_log[i]) <= 0)
 			break;
-		if ((i > 0) && ((i % 20) == 0))
+		if (i > 0 && ((i % 20) == 0))
 			if (trace_seq_printf(s, "\n") <= 0)
 				break;
 		/* Convert header log data to the big-endian format because
@@ -432,6 +439,7 @@ int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
 	struct ras_events *ras = context;
 	struct ras_cxl_aer_ce_event ev;
 
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
@@ -491,7 +499,6 @@ enum cxl_event_log_type {
 
 static char *cxl_event_log_type_str(uint32_t log_type)
 {
-
 	switch (log_type) {
 	case CXL_EVENT_TYPE_INFO:
 		return "Informational";
@@ -518,6 +525,7 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 	struct ras_cxl_overflow_event ev;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	get_timestamp(s, record, ras, (char *)&ev.timestamp, sizeof(ev.timestamp));
 	if (trace_seq_printf(s, "%s ", ev.timestamp) <= 0)
 		return -1;
@@ -577,19 +585,66 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 }
 
 /*
+ * Component ID Format
+ * CXL 3.1 section 8.2.9.2.1; Table 8-44
+ */
+#define CXL_PLDM_COMPONENT_ID_ENTITY_VALID	BIT(0)
+#define CXL_PLDM_COMPONENT_ID_RES_VALID		BIT(1)
+static const struct  cxl_event_flags cxl_pldm_comp_id_flags[] = {
+	{ .bit = CXL_PLDM_COMPONENT_ID_ENTITY_VALID, .flag = "PLDM Entity ID" },
+	{ .bit = CXL_PLDM_COMPONENT_ID_RES_VALID, .flag = "Resource ID" },
+};
+
+static int ras_cxl_print_component_id(struct trace_seq *s, uint8_t *comp_id,
+				      uint8_t *entity_id, uint8_t *res_id)
+{
+	int i;
+
+	if (comp_id[0] & CXL_PLDM_COMPONENT_ID_ENTITY_VALID) {
+		if (trace_seq_printf(s, "PLDM Entity ID:") <= 0)
+			return -1;
+		for (i = 1; i < 7; i++) {
+			if (trace_seq_printf(s, "%02x ", comp_id[i]) <= 0)
+				return -1;
+		}
+		if (entity_id)
+			memcpy(entity_id, &comp_id[1], CXL_PLDM_ENTITY_ID_LEN);
+	}
+
+	if (comp_id[0] & CXL_PLDM_COMPONENT_ID_RES_VALID) {
+		if (trace_seq_printf(s, "Resource ID:") <= 0)
+			return -1;
+		for (i = 7; i < 11; i++) {
+			if (trace_seq_printf(s, "%02x ", comp_id[i]) <= 0)
+				return -1;
+		}
+		if (res_id)
+			memcpy(res_id, &comp_id[7], CXL_PLDM_RES_ID_LEN);
+	}
+
+	return 0;
+}
+
+/*
  * Common Event Record Format
- * CXL 3.0 section 8.2.9.2.1; Table 8-42
+ * CXL 3.1 section 8.2.9.2.1; Table 8-43
  */
 #define CXL_EVENT_RECORD_FLAG_PERMANENT		BIT(2)
 #define CXL_EVENT_RECORD_FLAG_MAINT_NEEDED	BIT(3)
 #define CXL_EVENT_RECORD_FLAG_PERF_DEGRADED	BIT(4)
 #define CXL_EVENT_RECORD_FLAG_HW_REPLACE	BIT(5)
+#define CXL_EVENT_RECORD_FLAG_MAINT_OP_SUB_CLASS_VALID	BIT(6)
+#define CXL_EVENT_RECORD_FLAG_LD_ID_VALID	BIT(7)
+#define CXL_EVENT_RECORD_FLAG_HEAD_ID_VALID	BIT(8)
 
 static const struct  cxl_event_flags cxl_hdr_flags[] = {
 	{ .bit = CXL_EVENT_RECORD_FLAG_PERMANENT, .flag = "PERMANENT_CONDITION" },
 	{ .bit = CXL_EVENT_RECORD_FLAG_MAINT_NEEDED, .flag = "MAINTENANCE_NEEDED" },
 	{ .bit = CXL_EVENT_RECORD_FLAG_PERF_DEGRADED, .flag = "PERFORMANCE_DEGRADED" },
 	{ .bit = CXL_EVENT_RECORD_FLAG_HW_REPLACE, .flag = "HARDWARE_REPLACEMENT_NEEDED" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_MAINT_OP_SUB_CLASS_VALID, .flag = "MAINT_OP_SUB_CLASS_VALID" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_LD_ID_VALID, .flag = "LOGICAL_DEV_ID_VALID" },
+	{ .bit = CXL_EVENT_RECORD_FLAG_HEAD_ID_VALID, .flag = "DEV_HEAD_ID_VALID" },
 };
 
 static int handle_ras_cxl_common_hdr(struct trace_seq *s,
@@ -673,6 +728,30 @@ static int handle_ras_cxl_common_hdr(struct trace_seq *s,
 	if (trace_seq_printf(s, "hdr_maint_op_class:%u ", hdr->hdr_maint_op_class) <= 0)
 		return -1;
 
+	if (hdr->hdr_flags & CXL_EVENT_RECORD_FLAG_MAINT_OP_SUB_CLASS_VALID) {
+		if (tep_get_field_val(s,  event, "hdr_maint_op_sub_class", record, &val, 1) < 0)
+			return -1;
+		hdr->hdr_maint_op_sub_class = val;
+		if (trace_seq_printf(s, "hdr_maint_op_sub_class:%u ", hdr->hdr_maint_op_sub_class) <= 0)
+			return -1;
+	}
+
+	if (hdr->hdr_flags & CXL_EVENT_RECORD_FLAG_LD_ID_VALID) {
+		if (tep_get_field_val(s,  event, "hdr_ld_id", record, &val, 1) < 0)
+			return -1;
+		hdr->hdr_ld_id = val;
+		if (trace_seq_printf(s, "hdr_ld_id:0x%x ", hdr->hdr_ld_id) <= 0)
+			return -1;
+	}
+
+	if (hdr->hdr_flags & CXL_EVENT_RECORD_FLAG_HEAD_ID_VALID) {
+		if (tep_get_field_val(s,  event, "hdr_head_id", record, &val, 1) < 0)
+			return -1;
+		hdr->hdr_head_id = val;
+		if (trace_seq_printf(s, "hdr_head_id:0x%x ", hdr->hdr_head_id) <= 0)
+			return -1;
+	}
+
 	return 0;
 }
 
@@ -686,6 +765,7 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 	const uint8_t *buf;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
 		return -1;
 
@@ -697,11 +777,11 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "\ndata:\n  %08x: ", i) <= 0)
 		return -1;
 	for (i = 0; i < CXL_EVENT_RECORD_DATA_LENGTH; i += 4) {
-		if ((i > 0) && ((i % 16) == 0))
+		if (i > 0 && ((i % 16) == 0))
 			if (trace_seq_printf(s, "\n  %08x: ", i) <= 0)
 				break;
 		if (trace_seq_printf(s, "%02x%02x%02x%02x ",
-				     buf[i], buf[i+1], buf[i+2], buf[i+3]) <= 0)
+				     buf[i], buf[i + 1], buf[i + 2], buf[i + 3]) <= 0)
 			break;
 	}
 
@@ -726,16 +806,39 @@ static const struct cxl_event_flags cxl_dpa_flags[] = {
 	{ .bit = CXL_DPA_NOT_REPAIRABLE, .flag = "NOT_REPAIRABLE" },
 };
 
+/* CXL rev 3.1 Section 8.2.9.2.1.1; Table 8-45 */
+static const char * const cxl_mem_event_sub_type[] = {
+	"Not Reported",
+	"Internal Datapath Error",
+	"Media Link Command Training Error",
+	"Media Link Control Training Error",
+	"Media Link Data Training Error",
+	"Media Link CRC Error",
+};
+
+#define CXL_CME_EV_FLAG_CME_MULTIPLE_MEDIA	BIT(0)
+#define CXL_CME_EV_FLAG_THRESHOLD_EXCEEDED	BIT(1)
+static const struct cxl_event_flags cxl_cme_threshold_ev_flags[] = {
+	{
+		.bit = CXL_CME_EV_FLAG_CME_MULTIPLE_MEDIA,
+		.flag = "Corrected Memory Errors in Multiple Media Components"
+	},
+	{
+		.bit = CXL_CME_EV_FLAG_THRESHOLD_EXCEEDED,
+		.flag = "Exceeded Programmable Threshold"
+	},
+};
+
 /*
  * General Media Event Record - GMER
- * CXL rev 3.0 Section 8.2.9.2.1.1; Table 8-43
+ * CXL rev 3.1 Section 8.2.9.2.1.1; Table 8-45
  */
-#define CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT		BIT(0)
+#define CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT		BIT(0)
 #define CXL_GMER_EVT_DESC_THRESHOLD_EVENT		BIT(1)
 #define CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW		BIT(2)
 
 static const struct cxl_event_flags cxl_gmer_event_desc_flags[] = {
-	{ .bit = CXL_GMER_EVT_DESC_UNCORECTABLE_EVENT, .flag = "UNCORRECTABLE EVENT" },
+	{ .bit = CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT, .flag = "UNCORRECTABLE EVENT" },
 	{ .bit = CXL_GMER_EVT_DESC_THRESHOLD_EVENT, .flag = "THRESHOLD EVENT" },
 	{ .bit = CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW, .flag = "POISON LIST OVERFLOW" },
 };
@@ -744,14 +847,19 @@ static const struct cxl_event_flags cxl_gmer_event_desc_flags[] = {
 #define CXL_GMER_VALID_RANK			BIT(1)
 #define CXL_GMER_VALID_DEVICE			BIT(2)
 #define CXL_GMER_VALID_COMPONENT		BIT(3)
+#define CXL_GMER_VALID_COMPONENT_ID_FORMAT	BIT(4)
 
-static const char* cxl_gmer_mem_event_type[] = {
+static const char * const cxl_gmer_mem_event_type[] = {
 	"ECC Error",
 	"Invalid Address",
 	"Data Path Error",
+	"TE State Violation",
+	"Scrub Media ECC Error",
+	"Advanced Programmable CME Counter Expiration",
+	"CKID Violation",
 };
 
-static const char* cxl_gmer_trans_type[] = {
+static const char * const cxl_gmer_trans_type[] = {
 	"Unknown",
 	"Host Read",
 	"Host Write",
@@ -759,18 +867,21 @@ static const char* cxl_gmer_trans_type[] = {
 	"Host Inject Poison",
 	"Internal Media Scrub",
 	"Internal Media Management",
+	"Internal Media Error Check Scrub",
+	"Media Initialization",
 };
 
 int ras_cxl_general_media_event_handler(struct trace_seq *s,
 					struct tep_record *record,
 					struct tep_event *event, void *context)
 {
-	int len, i;
+	int len, i, rc;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	struct ras_cxl_general_media_event ev;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
 		return -1;
 
@@ -800,8 +911,18 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s,  event, "type", record, &val, 1) < 0)
 		return -1;
 	ev.type = val;
-	if (trace_seq_printf(s, "type:%s ", get_cxl_type_str(cxl_gmer_mem_event_type,
-			     ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
+	if (trace_seq_printf(s, "memory_event_type:%s ",
+			     get_cxl_type_str(cxl_gmer_mem_event_type,
+					      ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "sub_type", record, &val, 1) < 0)
+		return -1;
+	ev.sub_type = val;
+	if (trace_seq_printf(s, "memory_event_sub_type:%s ",
+			     get_cxl_type_str(cxl_mem_event_sub_type,
+					      ARRAY_SIZE(cxl_mem_event_sub_type),
+					      ev.sub_type)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
@@ -811,6 +932,32 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 			     get_cxl_type_str(cxl_gmer_trans_type,
 					      ARRAY_SIZE(cxl_gmer_trans_type),
 					      ev.transaction_type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
+		return -1;
+	ev.hpa = val;
+	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hpa_alias0", record, &val, 1) < 0)
+		return -1;
+	ev.hpa_alias0 = val;
+	if (trace_seq_printf(s, "hpa_alias0:0x%llx ", (unsigned long long)ev.hpa_alias0) <= 0)
+		return -1;
+
+	ev.region = tep_get_field_raw(s, event, "region_name", record, &len, 1);
+	if (!ev.region)
+		return -1;
+	if (trace_seq_printf(s, "region:%s ", ev.region) <= 0)
+		return -1;
+
+	ev.region_uuid = tep_get_field_raw(s, event, "region_uuid",
+					   record, &len, 1);
+	if (!ev.region_uuid)
+		return -1;
+	ev.region_uuid = uuid_be(ev.region_uuid);
+	if (trace_seq_printf(s, "region_uuid:%s ", ev.region_uuid) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
@@ -851,6 +998,36 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
 				break;
 		}
+
+		if (ev.validity_flags & CXL_GMER_VALID_COMPONENT_ID_FORMAT) {
+			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
+				return -1;
+			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
+				return -1;
+
+			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			if (rc)
+				return rc;
+		}
+	}
+
+	if (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT) {
+		if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
+			return -1;
+		ev.cme_threshold_ev_flags = val;
+		if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
+			return -1;
+		if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
+					   cxl_cme_threshold_ev_flags,
+					   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
+			return -1;
+
+		if (tep_get_field_val(s,  event, "cme_count", record, &val, 1) < 0)
+			return -1;
+		ev.cme_count = val;
+		if (trace_seq_printf(s, "Corrected Memory Error Count:%u ", ev.cme_count) <= 0)
+			return -1;
 	}
 
 	/* Insert data into the SGBD */
@@ -869,7 +1046,7 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 /*
  * DRAM Event Record - DER
  *
- * CXL rev 3.0 section 8.2.9.2.1.2; Table 8-44
+ * CXL rev 3.1 section 8.2.9.2.1.2; Table 8-46
  */
 #define CXL_DER_VALID_CHANNEL			BIT(0)
 #define CXL_DER_VALID_RANK			BIT(1)
@@ -879,17 +1056,31 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 #define CXL_DER_VALID_ROW			BIT(5)
 #define CXL_DER_VALID_COLUMN			BIT(6)
 #define CXL_DER_VALID_CORRECTION_MASK		BIT(7)
+#define CXL_DER_VALID_COMPONENT_ID		BIT(8)
+#define CXL_DER_VALID_COMPONENT_ID_FORMAT	BIT(9)
+#define CXL_DER_VALID_SUB_CHANNEL		BIT(10)
+
+static const char * const cxl_der_mem_event_type[] = {
+	"Media ECC Error",
+	"Scrub Media ECC Error",
+	"Invalid Address",
+	"Data Path Error",
+	"TE State Violation",
+	"Advanced Programmable CME Counter Expiration",
+	"CKID Violation",
+};
 
 int ras_cxl_dram_event_handler(struct trace_seq *s,
 			       struct tep_record *record,
 			       struct tep_event *event, void *context)
 {
-	int len, i;
+	int len, i, rc;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	struct ras_cxl_dram_event ev;
 
 	memset(&ev, 0, sizeof(ev));
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
 	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
 		return -1;
 
@@ -904,7 +1095,8 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	ev.dpa_flags = val;
 	if (trace_seq_printf(s, "dpa_flags:") <= 0)
 		return -1;
-	if (decode_cxl_event_flags(s, ev.dpa_flags, cxl_dpa_flags, ARRAY_SIZE(cxl_dpa_flags)) < 0)
+	if (decode_cxl_event_flags(s, ev.dpa_flags, cxl_dpa_flags,
+				   ARRAY_SIZE(cxl_dpa_flags)) < 0)
 		return -1;
 
 	if (tep_get_field_val(s,  event, "descriptor", record, &val, 1) < 0)
@@ -919,8 +1111,19 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s,  event, "type", record, &val, 1) < 0)
 		return -1;
 	ev.type = val;
-	if (trace_seq_printf(s, "type:%s ", get_cxl_type_str(cxl_gmer_mem_event_type,
-			     ARRAY_SIZE(cxl_gmer_mem_event_type), ev.type)) <= 0)
+	if (trace_seq_printf(s, "memory_event_type:%s ",
+			     get_cxl_type_str(cxl_der_mem_event_type,
+					      ARRAY_SIZE(cxl_der_mem_event_type),
+					      ev.type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "sub_type", record, &val, 1) < 0)
+		return -1;
+	ev.sub_type = val;
+	if (trace_seq_printf(s, "memory_event_sub_type:%s ",
+			     get_cxl_type_str(cxl_mem_event_sub_type,
+					      ARRAY_SIZE(cxl_mem_event_sub_type),
+					      ev.sub_type)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
@@ -932,6 +1135,32 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 					      ev.transaction_type)) <= 0)
 		return -1;
 
+	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
+		return -1;
+	ev.hpa = val;
+	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "hpa_alias0", record, &val, 1) < 0)
+		return -1;
+	ev.hpa_alias0 = val;
+	if (trace_seq_printf(s, "hpa_alias0:0x%llx ", (unsigned long long)ev.hpa_alias0) <= 0)
+		return -1;
+
+	ev.region = tep_get_field_raw(s, event, "region_name", record, &len, 1);
+	if (!ev.region)
+		return -1;
+	if (trace_seq_printf(s, "region:%s ", ev.region) <= 0)
+		return -1;
+
+	ev.region_uuid = tep_get_field_raw(s, event, "region_uuid",
+					   record, &len, 1);
+	if (!ev.region_uuid)
+		return -1;
+	ev.region_uuid = uuid_be(ev.region_uuid);
+	if (trace_seq_printf(s, "region_uuid:%s ", ev.region_uuid) <= 0)
+		return -1;
+
 	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
 		return -1;
 	ev.validity_flags = val;
@@ -941,6 +1170,14 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 			return -1;
 		ev.channel = val;
 		if (trace_seq_printf(s, "channel:%u ", ev.channel) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_DER_VALID_SUB_CHANNEL) {
+		if (tep_get_field_val(s,  event, "sub_channel", record, &val, 1) < 0)
+			return -1;
+		ev.sub_channel = val;
+		if (trace_seq_printf(s, "sub_channel:%u ", ev.sub_channel) <= 0)
 			return -1;
 	}
 
@@ -1004,6 +1241,55 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 		}
 	}
 
+#ifdef HAVE_MEMORY_CE_PFA
+	/* Page offline for CE when threshold is set */
+	if (!(ev.descriptor & CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT) &&
+	    (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT))
+		ras_hw_threshold_pageoffline(ev.hpa);
+#endif
+
+	if (ev.validity_flags & CXL_DER_VALID_COMPONENT_ID) {
+		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
+		if (!ev.comp_id)
+			return -1;
+		if (trace_seq_printf(s, "comp_id:") <= 0)
+			return -1;
+		for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++) {
+			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
+				break;
+		}
+
+		if (ev.validity_flags & CXL_DER_VALID_COMPONENT_ID_FORMAT) {
+			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
+				return -1;
+			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
+				return -1;
+
+			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			if (rc)
+				return rc;
+		}
+	}
+
+	if (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT) {
+		if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
+			return -1;
+		ev.cme_threshold_ev_flags = val;
+		if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
+			return -1;
+		if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
+					   cxl_cme_threshold_ev_flags,
+					   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
+			return -1;
+
+		if (tep_get_field_val(s,  event, "cvme_count", record, &val, 1) < 0)
+			return -1;
+		ev.cvme_count = val;
+		if (trace_seq_printf(s, "CVME Count:%u ", ev.cvme_count) <= 0)
+			return -1;
+	}
+
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
 	ras_store_cxl_dram_event(ras, &ev);
@@ -1020,33 +1306,45 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 /*
  * Memory Module Event Record - MMER
  *
- * CXL res 3.0 section 8.2.9.2.1.3; Table 8-45
+ * CXL res 3.1 section 8.2.9.2.1.3; Table 8-47
  */
-static const char* cxl_dev_evt_type[] = {
+static const char * const cxl_dev_evt_type[] = {
 	"Health Status Change",
 	"Media Status Change",
 	"Life Used Change",
 	"Temperature Change",
 	"Data Path Error",
 	"LSA Error",
+	"Unrecoverable Internal Sideband Bus Error",
+	"Memory Media FRU Error",
+	"Power Management Fault",
+};
+
+static const char * const cxl_dev_evt_sub_type[] = {
+	"Not Reported",
+	"Invalid Config Data",
+	"Unsupported Config Data",
+	"Unsupported Memory Media FRU",
 };
 
 /*
  * Device Health Information - DHI
  *
- * CXL res 3.0 section 8.2.9.8.3.1; Table 8-100
+ * CXL res 3.1 section 8.2.9.9.3.1; Table 8-133
  */
 #define CXL_DHI_HS_MAINTENANCE_NEEDED				BIT(0)
 #define CXL_DHI_HS_PERFORMANCE_DEGRADED				BIT(1)
 #define CXL_DHI_HS_HW_REPLACEMENT_NEEDED			BIT(2)
+#define CXL_DHI_HS_MEM_CAPACITY_DEGRADED			BIT(3)
 
 static const struct cxl_event_flags cxl_health_status[] = {
 	{ .bit = CXL_DHI_HS_MAINTENANCE_NEEDED, .flag = "MAINTENANCE_NEEDED" },
 	{ .bit = CXL_DHI_HS_PERFORMANCE_DEGRADED, .flag = "PERFORMANCE_DEGRADED" },
 	{ .bit = CXL_DHI_HS_HW_REPLACEMENT_NEEDED, .flag = "REPLACEMENT_NEEDED" },
+	{ .bit = CXL_DHI_HS_MEM_CAPACITY_DEGRADED, .flag = "MEM_CAPACITY_DEGRADED" },
 };
 
-static const char* cxl_media_status[] = {
+static const char * const cxl_media_status[] = {
 	"Normal",
 	"Not Ready",
 	"Write Persistency Lost",
@@ -1059,26 +1357,30 @@ static const char* cxl_media_status[] = {
 	"All Data Loss Imminent",
 };
 
-static const char* cxl_two_bit_status[] = {
+static const char * const cxl_two_bit_status[] = {
 	"Normal",
 	"Warning",
 	"Critical",
 };
 
-static const char* cxl_one_bit_status[] = {
+static const char * const cxl_one_bit_status[] = {
 	"Normal",
 	"Warning",
 };
 
-#define CXL_DHI_AS_LIFE_USED(as)	(as & 0x3)
-#define CXL_DHI_AS_DEV_TEMP(as)		((as & 0xC) >> 2)
-#define CXL_DHI_AS_COR_VOL_ERR_CNT(as)	((as & 0x10) >> 4)
-#define CXL_DHI_AS_COR_PER_ERR_CNT(as)	((as & 0x20) >> 5)
+#define CXL_DHI_AS_LIFE_USED(as)	((as) & 0x3)
+#define CXL_DHI_AS_DEV_TEMP(as)		(((as) & 0xC) >> 2)
+#define CXL_DHI_AS_COR_VOL_ERR_CNT(as)	(((as) & 0x10) >> 4)
+#define CXL_DHI_AS_COR_PER_ERR_CNT(as)	(((as) & 0x20) >> 5)
+
+#define CXL_MMER_VALID_COMPONENT_ID		BIT(0)
+#define CXL_MMER_VALID_COMPONENT_ID_FORMAT	BIT(1)
 
 int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 					struct tep_record *record,
 					struct tep_event *event, void *context)
 {
+	int len, i, rc;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	struct ras_cxl_memory_module_event ev;
@@ -1090,8 +1392,19 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "event_type", record, &val, 1) < 0)
 		return -1;
 	ev.event_type = val;
-	if (trace_seq_printf(s, "event_type:%s ", get_cxl_type_str(cxl_dev_evt_type,
-			     ARRAY_SIZE(cxl_dev_evt_type), ev.event_type)) <= 0)
+	if (trace_seq_printf(s, "event_type:%s ",
+			     get_cxl_type_str(cxl_dev_evt_type,
+					      ARRAY_SIZE(cxl_dev_evt_type),
+					      ev.event_type)) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "event_sub_type", record, &val, 1) < 0)
+		return -1;
+	ev.event_sub_type = val;
+	if (trace_seq_printf(s, "event_sub_type:%s ",
+			     get_cxl_type_str(cxl_dev_evt_sub_type,
+					      ARRAY_SIZE(cxl_dev_evt_sub_type),
+					      ev.event_sub_type)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "health_status", record, &val, 1) < 0)
@@ -1106,27 +1419,33 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "media_status", record, &val, 1) < 0)
 		return -1;
 	ev.media_status = val;
-	if (trace_seq_printf(s, "media_status:%s ", get_cxl_type_str(cxl_media_status,
-			     ARRAY_SIZE(cxl_media_status), ev.media_status)) <= 0)
+	if (trace_seq_printf(s, "media_status:%s ",
+			     get_cxl_type_str(cxl_media_status,
+					      ARRAY_SIZE(cxl_media_status),
+					      ev.media_status)) <= 0)
 		return -1;
 
 	if (tep_get_field_val(s, event, "add_status", record, &val, 1) < 0)
 		return -1;
 	ev.add_status = val;
-	if (trace_seq_printf(s, "as_life_used:%s ", get_cxl_type_str(cxl_two_bit_status,
-			     ARRAY_SIZE(cxl_two_bit_status),
+	if (trace_seq_printf(s, "as_life_used:%s ",
+			     get_cxl_type_str(cxl_two_bit_status,
+					      ARRAY_SIZE(cxl_two_bit_status),
 			     CXL_DHI_AS_LIFE_USED(ev.add_status))) <= 0)
 		return -1;
-	if (trace_seq_printf(s, "as_dev_temp:%s ", get_cxl_type_str(cxl_two_bit_status,
-			     ARRAY_SIZE(cxl_two_bit_status),
+	if (trace_seq_printf(s, "as_dev_temp:%s ",
+			     get_cxl_type_str(cxl_two_bit_status,
+					      ARRAY_SIZE(cxl_two_bit_status),
 			     CXL_DHI_AS_DEV_TEMP(ev.add_status))) <= 0)
 		return -1;
-	if (trace_seq_printf(s, "as_cor_vol_err_cnt:%s ", get_cxl_type_str(cxl_one_bit_status,
-			     ARRAY_SIZE(cxl_one_bit_status),
+	if (trace_seq_printf(s, "as_cor_vol_err_cnt:%s ",
+			     get_cxl_type_str(cxl_one_bit_status,
+					      ARRAY_SIZE(cxl_one_bit_status),
 			     CXL_DHI_AS_COR_VOL_ERR_CNT(ev.add_status))) <= 0)
 		return -1;
-	if (trace_seq_printf(s, "as_cor_per_err_cnt:%s ", get_cxl_type_str(cxl_one_bit_status,
-			     ARRAY_SIZE(cxl_one_bit_status),
+	if (trace_seq_printf(s, "as_cor_per_err_cnt:%s ",
+			     get_cxl_type_str(cxl_one_bit_status,
+					      ARRAY_SIZE(cxl_one_bit_status),
 			     CXL_DHI_AS_COR_PER_ERR_CNT(ev.add_status))) <= 0)
 		return -1;
 
@@ -1160,6 +1479,33 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "cor_per_err_cnt:%u ", ev.cor_per_err_cnt) <= 0)
 		return -1;
 
+	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
+		return -1;
+	ev.validity_flags = val;
+
+	if (ev.validity_flags & CXL_MMER_VALID_COMPONENT_ID) {
+		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
+		if (!ev.comp_id)
+			return -1;
+		if (trace_seq_printf(s, "comp_id:") <= 0)
+			return -1;
+		for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++) {
+			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
+				break;
+		}
+
+		if (ev.validity_flags & CXL_MMER_VALID_COMPONENT_ID_FORMAT) {
+			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
+				return -1;
+			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
+				return -1;
+
+			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			if (rc)
+				return rc;
+		}
+	}
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
 	ras_store_cxl_memory_module_event(ras, &ev);
@@ -1169,6 +1515,160 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 	/* Report event to ABRT */
 	ras_report_cxl_memory_module_event(ras, &ev);
 #endif
+
+	return 0;
+}
+
+/*
+ * Memory Sparing Event Record - MSER
+ *
+ * CXL rev 3.2 section 8.2.10.2.1.4; Table 8-60
+ */
+#define CXL_MSER_VALID_CHANNEL			BIT(0)
+#define CXL_MSER_VALID_RANK			BIT(1)
+#define CXL_MSER_VALID_NIBBLE			BIT(2)
+#define CXL_MSER_VALID_BANK_GROUP		BIT(3)
+#define CXL_MSER_VALID_BANK			BIT(4)
+#define CXL_MSER_VALID_ROW			BIT(5)
+#define CXL_MSER_VALID_COLUMN			BIT(6)
+#define CXL_MSER_VALID_COMPONENT_ID		BIT(7)
+#define CXL_MSER_VALID_COMPONENT_ID_FORMAT	BIT(8)
+#define CXL_MSER_VALID_SUB_CHANNEL		BIT(9)
+
+#define CXL_MSER_QUERY_RES_FLAG		BIT(0)
+#define CXL_MSER_HARD_SPARING_FLAG	BIT(1)
+#define CXL_MSER_DEV_INITIATED_FLAG	BIT(2)
+
+static const struct cxl_event_flags cxl_mser_flags[] = {
+	{ .bit = CXL_MSER_QUERY_RES_FLAG, .flag = "QUERY_RESOURCES" },
+	{ .bit = CXL_MSER_HARD_SPARING_FLAG, .flag = "HARD_SPARING" },
+	{ .bit = CXL_MSER_DEV_INITIATED_FLAG, .flag = "DEVICE_INITIATED" },
+};
+
+int ras_cxl_memory_sparing_event_handler(struct trace_seq *s,
+					 struct tep_record *record,
+					 struct tep_event *event, void *context)
+{
+	int len, i, rc;
+	unsigned long long val;
+	struct ras_cxl_memory_sparing_event ev;
+
+	memset(&ev, 0, sizeof(ev));
+	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
+		return -1;
+
+	if (tep_get_field_val(s, event, "flags", record, &val, 1) < 0)
+		return -1;
+	ev.flags = val;
+	if (trace_seq_printf(s, "flags:0x%x ", ev.flags) <= 0)
+		return -1;
+	if (decode_cxl_event_flags(s, ev.flags, cxl_mser_flags,
+				   ARRAY_SIZE(cxl_mser_flags)) < 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "result", record, &val, 1) < 0)
+		return -1;
+	ev.result = val;
+	if (trace_seq_printf(s, "result:0x%x ", ev.result) <= 0)
+		return -1;
+
+	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
+		return -1;
+	ev.validity_flags = val;
+
+	if (tep_get_field_val(s,  event, "res_avail", record, &val, 1) < 0)
+		return -1;
+	ev.res_avail = val;
+	if (trace_seq_printf(s, "spare resources available:%u ", ev.res_avail) <= 0)
+		return -1;
+
+	if (ev.validity_flags & CXL_MSER_VALID_CHANNEL) {
+		if (tep_get_field_val(s,  event, "channel", record, &val, 1) < 0)
+			return -1;
+		ev.channel = val;
+		if (trace_seq_printf(s, "channel:%u ", ev.channel) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_SUB_CHANNEL) {
+		if (tep_get_field_val(s,  event, "sub_channel", record, &val, 1) < 0)
+			return -1;
+		ev.sub_channel = val;
+		if (trace_seq_printf(s, "sub_channel:%u ", ev.sub_channel) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_RANK) {
+		if (tep_get_field_val(s,  event, "rank", record, &val, 1) < 0)
+			return -1;
+		ev.rank = val;
+		if (trace_seq_printf(s, "rank:%u ", ev.rank) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_NIBBLE) {
+		if (tep_get_field_val(s,  event, "nibble_mask", record, &val, 1) < 0)
+			return -1;
+		ev.nibble_mask = val;
+		if (trace_seq_printf(s, "nibble_mask:%u ", ev.nibble_mask) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_BANK_GROUP) {
+		if (tep_get_field_val(s,  event, "bank_group", record, &val, 1) < 0)
+			return -1;
+		ev.bank_group = val;
+		if (trace_seq_printf(s, "bank_group:%u ", ev.bank_group) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_BANK) {
+		if (tep_get_field_val(s,  event, "bank", record, &val, 1) < 0)
+			return -1;
+		ev.bank = val;
+		if (trace_seq_printf(s, "bank:%u ", ev.bank) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_ROW) {
+		if (tep_get_field_val(s,  event, "row", record, &val, 1) < 0)
+			return -1;
+		ev.row = val;
+		if (trace_seq_printf(s, "row:%u ", ev.row) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_COLUMN) {
+		if (tep_get_field_val(s,  event, "column", record, &val, 1) < 0)
+			return -1;
+		ev.column = val;
+		if (trace_seq_printf(s, "column:%u ", ev.column) <= 0)
+			return -1;
+	}
+
+	if (ev.validity_flags & CXL_MSER_VALID_COMPONENT_ID) {
+		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
+		if (!ev.comp_id)
+			return -1;
+		if (trace_seq_printf(s, "comp_id:") <= 0)
+			return -1;
+		for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++) {
+			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
+				break;
+		}
+
+		if (ev.validity_flags & CXL_MSER_VALID_COMPONENT_ID_FORMAT) {
+			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
+				return -1;
+			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
+				return -1;
+
+			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			if (rc)
+				return rc;
+		}
+	}
 
 	return 0;
 }

@@ -1,35 +1,25 @@
+// SPDX-License-Identifier: GPL-2.0
+
 /*
- * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ */
+
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdint.h>
 #include <traceevent/kbuffer.h>
-#include "ras-mce-handler.h"
-#include "ras-record.h"
+#include <unistd.h>
+
 #include "ras-logger.h"
+#include "ras-mce-handler.h"
 #include "ras-report.h"
+#include "types.h"
 
 /*
- * The code below were adapted from Andi Kleen/Intel/SuSe mcelog code,
+ * The code below were adapted from Andi Kleen/Intel/SUSE mcelog code,
  * released under GNU Public General License, v.2
  */
 static char *cputype_name[] = {
@@ -114,11 +104,11 @@ static enum cputype select_intel_cputype(struct mce_priv *mce)
 		else if (mce->model == 0x6a)
 			return CPU_ICELAKE_XEON;
 		else if (mce->model == 0x6c)
-                        return CPU_ICELAKE_DE;
+			return CPU_ICELAKE_DE;
 		else if (mce->model == 0x86)
-                        return CPU_TREMONT_D;
+			return CPU_TREMONT_D;
 		else if (mce->model == 0x8f)
-                        return CPU_SAPPHIRERAPIDS;
+			return CPU_SAPPHIRERAPIDS;
 		else if (mce->model == 0xcf)
 			return CPU_EMERALDRAPIDS;
 
@@ -161,23 +151,22 @@ static int detect_cpu(struct mce_priv *mce)
 	mce->mhz = 0;
 	mce->vendor[0] = '\0';
 
-	f = fopen("/proc/cpuinfo","r");
+	f = fopen("/proc/cpuinfo", "r");
 	if (!f) {
 		log(ALL, LOG_INFO, "Can't open /proc/cpuinfo\n");
-		return errno;
+		return -errno;
 	}
 
 	while (seen != CPU_ALL && getdelim(&line, &linelen, '\n', f) > 0) {
-		if (sscanf(line, "vendor_id : %63[^\n]",
-		    (char *)&mce->vendor) == 1)
+		if (sscanf(line, "vendor_id : %63[^\n]", (char *)&mce->vendor) == 1) {
 			seen |= CPU_VENDOR;
-		else if (sscanf(line, "cpu family : %d", &mce->family) == 1)
+		} else if (sscanf(line, "cpu family : %d", &mce->family) == 1) {
 			seen |= CPU_FAMILY;
-		else if (sscanf(line, "model : %d", &mce->model) == 1)
+		} else if (sscanf(line, "model : %d", &mce->model) == 1) {
 			seen |= CPU_MODEL;
-		else if (sscanf(line, "cpu MHz : %lf", &mce->mhz) == 1)
+		} else if (sscanf(line, "cpu MHz : %lf", &mce->mhz) == 1) {
 			seen |= CPU_MHZ;
-		else if (!strncmp(line, "flags", 5) && isspace(line[6])) {
+		} else if (!strncmp(line, "flags", 5) && isspace(line[6])) {
 			if (mce->processor_flags)
 				free(mce->processor_flags);
 			mce->processor_flags = line;
@@ -186,15 +175,21 @@ static int detect_cpu(struct mce_priv *mce)
 			seen |= CPU_FLAGS;
 		}
 	}
+	if (!seen) {
+		log(ALL, LOG_INFO,
+		    "Can't find a x86 CPU at /proc/cpuinfo. Disabling MCE handler.\n");
+		ret = -ENOENT;
+		goto ret;
+	}
 
 	if (seen != CPU_ALL) {
 		log(ALL, LOG_INFO, "Can't parse /proc/cpuinfo: missing%s%s%s%s%s\n",
-			(seen & CPU_VENDOR) ? "" : " [vendor_id]",
+		    (seen & CPU_VENDOR) ? "" : " [vendor_id]",
 			(seen & CPU_FAMILY) ? "" : " [cpu family]",
 			(seen & CPU_MODEL)  ? "" : " [model]",
 			(seen & CPU_MHZ)    ? "" : " [cpu MHz]",
 			(seen & CPU_FLAGS)  ? "" : " [flags]");
-		ret = EINVAL;
+		ret = -EINVAL;
 		goto ret;
 	}
 
@@ -212,18 +207,18 @@ static int detect_cpu(struct mce_priv *mce)
 			log(ALL, LOG_INFO,
 			    "Can't parse MCE for this AMD CPU yet %d\n",
 			    mce->family);
-			ret = EINVAL;
+			ret = -EINVAL;
 		}
 		goto ret;
-	} else if (!strcmp(mce->vendor,"HygonGenuine")) {
-		if (mce->family == 24) {
+	} else if (!strcmp(mce->vendor, "HygonGenuine")) {
+		if (mce->family == 24)
 			mce->cputype = CPU_DHYANA;
-		}
+
 		goto ret;
-	} else if (!strcmp(mce->vendor,"GenuineIntel")) {
+	} else if (!strcmp(mce->vendor, "GenuineIntel")) {
 		mce->cputype = select_intel_cputype(mce);
 	} else {
-		ret = EINVAL;
+		ret = -EINVAL;
 	}
 
 ret:
@@ -233,7 +228,7 @@ ret:
 	return ret;
 }
 
-int register_mce_handler(struct ras_events *ras, unsigned ncpus)
+int init_mce_priv(struct ras_events *ras)
 {
 	int rc;
 	struct mce_priv *mce;
@@ -241,7 +236,7 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 	ras->mce_priv = calloc(1, sizeof(struct mce_priv));
 	if (!ras->mce_priv) {
 		log(ALL, LOG_INFO, "Can't allocate memory MCE data\n");
-		return ENOMEM;
+		return -ENOMEM;
 	}
 
 	mce = ras->mce_priv;
@@ -249,11 +244,17 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 	rc = detect_cpu(mce);
 	if (rc) {
 		if (mce->processor_flags)
-			free (mce->processor_flags);
-		free (ras->mce_priv);
+			free(mce->processor_flags);
+		free(ras->mce_priv);
 		ras->mce_priv = NULL;
-		return (rc);
+		return rc;
 	}
+
+	return rc;
+}
+
+static void set_imc_log(struct mce_priv *mce, unsigned int ncpus)
+{
 	switch (mce->cputype) {
 	case CPU_SANDY_BRIDGE_EP:
 	case CPU_IVY_BRIDGE_EPEX:
@@ -264,6 +265,17 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
 	default:
 		break;
 	}
+}
+
+int register_mce_handler(struct ras_events *ras, unsigned int ncpus)
+{
+	int rc;
+
+	rc = init_mce_priv(ras);
+	if (rc)
+		return rc;
+
+	set_imc_log(ras->mce_priv, ncpus);
 
 	return rc;
 }
@@ -272,14 +284,22 @@ int register_mce_handler(struct ras_events *ras, unsigned ncpus)
  * End of mcelog's code
  */
 
-static void report_mce_event(struct ras_events *ras,
-			     struct tep_record *record,
-			     struct trace_seq *s, struct mce_event *e)
+void report_mce_event(struct ras_events *ras, struct tep_record *record,
+		      struct trace_seq *s, struct mce_event *e)
 {
 	time_t now;
 	struct tm *tm;
 	struct mce_priv *mce = ras->mce_priv;
+	const char *level;
 
+	if (e->status & MCI_STATUS_UC)
+		level = loglevel_str[LOGLEVEL_CRIT];
+	else if (e->status & MCI_STATUS_DEFERRED)
+		level = loglevel_str[LOGLEVEL_CRIT];
+	else
+		level = loglevel_str[LOGLEVEL_ERR];
+
+	trace_seq_printf(s, "%s ", level);
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
 	 * On previous kernels, the way to properly generate an event would
@@ -289,10 +309,14 @@ static void report_mce_event(struct ras_events *ras,
 	 * not available (legacy kernels).
 	 */
 
-	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
-	else
-		now = time(NULL);
+	if (!e->erst) {
+		if (ras->use_uptime)
+			now = record->ts / user_hz + ras->uptime_diff;
+		else
+			now = time(NULL);
+	} else {
+		now = e->walltime;
+	}
 
 	tm = localtime(&now);
 	if (tm)
@@ -319,27 +343,9 @@ static void report_mce_event(struct ras_events *ras,
 	if (*e->mc_location)
 		trace_seq_printf(s, ", %s", e->mc_location);
 
-#if 0
-	/*
-	 * While the logic for decoding tsc is there at mcelog, why to
-	 * decode/print it, if we already got the uptime from the
-	 * tracing event? Let's just discard it for now.
-	 */
-	trace_seq_printf(s, ", tsc= %d", e->tsc);
-	trace_seq_printf(s, ", walltime= %d", e->walltime);
-#endif
-
 	trace_seq_printf(s, ", cpu_type= %s", cputype_name[mce->cputype]);
 	trace_seq_printf(s, ", cpu= %d", e->cpu);
 	trace_seq_printf(s, ", socketid= %d", e->socketid);
-
-#if 0
-	/*
-	 * The CPU vendor is already reported from mce->cputype
-	 */
-	trace_seq_printf(s, ", cpuvendor= %d", e->cpuvendor);
-	trace_seq_printf(s, ", cpuid= %d", e->cpuid);
-#endif
 
 	if (e->ip)
 		trace_seq_printf(s, ", ip= %llx%s",
@@ -371,6 +377,18 @@ static void report_mce_event(struct ras_events *ras,
 		trace_seq_printf(s, ", mcgcap= %llx", (long long)e->mcgcap);
 
 	trace_seq_printf(s, ", apicid= %x", e->apicid);
+
+	if (e->ppin)
+		trace_seq_printf(s, ", ppin= %llx", (long long)e->ppin);
+
+	if (e->microcode)
+		trace_seq_printf(s, ", microcode= %x", e->microcode);
+
+	if (!e->vdata_len)
+		return;
+
+	if (strlen(e->frutext))
+		trace_seq_printf(s, ", FRU Text= %s", e->frutext);
 
 	/*
 	 * FIXME: The original mcelog userspace tool uses DMI to map from
@@ -459,7 +477,7 @@ int ras_offline_mce_event(struct ras_mc_offline_event *event)
 		mce->ipid = event->ipid;
 		if (!mce->ipid || !mce->status) {
 			log(TERM, LOG_ERR, "%s MSR required.\n",
-				    mce->ipid ? "Status" : "Ipid");
+			    mce->ipid ? "Status" : "Ipid");
 			rc = -EINVAL;
 			goto free_mce;
 		}
@@ -547,6 +565,17 @@ int ras_mce_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s, event, "ipid", record, &val, 1) < 0)
 		return -1;
 	e.ipid = val;
+
+	/* Get PPIN */
+	if (!tep_get_field_val(s, event, "ppin", record, &val, 1))
+		e.ppin = val;
+
+	/* Get Microcode Revision */
+	if (!tep_get_field_val(s, event, "microcode", record, &val, 1))
+		e.microcode = val;
+
+	/* Get Vendor-specfic Data, if any */
+	e.vdata = tep_get_field_raw(s, event, "v_data", record, &e.vdata_len, 1);
 
 	switch (mce->cputype) {
 	case CPU_GENERIC:

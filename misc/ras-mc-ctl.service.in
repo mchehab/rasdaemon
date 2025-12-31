@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 [Unit]
 Description=Initialize EDAC v3.0.0 Drivers For Machine Hardware
 

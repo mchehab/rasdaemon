@@ -4,6 +4,9 @@ SRPMS/
 misc/rasdaemon.spec
 misc/ras-mc-ctl.service
 misc/rasdaemon.service
+misc/rasdaemon.syslog-ng
+misc/rasdaemon.rsyslog
+misc/rasdaemon.logrotate
 Makefile
 Makefile.in
 compile

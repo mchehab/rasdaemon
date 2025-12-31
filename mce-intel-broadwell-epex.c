@@ -1,27 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0
+
 /*
  * The code below came from Tony Luck's mcelog code,
  * released under GNU Public General License, v.2
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 /* See IA32 SDM Vol3B Table 16-20 */
 
@@ -91,7 +79,7 @@ static char *qpi[] = {
 	[0x22] = "Phy detected in-band reset (no width change)",
 	[0x23] = "Link failover clock failover",
 	[0x30] = "Rx detected CRC error - successful LLR after Phy re-init",
-	[0x31] = "Rx detected CRC error - successful LLR wihout Phy re-init",
+	[0x31] = "Rx detected CRC error - successful LLR without Phy re-init",
 };
 
 static struct field qpi_mc[] = {
@@ -118,7 +106,7 @@ void broadwell_epex_decode_model(struct ras_events *ras, struct mce_event *e)
 {
 	uint64_t status = e->status;
 	uint32_t mca = status & 0xffff;
-	unsigned rank0 = -1, rank1 = -1, chan;
+	unsigned int rank0 = -1, rank1 = -1, chan;
 
 	switch (e->bank) {
 	case 4:
@@ -160,7 +148,7 @@ void broadwell_epex_decode_model(struct ras_events *ras, struct mce_event *e)
 
 	/* Ignore unless this is an corrected extended error from an iMC bank */
 	if (e->bank < 9 || e->bank > 16 || (status & MCI_STATUS_UC) ||
-		!test_prefix(7, status & 0xefff))
+	    !test_prefix(7, status & 0xefff))
 		return;
 
 	/*
@@ -185,7 +173,7 @@ void broadwell_epex_decode_model(struct ras_events *ras, struct mce_event *e)
 	 */
 	if (rank0 != -1 && rank1 != -1)
 		mce_snprintf(e->mc_location, "ranks=%d and %d",
-				     rank0, rank1);
+			     rank0, rank1);
 	else if (rank0 != -1)
 		mce_snprintf(e->mc_location, "rank=%d", rank0);
 }

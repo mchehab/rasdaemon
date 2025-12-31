@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*/contrib]
+indent_style = tab
+indent_size = 8
+
+[{*.{c,h,pl,sh},Makefile.am}]
+indent_style = tab
+indent_size = 8
+
+[*.yml,labels/*,configure.ac]
+indent_style = space
+indent_size = 2
+
+[*.py,ras-mc-ctl.in]
+indent_style = space
+indent_size = 4

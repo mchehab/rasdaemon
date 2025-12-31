@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+
 Name:			@PACKAGE@
 Version:		@PACKAGE_VERSION@
 Release:		1%{?dist}
@@ -15,10 +17,14 @@ BuildRequires:		perl-generators
 BuildRequires:		sqlite-devel
 BuildRequires:		systemd
 BuildRequires:		libtraceevent-devel
+BuildRequires:		pciutils-devel
 Provides:		bundled(kernel-event-lib)
 Requires:		hwdata
 Requires:		perl-DBD-SQLite
 Requires:		libtraceevent
+%ifarch %{ix86} x86_64 riscv64
+Requires:		pciutils-devel
+%endif
 %ifarch %{ix86} x86_64
 Requires:		dmidecode
 %endif
@@ -47,19 +53,72 @@ make %{?_smp_mflags}
 
 %install
 make install DESTDIR=%{buildroot}
-install -D -p -m 0644 misc/rasdaemon.service %{buildroot}%{_unitdir}/rasdaemon.service
+install -D -p -m 0644 misc/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
 install -D -p -m 0644 misc/ras-mc-ctl.service %{buildroot}%{_unitdir}/ras-mc-ctl.service
-install -D -p -m 0655 misc/rasdaemon.env %{buildroot}%{_sysconfdir}/sysconfig/%{name}
+install -D -p -m 0655 misc/%{name}.env %{buildroot}%{_sysconfdir}/sysconfig/%{name}
+install -D -p -m 0655 misc/%{name}.syslog-ng %{buildroot}/usr/share/%{name}/%{name}.syslog-ng
+install -D -p -m 0655 misc/%{name}.logrotate %{buildroot}/usr/share/%{name}/%{name}.logrotate
+install -D -p -m 0655 misc/%{name}.rsyslog %{buildroot}/usr/share/%{name}/%{name}.rsyslog
+install -D -p -m 0644 completions/ras-mc-ctl.bash %{buildroot}%{bash_completions_dir}/ras-mc-ctl
+install -D -p -m 0644 completions/ras-mc-ctl.zsh %{buildroot}%{zsh_completions_dir}/_ras-mc-ctl
 rm INSTALL %{buildroot}/usr/include/*.h
 
 %files
 %doc AUTHORS ChangeLog COPYING README.md TODO
-%{_sbindir}/rasdaemon
+%{_sbindir}/%{name}
 %{_sbindir}/ras-mc-ctl
 %{_mandir}/*/*
 %{_unitdir}/*.service
 %{_sysconfdir}/ras/dimm_labels.d
+%{_sysconfdir}/ras/*/*
+%{bash_completions_dir}/ras-mc-ctl
+%{zsh_completions_dir}/_ras-mc-ctl
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+%config(noreplace) /usr/share/%{name}/%{name}.syslog-ng
+%config(noreplace) /usr/share/%{name}/%{name}.logrotate
+%config(noreplace) /usr/share/%{name}/%{name}.rsyslog
+
+%post
+if systemctl is-active --quiet syslog-ng.service; then
+    echo "Syslog service is enabled and running, create config file and restart it";
+    rm -rf %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf;
+    ln -s /usr/share/%{name}/%{name}.syslog-ng %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf;
+    systemctl restart syslog-ng.service;
+fi
+if systemctl is-active --quiet rsyslog.service; then
+    echo "Rsyslog service is enabled and running, create config file and restart it";
+    rm -rf %{_sysconfdir}/rsyslog.d/%{name}.conf;
+    ln -s /usr/share/%{name}/%{name}.rsyslog %{_sysconfdir}/rsyslog.d/%{name}.conf;
+    systemctl restart rsyslog.service;
+fi
+if [ -d "%{_sysconfdir}/logrotate.d" ]; then
+    rm -rf %{_sysconfdir}/logrotate.d/%{name};
+    ln -s /usr/share/%{name}/%{name}.logrotate %{_sysconfdir}/logrotate.d/%{name};
+fi
+if ! systemctl is-enabled --quiet %{name}.service; then
+    echo "Rasdaemon service is not enabled, enable it";
+    systemctl enable %{name}.service;
+fi
+systemctl restart %{name}.service
+
+%preun
+systemctl stop %{name}.service
+systemctl disable %{name}.service
+
+%postun
+if systemctl is-active --quiet syslog-ng.service; then
+    echo "Syslog-ng service is enabled and running, delete config file and restart it";
+    rm -rf %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf;
+    systemctl restart syslog-ng.service;
+fi
+if systemctl is-active --quiet rsyslog.service; then
+    echo "Rsyslog service is enabled and running, delete config file and restart it";
+    rm -rf %{_sysconfdir}/rsyslog.d/%{name}.conf;
+    systemctl restart rsyslog.service;
+fi
+if [ -d "%{_sysconfdir}/logrotate.d" ]; then
+    rm -rf %{_sysconfdir}/logrotate.d/%{name};
+fi
 
 %changelog
 

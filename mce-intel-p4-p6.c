@@ -1,27 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0
+
 /*
- * The code below came from Andi Kleen/Intel/SuSe mcelog code,
+ * The code below came from Andi Kleen/Intel/SUSE mcelog code,
  * released under GNU Public General License, v.2
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "ras-mce-handler.h"
 #include "bitfield.h"
+#include "ras-mce-handler.h"
 
 /* Decode P4 and P6 family (p6old and Core2) model specific errors */
 
@@ -66,8 +54,8 @@ static struct field p6_shared_status[] = {
 	FIELD(25, bus_queue_error_type),
 	SBITFIELD(30, "internal BINIT"),
 	SBITFIELD(36, "received parity error on response transaction"),
-	SBITFIELD(38, "timeout BINIT (ROB timeout)."
-		  " No micro-instruction retired for some time"),
+	SBITFIELD(38,
+		  "timeout BINIT (ROB timeout). No micro-instruction retired for some time"),
 	FIELD_NULL(39),
 	SBITFIELD(42, "bus transaction received hard error response"),
 	SBITFIELD(43, "failure that caused IERR"),
@@ -86,7 +74,7 @@ static struct field p6old_status[] = {
 	FIELD_NULL(31),
 	FIELD_NULL(32),
 	SBITFIELD(35, "BINIT received from external bus"),
-	SBITFIELD(37, "Received hard error reponse on split transaction (Bus BINIT)"),
+	SBITFIELD(37, "Received hard error response on split transaction (Bus BINIT)"),
 	{}
 };
 
@@ -109,7 +97,7 @@ static struct numfield p6old_status_numbers[] = {
 static struct {
 	int value;
 	char *str;
-} p4_model []= {
+} p4_model[] = {
 	{16, "FSB address parity"},
 	{17, "Response hard fail"},
 	{18, "Response parity"},
@@ -123,7 +111,7 @@ static struct {
 void p4_decode_model(struct mce_event *e)
 {
 	uint32_t model = e->status & 0xffff0000L;
-	unsigned i;
+	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(p4_model); i++) {
 		if (model & (1 << p4_model[i].value))

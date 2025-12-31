@@ -1,50 +1,43 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
- * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ */
+
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <sys/poll.h>
+#include <sys/signalfd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/poll.h>
-#include <signal.h>
-#include <sys/signalfd.h>
-#include <linux/version.h>
-#include <traceevent/kbuffer.h>
 #include <traceevent/event-parse.h>
-#include "ras-mc-handler.h"
+#include <traceevent/kbuffer.h>
+#include <unistd.h>
+
 #include "ras-aer-handler.h"
-#include "ras-non-standard-handler.h"
 #include "ras-arm-handler.h"
-#include "ras-mce-handler.h"
-#include "ras-extlog-handler.h"
+#include "ras-cpu-isolation.h"
+#include "ras-cxl-handler.h"
 #include "ras-devlink-handler.h"
 #include "ras-diskerror-handler.h"
-#include "ras-memory-failure-handler.h"
-#include "ras-cxl-handler.h"
-#include "ras-record.h"
+#include "ras-events.h"
+#include "ras-extlog-handler.h"
 #include "ras-logger.h"
+#include "ras-aer-handler.h"
+#include "ras-mce-handler.h"
+#include "ras-mc-handler.h"
+#include "ras-memory-failure-handler.h"
+#include "ras-non-standard-handler.h"
 #include "ras-page-isolation.h"
-#include "ras-cpu-isolation.h"
+#include "ras-signal-handler.h"
+#include "ras-record.h"
+#include "trigger.h"
 
 /*
  * Polling time, if read() doesn't block. Currently, trace_pipe_raw never
@@ -55,10 +48,22 @@
 
 /* Test for a little-endian machine */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-	#define ENDIAN KBUFFER_ENDIAN_LITTLE
+	#define ENDIAN TEP_LITTLE_ENDIAN
 #else
-	#define ENDIAN KBUFFER_ENDIAN_BIG
+	#define ENDIAN TEP_BIG_ENDIAN
 #endif
+
+char *choices_disable;
+
+static const struct event_trigger event_triggers[] = {
+	{ "mc_event", &mc_event_trigger_setup },
+#ifdef HAVE_AER
+	{ "aer_event", &aer_event_trigger_setup },
+#endif
+#ifdef HAVE_MEMORY_FAILURE
+	{ "memory_failure_event", &mem_fail_event_trigger_setup },
+#endif
+};
 
 static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
@@ -66,10 +71,10 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 	char line[MAX_PATH + 1 + 256];
 	char *p, *type, *dir;
 
-	fp = fopen("/proc/mounts","r");
+	fp = fopen("/proc/mounts", "r");
 	if (!fp) {
 		log(ALL, LOG_INFO, "Can't open /proc/mounts");
-		return errno;
+		return -errno;
 	}
 
 	do {
@@ -90,26 +95,60 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 
 		if (!strcmp(type, "debugfs")) {
 			fclose(fp);
-			strncpy(tracing_dir, dir, len - 1);
-			tracing_dir[len - 1] = '\0';
+			strscpy(tracing_dir, dir, len - 1);
 			return 0;
 		}
-	} while(1);
+	} while (1);
 
 	fclose(fp);
 	log(ALL, LOG_INFO, "Can't find debugfs\n");
-	return ENOENT;
+	return -ENOENT;
+}
+
+static int wait_access(char *path, int ms)
+{
+	int i;
+
+	for (i = 0; i < ms; i++) {
+		if (access(path, F_OK) == 0)
+			return 0;
+		usleep(1000);
+	}
+
+	log(ALL, LOG_WARNING, "%s failed, %s not created in %d ms\n",
+	    __func__, path, ms);
+	return -1;
 }
 
 static int open_trace(struct ras_events *ras, char *name, int flags)
 {
 	char fname[MAX_PATH + 1];
+	int rc;
 
-	strcpy(fname, ras->tracing);
-	strcat(fname, "/");
-	strcat(fname, name);
+	rc = strscpy(fname, ras->tracing, sizeof(fname));
+	if (rc < 0)
+		return rc;
+	rc = strscat(fname, "/", sizeof(fname));
+	if (rc < 0)
+		return rc;
+	rc = strscat(fname, name, sizeof(fname));
+	if (rc < 0)
+		return rc;
 
-	return open(fname, flags);
+	rc = wait_access(fname, 30000);
+	if (rc != 0) {
+		/* use -1 to keep same error value with open() */
+		return -1;
+	}
+
+	rc = open(fname, flags);
+	if (rc < 0) {
+		rc = -errno;
+
+		return -errno;
+	}
+
+	return rc;
 }
 
 static int get_tracing_dir(struct ras_events *ras)
@@ -121,11 +160,16 @@ static int get_tracing_dir(struct ras_events *ras)
 
 	get_debugfs_dir(ras->debugfs, sizeof(ras->debugfs));
 
-	strcpy(fname, ras->debugfs);
-	strcat(fname, "/tracing");
+	rc = strscpy(fname, ras->debugfs, sizeof(fname));
+	if (rc < 0)
+		return rc;
+	rc = strscat(fname, "/tracing", sizeof(fname));
+	if (rc < 0)
+		return rc;
+
 	dir = opendir(fname);
 	if (!dir)
-		return -1;
+		return -EINVAL;
 
 	for (entry = readdir(dir); entry; entry = readdir(dir)) {
 		if (strstr(entry->d_name, "instances")) {
@@ -135,19 +179,37 @@ static int get_tracing_dir(struct ras_events *ras)
 	}
 	closedir(dir);
 
-	strcpy(ras->tracing, ras->debugfs);
-	strcat(ras->tracing, "/tracing");
+	strscpy(ras->tracing, ras->debugfs, sizeof(ras->tracing));
+	strscat(ras->tracing, "/tracing", sizeof(ras->tracing));
 	if (has_instances) {
-		strcat(ras->tracing, "/instances/" TOOL_NAME);
-		rc = mkdir(ras->tracing, S_IRWXU);
+		rc = strscat(ras->tracing, "/instances/" TOOL_NAME,
+			     sizeof(ras->tracing));
+		if (rc < 0)
+			return rc;
+
+		rc = mkdir(ras->tracing, 0700);
 		if (rc < 0 && errno != EEXIST) {
 			log(ALL, LOG_INFO,
 			    "Unable to create " TOOL_NAME " instance at %s\n",
 			    ras->tracing);
-			return -1;
+			return -EINVAL;
 		}
 	}
 	return 0;
+}
+
+static bool is_disabled_event(char *group, char *event)
+{
+	char ras_event_name[MAX_PATH + 1];
+
+	snprintf(ras_event_name, sizeof(ras_event_name), "%s:%s",
+		 group, event);
+
+	if (choices_disable && strlen(choices_disable) != 0 &&
+	    strstr(choices_disable, ras_event_name)) {
+		return true;
+	}
+	return false;
 }
 
 /*
@@ -159,6 +221,9 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 	int fd, rc;
 	char fname[MAX_PATH + 1];
 
+	if (enable)
+		enable = is_disabled_event(group, event) ? 0 : 1;
+
 	snprintf(fname, sizeof(fname), "%s%s:%s\n",
 		 enable ? "" : "!",
 		 group, event);
@@ -167,10 +232,10 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 	fd = open_trace(ras, "set_event", O_RDWR | O_APPEND);
 	if (fd < 0) {
 		log(ALL, LOG_WARNING, "Can't open set_event\n");
-		return errno;
+		return -errno;
 	}
 
-	rc = write(fd, fname,strlen(fname));
+	rc = write(fd, fname, strlen(fname));
 	if (rc < 0) {
 		log(ALL, LOG_WARNING, "Can't write to set_event\n");
 		close(fd);
@@ -179,10 +244,10 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 	close(fd);
 	if (!rc) {
 		log(ALL, LOG_WARNING, "Nothing was written on set_event\n");
-		return EIO;
+		return -EIO;
 	}
 
-	log(ALL, LOG_INFO, "%s:%s event %s\n",
+	log(TERM, LOG_DEBUG, "%s:%s event %s\n",
 	    group, event,
 	    enable ? "enabled" : "disabled");
 
@@ -197,7 +262,7 @@ int toggle_ras_mc_event(int enable)
 	ras = calloc(1, sizeof(*ras));
 	if (!ras) {
 		log(TERM, LOG_ERR, "Can't allocate memory for ras struct\n");
-		return errno;
+		return -errno;
 	}
 
 	rc = get_tracing_dir(ras);
@@ -233,7 +298,7 @@ int toggle_ras_mc_event(int enable)
 #endif
 
 #ifdef HAVE_DISKERROR
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,18,0)
+#ifdef HAVE_BLK_RQ_ERROR
 	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_error", enable);
 #else
 	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_complete", enable);
@@ -253,14 +318,34 @@ int toggle_ras_mc_event(int enable)
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_general_media", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_dram", enable);
 	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_module", enable);
+	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_sparing", enable);
+#endif
+
+#ifdef HAVE_SIGNAL
+	rc |= __toggle_ras_mc_event(ras, "signal", "signal_generate", enable);
 #endif
 
 free_ras:
 	free(ras);
-	return rc;
+	if (rc)
+		return -EINVAL;
+
+	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,18,0)
+static void setup_event_trigger(char *event)
+{
+	struct event_trigger trigger;
+
+	for (int i = 0; i < ARRAY_SIZE(event_triggers); i++) {
+		trigger = event_triggers[i];
+		if (!strcmp(event, trigger.name))
+			trigger.setup();
+	}
+}
+
+#ifdef HAVE_DISKERROR
+#if (!defined(HAVE_BLK_RQ_ERROR)) || defined(HAVE_SIGNAL)
 /*
  * Set kernel filter. libtrace doesn't provide an API for setting filters
  * in kernel, we have to implement it here.
@@ -275,10 +360,10 @@ static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
 	fd = open_trace(ras, fname, O_RDWR | O_APPEND);
 	if (fd < 0) {
 		log(ALL, LOG_WARNING, "Can't open filter file\n");
-		return errno;
+		return -errno;
 	}
 
-	rc = write(fd, filter_str ,strlen(filter_str));
+	rc = write(fd, filter_str, strlen(filter_str));
 	if (rc < 0) {
 		log(ALL, LOG_WARNING, "Can't write to filter file\n");
 		close(fd);
@@ -287,11 +372,12 @@ static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
 	close(fd);
 	if (!rc) {
 		log(ALL, LOG_WARNING, "Nothing was written on filter file\n");
-		return EIO;
+		return -EIO;
 	}
 
 	return 0;
 }
+#endif
 #endif
 
 /*
@@ -316,7 +402,6 @@ static int get_pagesize(struct ras_events *ras, struct tep_handle *pevent)
 error:
 	close(fd);
 	return page_size;
-
 }
 
 static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
@@ -337,11 +422,12 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 	/* TODO - logging */
 	trace_seq_init(&s);
+	tep_set_file_bigendian(pdata->ras->pevent, ENDIAN);
 	tep_print_event(pdata->ras->pevent, &s, &record,
 			"%16s-%-5d [%03d] %s %6.1000d %s %s",
-                        TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
-                        TEP_PRINT_LATENCY, TEP_PRINT_TIME, TEP_PRINT_NAME,
-                        TEP_PRINT_INFO);
+			TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
+			TEP_PRINT_LATENCY, TEP_PRINT_TIME, TEP_PRINT_NAME,
+			TEP_PRINT_INFO);
 	trace_seq_do_printf(&s);
 	printf("\n");
 	fflush(stdout);
@@ -350,27 +436,11 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 
 static int get_num_cpus(struct ras_events *ras)
 {
-	return sysconf(_SC_NPROCESSORS_ONLN);
-#if 0
-	char fname[MAX_PATH + 1];
-	int num_cpus = 0;
-	DIR		*dir;
-	struct dirent	*entry;
+	int cpus;
 
-	strcpy(fname, ras->debugfs);
-	strcat(fname, "/tracing/per_cpu/");
-	dir = opendir(fname);
-	if (!dir)
-		return -1;
-
-	for (entry = readdir(dir); entry; entry = readdir(dir)) {
-		if (strstr(entry->d_name, "cpu"))
-			num_cpus++;
-	}
-	closedir(dir);
-
-	return num_cpus;
-#endif
+	cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	assert(cpus > 0);
+	return cpus;
 }
 
 static int set_buffer_percent(struct ras_events *ras, int percent)
@@ -389,19 +459,28 @@ static int set_buffer_percent(struct ras_events *ras, int percent)
 		size = write(fd, buf, strlen(buf));
 		if (size <= 0) {
 			log(TERM, LOG_WARNING, "can't write to buffer_percent\n");
-			res = -1;
+			res = -EINVAL;
 		}
 		close(fd);
 	} else {
 		log(TERM, LOG_WARNING, "Can't open buffer_percent\n");
-		res = -1;
+		res = -EINVAL;
 	}
 
 	return res;
 }
 
+/*
+ * Kernel tracepoint had an incompatible change in 2019, causing polling
+ * tracepoints to fail. Rasdaemon can support both legacy and newer versions,
+ * with the help of a backup-compatibility legacy kernel mode.
+ *
+ * The LEGACY_KERNEL flag indicates the need to enable such code.
+ */
+#define LEGACY_KERNEL		255
+
 static int read_ras_event_all_cpus(struct pthread_data *pdata,
-				   unsigned n_cpus)
+				   unsigned int n_cpus)
 {
 	ssize_t size;
 	unsigned long long time_stamp;
@@ -415,9 +494,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
 	int legacy_kernel = 0;
-#if 0
-	int need_sleep = 0;
-#endif
 
 	memset(&warnonce, 0, sizeof(warnonce));
 
@@ -427,7 +503,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		return -ENOMEM;
 	}
 
-	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
+	kbuf = kbuffer_alloc(KBUFFER_LSIZE_SAME_AS_HOST, KBUFFER_ENDIAN_SAME_AS_HOST);
 	if (!kbuf) {
 		log(TERM, LOG_ERR, "Can't allocate kbuf\n");
 		free(page);
@@ -452,7 +528,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 
 		/* FIXME: use select to open for all CPUs */
 		snprintf(pipe_raw, sizeof(pipe_raw),
-			"per_cpu/cpu%d/trace_pipe_raw", i);
+			 "per_cpu/cpu%d/trace_pipe_raw", i);
 
 		fds[i].fd = open_trace(pdata[0].ras, pipe_raw, O_RDONLY);
 		if (fds[i].fd < 0) {
@@ -487,9 +563,8 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 
 	do {
 		ready = poll(fds, (n_cpus + 1), -1);
-		if (ready < 0) {
+		if (ready < 0)
 			log(TERM, LOG_WARNING, "poll\n");
-		}
 
 		/* check for the signal */
 		if (fds[n_cpus].revents & POLLIN) {
@@ -502,7 +577,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			    fdsiginfo.ssi_signo == SIGTERM ||
 			    fdsiginfo.ssi_signo == SIGHUP ||
 			    fdsiginfo.ssi_signo == SIGQUIT) {
-				log(TERM, LOG_INFO, "Recevied signal=%d\n",
+				log(TERM, LOG_INFO, "Received signal=%d\n",
 				    fdsiginfo.ssi_signo);
 				goto  cleanup;
 			} else {
@@ -519,9 +594,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 					log(TERM, LOG_INFO,
 					    "Error on CPU %i\n", i);
 					warnonce[i]++;
-#if 0
-					need_sleep = 1;
-#endif
 				}
 			}
 			if (!(fds[i].revents & POLLIN)) {
@@ -551,10 +623,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				count_nready++;
 			}
 		}
-#if 0
-		if (need_sleep)
-			sleep(POLLING_TIME);
-#else
 		/*
 		 * If we enable fallback mode, it will always be used, as
 		 * poll is still not working fine, IMHO
@@ -564,7 +632,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			legacy_kernel = 1;
 			break;
 		}
-#endif
 	} while (1);
 
 	/* poll() is not supported. We need to fallback to the old way */
@@ -590,9 +657,9 @@ error:
 	}
 
 	if (legacy_kernel)
-		return -255;
-	else
-		return -1;
+		return LEGACY_KERNEL;
+
+	return -EINVAL;
 }
 
 static int read_ras_event(int fd,
@@ -613,7 +680,7 @@ static int read_ras_event(int fd,
 		size = read(fd, page, pdata->ras->page_size);
 		if (size < 0) {
 			log(TERM, LOG_WARNING, "read\n");
-			return -1;
+			return -EINVAL;
 		} else if (size > 0) {
 			kbuffer_load_subbuffer(kbuf, page);
 
@@ -643,7 +710,7 @@ static void *handle_ras_events_cpu(void *priv)
 		return NULL;
 	}
 
-	kbuf = kbuffer_alloc(KBUFFER_LSIZE_8, ENDIAN);
+	kbuf = kbuffer_alloc(KBUFFER_LSIZE_SAME_AS_HOST, KBUFFER_ENDIAN_SAME_AS_HOST);
 	if (!kbuf) {
 		log(TERM, LOG_ERR, "Can't allocate kbuf");
 		free(page);
@@ -707,20 +774,20 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	int fd, rc;
 	time_t uptime, now;
 	size_t size;
-	unsigned j1;
+	unsigned int j1;
 	char buf[4096];
 
 	/* Check if uptime is supported (kernel 3.10-rc1 or upper) */
 	fd = open_trace(ras, "trace_clock", O_RDONLY);
 	if (fd < 0) {
 		log(TERM, LOG_ERR, "Can't open trace_clock\n");
-		return -1;
+		return -EINVAL;
 	}
 	size = read(fd, buf, sizeof(buf));
 	close(fd);
 	if (!size) {
 		log(TERM, LOG_ERR, "trace_clock is empty!\n");
-		return -1;
+		return -EINVAL;
 	}
 
 	if (!strstr(buf, UPTIME)) {
@@ -755,7 +822,7 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	fclose(fp);
 	if (rc <= 0) {
 		log(TERM, LOG_ERR, "Can't parse /proc/uptime!\n");
-		return -1;
+		return -EINVAL;
 	}
 	now = time(NULL);
 
@@ -765,40 +832,83 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	return 0;
 }
 
+static bool check_event_exist(struct ras_events *ras, char *group, char *event)
+{
+	char fname[MAX_PATH + 256];
+
+	snprintf(fname, sizeof(fname), "%s/tracing/events/%s/%s",
+		 ras->debugfs, group, event);
+	if (access(fname, F_OK) == 0)
+		return true;
+
+	return false;
+}
+
+#define EVENT_DISABLED	1
+
 static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
-			     unsigned page_size, char *group, char *event,
+			     unsigned int page_size, char *group, char *event,
 			     tep_event_handler_func func, char *filter_str, int id)
 {
-	int fd, size, rc;
+	int fd, rc;
+	int size = 0;
 	char *page, fname[MAX_PATH + 1];
-	struct tep_event_filter * filter = NULL;
+	struct tep_event_filter *filter = NULL;
+
+	if (!check_event_exist(ras, group, event)) {
+		log(ALL, LOG_WARNING, "%s:%s event not exist\n",
+		    group, event);
+		return -EINVAL;
+	}
 
 	snprintf(fname, sizeof(fname), "events/%s/%s/format", group, event);
 
 	fd = open_trace(ras, fname, O_RDONLY);
 	if (fd < 0) {
-		log(TERM, LOG_ERR,
-		    "Can't get %s:%s traces. Perhaps this feature is not supported on your system.\n",
-		    group, event);
-		return errno;
+		if (fd == -ENOENT) {
+			log(TERM, LOG_ERR,
+			    "Feature %s:%s not supported on your system.\n",
+			    group, event);
+			return EVENT_DISABLED;
+		}
+
+		log(TERM, LOG_ERR, "Can't get %s:%s traces: %s\n",
+		    group, event, strerror(-fd));
+
+		return fd;
 	}
 
 	page = malloc(page_size);
 	if (!page) {
+		rc = -errno;
 		log(TERM, LOG_ERR, "Can't allocate page to read %s:%s format\n",
 		    group, event);
-		rc = errno;
 		close(fd);
 		return rc;
 	}
 
-	size = read(fd, page, page_size);
+	do {
+		if (size > 0) {
+			page = realloc(page, page_size + size);
+			if (!page) {
+				rc = -errno;
+				log(TERM, LOG_ERR,
+				    "Can't reallocate page to read %s:%s format\n",
+				    group, event);
+				close(fd);
+				return rc;
+			}
+		}
+		rc = read(fd, page + size, page_size);
+		if (rc < 0) {
+			log(TERM, LOG_ERR, "Can't get arch page size\n");
+			free(page);
+			close(fd);
+			return rc;
+		}
+		size += rc;
+	} while (rc > 0);
 	close(fd);
-	if (size < 0) {
-		log(TERM, LOG_ERR, "Can't get arch page size\n");
-		free(page);
-		return size;
-	}
 
 	/* Registers the special event handlers */
 	rc = tep_register_event_handler(pevent, -1, group, event, func, ras);
@@ -806,14 +916,14 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 		log(TERM, LOG_ERR, "Can't register event handler for %s:%s\n",
 		    group, event);
 		free(page);
-		return EINVAL;
+		return -EINVAL;
 	}
 
 	rc = tep_parse_event(pevent, page, size, group);
 	if (rc) {
 		log(TERM, LOG_ERR, "Can't parse event %s:%s\n", group, event);
 		free(page);
-		return EINVAL;
+		return -EINVAL;
 	}
 
 	if (filter_str) {
@@ -822,15 +932,17 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 		filter = tep_filter_alloc(pevent);
 		if (!filter) {
 			log(TERM, LOG_ERR,
-			    "Failed to allocate filter for %s/%s.\n", group, event);
+			    "Failed to allocate filter for %s/%s.\n",
+			    group, event);
 			free(page);
-			return EINVAL;
+			return -EINVAL;
 		}
 		rc = tep_filter_add_filter_str(filter, filter_str);
 		if (rc < 0) {
 			tep_filter_strerror(filter, rc, error, sizeof(error));
 			log(TERM, LOG_ERR,
-			    "Failed to install filter for %s/%s: %s\n", group, event, error);
+			    "Failed to install filter for %s/%s: %s\n",
+			    group, event, error);
 			tep_filter_free(filter);
 			free(page);
 			return rc;
@@ -839,6 +951,12 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 
 	ras->filters[id] = filter;
 
+	if (is_disabled_event(group, event)) {
+		log(ALL, LOG_INFO, "Disabled %s:%s tracing from config\n",
+		    group, event);
+		return EVENT_DISABLED;
+	}
+
 	/* Enable RAS events */
 	rc = __toggle_ras_mc_event(ras, group, event, 1);
 	free(page);
@@ -846,30 +964,35 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 		log(TERM, LOG_ERR, "Can't enable %s:%s tracing\n",
 		    group, event);
 
-		return EINVAL;
+		return -EINVAL;
 	}
+
+	setup_event_trigger(event);
 
 	log(ALL, LOG_INFO, "Enabled event %s:%s\n", group, event);
 
 	return 0;
 }
 
-int handle_ras_events(int record_events)
+int handle_ras_events(int record_events, int enable_ipmitool)
 {
 	int rc, page_size, i;
 	int num_events = 0;
-	unsigned cpus;
+	unsigned int cpus;
 	struct tep_handle *pevent = NULL;
 	struct pthread_data *data = NULL;
 	struct ras_events *ras = NULL;
 #ifdef HAVE_DEVLINK
 	char *filter_str = NULL;
 #endif
+#ifdef HAVE_SIGNAL
+	char signal_filter[64];
+#endif
 
 	ras = calloc(1, sizeof(*ras));
 	if (!ras) {
 		log(TERM, LOG_ERR, "Can't allocate memory for ras struct\n");
-		return errno;
+		return -errno;
 	}
 
 	rc = get_tracing_dir(ras);
@@ -879,15 +1002,13 @@ int handle_ras_events(int record_events)
 	}
 
 	rc = select_tracing_timestamp(ras);
-	if (rc < 0) {
-		log(TERM, LOG_ERR, "Can't select a timestamp for tracing\n");
-		goto err;
-	}
+	if (rc < 0)
+		log(TERM, LOG_ERR, "Can't select a timestamp for tracing. Using default\n");
 
 	pevent = tep_alloc();
 	if (!pevent) {
 		log(TERM, LOG_ERR, "Can't allocate pevent\n");
-		rc = errno;
+		rc = -errno;
 		goto err;
 	}
 
@@ -896,6 +1017,10 @@ int handle_ras_events(int record_events)
 	ras->pevent = pevent;
 	ras->page_size = page_size;
 	ras->record_events = record_events;
+
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	ras_row_account_init();
+#endif
 
 #ifdef HAVE_MEMORY_CE_PFA
 	/* FIXME: enable memory isolation unconditionally */
@@ -906,16 +1031,17 @@ int handle_ras_events(int record_events)
 			       ras_mc_event_handler, NULL, MC_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "mc_event");
 
 #ifdef HAVE_AER
+	ras_aer_handler_init(enable_ipmitool);
 	rc = add_event_handler(ras, pevent, page_size, "ras", "aer_event",
 			       ras_aer_event_handler, NULL, AER_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED && rc != ENOENT)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "aer_event");
 #endif
@@ -925,7 +1051,7 @@ int handle_ras_events(int record_events)
 			       ras_non_standard_event_handler, NULL, NON_STANDARD_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "non_standard_event");
 #endif
@@ -935,7 +1061,7 @@ int handle_ras_events(int record_events)
 			       ras_arm_event_handler, NULL, ARM_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "arm_event");
 #endif
@@ -943,12 +1069,12 @@ int handle_ras_events(int record_events)
 	cpus = get_num_cpus(ras);
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
-	ras_cpu_isolation_init(cpus);
+	ras_cpu_isolation_init(sysconf(_SC_NPROCESSORS_CONF));
 #endif
 
 #ifdef HAVE_MCE
 	rc = register_mce_handler(ras, cpus);
-	if (rc)
+	if (rc && rc != -ENOENT)
 		log(ALL, LOG_INFO, "Can't register mce handler\n");
 	if (ras->mce_priv) {
 		rc = add_event_handler(ras, pevent, page_size,
@@ -969,7 +1095,7 @@ int handle_ras_events(int record_events)
 		/* tell kernel we are listening, so don't printk to console */
 		(void)open("/sys/kernel/debug/ras/daemon_active", 0);
 		num_events++;
-	} else
+	} else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "extlog_mem_event");
 #endif
@@ -986,19 +1112,19 @@ int handle_ras_events(int record_events)
 			       ras_devlink_event_handler, filter_str, DEVLINK_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "devlink", "devlink_health_report");
 #endif
 
 #ifdef HAVE_DISKERROR
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,18,0)
+#ifdef HAVE_BLK_RQ_ERROR
 	rc = add_event_handler(ras, pevent, page_size, "block",
 			       "block_rq_error", ras_diskerror_event_handler,
 				NULL, DISKERROR_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "block", "block_rq_error");
 #else
@@ -1009,7 +1135,7 @@ int handle_ras_events(int record_events)
 					NULL, DISKERROR_EVENT);
 		if (!rc)
 			num_events++;
-		else
+		else if (rc != EVENT_DISABLED)
 			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 			    "block", "block_rq_complete");
 	}
@@ -1021,7 +1147,7 @@ int handle_ras_events(int record_events)
 			       ras_memory_failure_event_handler, NULL, MF_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "ras", "memory_failure_event");
 #endif
@@ -1031,7 +1157,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_poison_event_handler, NULL, CXL_POISON_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_poison");
 
@@ -1039,7 +1165,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_aer_ue_event_handler, NULL, CXL_AER_UE_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_aer_uncorrectable_error");
 
@@ -1047,7 +1173,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_aer_ce_event_handler, NULL, CXL_AER_CE_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_aer_correctable_error");
 
@@ -1055,7 +1181,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_overflow_event_handler, NULL, CXL_OVERFLOW_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_overflow");
 
@@ -1063,7 +1189,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_generic_event_handler, NULL, CXL_GENERIC_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_generic_event");
 
@@ -1071,7 +1197,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_general_media_event_handler, NULL, CXL_GENERAL_MEDIA_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_general_media");
 
@@ -1079,7 +1205,7 @@ int handle_ras_events(int record_events)
 			       ras_cxl_dram_event_handler, NULL, CXL_DRAM_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "cxl_dram");
 
@@ -1087,22 +1213,45 @@ int handle_ras_events(int record_events)
 			       ras_cxl_memory_module_event_handler, NULL, CXL_MEMORY_MODULE_EVENT);
 	if (!rc)
 		num_events++;
-	else
+	else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 		    "cxl", "memory_module");
+
+	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_memory_sparing",
+			       ras_cxl_memory_sparing_event_handler, NULL, CXL_MEMORY_SPARING_EVENT);
+	if (!rc)
+		num_events++;
+	else if (rc != EVENT_DISABLED)
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "cxl", "cxl_memory_sparing");
+#endif
+
+#ifdef HAVE_SIGNAL
+	snprintf(signal_filter, sizeof(signal_filter), "sig == %d && code >= %d", SIGBUS, BUS_OBJERR);
+	// ensure filter enabled
+	usleep(30000);
+	rc = filter_ras_mc_event(ras, "signal", "signal_generate", signal_filter);
+	if (!rc) {
+		rc = add_event_handler(ras, pevent, page_size, "signal", "signal_generate",
+				       ras_signal_event_handler, NULL, SIGNAL_EVENT);
+		if (!rc)
+			num_events++;
+		else if (rc != -EINVAL)
+			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+			    "signal", "signal_generate");
+	}
 #endif
 
 	if (!num_events) {
 		log(ALL, LOG_INFO,
-		    "Failed to trace all supported RAS events. Aborting.\n");
+		    "Failed to trace any supported RAS events. Aborting.\n");
 		rc = -EINVAL;
 		goto err;
 	}
 
-	data = calloc(sizeof(*data), cpus);
+	data = calloc(cpus, sizeof(*data));
 	if (!data)
 		goto err;
-
 
 	for (i = 0; i < cpus; i++) {
 		data[i].ras = ras;
@@ -1111,21 +1260,21 @@ int handle_ras_events(int record_events)
 	rc = read_ras_event_all_cpus(data, cpus);
 
 	/* Poll doesn't work on this kernel. Fallback to pthread way */
-	if (rc == -255) {
+	if (rc == LEGACY_KERNEL) {
 		if (pthread_mutex_init(&ras->db_lock, NULL) != 0) {
 			log(SYSLOG, LOG_INFO, "sqlite db lock init has failed\n");
 			goto err;
 		}
 
 		log(SYSLOG, LOG_INFO,
-		"Opening one thread per cpu (%d threads)\n", cpus);
+		    "Opening one thread per cpu (%d threads)\n", cpus);
 		for (i = 0; i < cpus; i++) {
 			rc = pthread_create(&data[i].thread, NULL,
-					handle_ras_events_cpu,
+					    handle_ras_events_cpu,
 					(void *)&data[i]);
 			if (rc) {
 				log(SYSLOG, LOG_INFO,
-				"Failed to create thread for cpu %d. Aborting.\n",
+				    "Failed to create thread for cpu %d. Aborting.\n",
 				i);
 				while (--i)
 					pthread_cancel(data[i].thread);
@@ -1159,6 +1308,10 @@ err:
 	}
 #ifdef HAVE_CPU_FAULT_ISOLATION
 	cpu_infos_free();
+#endif
+
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	row_record_infos_free();
 #endif
 	return rc;
 }

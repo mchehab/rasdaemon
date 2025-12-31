@@ -1,7 +1,9 @@
 .\"****************************************************************************
 .\" $Id$
 .\"****************************************************************************
-.\"Copyright (c) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
+.\" SPDX-License-Identifier: GPL-2.0-or-later
+.\"
+.\"Copyright (c) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 .\"
 .\" This is free software; you can redistribute it and/or modify it
 .\" under the terms of the GNU General Public License as published by
@@ -32,7 +34,8 @@ rasdaemon \- RAS daemon to log the RAS events.
 The \fBrasdaemon\fR program is a daemon which monitors the platform
 Reliablity, Availability and Serviceability (RAS) reports from the
 Linux kernel trace events. These trace events are logged in
-/sys/kernel/debug/tracing, reporting them via syslog/journald.
+/sys/kernel/debug/tracing, reporting them via syslog/journald. If
+syslog-ng is installed, the events will logged at @localstatedir@/log/rasdaemon.
 
 .SH OPTIONS
 .TP
@@ -68,6 +71,21 @@ The \fBrasdaemon\fR program supports a config file to set rasdaemon systemd serv
 environment variables. By default the config file is read from /etc/sysconfig/rasdaemon.
 
 The general format is environmentname=value.
+
+.SH LOG LEVEL
+
+Each log entry has a level prefix that describes the severity of the log to
+help users determine which logs are more valuable.
+Currently, three levels are used:.TP
+
+.B "ALERT"
+The uncorrected hardware error has been fixed, but cause side effects.
+.TP
+.B "CRIT"
+The uncorrected hardware error has been detected.
+.TP
+.B "ERROR"
+The corrected hardware error has been detected.
 
 .SH SEE ALSO
 \fBras-mc-ctl\fR(8)

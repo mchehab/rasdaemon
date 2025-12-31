@@ -1,18 +1,14 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+
 /*
  * Copyright (c) 2020 Hisilicon Limited.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
  */
 
 #ifndef __NON_STANDARD_HISILICON_H
 #define __NON_STANDARD_HISILICON_H
 
-#include "ras-non-standard-handler.h"
 #include "ras-mc-handler.h"
+#include "ras-non-standard-handler.h"
 
 #define HISI_SNPRINTF	mce_snprintf
 
@@ -28,7 +24,7 @@ enum hisi_oem_data_type {
 };
 
 /* helper functions */
-static inline char *err_severity(uint8_t err_sev)
+static inline const char *err_severity(uint8_t err_sev)
 {
 	switch (err_sev) {
 	case HISI_ERR_SEVERITY_NFE: return "recoverable";

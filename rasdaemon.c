@@ -1,20 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
- * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ */
 
 #include <argp.h>
 #include <stdio.h>
@@ -22,9 +10,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "ras-record.h"
-#include "ras-logger.h"
+#include "ras-erst.h"
 #include "ras-events.h"
+#include "ras-logger.h"
+#include "ras-poison-page-stat.h"
+#include "ras-record.h"
+#include "ras-mc-handler.h"
+#include "types.h"
 
 /*
  * Arguments(argp) handling logic and main
@@ -33,6 +25,9 @@
 #define TOOL_NAME "rasdaemon"
 #define TOOL_DESCRIPTION "RAS daemon to log the RAS events."
 #define ARGS_DOC "<options>"
+#define DISABLE "DISABLE"
+#define MC_CE_STAT_THRESHOLD "MC_CE_STAT_THRESHOLD"
+#define POISON_STAT_THRESHOLD "POISON_STAT_THRESHOLD"
 
 const char *argp_program_version = TOOL_NAME " " VERSION;
 const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.org>";
@@ -40,6 +35,7 @@ const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.or
 struct arguments {
 	int record_events;
 	int enable_ras;
+	int enable_ipmitool;
 	int foreground;
 	int offline;
 };
@@ -72,6 +68,11 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 		args->record_events++;
 		break;
 #endif
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+	case 'i':
+		args->enable_ipmitool++;
+		break;
+#endif
 	case 'f':
 		args->foreground++;
 		break;
@@ -97,22 +98,22 @@ static error_t parse_opt_offline(int key, char *arg,
 		event.smca = true;
 		break;
 	case MODEL:
-		event.model = strtoul(state->argv[state->next], NULL, 0);
+		event.model = strtoul(arg, NULL, 0);
 		break;
 	case FAMILY:
-		event.family = strtoul(state->argv[state->next], NULL, 0);
+		event.family = strtoul(arg, NULL, 0);
 		break;
 	case BANK_NUM:
-		event.bank = atoi(state->argv[state->next]);
+		event.bank = atoi(arg);
 		break;
 	case IPID_REG:
-		event.ipid = strtoull(state->argv[state->next], NULL, 0);
+		event.ipid = strtoull(arg, NULL, 0);
 		break;
 	case STATUS_REG:
-		event.status = strtoull(state->argv[state->next], NULL, 0);
+		event.status = strtoull(arg, NULL, 0);
 		break;
 	case SYNDROME_REG:
-		event.synd = strtoull(state->argv[state->next], NULL, 0);
+		event.synd = strtoull(arg, NULL, 0);
 		break;
 	default:
 		return ARGP_ERR_UNKNOWN;
@@ -128,15 +129,29 @@ int main(int argc, char *argv[])
 	struct arguments args;
 	int idx = -1;
 
+	choices_disable = getenv(DISABLE);
+
+	if (getenv(MC_CE_STAT_THRESHOLD))
+		mc_ce_stat_threshold = strtoull(getenv(MC_CE_STAT_THRESHOLD), NULL, 0);
+	if (mc_ce_stat_threshold)
+		log(TERM, LOG_INFO, "Threshold of memory Corrected Errors statistics is %lld\n", mc_ce_stat_threshold);
+
+#ifdef HAVE_POISON_PAGE_STAT
+	if (getenv(POISON_STAT_THRESHOLD))
+		poison_stat_threshold = strtoull(getenv(POISON_STAT_THRESHOLD), NULL, 0);
+	if (poison_stat_threshold)
+		log(TERM, LOG_INFO, "Threshold of poison page statistics is %lld kB\n", poison_stat_threshold);
+#endif
+
 #ifdef HAVE_MCE
 	const struct argp_option offline_options[] = {
 		{"smca", SMCA, 0, 0, "AMD SMCA Error Decoding"},
-		{"model", MODEL, 0, 0, "CPU Model"},
-		{"family", FAMILY, 0, 0, "CPU Family"},
-		{"bank", BANK_NUM, 0, 0, "Bank Number"},
-		{"ipid", IPID_REG, 0, 0, "IPID Register (for SMCA systems only)"},
-		{"status", STATUS_REG, 0, 0, "Status Register"},
-		{"synd", SYNDROME_REG, 0, 0, "Syndrome Register"},
+		{"model", MODEL, "MODEL", 0, "CPU Model"},
+		{"family", FAMILY, "FAMILY", 0, "CPU Family"},
+		{"bank", BANK_NUM, "BANK_NUM", 0, "Bank Number"},
+		{"ipid", IPID_REG, "IPID_REG", 0, "IPID Register (for SMCA systems only)"},
+		{"status", STATUS_REG, "STATUS_REG", 0, "Status Register"},
+		{"synd", SYNDROME_REG, "SYNDROME_REG", 0, "Syndrome Register"},
 		{0, 0, 0, 0, 0, 0},
 	};
 
@@ -160,6 +175,9 @@ int main(int argc, char *argv[])
 		{"record",  'r', 0, 0, "record events via sqlite3", 0},
 #endif
 		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+		{"ipmitool", 'i', 0, 0, "enable ipmitool logging", 0},
+#endif
 #ifdef HAVE_MCE
 		{"post-processing", 'p', 0, 0,
 		"Post-processing MCE's with raw register values"},
@@ -176,7 +194,7 @@ int main(int argc, char *argv[])
 		.children = offline_parser,
 #endif
 	};
-	memset (&args, 0, sizeof(args));
+	memset(&args, 0, sizeof(args));
 
 	user_hz = sysconf(_SC_CLK_TCK);
 
@@ -205,10 +223,20 @@ int main(int argc, char *argv[])
 
 	openlog(TOOL_NAME, 0, LOG_DAEMON);
 	if (!args.foreground)
-		if (daemon(0,0))
+		if (daemon(0, 0))
 			exit(EXIT_FAILURE);
 
-	handle_ras_events(args.record_events);
+#ifdef HAVE_ERST
+#ifdef HAVE_MCE
+	if (choices_disable && strlen(choices_disable) != 0 &&
+	    strstr(choices_disable, "ras:erst"))
+		log(ALL, LOG_INFO, "Disabled ras:erst from config\n");
+	else
+		handle_erst();
+#endif
+#endif
+
+	handle_ras_events(args.record_events, args.enable_ipmitool);
 
 	return 0;
 }

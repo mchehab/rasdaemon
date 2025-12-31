@@ -1,34 +1,21 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * The code below came from Andi Kleen/Intel/SuSe mcelog code,
+ * The code below came from Andi Kleen/Intel/SUSE mcelog code,
  * released under GNU Public General License, v.2
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
 
 #include <stdint.h>
 
 /* Generic bitfield decoder */
 
 struct field {
-	unsigned start_bit;
+	unsigned int start_bit;
 	char **str;
-	unsigned stringlen;
+	unsigned int stringlen;
 };
 
 struct numfield {
-	unsigned start, end;
+	unsigned int start, end;
 	char *name;
 	char *fmt;
 	int force;
@@ -51,7 +38,7 @@ void decode_numfield(struct mce_event *e, uint64_t status,
 		     struct numfield *fields);
 
 #define MASK(x) ((1ULL << (1 + (x))) - 1)
-#define EXTRACT(v, a, b) (((v) >> (a)) & MASK((b)-(a)))
+#define EXTRACT(v, a, b) (((v) >> (a)) & MASK((b) - (a)))
 
 static inline int test_prefix(int nr, uint32_t value)
 {
@@ -60,7 +47,7 @@ static inline int test_prefix(int nr, uint32_t value)
 
 /* Ancillary routines */
 
-unsigned bitfield_msg(char *buf, size_t len, const char **bitarray,
-		      unsigned array_len,
-		      unsigned bit_offset, unsigned ignore_bits,
-		      uint64_t status);
+unsigned int bitfield_msg(char *buf, size_t len, const char * const *bitarray,
+			  unsigned int array_len,
+			  unsigned int bit_offset, unsigned int ignore_bits,
+			  uint64_t status);

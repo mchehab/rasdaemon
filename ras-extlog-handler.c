@@ -1,32 +1,22 @@
+// SPDX-License-Identifier: GPL-2.0
+
 /*
  * Copyright (C) 2014 Tony Luck <tony.luck@intel.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ */
+
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdint.h>
 #include <traceevent/kbuffer.h>
+#include <unistd.h>
+
 #include "ras-extlog-handler.h"
-#include "ras-record.h"
 #include "ras-logger.h"
 #include "ras-report.h"
+#include "types.h"
 
 static char *err_type(int etype)
 {
@@ -106,40 +96,85 @@ static char *err_cper_data(const char *c)
 {
 	const struct cper_mem_err_compact *cpd = (struct cper_mem_err_compact *)c;
 	static char buf[256];
+	unsigned int rc, size = sizeof(buf);
 	char *p = buf;
 
 	if (cpd->validation_bits == 0)
 		return "";
-	p += sprintf(p, " (");
-	if (cpd->validation_bits & CPER_MEM_VALID_NODE)
-		p += sprintf(p, "node: %d ", cpd->node);
-	if (cpd->validation_bits & CPER_MEM_VALID_CARD)
-		p += sprintf(p, "card: %d ", cpd->card);
-	if (cpd->validation_bits & CPER_MEM_VALID_MODULE)
-		p += sprintf(p, "module: %d ", cpd->module);
-	if (cpd->validation_bits & CPER_MEM_VALID_BANK)
-		p += sprintf(p, "bank: %d ", cpd->bank);
-	if (cpd->validation_bits & CPER_MEM_VALID_DEVICE)
-		p += sprintf(p, "device: %d ", cpd->device);
-	if (cpd->validation_bits & CPER_MEM_VALID_ROW)
-		p += sprintf(p, "row: %d ", cpd->row);
-	if (cpd->validation_bits & CPER_MEM_VALID_COLUMN)
-		p += sprintf(p, "column: %d ", cpd->column);
-	if (cpd->validation_bits & CPER_MEM_VALID_BIT_POSITION)
-		p += sprintf(p, "bit_pos: %d ", cpd->bit_pos);
-	if (cpd->validation_bits & CPER_MEM_VALID_REQUESTOR_ID)
-		p += sprintf(p, "req_id: 0x%llx ", cpd->requestor_id);
-	if (cpd->validation_bits & CPER_MEM_VALID_RESPONDER_ID)
-		p += sprintf(p, "resp_id: 0x%llx ", cpd->responder_id);
-	if (cpd->validation_bits & CPER_MEM_VALID_TARGET_ID)
-		p += sprintf(p, "tgt_id: 0x%llx ", cpd->target_id);
-	if (cpd->validation_bits & CPER_MEM_VALID_RANK_NUMBER)
-		p += sprintf(p, "rank: %d ", cpd->rank);
-	if (cpd->validation_bits & CPER_MEM_VALID_CARD_HANDLE)
-		p += sprintf(p, "card_handle: %d ", cpd->mem_array_handle);
-	if (cpd->validation_bits & CPER_MEM_VALID_MODULE_HANDLE)
-		p += sprintf(p, "module_handle: %d ", cpd->mem_dev_handle);
-	p += sprintf(p-1, ")");
+	rc = snprintf(p, size, " (");
+	p += rc;
+	size -= rc;
+	if (cpd->validation_bits & CPER_MEM_VALID_NODE) {
+		rc = snprintf(p, size, "node: %d ", cpd->node);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_CARD) {
+		rc = snprintf(p, size, "card: %d ", cpd->card);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_MODULE) {
+		rc = snprintf(p, size, "module: %d ", cpd->module);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_BANK) {
+		rc = snprintf(p, size, "bank: %d ", cpd->bank);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_DEVICE) {
+		rc = snprintf(p, size, "device: %d ", cpd->device);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_ROW) {
+		rc = snprintf(p, size, "row: %d ", cpd->row);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_COLUMN) {
+		rc = snprintf(p, size, "column: %d ", cpd->column);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_BIT_POSITION) {
+		rc = snprintf(p, size, "bit_pos: %d ", cpd->bit_pos);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_REQUESTOR_ID) {
+		rc = snprintf(p, size, "req_id: 0x%llx ", cpd->requestor_id);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_RESPONDER_ID) {
+		rc = snprintf(p, size, "resp_id: 0x%llx ", cpd->responder_id);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_TARGET_ID) {
+		rc = snprintf(p, size, "tgt_id: 0x%llx ", cpd->target_id);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_RANK_NUMBER) {
+		rc = snprintf(p, size, "rank: %d ", cpd->rank);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_CARD_HANDLE) {
+		rc = snprintf(p, size, "card_handle: %d ", cpd->mem_array_handle);
+		p += rc;
+		size -= rc;
+	}
+	if (cpd->validation_bits & CPER_MEM_VALID_MODULE_HANDLE) {
+		rc = snprintf(p, size, "module_handle: %d ", cpd->mem_dev_handle);
+		p += rc;
+		size -= rc;
+	}
+	rc = snprintf(p - 1, size, ")");
 
 	return buf;
 }
@@ -149,10 +184,10 @@ static char *uuid_le(const char *uu)
 	static char uuid[sizeof("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")];
 	char *p = uuid;
 	int i;
-	static const unsigned char le[16] = {3,2,1,0,5,4,7,6,8,9,10,11,12,13,14,15};
+	static const unsigned char le[16] = {3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15};
 
 	for (i = 0; i < 16; i++) {
-		p += sprintf(p, "%.2x", (unsigned char) uu[le[i]]);
+		p += snprintf(p, sizeof(uuid), "%.2x", (unsigned char)uu[le[i]]);
 		switch (i) {
 		case 3:
 		case 5:
@@ -168,14 +203,33 @@ static char *uuid_le(const char *uu)
 	return uuid;
 }
 
-
 static void report_extlog_mem_event(struct ras_events *ras,
 				    struct tep_record *record,
 				    struct trace_seq *s,
 				    struct ras_extlog_event *ev)
 {
+	const char *level;
+
+	switch (ev->severity) {
+	case 0:
+		level = loglevel_str[LOGLEVEL_CRIT];
+		break;
+	case 1:
+		level = loglevel_str[LOGLEVEL_EMERG];
+		break;
+	case 2:
+		level = loglevel_str[LOGLEVEL_ERR];
+		break;
+	case 3:
+		level = loglevel_str[LOGLEVEL_INFO];
+		break;
+	default:
+		level = loglevel_str[LOGLEVEL_DEBUG];
+		break;
+	}
+	trace_seq_printf(s, "%s ", level);
 	trace_seq_printf(s, "%d %s error: %s physical addr: 0x%llx mask: 0x%llx%s %s %s",
-		ev->error_seq, err_severity(ev->severity),
+			 ev->error_seq, err_severity(ev->severity),
 		err_type(ev->etype), ev->address,
 		err_mask(ev->pa_mask_lsb),
 		err_cper_data(ev->cper_data),
@@ -204,7 +258,7 @@ int ras_extlog_mem_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 

@@ -1,4 +1,6 @@
-AC_INIT([RASdaemon],[0.8.0])
+# SPDX-License-Identifier: GPL-2.0
+
+AC_INIT([RASdaemon],[0.8.4])
 AM_SILENT_RULES([yes])
 AC_CANONICAL_TARGET
 AC_CONFIG_MACRO_DIR([m4])
@@ -52,6 +54,14 @@ AC_ARG_ENABLE([aer],
 AS_IF([test "x$enable_aer" = "xyes" || test "x$enable_all" = "xyes"], [
   AC_DEFINE(HAVE_AER,1,"have PCIe AER events collect")
   AC_SUBST([WITH_AER])
+
+  has_libpci_ver=0
+  dnl check for pciutils library
+  PKG_CHECK_MODULES([LIBPCI], [libpci], [has_libpci_ver=1])
+
+  AS_IF([test "$has_libpci_ver" -eq 0], [
+    AC_MSG_ERROR([libpci is required but were not found])
+])
 ])
 AM_CONDITIONAL([WITH_AER], [test x$enable_aer = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_AER], [USE_AER="yes"], [USE_AER="no"])
@@ -117,6 +127,19 @@ AS_IF([test "x$enable_diskerror" = "xyes" || test "x$enable_all" = "xyes"], [
 AM_CONDITIONAL([WITH_DISKERROR], [test x$enable_diskerror = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_DISKERROR], [USE_DISKERROR="yes"], [USE_DISKERROR="no"])
 
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
+#ifdef RHEL_RELEASE_CODE
+#if RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(9, 1)
+# error kernel too old
+#endif
+#else
+# error kernel too old
+#endif
+#endif
+]])], [AC_DEFINE(HAVE_BLK_RQ_ERROR,1,"have block_rq_error tracepoint")])
+
 AC_ARG_ENABLE([memory_failure],
     AS_HELP_STRING([--enable-memory-failure], [enable memory failure events (currently experimental)]))
 
@@ -167,6 +190,18 @@ AS_IF([test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_all" = "xyes"], 
 AM_CONDITIONAL([WITH_MEMORY_CE_PFA], [test x$enable_memory_ce_pfa = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_MEMORY_CE_PFA], [USE_MEMORY_CE_PFA="yes"], [USE_MEMORY_CE_PFA="no"])
 
+AC_ARG_ENABLE([memory_row_ce_pfa],
+    AS_HELP_STRING([--enable-memory-row-ce-pfa], [enable memory row Corrected Error predictive failure analysis]))
+
+AS_IF([test "x$enable_memory_row_ce_pfa" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_MEMORY_ROW_CE_PFA,1,"have memory row corrected error predictive failure analysis")
+  AC_SUBST([WITH_MEMORY_ROW_CE_PFA])
+])
+AM_CONDITIONAL([WITH_MEMORY_ROW_CE_PFA], [test x$enable_memory_row_ce_pfa = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_MEMORY_ROW_CE_PFA], [USE_MEMORY_ROW_CE_PFA="yes"], [USE_MEMORY_ROW_CE_PFA="no"])
+
+AM_CONDITIONAL([WITH_PFA], [test x$USE_MEMORY_CE_PFA = xyes || test x$USE_MEMORY_ROW_CE_PFA = xyes])
+
 AC_ARG_ENABLE([amp_ns_decode],
     AS_HELP_STRING([--enable-amp-ns-decode], [enable AMP_NS_DECODE events (currently experimental)]))
 
@@ -176,6 +211,26 @@ AS_IF([test "x$enable_amp_ns_decode" = "xyes" || test "x$enable_all" = "xyes"], 
 ])
 AM_CONDITIONAL([WITH_AMP_NS_DECODE], [test x$enable_amp_ns_decode = xyes || test x$enable_all = xyes])
 AM_COND_IF([WITH_AMP_NS_DECODE], [USE_AMP_NS_DECODE="yes"], [USE_AMP_NS_DECODE="no"])
+
+AC_ARG_ENABLE([openbmc_unified_sel],
+    AS_HELP_STRING([--enable-openbmc-unified-sel], [enable OPENBMC_UNIFIED_SEL events (currently experimental)]))
+
+AS_IF([test "x$enable_openbmc_unified_sel" = "xyes" || test "x$enable_all" = "xyes"], [
+  AC_DEFINE(HAVE_OPENBMC_UNIFIED_SEL,1,"have OpenBMC unified SEL")
+  AC_SUBST([WITH_OPENBMC_UNIFIED_SEL])
+])
+AM_CONDITIONAL([WITH_OPENBMC_UNIFIED_SEL], [test x$enable_openbmc_unified_sel = xyes || test x$enable_all = xyes])
+AM_COND_IF([WITH_OPENBMC_UNIFIED_SEL], [USE_OPENBMC_UNIFIED_SEL="yes"], [USE_OPENBMC_UNIFIED_SEL="no"])
+
+AC_ARG_ENABLE([jaguar_ns_decode],
+    AS_HELP_STRING([--enable-jaguar-ns-decode], [enable JAGUAR_NS_DECODE events (currently experimental)]))
+
+AS_IF([test "x$enable_jaguar_ns_decode" = "xyes" || test "x$enable_all" = "xyes"], [
+  AC_DEFINE(HAVE_JAGUAR_NS_DECODE,1,"have JaguarMicro UNKNOWN_SEC events decode")
+  AC_SUBST([WITH_JAGUAR_NS_DECODE])
+])
+AM_CONDITIONAL([WITH_JAGUAR_NS_DECODE], [test x$enable_jaguar_ns_decode = xyes || test x$enable_all = xyes])
+AM_COND_IF([WITH_JAGUAR_NS_DECODE], [USE_JAGUAR_NS_DECODE="yes"], [USE_JAGUAR_NS_DECODE="no"])
 
 AC_ARG_ENABLE([cpu_fault_isolation],
     AS_HELP_STRING([--enable-cpu-fault-isolation], [enable cpu online fault isolation]))
@@ -196,6 +251,32 @@ AS_IF([test "x$enable_yitian_ns_decode" = "xyes" || test "x$enable_all" == "xyes
 ])
 AM_CONDITIONAL([WITH_YITIAN_NS_DECODE], [test x$enable_yitian_ns_decode = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_YITIAN_NS_DECODE], [USE_YITIAN_NS_DECODE="yes"], [USE_YITIAN_NS_DECODE="no"])
+
+AC_ARG_ENABLE([signal],
+    AS_HELP_STRING([--enable-signal], [enable signal event(currently experimental)]))
+
+AS_IF([test "x$enable_signal" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_SIGNAL,1,"have signal event")
+  AC_SUBST([WITH_SIGNAL])
+])
+AM_CONDITIONAL([WITH_SIGNAL], [test x$enable_signal = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_SIGNAL], [USE_SIGNAL="yes"], [USE_SIGNAL="no"])
+
+AS_IF([test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_memory_row_ce_pfa" = "xyes" || test "x$enable_memory_failure" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_POISON_PAGE_STAT,1,"have poison page statistics")
+  AC_SUBST([WITH_POISON_PAGE_STAT])
+])
+AM_CONDITIONAL([WITH_POISON_PAGE_STAT], [test "x$enable_memory_ce_pfa" = "xyes" || test "x$enable_memory_row_ce_pfa" = "xyes" || test "x$enable_memory_failure" = "xyes" || test "x$enable_all" == "xyes" ])
+
+AC_ARG_ENABLE([erst],
+    AS_HELP_STRING([--enable-erst], [enable erst (currently experimental)]))
+
+AS_IF([test "x$enable_erst" = "xyes" || test "x$enable_all" == "xyes"], [
+  AC_DEFINE(HAVE_ERST,1,"have ERST")
+  AC_SUBST([WITH_ERST])
+])
+AM_CONDITIONAL([WITH_ERST], [test x$enable_erst = xyes || test x$enable_all == xyes])
+AM_COND_IF([WITH_ERST], [USE_ERST="yes"], [USE_ERST="no"])
 
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
@@ -237,7 +318,12 @@ compile time options summary
     Memory Failure      : $USE_MEMORY_FAILURE
     CXL events          : $USE_CXL
     Memory CE PFA       : $USE_MEMORY_CE_PFA
+    Memory ROW CE PFA   : $USE_MEMORY_ROW_CE_PFA
     AMP RAS errors      : $USE_AMP_NS_DECODE
+    OpenBMC unified     : $USE_OPENBMC_UNIFIED_SEL
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION
     YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
+    JAGUAR RAS errors   : $USE_JAGUAR_NS_DECODE
+    Signal              : $USE_SIGNAL
+    ERST                : $USE_ERST
 EOF

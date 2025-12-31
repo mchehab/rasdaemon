@@ -1,30 +1,128 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 /*
- * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+redhat@kernel.org>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*/
+ * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ */
+
+#define _GNU_SOURCE
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <errno.h>
 #include <traceevent/kbuffer.h>
-#include "ras-mc-handler.h"
-#include "ras-record.h"
+#include <unistd.h>
+
 #include "ras-logger.h"
+#include "ras-mc-handler.h"
 #include "ras-page-isolation.h"
 #include "ras-report.h"
+#include "trigger.h"
+#include "types.h"
+
+#define MAX_ENV 30
+static const char *mc_ce_trigger = NULL;
+static const char *mc_ue_trigger = NULL;
+
+void mc_event_trigger_setup(void)
+{
+	const char *trigger;
+
+	trigger = getenv("MC_CE_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		mc_ce_trigger = trigger_check(trigger);
+
+		if (!mc_ce_trigger) {
+			log(ALL, LOG_ERR,
+			    "Cannot access mc_event ce trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup mc_event ce trigger `%s`\n",
+			    trigger);
+		}
+	}
+
+	trigger = getenv("MC_UE_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		mc_ue_trigger = trigger_check(trigger);
+
+		if (!mc_ue_trigger) {
+			log(ALL, LOG_ERR,
+			    "Cannot access mc_event ue trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup mc_event ue trigger `%s`\n",
+			    trigger);
+		}
+	}
+}
+
+static void run_mc_trigger(struct ras_mc_event *ev, const char *mc_trigger)
+{
+	char *env[MAX_ENV];
+	int ei = 0;
+	int i;
+
+	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
+		goto free;
+	if (asprintf(&env[ei++], "TIMESTAMP=%s", ev->timestamp) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "COUNT=%d", ev->error_count) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "TYPE=%s", ev->error_type) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "MESSAGE=%s", ev->msg) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "LABEL=%s", ev->label) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "MC_INDEX=%d", ev->mc_index) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "TOP_LAYER=%d", ev->top_layer) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "MIDDLE_LAYER=%d", ev->middle_layer) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "LOWER_LAYER=%d", ev->lower_layer) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "ADDRESS=%llx", ev->address) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "GRAIN=%lld", ev->grain) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "SYNDROME=%llx", ev->syndrome) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "DRIVER_DETAIL=%s", ev->driver_detail) < 0)
+		goto free;
+	env[ei] = NULL;
+	assert(ei < MAX_ENV);
+
+	run_trigger(mc_trigger, NULL, env, "mc_event");
+
+free:
+	for (i = 0; i < ei; i++)
+		free(env[i]);
+}
+
+static unsigned long long per_sec_ce_count;
+unsigned long long mc_ce_stat_threshold;
+static time_t cur;
+static int ras_mc_event_stat(time_t now, struct ras_mc_event *e)
+{
+	if (strcmp(e->error_type, "Corrected"))
+		return 0;
+
+	if (cur == now) {
+		per_sec_ce_count += e->error_count;
+	} else {
+		cur = now;
+		per_sec_ce_count = e->error_count;
+	}
+
+	if (per_sec_ce_count > mc_ce_stat_threshold)
+		log(ALL, LOG_ERR, "    mc_event_stat: memory corrected error report %lld/sec\n", per_sec_ce_count);
+
+	return 0;
+}
 
 int ras_mc_event_handler(struct trace_seq *s,
 			 struct tep_record *record,
@@ -37,6 +135,46 @@ int ras_mc_event_handler(struct trace_seq *s,
 	struct tm *tm;
 	struct ras_mc_event ev;
 	int parsed_fields = 0;
+	const char *level;
+
+	if (tep_get_field_val(s, event, "error_type", record, &val, 1) < 0)
+		goto parse_error;
+	parsed_fields++;
+
+	switch (val) {
+	case HW_EVENT_ERR_CORRECTED:
+		ev.error_type = "Corrected";
+		break;
+	case HW_EVENT_ERR_UNCORRECTED:
+		ev.error_type = "Uncorrected";
+		break;
+	case HW_EVENT_ERR_DEFERRED:
+		ev.error_type = "Deferred";
+		break;
+	case HW_EVENT_ERR_FATAL:
+		ev.error_type = "Fatal";
+		break;
+	case HW_EVENT_ERR_INFO:
+	default:
+		ev.error_type = "Info";
+	}
+
+	switch (val) {
+	case HW_EVENT_ERR_UNCORRECTED:
+	case HW_EVENT_ERR_DEFERRED:
+		level = loglevel_str[LOGLEVEL_CRIT];
+		break;
+	case HW_EVENT_ERR_FATAL:
+		level = loglevel_str[LOGLEVEL_EMERG];
+		break;
+	case HW_EVENT_ERR_CORRECTED:
+		level = loglevel_str[LOGLEVEL_ERR];
+		break;
+	default:
+		level = loglevel_str[LOGLEVEL_DEBUG];
+		break;
+	}
+	trace_seq_printf(s, "%s ", level);
 
 	/*
 	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
@@ -48,7 +186,7 @@ int ras_mc_event_handler(struct trace_seq *s,
 	 */
 
 	if (ras->use_uptime)
-		now = record->ts/user_hz + ras->uptime_diff;
+		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
 
@@ -64,25 +202,6 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	ev.error_count = val;
 	trace_seq_printf(s, "%d ", ev.error_count);
-
-	if (tep_get_field_val(s, event, "error_type", record, &val, 1) < 0)
-		goto parse_error;
-	parsed_fields++;
-
-	switch (val) {
-	case HW_EVENT_ERR_CORRECTED:
-		ev.error_type = "Corrected";
-		break;
-	case HW_EVENT_ERR_UNCORRECTED:
-		ev.error_type = "Uncorrected";
-		break;
-	case HW_EVENT_ERR_FATAL:
-		ev.error_type = "Fatal";
-		break;
-	default:
-	case HW_EVENT_ERR_INFO:
-		ev.error_type = "Info";
-	}
 
 	trace_seq_puts(s, ev.error_type);
 	if (ev.error_count > 1)
@@ -121,22 +240,22 @@ int ras_mc_event_handler(struct trace_seq *s,
 	if (tep_get_field_val(s,  event, "top_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
-	ev.top_layer = (signed char) val;
+	ev.top_layer = (signed char)val;
 
 	if (tep_get_field_val(s,  event, "middle_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
-	ev.middle_layer = (signed char) val;
+	ev.middle_layer = (signed char)val;
 
 	if (tep_get_field_val(s,  event, "lower_layer", record, &val, 1) < 0)
 		goto parse_error;
 	parsed_fields++;
-	ev.lower_layer = (signed char) val;
+	ev.lower_layer = (signed char)val;
 
 	if (ev.top_layer >= 0 || ev.middle_layer >= 0 || ev.lower_layer >= 0) {
 		if (ev.lower_layer >= 0)
 			trace_seq_printf(s, " location: %d:%d:%d",
-					ev.top_layer, ev.middle_layer, ev.lower_layer);
+					 ev.top_layer, ev.middle_layer, ev.lower_layer);
 		else if (ev.middle_layer >= 0)
 			trace_seq_printf(s, " location: %d:%d",
 					 ev.top_layer, ev.middle_layer);
@@ -158,7 +277,6 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	ev.grain = val;
 	trace_seq_printf(s, " grain: %lld", ev.grain);
-
 
 	if (tep_get_field_val(s,  event, "syndrome", record, &val, 1) < 0)
 		goto parse_error;
@@ -184,16 +302,39 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	ras_store_mc_event(ras, &ev);
 
+	ras_mc_event_stat(now, &ev);
+
 #ifdef HAVE_MEMORY_CE_PFA
 	/* Account page corrected errors */
 	if (!strcmp(ev.error_type, "Corrected"))
 		ras_record_page_error(ev.address, ev.error_count, now);
 #endif
 
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	/* Account row corrected errors */
+	struct timespec ts;
+	clockid_t clk_id = CLOCK_MONOTONIC;
+	// A fault occurs, but the fault error_count BIOS reports sometimes is 0.
+	// This is a bug in the BIOS.
+	// We set the value to 1
+	// even if the error_count is reported 0.
+	if (ev.error_count == 0)
+		ev.error_count = 1;
+	if (clock_gettime(clk_id, &ts) == 0 && !strcmp(ev.error_type, "Corrected"))
+		ras_record_row_error(ev.driver_detail, ev.error_count,
+				     ts.tv_sec, ev.address);
+#endif
+
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
 	ras_report_mc_event(ras, &ev);
 #endif
+
+	if (mc_ce_trigger && !strcmp(ev.error_type, "Corrected"))
+		run_mc_trigger(&ev, mc_ce_trigger);
+
+	if (mc_ue_trigger && !strcmp(ev.error_type, "Uncorrected"))
+		run_mc_trigger(&ev, mc_ue_trigger);
 
 	return 0;
 
