@@ -96,7 +96,7 @@ installing the following packages:
     perl-DBD-SQLite	(if sqlite3 will be used)
 ```
 
-To install then on Fedora, run:
+To install them on Fedora, run:
 ```
     $ dnf install -y make gcc autoconf automake libtool tar perl-dbd-sqlite \
       libtraceevent-devel
