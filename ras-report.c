@@ -1662,3 +1662,43 @@ signal_fail:
 
 	return -1;
 }
+
+int ras_report_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
+{
+	char buf[MAX_MESSAGE_SIZE];
+	int sockfd = 0;
+	int rc = -1;
+
+	memset(buf, 0, sizeof(buf));
+
+	sockfd = setup_report_socket();
+	if (sockfd < 0)
+		return rc;
+
+	rc = commit_report_basic(sockfd);
+	if (rc < 0)
+		goto reri_fail;
+
+	rc = commit_report_backtrace(sockfd, RERI_EVENT, ev);
+	if (rc < 0)
+		goto reri_fail;
+
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-reri");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto reri_fail;
+
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "RISC-V RERI error report");
+	rc = write(sockfd, buf, strlen(buf) + 1);
+	if (rc < strlen(buf) + 1)
+		goto reri_fail;
+
+	rc = 0;
+
+reri_fail:
+
+	if (sockfd >= 0)
+		close(sockfd);
+
+	return rc;
+}

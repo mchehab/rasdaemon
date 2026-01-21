@@ -317,6 +317,7 @@ struct ras_cxl_dram_event;
 struct ras_cxl_memory_module_event;
 struct ras_signal_event;
 struct ras_cxl_memory_sparing_event;
+struct ras_reri_event;
 
 #ifdef HAVE_SQLITE3
 
@@ -359,6 +360,9 @@ struct sqlite3_priv {
 #endif
 #ifdef HAVE_SIGNAL
 	sqlite3_stmt	*stmt_signal_event;
+#endif
+#ifdef HAVE_RERI
+	sqlite3_stmt	*stmt_reri_event;
 #endif
 };
 
@@ -408,6 +412,7 @@ int ras_store_cxl_memory_module_event(struct ras_events *ras,
 				      struct ras_cxl_memory_module_event *ev);
 int ras_store_signal_event(struct ras_events *ras,
 			   struct ras_signal_event *ev);
+int ras_store_reri_event(struct ras_events *ras, struct ras_reri_event *ev);
 
 #else
 static inline int ras_mc_event_opendb(unsigned int cpu,
@@ -450,6 +455,8 @@ static inline int ras_store_cxl_memory_module_event(struct ras_events *ras,
 						    struct ras_cxl_memory_module_event *ev) { return 0; };
 static inline int ras_store_signal_event(struct ras_events *ras,
 					 struct ras_signal_event *ev) { return 0; };
+static inline int ras_store_reri_event(struct ras_events *ras,
+				       struct ras_reri_event *ev) { return 0; };
 
 #endif
 

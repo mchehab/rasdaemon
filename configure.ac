@@ -278,6 +278,16 @@ AS_IF([test "x$enable_erst" = "xyes" || test "x$enable_all" == "xyes"], [
 AM_CONDITIONAL([WITH_ERST], [test x$enable_erst = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_ERST], [USE_ERST="yes"], [USE_ERST="no"])
 
+AC_ARG_ENABLE([reri],
+  AS_HELP_STRING([--enable-reri], [enable RISC-V RERI events (RISC-V RAS Error Report Register Interface)]))
+
+AS_IF([test "x$enable_reri" = "xyes" || test "x$enable_all" = "xyes"], [
+  AC_DEFINE(HAVE_RERI,1,"have RISC-V RERI events collect")
+  AC_SUBST([WITH_RERI])
+])
+AM_CONDITIONAL([WITH_RERI], [test x$enable_reri = xyes || test x$enable_all = xyes])
+AM_COND_IF([WITH_RERI], [USE_RERI="yes"], [USE_RERI="no"])
+
 test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
@@ -326,4 +336,5 @@ compile time options summary
     JAGUAR RAS errors   : $USE_JAGUAR_NS_DECODE
     Signal              : $USE_SIGNAL
     ERST                : $USE_ERST
+    RERI                : $USE_RERI
 EOF

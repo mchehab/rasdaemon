@@ -181,6 +181,10 @@ if WITH_YITIAN_NS_DECODE
    rasdaemon_SOURCES += non-standard-yitian.c
 endif
 
+if WITH_RERI
+   rasdaemon_SOURCES += ras-reri-handler.c
+endif
+
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS) $(LIBPCI_LIBS)
 rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS) $(LIBPCI_CFLAGS)
 
@@ -217,6 +221,7 @@ include_HEADERS += ras-poison-page-stat.h
 include_HEADERS += ras-record.h
 include_HEADERS += ras-report.h
 include_HEADERS += ras-signal-handler.h
+include_HEADERS += ras-reri-handler.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that
