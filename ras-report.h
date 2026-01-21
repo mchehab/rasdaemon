@@ -59,6 +59,8 @@ int ras_report_cxl_memory_module_event(struct ras_events *ras,
 				       struct ras_cxl_memory_module_event *ev);
 int ras_report_signal_event(struct ras_events *ras,
 			    struct ras_signal_event *ev);
+int ras_report_reri_event(struct ras_events *ras,
+			  struct ras_reri_event *ev);
 
 #else
 
@@ -112,6 +114,9 @@ static inline int ras_report_cxl_memory_module_event(struct ras_events *ras,
 { return 0; };
 static inline int ras_report_signal_event(struct ras_events *ras,
 					  struct ras_signal_event *ev)
+{ return 0; };
+static inline int ras_report_reri_event(struct ras_events *ras,
+					struct ras_reri_event *ev)
 { return 0; };
 #endif
 

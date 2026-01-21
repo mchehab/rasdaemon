@@ -18,6 +18,7 @@
 #include "ras-mce-handler.h"
 #include "ras-mc-handler.h"
 #include "ras-record.h"
+#include "ras-reri-handler.h"
 
 /*
  * BuildRequires: sqlite-devel
@@ -1214,6 +1215,67 @@ int ras_store_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
 #endif
 
 /*
+ * Table and functions to handle ras:reri_event
+ */
+
+#ifdef HAVE_RERI
+static const struct db_fields reri_event_fields[] = {
+	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
+	{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "err_src_id",		.type = "INTEGER" },
+	{ .name = "source_type",	.type = "INTEGER" },
+	{ .name = "severity",		.type = "INTEGER" },
+	{ .name = "hart_id",		.type = "INTEGER" },
+	{ .name = "cluster_id",		.type = "INTEGER" },
+	{ .name = "status",		.type = "INTEGER" },
+	{ .name = "addr_info",		.type = "INTEGER" },
+	{ .name = "info",		.type = "INTEGER" },
+	{ .name = "suppl_info",		.type = "INTEGER" },
+	{ .name = "timestamp_val",	.type = "INTEGER" },
+};
+
+static const struct db_table_descriptor reri_event_tab = {
+	.name = "reri_event",
+	.fields = reri_event_fields,
+	.num_fields = ARRAY_SIZE(reri_event_fields),
+};
+
+int ras_store_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
+{
+	int rc;
+	struct sqlite3_priv *priv = ras->db_priv;
+
+	if (!priv || !priv->stmt_reri_event)
+		return 0;
+	log(TERM, LOG_INFO, "reri_event store: %p\n", priv->stmt_reri_event);
+
+	sqlite3_bind_text(priv->stmt_reri_event,  1, ev->timestamp, -1, NULL);
+	sqlite3_bind_int(priv->stmt_reri_event,  2, ev->err_src_id);
+	sqlite3_bind_int(priv->stmt_reri_event,  3, ev->source_type);
+	sqlite3_bind_int(priv->stmt_reri_event,  4, ev->severity);
+	sqlite3_bind_int(priv->stmt_reri_event,  5, ev->hart_id);
+	sqlite3_bind_int(priv->stmt_reri_event,  6, ev->cluster_id);
+	sqlite3_bind_int64(priv->stmt_reri_event,  7, ev->status);
+	sqlite3_bind_int64(priv->stmt_reri_event,  8, ev->addr_info);
+	sqlite3_bind_int64(priv->stmt_reri_event,  9, ev->info);
+	sqlite3_bind_int64(priv->stmt_reri_event, 10, ev->suppl_info);
+	sqlite3_bind_int64(priv->stmt_reri_event, 11, ev->timestamp_val);
+
+	rc = sqlite3_step(priv->stmt_reri_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed to do reri_event step on sqlite: error = %d\n", rc);
+	rc = sqlite3_reset(priv->stmt_reri_event);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		    "Failed reset reri_event on sqlite: error = %d\n", rc);
+	log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+#endif
+
+/*
  * Generic code
  */
 static int __ras_mc_prepare_stmt(struct sqlite3_priv *priv,
@@ -1631,6 +1693,16 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 	}
 #endif
 
+#ifdef HAVE_RERI
+	rc = ras_mc_create_table(priv, &reri_event_tab);
+	if (rc == SQLITE_OK) {
+		rc = ras_mc_prepare_stmt(priv, &priv->stmt_reri_event,
+					 &reri_event_tab);
+		if (rc != SQLITE_OK)
+			goto error;
+	}
+#endif
+
 	ras->db_priv = priv;
 	return 0;
 
@@ -1821,6 +1893,16 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		if (rc != SQLITE_OK)
 			log(TERM, LOG_ERR,
 			    "cpu %u: Failed to finalize signal_event sqlite: error = %d\n",
+			    cpu, rc);
+	}
+#endif
+
+#ifdef HAVE_RERI
+	if (priv->stmt_reri_event) {
+		rc = sqlite3_finalize(priv->stmt_reri_event);
+		if (rc != SQLITE_OK)
+			log(TERM, LOG_ERR,
+			    "cpu %u: Failed to finalize reri_event sqlite: error = %d\n",
 			    cpu, rc);
 	}
 #endif
