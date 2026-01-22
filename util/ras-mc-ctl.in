@@ -85,6 +85,7 @@ Usage: $prog [OPTIONS...]
  --summary          Presents a summary of the logged errors.
  --errors           Shows the errors stored at the error database.
  --error-count      Shows the corrected and uncorrected error counts using sysfs.
+ --per-rank         With --error-count, show each rank separately instead of consolidating by label.
  --since=YYYY-MM-DD Only include events since the date YYYY-MM-DD.
  --vendor-errors-summary <platform-id>    Presents a summary of the vendor-specific logged errors.
  --vendor-errors    <platform-id>    Shows the vendor-specific errors stored in the error database.
@@ -164,6 +165,7 @@ sub parse_cmdline
     $conf{opt}{summary} = 0;
     $conf{opt}{errors} = 0;
     $conf{opt}{error_count} = 0;
+    $conf{opt}{per_rank} = 0;
     $conf{opt}{vendor_errors_summary} = 0;
     $conf{opt}{vendor_errors} = 0;
     $conf{opt}{since} = '';
@@ -186,6 +188,7 @@ sub parse_cmdline
 			 "summary" =>         \$conf{opt}{summary},
 			 "errors" =>          \$conf{opt}{errors},
 			 "error-count" =>     \$conf{opt}{error_count},
+			 "per-rank" =>        \$conf{opt}{per_rank},
 			 "vendor-errors-summary" =>    \$conf{opt}{vendor_errors_summary},
 			 "vendor-errors" =>   \$conf{opt}{vendor_errors},
 			 "since=s" =>         \$conf{opt}{since},
@@ -198,6 +201,11 @@ sub parse_cmdline
 
     if ($conf{opt}{delay} && !$conf{opt}{register_labels}) {
 	log_error ("Only use --delay with --register-labels\n");
+	exit (1);
+    }
+
+    if ($conf{opt}{per_rank} && !$conf{opt}{error_count}) {
+	log_error ("Only use --per-rank with --error-count\n");
 	exit (1);
     }
 
@@ -1010,11 +1018,29 @@ sub display_error_count
     $string .= " " x ($max_width - length $string);
     print($string . "\tCE\tUE\n");
 
-    foreach $key (keys %dimm_node) {
-	my $ce_count = $dimm_ce_count{$key};
-	my $ue_count = $dimm_ue_count{$key};
+    if ($conf{opt}{per_rank}) {
+	# Show each rank separately with location info
+	foreach $key (sort keys %dimm_node) {
+	    my $ce_count = $dimm_ce_count{$key};
+	    my $ue_count = $dimm_ue_count{$key};
+	    my $loc = $dimm_location{$key};
 
-	print("$dimm_labels{$key}\t$ce_count\t$ue_count\n");
+	    print("$dimm_labels{$key} ($loc)\t$ce_count\t$ue_count\n");
+	}
+    } else {
+	# Consolidate by label, summing error counts
+	my %label_ce = ();
+	my %label_ue = ();
+
+	foreach $key (keys %dimm_node) {
+	    my $label = $dimm_labels{$key};
+	    $label_ce{$label} += $dimm_ce_count{$key};
+	    $label_ue{$label} += $dimm_ue_count{$key};
+	}
+
+	foreach my $label (sort keys %label_ce) {
+	    print("$label\t$label_ce{$label}\t$label_ue{$label}\n");
+	}
     }
 }
 
