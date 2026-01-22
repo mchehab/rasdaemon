@@ -1007,7 +1007,14 @@ sub display_error_count
 	open IN, $dimm_label_file{$key};
 	chomp(my $label = <IN>);
 	close IN;
-	$label_width = length $label;
+
+	# Calculate width including location info if showing per-rank
+	if ($conf{opt}{per_rank}) {
+	    my $loc = $dimm_location{$key};
+	    $label_width = length("$label ($loc)");
+	} else {
+	    $label_width = length $label;
+	}
 
 	if ($label_width > $max_width) {
 	    $max_width = $label_width;
@@ -1024,8 +1031,10 @@ sub display_error_count
 	    my $ce_count = $dimm_ce_count{$key};
 	    my $ue_count = $dimm_ue_count{$key};
 	    my $loc = $dimm_location{$key};
+	    my $full_label = "$dimm_labels{$key} ($loc)";
+	    $full_label .= " " x ($max_width - length($full_label));
 
-	    print("$dimm_labels{$key} ($loc)\t$ce_count\t$ue_count\n");
+	    print("$full_label\t$ce_count\t$ue_count\n");
 	}
     } else {
 	# Consolidate by label, summing error counts
@@ -1039,7 +1048,9 @@ sub display_error_count
 	}
 
 	foreach my $label (sort keys %label_ce) {
-	    print("$label\t$label_ce{$label}\t$label_ue{$label}\n");
+	    my $padded_label = $label;
+	    $padded_label .= " " x ($max_width - length($padded_label));
+	    print("$padded_label\t$label_ce{$label}\t$label_ue{$label}\n");
 	}
     }
 }
