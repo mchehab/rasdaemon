@@ -482,12 +482,14 @@ int ras_arm_event_handler(struct trace_seq *s,
 			  struct tep_record *record,
 			  struct tep_event *event, void *context)
 {
-	unsigned long long val;
+	struct ras_ns_ev_decoder *ev_decoder;
 	struct ras_events *ras = context;
-	time_t now;
-	struct tm *tm;
+	unsigned char sec_type[16];
 	struct ras_arm_event ev;
+	unsigned long long val;
+	struct tm *tm;
 	int len = 0;
+	time_t now;
 
 	memset(&ev, 0, sizeof(ev));
 
@@ -584,21 +586,54 @@ int ras_arm_event_handler(struct trace_seq *s,
 			return -1;
 
 #ifdef HAVE_AMP_NS_DECODE
-		// Special case check for Altra. Altra is an ARM processor.
-		// So, if they compiled RASDAemon for Ampere, and we find
-		// an MIDR with ARM implementor, then assume Altra
+
+		/*
+		 * The reason Ampere has this section of code is because we've chosen to
+		 * include most of our processor error information inside of a vendor specific
+		 * section that follows the standard ARM processor error section within the same
+		 * CPER. That causes Ampere to have to special-case standard ARM processors errors
+		 */
+
 		if (((ev.midr >> 24) & 0xff) == 0x41) {
+			/*
+			 * Special case check for Altra. Altra is an ARM processor.
+			 * So, if they compiled RASDAemon for Ampere, and we find
+			 * an MIDR with ARM implementor, then assume Altra
+			 */
 			decode_amp_payload0_err_regs(NULL, s,
 					(struct amp_payload0_type_sec *)ev.vsei_error);
 		} else if (((ev.midr >> 24) & 0xff) == 0xC0 &&
 					(((ev.midr >> 4) & 0xfff) == 0xAC3 ||
 					 ((ev.midr >> 4) & 0xfff) == 0xAC4)) {
-			decode_ampereone_payload0_err_regs(NULL, s,
-					(struct ampereone_payload0_type_sec *)ev.vsei_error);
+
+			/*
+			 * Original UUID:    "2826cc9f-448c-4c2b-86b6-a95394b7ef33"
+			 * Re-Arranged UUID: "9fcc2628-8c44-2b4c-86b6-a95394b7ef33"
+			 *
+			 * The UUID needs to be re-arranged due to byte order
+			 * conversions that occur inside of find_ns_ev_decoder.
+			 * I chose to manually perform the re-arranging, to reduce
+			 * code complexity.
+			 */
+			uuid_parse("9fcc2628-8c44-2b4c-86b6-a95394b7ef33", sec_type);
+			if (!find_ns_ev_decoder((const char *)sec_type, &ev_decoder)) {
+				/*
+				 * decode_ampereone_type_error is expecting a ras_non_standard_event
+				 * structure, but here in ras_arm_event_handler, we don't have one.
+				 * So, I've constructed a minimal representation of one, to make
+				 * decode_ampereone_type_error happy.
+				 */
+				struct ras_non_standard_event non_std_event;
+
+				non_std_event.error = ev.vsei_error;
+				memcpy(non_std_event.timestamp, ev.timestamp, 64);
+				decode_ampereone_type_error(ras, ev_decoder, s, &non_std_event);
+			}
 		}
 #else
 		display_raw_data(s, ev.vsei_error, ev.oem_len);
 #endif
+
 #ifdef HAVE_CPU_FAULT_ISOLATION
 		if (ras_handle_cpu_error(s, record, event, &ev, now) < 0)
 			printf("Can't do CPU fault isolation!\n");
