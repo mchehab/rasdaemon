@@ -38,6 +38,7 @@ void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index);
 int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder);
 int ras_ns_add_vendor_tables(struct ras_events *ras);
 void ras_ns_finalize_vendor_tables(void);
+int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p_ns_ev_dec);
 #else
 static inline int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder) { return 0; };
 #endif

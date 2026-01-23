@@ -101,7 +101,7 @@ int ras_ns_add_vendor_tables(struct ras_events *ras)
 	return 0;
 }
 
-static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p_ns_ev_dec)
+int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p_ns_ev_dec)
 {
 	struct ras_ns_ev_decoder *ns_ev_decoder;
 	int match = 0;
