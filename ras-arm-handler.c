@@ -9,6 +9,7 @@
 #include <string.h>
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 
 #include "non-standard-ampere.h"
 #include "ras-arm-handler.h"

@@ -92,7 +92,7 @@ if WITH_JAGUAR_NS_DECODE
    rasdaemon_SOURCES += non-standard-jaguarmicro.c
 endif
 
-rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS)
+rasdaemon_LDADD = -luuid -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS)
 rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS)
 
 include_HEADERS = config.h types.h ras-events.h ras-logger.h ras-mc-handler.h \
