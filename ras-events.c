@@ -37,6 +37,7 @@
 #include "ras-page-isolation.h"
 #include "ras-signal-handler.h"
 #include "ras-record.h"
+#include "ras-reri-handler.h"
 #include "trigger.h"
 
 /*
@@ -323,6 +324,10 @@ int toggle_ras_mc_event(int enable)
 
 #ifdef HAVE_SIGNAL
 	rc |= __toggle_ras_mc_event(ras, "signal", "signal_generate", enable);
+#endif
+
+#ifdef HAVE_RERI
+	rc |= __toggle_ras_mc_event(ras, "ras", "reri_event", enable);
 #endif
 
 free_ras:
@@ -1240,6 +1245,16 @@ int handle_ras_events(int record_events, int enable_ipmitool)
 			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
 			    "signal", "signal_generate");
 	}
+#endif
+
+#ifdef HAVE_RERI
+	rc = add_event_handler(ras, pevent, page_size, "ras", "reri_event",
+			       ras_reri_event_handler, NULL, RERI_EVENT);
+	if (!rc)
+		num_events++;
+	else if (rc != EVENT_DISABLED)
+		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+		    "ras", "reri_event");
 #endif
 
 	if (!num_events) {
