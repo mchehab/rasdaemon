@@ -42,6 +42,8 @@ enum cputype {
 	CPU_TREMONT_D,
 	CPU_SAPPHIRERAPIDS,
 	CPU_EMERALDRAPIDS,
+	CPU_ZHAOXIN,
+	CPU_ZHAOXIN_KH50000,
 };
 
 struct mce_event {
@@ -171,6 +173,11 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e);
 int parse_amd_k8_event(struct ras_events *ras, struct mce_event *e);
 
 int parse_amd_smca_event(struct ras_events *ras, struct mce_event *e);
+
+int parse_zhaoxin_event(struct ras_events *ras, struct mce_event *e);
+
+/* Per-CPU-type decoders for ZHAOXIN CPUs */
+void kh50000_decode_model(struct mce_event *e);
 
 void report_mce_event(struct ras_events *ras, struct tep_record *record,
 		      struct trace_seq *s, struct mce_event *e);
