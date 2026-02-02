@@ -52,6 +52,8 @@ static char *cputype_name[] = {
 	[CPU_TREMONT_D] = "Tremont microserver",
 	[CPU_SAPPHIRERAPIDS] = "Sapphirerapids server",
 	[CPU_EMERALDRAPIDS] = "Emeraldrapids server",
+	[CPU_ZHAOXIN] = "Zhaoxin generic CPU",
+	[CPU_ZHAOXIN_KH50000] = "Zhaoxin KH-50000 server",
 };
 
 static enum cputype select_intel_cputype(struct mce_priv *mce)
@@ -193,7 +195,7 @@ static int detect_cpu(struct mce_priv *mce)
 		goto ret;
 	}
 
-	/* Handle only Intel and AMD CPUs */
+	/* Handle only Intel, AMD and ZHAOXIN CPUs */
 	ret = 0;
 
 	if (!strcmp(mce->vendor, "AuthenticAMD")) {
@@ -217,6 +219,12 @@ static int detect_cpu(struct mce_priv *mce)
 		goto ret;
 	} else if (!strcmp(mce->vendor, "GenuineIntel")) {
 		mce->cputype = select_intel_cputype(mce);
+	} else if (!strcmp(mce->vendor, "CentaurHauls") || !strcmp(mce->vendor, "  Shanghai  ")) {
+		if (mce->family == 0x7 && mce->model == 0x7b)
+			mce->cputype = CPU_ZHAOXIN_KH50000;
+		else
+			mce->cputype = CPU_ZHAOXIN;
+		goto ret;
 	} else {
 		ret = -EINVAL;
 	}
@@ -586,6 +594,10 @@ int ras_mce_event_handler(struct trace_seq *s,
 	case CPU_AMD_SMCA:
 	case CPU_DHYANA:
 		rc = parse_amd_smca_event(ras, &e);
+		break;
+	case CPU_ZHAOXIN:
+	case CPU_ZHAOXIN_KH50000:
+		rc = parse_zhaoxin_event(ras, &e);
 		break;
 	default:			/* All other CPU types are Intel */
 		rc = parse_intel_event(ras, &e);

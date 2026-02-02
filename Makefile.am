@@ -146,6 +146,8 @@ if WITH_MCE
    rasdaemon_SOURCES += mce-intel-sb.c
    rasdaemon_SOURCES += mce-intel-skylake-xeon.c
    rasdaemon_SOURCES += mce-intel-tulsa.c
+   rasdaemon_SOURCES += mce-zhaoxin.c
+   rasdaemon_SOURCES += mce-zhaoxin-kh50000.c
    rasdaemon_SOURCES += ras-mce-handler.c
 endif
 
