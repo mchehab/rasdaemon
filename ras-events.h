@@ -41,7 +41,6 @@ enum {
 };
 
 struct ras_events {
-	char debugfs[MAX_PATH + 1];
 	char tracing[MAX_PATH + 1];
 	struct tep_handle *pevent;
 	int page_size;
