@@ -72,7 +72,7 @@ jobs:
           autoreconf -vfi
           ./configure --enable-all
           make
-          sudo make install
+          make install
 
   Check:
     name: Source code check
