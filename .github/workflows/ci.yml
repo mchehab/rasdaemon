@@ -70,7 +70,7 @@ jobs:
       - name: build
         run: |
           autoreconf -vfi
-          ./configure --enable all
+          ./configure --enable-all
           make
           sudo make install
 
