@@ -66,7 +66,7 @@ jobs:
       - name: prepare
         run: |
           # Ensure it will use a fast mirror
-          sed -i -e "s|repo\.openeuler\.org|ftp.agdsn.de/openeuler/|g" /etc/yum.repos.d/openEuler.repo
+          sed -i -e "s|repo\.openeuler\.org|mirrors.ocf.berkeley.edu/openeuler/|g" /etc/yum.repos.d/openEuler.repo
 
           dnf update -y
           dnf install -y mock rpm-build rpmdevtools sudo \
