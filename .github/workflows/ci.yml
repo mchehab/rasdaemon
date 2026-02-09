@@ -52,6 +52,30 @@ jobs:
           ./configure
           make mock
 
+  openEuler:
+    name: OpenEuler LTS
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [aarch64]
+    container:
+      image: openeuler/openeuler:24.03-lts-sp3
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v2
+      - name: prepare
+        run: |
+          dnf update -y
+          dnf install -y mock rpm-build rpmdevtools \
+                         autoconf automake make gcc libtraceevent-devel
+          ln -sf /etc/mock/openeuler-24.03-aarch64.cfg /etc/mock/default.cfg
+          rpmdev-setuptree
+      - name: build
+        run: |
+          autoreconf -vfi
+          ./configure
+          make mock
+
   Check:
     name: Source code check
     runs-on: ubuntu-latest
