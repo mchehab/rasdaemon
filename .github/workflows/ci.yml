@@ -41,7 +41,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: prepare
         run: |
-          dnf update -y
           dnf install -y mock rpm-build rpmdevtools \
                          autoconf automake make gcc libtraceevent-devel
           ln -sf fedora-rawhide-x86_64.cfg /etc/mock/default.cfg
