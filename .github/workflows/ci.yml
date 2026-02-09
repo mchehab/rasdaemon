@@ -65,16 +65,19 @@ jobs:
       - uses: actions/checkout@v2
       - name: prepare
         run: |
+          # Ensure it will use a fast mirror
+          sed -i -e "s|repo\.openeuler\.org|ftp.agdsn.de/openeuler/|g" /etc/yum.repos.d/openEuler.repo
+
           dnf update -y
-          dnf install -y mock rpm-build rpmdevtools \
+          dnf install -y mock rpm-build rpmdevtools sudo \
                          autoconf automake make gcc libtraceevent-devel
-          ln -sf /etc/mock/openeuler-24.03-aarch64.cfg /etc/mock/default.cfg
           rpmdev-setuptree
       - name: build
         run: |
           autoreconf -vfi
           ./configure
-          make mock
+          make
+          sudo make install
 
   Check:
     name: Source code check
