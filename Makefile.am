@@ -138,6 +138,7 @@ if WITH_MCE
    rasdaemon_SOURCES += mce-intel-broadwell-epex.c
    rasdaemon_SOURCES += mce-intel-dunnington.c
    rasdaemon_SOURCES += mce-intel-haswell.c
+   rasdaemon_SOURCES += mce-intel-granite.c
    rasdaemon_SOURCES += mce-intel-i10nm.c
    rasdaemon_SOURCES += mce-intel-ivb.c
    rasdaemon_SOURCES += mce-intel-knl.c
