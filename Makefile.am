@@ -153,6 +153,10 @@ if WITH_MEMORY_FAILURE
    rasdaemon_SOURCES += ras-memory-failure-handler.c
 endif
 
+if WITH_NVIDIA_NS_DECODE
+   rasdaemon_SOURCES += non-standard-nvidia.c
+endif
+
 if WITH_NON_STANDARD
    rasdaemon_SOURCES += ras-non-standard-handler.c
 endif
@@ -196,6 +200,7 @@ include_HEADERS += unified-sel.h
 include_HEADERS += non-standard-ampere.h
 include_HEADERS += non-standard-hisilicon.h
 include_HEADERS += non-standard-jaguarmicro.h
+include_HEADERS += non-standard-nvidia.h
 include_HEADERS += non-standard-yitian.h
 
 include_HEADERS += ras-aer-handler.h

@@ -252,6 +252,16 @@ AS_IF([test "x$enable_yitian_ns_decode" = "xyes" || test "x$enable_all" == "xyes
 AM_CONDITIONAL([WITH_YITIAN_NS_DECODE], [test x$enable_yitian_ns_decode = xyes || test x$enable_all == xyes])
 AM_COND_IF([WITH_YITIAN_NS_DECODE], [USE_YITIAN_NS_DECODE="yes"], [USE_YITIAN_NS_DECODE="no"])
 
+AC_ARG_ENABLE([nvidia-ns-decode],
+    AS_HELP_STRING([--enable-nvidia-ns-decode], [enable NVIDIA_NS_DECODE events]))
+
+AS_IF([test "x$enable_nvidia_ns_decode" = "xyes" || test "x$enable_all" = "xyes"], [
+  AC_DEFINE(HAVE_NVIDIA_NS_DECODE,1,"have NVIDIA UNKNOWN_SEC events decode")
+  AC_SUBST([WITH_NVIDIA_NS_DECODE])
+])
+AM_CONDITIONAL([WITH_NVIDIA_NS_DECODE], [test x$enable_nvidia_ns_decode = xyes || test x$enable_all = xyes])
+AM_COND_IF([WITH_NVIDIA_NS_DECODE], [USE_NVIDIA_NS_DECODE="yes"], [USE_NVIDIA_NS_DECODE="no"])
+
 AC_ARG_ENABLE([signal],
     AS_HELP_STRING([--enable-signal], [enable signal event(currently experimental)]))
 
@@ -324,6 +334,7 @@ compile time options summary
     CPU fault isolation : $USE_CPU_FAULT_ISOLATION
     YITIAN RAS errors   : $USE_YITIAN_NS_DECODE
     JAGUAR RAS errors   : $USE_JAGUAR_NS_DECODE
+    NVIDIA RAS errors   : $USE_NVIDIA_NS_DECODE
     Signal              : $USE_SIGNAL
     ERST                : $USE_ERST
 EOF

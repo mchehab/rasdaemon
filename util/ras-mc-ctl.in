@@ -35,6 +35,7 @@ my $has_disk_errors = 0;
 my $has_extlog = 0;
 my $has_mem_failure = 0;
 my $has_mce = 0;
+my $has_nvidia_ns = 0;
 my $has_signal = 0;
 
 @WITH_AER_TRUE@$has_aer = 1;
@@ -45,6 +46,7 @@ my $has_signal = 0;
 @WITH_EXTLOG_TRUE@$has_extlog = 1;
 @WITH_MEMORY_FAILURE_TRUE@$has_mem_failure = 1;
 @WITH_MCE_TRUE@$has_mce = 1;
+@WITH_NVIDIA_NS_DECODE_TRUE@$has_nvidia_ns = 1;
 @WITH_SIGNAL_TRUE@$has_signal = 1;
 
 my %conf        = ();
@@ -1607,6 +1609,25 @@ sub summary
 	$query_handle->finish;
     }
 
+    # NVIDIA events
+    if ($has_nvidia_ns == 1) {
+	$query = "select signature, socket, count(*) from nvidia_ns_event$conf{opt}{since} group by signature, socket";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	my ($signature, $socket);
+	$query_handle->bind_columns(\($signature, $socket, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= sprintf "\tNVIDIA device (signature=%s, socket=%d) has %d errors\n", $signature, $socket, $count;
+	}
+	if ($out ne "") {
+	    print "NVIDIA events summary:\n$out\n";
+	} else {
+	    print "No NVIDIA errors.\n\n";
+	}
+	$query_handle->finish;
+    }
+
     # CXL errors
     if ($has_cxl == 1) {
 	# CXL AER uncorrectable errors
@@ -1931,6 +1952,40 @@ sub errors
 	    print "ARM processor events:\n$out\n";
 	} else {
 	    print "No ARM processor errors.\n\n";
+	}
+	$query_handle->finish;
+    }
+
+    # NVIDIA events
+    if ($has_nvidia_ns == 1) {
+	$query = "select id, timestamp, signature, error_type, error_instance, severity, socket, number_regs, instance_base, reg_data from nvidia_ns_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	my ($signature, $error_type, $error_instance, $severity, $socket, $number_regs, $instance_base, $reg_data);
+	$query_handle->bind_columns(\($id, $timestamp, $signature, $error_type, $error_instance, $severity, $socket, $number_regs, $instance_base, $reg_data));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "signature=$signature, ";
+	    $out .= "error_type=$error_type, ";
+	    $out .= "error_instance=$error_instance, ";
+	    $out .= "severity=$severity, ";
+	    $out .= "socket=$socket, ";
+	    $out .= "number_regs=$number_regs, ";
+	    $out .= sprintf "instance_base=0x%llx", $instance_base;
+	    if (defined $reg_data && length $reg_data) {
+		my $n = int(length($reg_data) / 16);
+		for (my $i = 0; $i < $n; $i++) {
+		    my ($addr, $val) = unpack("Q<Q<", substr($reg_data, $i * 16, 16));
+		    $out .= sprintf "\n  Reg[%u]: addr=0x%016llx val=0x%016llx", $i, $addr, $val;
+		}
+	    }
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "NVIDIA events:\n$out\n";
+	} else {
+	    print "No NVIDIA errors.\n\n";
 	}
 	$query_handle->finish;
     }
