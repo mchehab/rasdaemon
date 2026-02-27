@@ -447,7 +447,7 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 	trace_seq_init(&s);
 	tep_set_file_bigendian(pdata->ras->pevent, ENDIAN);
 	tep_print_event(pdata->ras->pevent, &s, &record,
-			"%16s-%-5d [%03d] %s %6.1000d %s %s",
+			"%16s-%-10d [%03d] %s %6.1000d %25s: %s",
 			TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
 			TEP_PRINT_LATENCY, TEP_PRINT_TIME, TEP_PRINT_NAME,
 			TEP_PRINT_INFO);
