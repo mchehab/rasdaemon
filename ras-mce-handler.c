@@ -52,6 +52,10 @@ static char *cputype_name[] = {
 	[CPU_TREMONT_D] = "Tremont microserver",
 	[CPU_SAPPHIRERAPIDS] = "Sapphirerapids server",
 	[CPU_EMERALDRAPIDS] = "Emeraldrapids server",
+	[CPU_GRANITERAPIDS] = "Graniterapids server",
+	[CPU_GRANITERAPIDS_D] = "Graniterapids server D Family",
+	[CPU_SIERRAFOREST] = "Sierraforest server",
+	[CPU_CLEARWATERFOREST] = "Clearwaterforest server",
 	[CPU_ZHAOXIN] = "Zhaoxin generic CPU",
 	[CPU_ZHAOXIN_KH50000] = "Zhaoxin KH-50000 server",
 };
@@ -113,6 +117,14 @@ static enum cputype select_intel_cputype(struct mce_priv *mce)
 			return CPU_SAPPHIRERAPIDS;
 		else if (mce->model == 0xcf)
 			return CPU_EMERALDRAPIDS;
+		else if (mce->model == 0xad)
+			return CPU_GRANITERAPIDS;
+		else if (mce->model == 0xae)
+			return CPU_GRANITERAPIDS_D;
+		else if (mce->model == 0xaf)
+			return CPU_SIERRAFOREST;
+		else if (mce->model == 0xdd)
+			return CPU_CLEARWATERFOREST;
 
 		if (mce->model > 0x1a) {
 			log(ALL, LOG_INFO,

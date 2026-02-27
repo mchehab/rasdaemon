@@ -44,6 +44,10 @@ enum cputype {
 	CPU_EMERALDRAPIDS,
 	CPU_ZHAOXIN,
 	CPU_ZHAOXIN_KH50000,
+	CPU_GRANITERAPIDS,
+	CPU_GRANITERAPIDS_D,
+	CPU_SIERRAFOREST,
+	CPU_CLEARWATERFOREST,
 };
 
 struct mce_event {
@@ -136,6 +140,7 @@ void broadwell_de_decode_model(struct ras_events *ras, struct mce_event *e);
 void broadwell_epex_decode_model(struct ras_events *ras, struct mce_event *e);
 void skylake_s_decode_model(struct ras_events *ras, struct mce_event *e);
 void i10nm_decode_model(enum cputype cputype, struct ras_events *ras, struct mce_event *e);
+void granite_decode_model(enum cputype cputype, struct ras_events *ras, struct mce_event *e);
 
 /* AMD error code decode function */
 void decode_amd_errcode(struct mce_event *e);

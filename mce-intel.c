@@ -414,6 +414,13 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_SAPPHIRERAPIDS:
 	case CPU_EMERALDRAPIDS:
 		i10nm_decode_model(mce->cputype, ras, e);
+		break;
+	case CPU_GRANITERAPIDS:
+	case CPU_GRANITERAPIDS_D:
+	case CPU_SIERRAFOREST:
+	case CPU_CLEARWATERFOREST:
+		granite_decode_model(mce->cputype, ras, e);
+		break;
 	default:
 		break;
 	}
