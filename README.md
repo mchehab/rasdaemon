@@ -16,6 +16,16 @@ And two mirrors are available:
 Tarballs for each release can be found at:
 - <http://www.infradead.org/~mchehab/rasdaemon/>
 
+Intended Use
+============
+
+This project provides general-purpose software components intended primarily
+for integration, development, research, and infrastructure use by technical
+users.
+
+The project is not offered as a consumer-facing online service or
+managed platform.
+
 GOALS
 =====
 
