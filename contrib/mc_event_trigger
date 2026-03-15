@@ -21,6 +21,7 @@
 # DRIVER_DETAIL Other driver-specific detail about the error
 #
 
-[ -x ./mc_event_trigger.local ] && . ./mc_event_trigger.local
+TRIGGER_DIR=$(dirname "$0")
+[ -x "$TRIGGER_DIR/mc_event_trigger.local" ] && . "$TRIGGER_DIR/mc_event_trigger.local"
 
 exit 0
