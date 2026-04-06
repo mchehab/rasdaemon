@@ -2497,7 +2497,7 @@ sub errors
 
     # SIGNAL event
     if ($has_signal == 1) {
-	$query = "select id, timestamp, signal, errorno, code, comm, pid, grp, res from signal_event$conf{opt}{since} order by id";
+	$query = "select id, timestamp, sig, errorno, code, comm, pid, grp, res from signal_event$conf{opt}{since} order by id";
 	$query_handle = $dbh->prepare($query);
 	$query_handle->execute();
 	$query_handle->bind_columns(\($id, $timestamp, $signal, $errorno, $code, $comm, $pid, $grp, $res));
