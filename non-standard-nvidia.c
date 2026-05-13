@@ -145,7 +145,7 @@ static int nvidia_ns_decode(struct ras_events *ras,
 		strftime(timestamp, sizeof(timestamp),
 			 "%Y-%m-%d %H:%M:%S %z", tm);
 	else
-		strcpy(timestamp, "unknown");
+		strscpy(timestamp, "unknown", sizeof(timestamp));
 
 	/* Decode the CPER section for display */
 	decode_nvidia_cper_sec(ev_decoder, s, err, event->length);
