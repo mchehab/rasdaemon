@@ -56,6 +56,7 @@ static char *cputype_name[] = {
 	[CPU_GRANITERAPIDS_D] = "Graniterapids server D Family",
 	[CPU_SIERRAFOREST] = "Sierraforest server",
 	[CPU_CLEARWATERFOREST] = "Clearwaterforest server",
+	[CPU_DIAMONDRAPIDS] = "Diamondrapids server",
 	[CPU_ZHAOXIN] = "Zhaoxin generic CPU",
 	[CPU_ZHAOXIN_KH50000] = "Zhaoxin KH-50000 server",
 };
@@ -132,7 +133,12 @@ static enum cputype select_intel_cputype(struct mce_priv *mce)
 			    mce->model);
 			return CPU_INTEL;
 		}
+	} else if (mce->family == 19) {
+		mce->mc_error_support = 1;
+		if (mce->model == 0x01)
+			return CPU_DIAMONDRAPIDS;
 	}
+
 	if (mce->family > 6) {
 		log(ALL, LOG_INFO,
 		    "Family %u Model %x CPU: only decoding architectural errors\n",

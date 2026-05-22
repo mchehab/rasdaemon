@@ -421,6 +421,9 @@ int parse_intel_event(struct ras_events *ras, struct mce_event *e)
 	case CPU_CLEARWATERFOREST:
 		granite_decode_model(mce->cputype, ras, e);
 		break;
+	case CPU_DIAMONDRAPIDS:
+		diamond_decode_model(mce->cputype, ras, e);
+		break;
 	default:
 		break;
 	}
