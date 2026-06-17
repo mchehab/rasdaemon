@@ -236,8 +236,12 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 		return -1;
 
 	if (!find_ns_ev_decoder(ev.sec_type, &ns_ev_decoder)) {
-		ns_ev_decoder->decode(ras, ns_ev_decoder, s, &ev);
+		if (ns_ev_decoder->decode)
+			ns_ev_decoder->decode(ras, ns_ev_decoder, s, &ev);
+		else
+			goto dump_hex;
 	} else {
+dump_hex:
 		len = ev.length;
 		i = 0;
 		line_count = 0;
