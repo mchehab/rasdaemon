@@ -234,6 +234,23 @@ sub run_cmd
     return ($?>>8);
 }
 
+sub sqlite_table_exists
+{
+    my ($dbh, $table) = @_;
+    my $query = "select 1 from sqlite_master where type='table' and name=?";
+    my $query_handle = $dbh->prepare($query);
+    my $exists = 0;
+
+    return 0 if (!$query_handle);
+
+    $query_handle->execute($table);
+    $query_handle->bind_columns(\my $one);
+    $exists = 1 if ($query_handle->fetch());
+    $query_handle->finish;
+
+    return $exists;
+}
+
 
 sub print_status
 {
@@ -1596,8 +1613,10 @@ sub summary
     my ($etype, $severity, $etype_string, $severity_string);
     my ($dev_name, $dev);
     my ($mpidr, $memdev);
+    my $has_nvidia_vera_ns = 0;
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
+    $has_nvidia_vera_ns = sqlite_table_exists($dbh, "nvidia_vera_ns_event");
 
     # Memory controller mc_event errors
     $query = "select err_type, label, mc, top_layer,middle_layer,lower_layer, count(*) from mc_event$conf{opt}{since} group by err_type, label, mc, top_layer, middle_layer, lower_layer";
@@ -1666,6 +1685,24 @@ sub summary
 	    print "NVIDIA events summary:\n$out\n";
 	} else {
 	    print "No NVIDIA errors.\n\n";
+	}
+	$query_handle->finish;
+    }
+
+    if ($has_nvidia_vera_ns == 1) {
+	$query = "select signature, socket, count(*) from nvidia_vera_ns_event$conf{opt}{since} group by signature, socket";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	my ($signature, $socket);
+	$query_handle->bind_columns(\($signature, $socket, $count));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= sprintf "\tNVIDIA Vera device (signature=%s, socket=%d) has %d errors\n", $signature, $socket, $count;
+	}
+	if ($out ne "") {
+	    print "NVIDIA Vera events summary:\n$out\n";
+	} else {
+	    print "No NVIDIA Vera errors.\n\n";
 	}
 	$query_handle->finish;
     }
@@ -1933,8 +1970,10 @@ sub errors
     my ($event_type, $event_sub_type, $health_status, $media_status, $life_used, $dirty_shutdown_cnt, $cor_vol_err_cnt, $cor_per_err_cnt, $device_temp, $add_status);
     my ($sub_type, $sub_channel, $cme_threshold_ev_flags, $cme_count, $cvme_count);
     my ($signal, $errorno, $code, $comm, $pid, $grp, $res);
+    my $has_nvidia_vera_ns = 0;
 
     my $dbh = DBI->connect("dbi:SQLite:dbname=$dbname", "", "", {});
+    $has_nvidia_vera_ns = sqlite_table_exists($dbh, "nvidia_vera_ns_event");
 
     # Memory controller mc_event errors
     $query = "select id, timestamp, err_count, err_type, err_msg, label, mc, top_layer,middle_layer,lower_layer, address, grain, syndrome, driver_detail from mc_event$conf{opt}{since} order by id";
@@ -2028,6 +2067,37 @@ sub errors
 	    print "NVIDIA events:\n$out\n";
 	} else {
 	    print "No NVIDIA errors.\n\n";
+	}
+	$query_handle->finish;
+    }
+
+    if ($has_nvidia_vera_ns == 1) {
+	$query = "select id, timestamp, signature, event_type, event_sub_type, event_link_id, source_device_type, event_context_count, socket, architecture, chip_serial_number, instance_base from nvidia_vera_ns_event$conf{opt}{since} order by id";
+	$query_handle = $dbh->prepare($query);
+	$query_handle->execute();
+	my ($signature, $event_type, $event_sub_type, $event_link_id, $source_device_type, $event_context_count, $socket, $architecture, $chip_serial_number, $instance_base);
+	$query_handle->bind_columns(\($id, $timestamp, $signature, $event_type, $event_sub_type, $event_link_id, $source_device_type, $event_context_count, $socket, $architecture, $chip_serial_number, $instance_base));
+	$out = "";
+	while($query_handle->fetch()) {
+	    $out .= "$id $timestamp error: ";
+	    $out .= "signature=$signature, ";
+	    $out .= "event_type=$event_type, ";
+	    $out .= "event_sub_type=$event_sub_type, ";
+	    $out .= sprintf "event_link_id=0x%llx, ", $event_link_id;
+	    $out .= "source_device_type=$source_device_type, ";
+	    $out .= "event_context_count=$event_context_count, ";
+	    $out .= "socket=$socket, ";
+	    $out .= sprintf "architecture=0x%x, ", $architecture;
+	    if (defined $chip_serial_number && length $chip_serial_number) {
+		$out .= sprintf "chip_serial_number=%s, ", unpack("H*", $chip_serial_number);
+	    }
+	    $out .= sprintf "instance_base=0x%llx", $instance_base;
+	    $out .= "\n";
+	}
+	if ($out ne "") {
+	    print "NVIDIA Vera events:\n$out\n";
+	} else {
+	    print "No NVIDIA Vera errors.\n\n";
 	}
 	$query_handle->finish;
     }
