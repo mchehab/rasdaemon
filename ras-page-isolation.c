@@ -603,7 +603,7 @@ static int parse_value(const char *str, const char *anchor_str, int value_base, 
 	if (!str || !anchor_str || !value)
 		return 1;
 
-	char *pos = strstr(str, anchor_str);
+	char *pos = (void *)strstr(str, anchor_str);
 
 	if (!pos)
 		return 1;
