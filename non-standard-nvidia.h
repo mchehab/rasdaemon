@@ -13,7 +13,8 @@
 
 struct ras_ns_ev_decoder;
 
-#define NVIDIA_SEC_TYPE_UUID "6d5244f2-2712-11ec-bea7-cb3fdb95c786"
+#define NVIDIA_GRACE_SEC_TYPE_UUID "6d5244f2-2712-11ec-bea7-cb3fdb95c786"
+#define NVIDIA_VERA_SEC_TYPE_UUID "9068e568-6ca0-11f0-aeaf-159343591eac"
 
 /* NVIDIA CPER Error Section Structure */
 struct nvidia_cper_sec {
