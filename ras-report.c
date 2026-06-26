@@ -900,7 +900,7 @@ static int commit_report_backtrace(int sockfd, int type, void *ev)
 	return 0;
 }
 
-int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
+static int commit_report_common(struct ras_events *ras, int type, void *ev, const char *analyzer, const char *reason)
 {
 	char buf[MAX_MESSAGE_SIZE];
 	int sockfd = -1;
@@ -915,25 +915,25 @@ int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 
 	rc = commit_report_basic(sockfd);
 	if (rc < 0)
-		goto mc_fail;
+		goto fail;
 
-	rc = commit_report_backtrace(sockfd, MC_EVENT, ev);
+	rc = commit_report_backtrace(sockfd, type, ev);
 	if (rc < 0)
-		goto mc_fail;
+		goto fail;
 
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-mc");
+	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", analyzer);
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
-		goto mc_fail;
+		goto fail;
 
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "EDAC driver report problem");
+	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", reason);
 	rc = write(sockfd, buf, strlen(buf) + 1);
 	if (rc < strlen(buf) + 1)
-		goto mc_fail;
+		goto fail;
 
 	done = 1;
 
-mc_fail:
+fail:
 	if (sockfd >= 0)
 		close(sockfd);
 
@@ -943,762 +943,138 @@ mc_fail:
 	return -1;
 }
 
+int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
+{
+	return commit_report_common(ras, MC_EVENT, ev,
+				    "rasdaemon-mc",
+				    "EDAC driver report problem");
+}
+
 int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto aer_fail;
-
-	rc = commit_report_backtrace(sockfd, AER_EVENT, ev);
-	if (rc < 0)
-		goto aer_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-aer");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto aer_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
-		 "PCIe AER driver report problem");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto aer_fail;
-
-	done = 1;
-
-aer_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, AER_EVENT, ev,
+				    "rasdaemon-aer",
+				    "PCIe AER driver report problem");
 }
 
 int ras_report_non_standard_event(struct ras_events *ras,
 				  struct ras_non_standard_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return rc;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto non_standard_fail;
-
-	rc = commit_report_backtrace(sockfd, NON_STANDARD_EVENT, ev);
-	if (rc < 0)
-		goto non_standard_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-non-standard");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto non_standard_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
-		 "Unknown CPER section problem");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto non_standard_fail;
-
-	rc = 0;
-
-non_standard_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	return rc;
+	return commit_report_common(ras, NON_STANDARD_EVENT, ev,
+				    "rasdaemon-non-standard",
+				    "Unknown CPER section problem");
 }
 
 int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return rc;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto arm_fail;
-
-	rc = commit_report_backtrace(sockfd, ARM_EVENT, ev);
-	if (rc < 0)
-		goto arm_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-arm");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto arm_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "ARM CPU report problem");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto arm_fail;
-
-	rc = 0;
-
-arm_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	return rc;
+	return commit_report_common(ras, ARM_EVENT, ev,
+				    "rasdaemon-arm",
+				    "ARM CPU report problem");
 }
 
 int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto mce_fail;
-
-	rc = commit_report_backtrace(sockfd, MCE_EVENT, ev);
-	if (rc < 0)
-		goto mce_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-mce");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto mce_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
-		 "Machine Check driver report problem");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto mce_fail;
-
-	done = 1;
-
-mce_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, MCE_EVENT, ev,
+				    "rasdaemon-mce",
+				    "Machine Check driver report problem");
 }
 
 int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto devlink_fail;
-
-	rc = commit_report_backtrace(sockfd, DEVLINK_EVENT, ev);
-	if (rc < 0)
-		goto devlink_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-devlink");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto devlink_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
-		 "devlink health report problem");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto devlink_fail;
-
-	done = 1;
-
-devlink_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, DEVLINK_EVENT, ev,
+				    "rasdaemon-devlink",
+				    "devlink health report problem");
 }
 
 int ras_report_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto diskerror_fail;
-
-	rc = commit_report_backtrace(sockfd, DISKERROR_EVENT, ev);
-	if (rc < 0)
-		goto diskerror_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-diskerror");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto diskerror_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "disk I/O error");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto diskerror_fail;
-
-	done = 1;
-
-diskerror_fail:
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, DISKERROR_EVENT, ev,
+				    "rasdaemon-diskerror",
+				    "disk I/O error");
 }
 
 int ras_report_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto mf_fail;
-
-	rc = commit_report_backtrace(sockfd, MF_EVENT, ev);
-	if (rc < 0)
-		goto mf_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-memory_failure");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto mf_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "memory failure problem");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto mf_fail;
-
-	done = 1;
-
-mf_fail:
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-	else
-		return -1;
+	return commit_report_common(ras, MF_EVENT, ev,
+				    "rasdaemon-memory_failure",
+				    "memory failure problem");
 }
 
 int ras_report_cxl_poison_event(struct ras_events *ras,
 				struct ras_cxl_poison_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto cxl_poison_fail;
-
-	rc = commit_report_backtrace(sockfd, CXL_POISON_EVENT, ev);
-	if (rc < 0)
-		goto cxl_poison_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-cxl-poison");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_poison_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL poison");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_poison_fail;
-
-	done = 1;
-
-cxl_poison_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, CXL_POISON_EVENT, ev,
+				    "rasdaemon-cxl-poison",
+				    "CXL poison");
 }
 
 int ras_report_cxl_aer_ue_event(struct ras_events *ras,
 				struct ras_cxl_aer_ue_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto cxl_aer_ue_fail;
-
-	rc = commit_report_backtrace(sockfd, CXL_AER_UE_EVENT, ev);
-	if (rc < 0)
-		goto cxl_aer_ue_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-cxl-aer-uncorrectable-error");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_aer_ue_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
-		 "CXL AER uncorrectable error");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_aer_ue_fail;
-
-	done = 1;
-
-cxl_aer_ue_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, CXL_AER_UE_EVENT, ev,
+				    "rasdaemon-cxl-aer-uncorrectable-error",
+				    "CXL AER uncorrectable error");
 }
 
 int ras_report_cxl_aer_ce_event(struct ras_events *ras,
 				struct ras_cxl_aer_ce_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto cxl_aer_ce_fail;
-
-	rc = commit_report_backtrace(sockfd, CXL_AER_CE_EVENT, ev);
-	if (rc < 0)
-		goto cxl_aer_ce_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-cxl-aer-correctable-error");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_aer_ce_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s",
-		 "CXL AER correctable error");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_aer_ce_fail;
-
-	done = 1;
-
-cxl_aer_ce_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, CXL_AER_CE_EVENT, ev,
+				    "rasdaemon-cxl-aer-correctable-error",
+				    "CXL AER correctable error");
 }
 
 int ras_report_cxl_overflow_event(struct ras_events *ras,
 				  struct ras_cxl_overflow_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto cxl_overflow_fail;
-
-	rc = commit_report_backtrace(sockfd, CXL_OVERFLOW_EVENT, ev);
-	if (rc < 0)
-		goto cxl_overflow_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-cxl-overflow");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_overflow_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL overflow");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_overflow_fail;
-
-	done = 1;
-
-cxl_overflow_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, CXL_OVERFLOW_EVENT, ev,
+				    "rasdaemon-cxl-overflow",
+				    "CXL overflow");
 }
 
 int ras_report_cxl_generic_event(struct ras_events *ras,
 				 struct ras_cxl_generic_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto cxl_generic_fail;
-
-	rc = commit_report_backtrace(sockfd, CXL_GENERIC_EVENT, ev);
-	if (rc < 0)
-		goto cxl_generic_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-cxl_generic_event");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_generic_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL Generic Event ");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_generic_fail;
-
-	done = 1;
-
-cxl_generic_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, CXL_GENERIC_EVENT, ev,
+				    "rasdaemon-cxl_generic_event",
+				    "CXL Generic Event ");
 }
 
 int ras_report_cxl_general_media_event(struct ras_events *ras,
 				       struct ras_cxl_general_media_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto cxl_general_media_fail;
-
-	rc = commit_report_backtrace(sockfd, CXL_GENERAL_MEDIA_EVENT, ev);
-	if (rc < 0)
-		goto cxl_general_media_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-cxl_general_media_event");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_general_media_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL General Media Event");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_general_media_fail;
-
-	done = 1;
-
-cxl_general_media_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, CXL_GENERAL_MEDIA_EVENT, ev,
+				    "rasdaemon-cxl_general_media_event",
+				    "CXL General Media Event");
 }
 
 int ras_report_cxl_dram_event(struct ras_events *ras,
 			      struct ras_cxl_dram_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto cxl_dram_fail;
-
-	rc = commit_report_backtrace(sockfd, CXL_DRAM_EVENT, ev);
-	if (rc < 0)
-		goto cxl_dram_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-cxl_dram_event");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_dram_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL DRAM Event");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_dram_fail;
-
-	done = 1;
-
-cxl_dram_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, CXL_DRAM_EVENT, ev,
+				    "rasdaemon-cxl_dram_event",
+				    "CXL DRAM Event");
 }
 
 int ras_report_cxl_memory_module_event(struct ras_events *ras,
 				       struct ras_cxl_memory_module_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto cxl_memory_module_fail;
-
-	rc = commit_report_backtrace(sockfd, CXL_MEMORY_MODULE_EVENT, ev);
-	if (rc < 0)
-		goto cxl_memory_module_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-cxl_memory_module_event");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_memory_module_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "CXL Memory Module Event");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto cxl_memory_module_fail;
-
-	done = 1;
-
-cxl_memory_module_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, CXL_MEMORY_MODULE_EVENT, ev,
+				    "rasdaemon-cxl_memory_module_event",
+				    "CXL Memory Module Event");
 }
 
 int ras_report_signal_event(struct ras_events *ras,
 			    struct ras_signal_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int done = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return -1;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto signal_fail;
-
-	rc = commit_report_backtrace(sockfd, SIGNAL_EVENT, ev);
-	if (rc < 0)
-		goto signal_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s",
-		 "rasdaemon-signal_event");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto signal_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "SIGBUS for Hardware error");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto signal_fail;
-
-	done = 1;
-
-signal_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	return commit_report_common(ras, SIGNAL_EVENT, ev,
+				    "rasdaemon-signal_event",
+				    "SIGBUS for Hardware error");
 }
 
 int ras_report_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
 {
-	char buf[MAX_MESSAGE_SIZE];
-	int sockfd = 0;
-	int rc = -1;
-
-	memset(buf, 0, sizeof(buf));
-
-	sockfd = setup_report_socket();
-	if (sockfd < 0)
-		return rc;
-
-	rc = commit_report_basic(sockfd);
-	if (rc < 0)
-		goto reri_fail;
-
-	rc = commit_report_backtrace(sockfd, RERI_EVENT, ev);
-	if (rc < 0)
-		goto reri_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "ANALYZER=%s", "rasdaemon-reri");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto reri_fail;
-
-	snprintf(buf, MAX_MESSAGE_SIZE, "REASON=%s", "RISC-V RERI error report");
-	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
-		goto reri_fail;
-
-	rc = 0;
-
-reri_fail:
-
-	if (sockfd >= 0)
-		close(sockfd);
-
-	return rc;
+	return commit_report_common(ras, RERI_EVENT, ev,
+				    "rasdaemon-reri",
+				    "RISC-V RERI error report");
 }
