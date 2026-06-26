@@ -1,3 +1,23 @@
+2026-06-26      Mauro Carvalho Chehab <mchehab@kernel.org>
+        - Version 0.8.5
+
+        * rasdaemon: Add NVIDIA non-standard CPER decoder (Vera and Grace)
+        * rasdaemon: Add Intel Diamond Rapids, Granite Rapids, Sierra Forest, and Clearwater Forest support
+        * rasdaemon: Add Zhaoxin CPUs support for MCE record events
+        * rasdaemon: Fix uuid_le() buffer size calculation and SQLite API return code checks
+        * rasdaemon: Allow built-in or modules EDAC in status checks
+        * rasdaemon: Add RERI handler implementation
+        * ras-mc-ctl: Consolidate error counts by DIMM label
+        * ras-mc-ctl: Fix signal events query column
+        * ras-mc-ctl: Fix mc_event_trigger.local reference
+        * ras-mc-ctl: Correct --error-count alignment output
+        * ras-events: Fix event file endianness handling
+        * ras-aer-handler: Add support for AER triggers
+        * tracing: Address deprecated /sys/kernel/debug/tracing path
+        * ras-page-isolation.c: Clean up compiler warning
+        * types.c: Add missing newline at end of file
+        * Documentation: Update README.md and SECURITY.md
+
 2025-11-20      Mauro Carvalho Chehab <mchehab@kernel.org>
 
         - Version 0.8.4
