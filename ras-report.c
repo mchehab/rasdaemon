@@ -11,7 +11,9 @@
 #include <sys/un.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <stdlib.h>
 
+#include "ras-logger.h"
 #include "ras-report.h"
 #include "ras-record.h"
 
@@ -41,44 +43,60 @@ static int setup_report_socket(void)
 
 static int commit_report_basic(int sockfd)
 {
-	char buf[INPUT_BUFFER_SIZE];
+	char *buf;
 	struct utsname un;
 	int rc = -1;
 
 	if (sockfd < 0)
 		return rc;
 
-	memset(buf, 0, INPUT_BUFFER_SIZE);
+	buf = calloc(1, INPUT_BUFFER_SIZE);
+	if (!buf) {
+		log(TERM, LOG_ERR, "Failed to allocate memory for basic report\n");
+		return -1;
+	}
+
 	memset(&un, 0, sizeof(struct utsname));
 
 	rc = uname(&un);
-	if (rc < 0)
+	if (rc < 0) {
+		free(buf);
 		return rc;
+	}
 
 	/*
 	 * ABRT server protocol
 	 */
 	snprintf(buf, INPUT_BUFFER_SIZE, "PUT / HTTP/1.1\r\n\r\n");
 	rc = write(sockfd, buf, strlen(buf));
-	if (rc < strlen(buf))
+	if (rc < strlen(buf)) {
+		free(buf);
 		return -1;
+	}
 
 	snprintf(buf, INPUT_BUFFER_SIZE, "PID=%d", (int)getpid());
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
+	if (rc < strlen(buf) + 1) {
+		free(buf);
 		return -1;
+	}
 
 	snprintf(buf, INPUT_BUFFER_SIZE, "EXECUTABLE=/boot/vmlinuz-%s",
 		 un.release);
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
+	if (rc < strlen(buf) + 1) {
+		free(buf);
 		return -1;
+	}
 
 	snprintf(buf, INPUT_BUFFER_SIZE, "TYPE=%s", "ras");
 	rc = write(sockfd, buf, strlen(buf) + 1);
-	if (rc < strlen(buf) + 1)
+	if (rc < strlen(buf) + 1) {
+		free(buf);
 		return -1;
+	}
 
+	free(buf);
 	return 0;
 }
 
@@ -797,15 +815,20 @@ static int set_signal_event_backtrace(char *buf, struct ras_signal_event *ev)
 
 static int commit_report_backtrace(int sockfd, int type, void *ev)
 {
-	char buf[MAX_BACKTRACE_SIZE];
-	char *pbuf = buf;
+	char *buf;
+	char *pbuf;
 	int rc = -1;
 	int buf_len = 0;
 
 	if (sockfd < 0 || !ev)
 		return -1;
 
-	memset(buf, 0, MAX_BACKTRACE_SIZE);
+	buf = calloc(1, MAX_BACKTRACE_SIZE);
+	if (!buf) {
+		log(TERM, LOG_ERR, "Failed to allocate memory for backtrace report\n");
+		return -1;
+	}
+	pbuf = buf;
 
 	switch (type) {
 	case MC_EVENT:
@@ -877,41 +900,55 @@ static int commit_report_backtrace(int sockfd, int type, void *ev)
 						(struct ras_signal_event *)ev);
 		break;
 	default:
+		free(buf);
 		return -1;
 	}
 
-	if (rc < 0)
+	if (rc < 0) {
+		free(buf);
 		return -1;
+	}
 
 	buf_len = strlen(buf);
 
 	for (; buf_len > INPUT_BUFFER_SIZE - 1; buf_len -= (INPUT_BUFFER_SIZE - 1)) {
 		rc = write(sockfd, pbuf, INPUT_BUFFER_SIZE - 1);
-		if (rc < INPUT_BUFFER_SIZE - 1)
+		if (rc < INPUT_BUFFER_SIZE - 1) {
+			free(buf);
 			return -1;
+		}
 
 		pbuf = pbuf + INPUT_BUFFER_SIZE - 1;
 	}
 
 	rc = write(sockfd, pbuf, buf_len + 1);
-	if (rc < buf_len)
+	if (rc < buf_len) {
+		free(buf);
 		return -1;
+	}
 
+	free(buf);
 	return 0;
 }
 
 static int commit_report_common(struct ras_events *ras, int type, void *ev, const char *analyzer, const char *reason)
 {
-	char buf[MAX_MESSAGE_SIZE];
+	char *buf;
 	int sockfd = -1;
 	int done = 0;
 	int rc = -1;
 
-	memset(buf, 0, sizeof(buf));
+	buf = calloc(1, MAX_MESSAGE_SIZE);
+	if (!buf) {
+		log(TERM, LOG_ERR, "Failed to allocate memory for report\n");
+		return -1;
+	}
 
 	sockfd = setup_report_socket();
-	if (sockfd < 0)
+	if (sockfd < 0) {
+		free(buf);
 		return -1;
+	}
 
 	rc = commit_report_basic(sockfd);
 	if (rc < 0)
@@ -936,11 +973,8 @@ static int commit_report_common(struct ras_events *ras, int type, void *ev, cons
 fail:
 	if (sockfd >= 0)
 		close(sockfd);
-
-	if (done)
-		return 0;
-
-	return -1;
+	free(buf);
+	return done ? 0 : -1;
 }
 
 int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
