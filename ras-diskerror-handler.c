@@ -16,6 +16,17 @@
 #include "ras-report.h"
 #include "types.h"
 
+#define KERNEL_DEVICE_ID_BITS 20
+#define KERNEL_DEVICE_ID_MASK ((1U << KERNEL_DEVICE_ID_BITS) - 1)
+static unsigned int major(dev_t devid)
+{
+	return (unsigned int)(devid >> KERNEL_DEVICE_ID_BITS);
+}
+static unsigned int minor(dev_t devid)
+{
+	return (unsigned int)(devid & KERNEL_DEVICE_ID_MASK);
+}
+
 static const struct {
 	int             error;
 	const char      *name;
