@@ -162,7 +162,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 				   struct tep_record *record,
 				   struct tep_event *event, void *context)
 {
-	int len, i, line_count;
+	int len, i, line_count, decoded = 0;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	time_t now;
@@ -236,12 +236,13 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 		return -1;
 
 	if (!find_ns_ev_decoder(ev.sec_type, &ns_ev_decoder)) {
-		if (ns_ev_decoder->decode)
+		if (ns_ev_decoder->decode) {
 			ns_ev_decoder->decode(ras, ns_ev_decoder, s, &ev);
-		else
-			goto dump_hex;
-	} else {
-dump_hex:
+			decoded = 1;
+		}
+	}
+
+	if (!decoded) {
 		len = ev.length;
 		i = 0;
 		line_count = 0;
