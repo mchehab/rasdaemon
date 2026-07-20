@@ -1074,7 +1074,7 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 			       struct tep_record *record,
 			       struct tep_event *event, void *context)
 {
-	int len, i, rc;
+	int len, i;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	struct ras_cxl_dram_event ev;
@@ -1117,16 +1117,16 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 					      ev.type)) <= 0)
 		return -1;
 
-	if (tep_get_field_val(s,  event, "sub_type", record, &val, 1) < 0)
-		return -1;
-	ev.sub_type = val;
-	if (trace_seq_printf(s, "memory_event_sub_type:%s ",
-			     get_cxl_type_str(cxl_mem_event_sub_type,
-					      ARRAY_SIZE(cxl_mem_event_sub_type),
-					      ev.sub_type)) <= 0)
-		return -1;
+	/* sub_type is optional - skip gracefully if missing */
+	if (tep_get_field_val(s, event, "sub_type", record, &val, 1) == 0) {
+		ev.sub_type = val;
+		trace_seq_printf(s, "memory_event_sub_type:%s ",
+				 get_cxl_type_str(cxl_mem_event_sub_type,
+						  ARRAY_SIZE(cxl_mem_event_sub_type),
+						  ev.sub_type));
+	}
 
-	if (tep_get_field_val(s,  event, "transaction_type", record, &val, 1) < 0)
+	if (tep_get_field_val(s, event, "transaction_type", record, &val, 1) < 0)
 		return -1;
 	ev.transaction_type = val;
 	if (trace_seq_printf(s, "transaction_type:%s ",
@@ -1135,159 +1135,136 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 					      ev.transaction_type)) <= 0)
 		return -1;
 
-	if (tep_get_field_val(s, event, "hpa", record, &val, 1) < 0)
-		return -1;
-	ev.hpa = val;
-	if (trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa) <= 0)
-		return -1;
+	/* hpa/hpa_alias0 are optional - may not be available for all events */
+	if (tep_get_field_val(s, event, "hpa", record, &val, 1) == 0) {
+		ev.hpa = val;
+		trace_seq_printf(s, "hpa:0x%llx ", (unsigned long long)ev.hpa);
+	}
 
-	if (tep_get_field_val(s, event, "hpa_alias0", record, &val, 1) < 0)
-		return -1;
-	ev.hpa_alias0 = val;
-	if (trace_seq_printf(s, "hpa_alias0:0x%llx ", (unsigned long long)ev.hpa_alias0) <= 0)
-		return -1;
+	if (tep_get_field_val(s, event, "hpa_alias0", record, &val, 1) == 0) {
+		ev.hpa_alias0 = val;
+		trace_seq_printf(s, "hpa_alias0:0x%llx ", (unsigned long long)ev.hpa_alias0);
+	}
 
+	/* region info is optional - may not be interleaved */
 	ev.region = tep_get_field_raw(s, event, "region_name", record, &len, 1);
-	if (!ev.region)
-		return -1;
-	if (trace_seq_printf(s, "region:%s ", ev.region) <= 0)
-		return -1;
+	if (ev.region)
+		trace_seq_printf(s, "region:%s ", ev.region);
 
-	ev.region_uuid = tep_get_field_raw(s, event, "region_uuid",
-					   record, &len, 1);
-	if (!ev.region_uuid)
-		return -1;
-	ev.region_uuid = uuid_be(ev.region_uuid);
-	if (trace_seq_printf(s, "region_uuid:%s ", ev.region_uuid) <= 0)
-		return -1;
+	ev.region_uuid = tep_get_field_raw(s, event, "region_uuid", record, &len, 1);
+	if (ev.region_uuid) {
+		ev.region_uuid = uuid_be(ev.region_uuid);
+		trace_seq_printf(s, "region_uuid:%s ", ev.region_uuid);
+	}
 
-	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
-		return -1;
-	ev.validity_flags = val;
+	/* validity_flags controls optional DRAM-specific fields */
+	if (tep_get_field_val(s, event, "validity_flags", record, &val, 1) == 0)
+		ev.validity_flags = val;
 
+	/* Process conditional fields based on validity_flags - skip gracefully if missing */
 	if (ev.validity_flags & CXL_DER_VALID_CHANNEL) {
-		if (tep_get_field_val(s,  event, "channel", record, &val, 1) < 0)
-			return -1;
-		ev.channel = val;
-		if (trace_seq_printf(s, "channel:%u ", ev.channel) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "channel", record, &val, 1) == 0) {
+			ev.channel = val;
+			trace_seq_printf(s, "channel:%u ", ev.channel);
+		}
 	}
 
 	if (ev.validity_flags & CXL_DER_VALID_SUB_CHANNEL) {
-		if (tep_get_field_val(s,  event, "sub_channel", record, &val, 1) < 0)
-			return -1;
-		ev.sub_channel = val;
-		if (trace_seq_printf(s, "sub_channel:%u ", ev.sub_channel) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "sub_channel", record, &val, 1) == 0) {
+			ev.sub_channel = val;
+			trace_seq_printf(s, "sub_channel:%u ", ev.sub_channel);
+		}
 	}
 
 	if (ev.validity_flags & CXL_DER_VALID_RANK) {
-		if (tep_get_field_val(s,  event, "rank", record, &val, 1) < 0)
-			return -1;
-		ev.rank = val;
-		if (trace_seq_printf(s, "rank:%u ", ev.rank) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "rank", record, &val, 1) == 0) {
+			ev.rank = val;
+			trace_seq_printf(s, "rank:%u ", ev.rank);
+		}
 	}
 
 	if (ev.validity_flags & CXL_DER_VALID_NIBBLE) {
-		if (tep_get_field_val(s,  event, "nibble_mask", record, &val, 1) < 0)
-			return -1;
-		ev.nibble_mask = val;
-		if (trace_seq_printf(s, "nibble_mask:%u ", ev.nibble_mask) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "nibble_mask", record, &val, 1) == 0) {
+			ev.nibble_mask = val;
+			trace_seq_printf(s, "nibble_mask:%u ", ev.nibble_mask);
+		}
 	}
 
 	if (ev.validity_flags & CXL_DER_VALID_BANK_GROUP) {
-		if (tep_get_field_val(s,  event, "bank_group", record, &val, 1) < 0)
-			return -1;
-		ev.bank_group = val;
-		if (trace_seq_printf(s, "bank_group:%u ", ev.bank_group) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "bank_group", record, &val, 1) == 0) {
+			ev.bank_group = val;
+			trace_seq_printf(s, "bank_group:%u ", ev.bank_group);
+		}
 	}
 
 	if (ev.validity_flags & CXL_DER_VALID_BANK) {
-		if (tep_get_field_val(s,  event, "bank", record, &val, 1) < 0)
-			return -1;
-		ev.bank = val;
-		if (trace_seq_printf(s, "bank:%u ", ev.bank) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "bank", record, &val, 1) == 0) {
+			ev.bank = val;
+			trace_seq_printf(s, "bank:%u ", ev.bank);
+		}
 	}
 
 	if (ev.validity_flags & CXL_DER_VALID_ROW) {
-		if (tep_get_field_val(s,  event, "row", record, &val, 1) < 0)
-			return -1;
-		ev.row = val;
-		if (trace_seq_printf(s, "row:%u ", ev.row) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "row", record, &val, 1) == 0) {
+			ev.row = val;
+			trace_seq_printf(s, "row:%u ", ev.row);
+		}
 	}
 
 	if (ev.validity_flags & CXL_DER_VALID_COLUMN) {
-		if (tep_get_field_val(s,  event, "column", record, &val, 1) < 0)
-			return -1;
-		ev.column = val;
-		if (trace_seq_printf(s, "column:%u ", ev.column) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "column", record, &val, 1) == 0) {
+			ev.column = val;
+			trace_seq_printf(s, "column:%u ", ev.column);
+		}
 	}
 
 	if (ev.validity_flags & CXL_DER_VALID_CORRECTION_MASK) {
 		ev.cor_mask = tep_get_field_raw(s, event, "cor_mask", record, &len, 1);
-		if (!ev.cor_mask)
-			return -1;
-		if (trace_seq_printf(s, "correction_mask:") <= 0)
-			return -1;
-		for (i = 0; i < CXL_EVENT_DER_CORRECTION_MASK_SIZE; i++) {
-			if (trace_seq_printf(s, "%02x ", ev.cor_mask[i]) <= 0)
-				break;
+		if (ev.cor_mask) {
+			trace_seq_printf(s, "correction_mask:");
+			for (i = 0; i < CXL_EVENT_DER_CORRECTION_MASK_SIZE; i++)
+				trace_seq_printf(s, "%02x ", ev.cor_mask[i]);
 		}
 	}
 
 #ifdef HAVE_MEMORY_CE_PFA
-	/* Page offline for CE when threshold is set */
-	if (!(ev.descriptor & CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT) &&
+	/* Page offline for CE threshold events - only if HPA is valid */
+	if (ev.hpa &&
+	    !(ev.descriptor & CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT) &&
 	    (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT))
 		ras_hw_threshold_pageoffline(ev.hpa);
 #endif
 
 	if (ev.validity_flags & CXL_DER_VALID_COMPONENT_ID) {
 		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
-		if (!ev.comp_id)
-			return -1;
-		if (trace_seq_printf(s, "comp_id:") <= 0)
-			return -1;
-		for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++) {
-			if (trace_seq_printf(s, "%02x ", ev.comp_id[i]) <= 0)
-				break;
-		}
+		if (ev.comp_id) {
+			trace_seq_printf(s, "comp_id:");
+			for (i = 0; i < CXL_EVENT_GEN_MED_COMP_ID_SIZE; i++)
+				trace_seq_printf(s, "%02x ", ev.comp_id[i]);
 
-		if (ev.validity_flags & CXL_DER_VALID_COMPONENT_ID_FORMAT) {
-			if (trace_seq_printf(s, "comp_id_pldm_valid_flags:") <= 0)
-				return -1;
-			if (decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
-						   ARRAY_SIZE(cxl_pldm_comp_id_flags)) < 0)
-				return -1;
-
-			rc = ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
-			if (rc)
-				return rc;
+			if (ev.validity_flags & CXL_DER_VALID_COMPONENT_ID_FORMAT) {
+				trace_seq_printf(s, "comp_id_pldm_valid_flags:");
+				decode_cxl_event_flags(s, ev.comp_id[0], cxl_pldm_comp_id_flags,
+						       ARRAY_SIZE(cxl_pldm_comp_id_flags));
+				ras_cxl_print_component_id(s, ev.comp_id, ev.entity_id, ev.res_id);
+			}
 		}
 	}
 
+	/* Threshold event fields are conditional - skip gracefully if missing */
 	if (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT) {
-		if (tep_get_field_val(s,  event, "cme_threshold_ev_flags", record, &val, 1) < 0)
-			return -1;
-		ev.cme_threshold_ev_flags = val;
-		if (trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:") <= 0)
-			return -1;
-		if (decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
-					   cxl_cme_threshold_ev_flags,
-					   ARRAY_SIZE(cxl_cme_threshold_ev_flags)) < 0)
-			return -1;
+		if (tep_get_field_val(s, event, "cme_threshold_ev_flags", record, &val, 1) == 0) {
+			ev.cme_threshold_ev_flags = val;
+			trace_seq_printf(s, "Advanced Programmable CME threshold Event Flags:");
+			decode_cxl_event_flags(s, ev.cme_threshold_ev_flags,
+					       cxl_cme_threshold_ev_flags,
+					       ARRAY_SIZE(cxl_cme_threshold_ev_flags));
+		}
 
-		if (tep_get_field_val(s,  event, "cvme_count", record, &val, 1) < 0)
-			return -1;
-		ev.cvme_count = val;
-		if (trace_seq_printf(s, "CVME Count:%u ", ev.cvme_count) <= 0)
-			return -1;
+		if (tep_get_field_val(s, event, "cvme_count", record, &val, 1) == 0) {
+			ev.cvme_count = val;
+			trace_seq_printf(s, "CVME Count:%u ", ev.cvme_count);
+		}
 	}
 
 	/* Insert data into the SGBD */
