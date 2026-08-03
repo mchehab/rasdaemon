@@ -31,6 +31,7 @@ EXTRA_DIST += completions/ras-mc-ctl.bash
 EXTRA_DIST += completions/ras-mc-ctl.zsh
 EXTRA_DIST += contrib/mem_fail_trigger
 EXTRA_DIST += contrib/mc_event_trigger
+EXTRA_DIST += labels
 EXTRA_DIST += misc/rasdaemon.env
 
 CLEANFILES = misc/rasdaemon.logrotate
@@ -257,6 +258,10 @@ upload:
 # custom target
 install-data-local:
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d"
+	for f in @abs_srcdir@/labels/*; do \
+		test -f "$$f" || continue; \
+		$(install_sh) -m 0644 "$$f" "$(DESTDIR)@sysconfdir@/ras/dimm_labels.d/"; \
+	done
 	$(install_sh) -d "$(DESTDIR)@sysconfdir@/ras/triggers"
 	install -D -p -m 0655 @abs_srcdir@/misc/rasdaemon.env "$(DESTDIR)@SYSCONFDEFDIR@/rasdaemon"
 	$(install_sh) @abs_srcdir@/contrib/mc_event_trigger "$(DESTDIR)@sysconfdir@/ras/triggers/mc_event_trigger"
