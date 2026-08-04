@@ -441,6 +441,8 @@ sub guess_vendor_model_dmidecode {
     my ($system_vendor, $system_model);
     my $line = 0;
 
+    return (undef, undef) if ($dmidecode eq "");
+
     $< == 0 || die "Must be root to run dmidecode\n";
 
     open (DMI, "$dmidecode |") or die "failed to run $dmidecode: $!\n";
@@ -549,6 +551,8 @@ sub guess_vendor_model {
 }
 
 sub guess_dimm_label {
+    die "Can't guess DIMM labels: dmidecode not found in PATH\n" if ($dmidecode eq "");
+
     open (DMI, "$dmidecode |") or die "failed to run $dmidecode: $!\n";
 
   LINE:
