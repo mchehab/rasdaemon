@@ -84,6 +84,7 @@ Usage: $prog [OPTIONS...]
  --delay=N          Delay N seconds before writing DIMM labels.
  --labeldb=DB       Load label database from file DB.
  --layout           Display the memory layout.
+ --human, -h        With --layout, scale DIMM sizes to the largest exact unit.
  --summary          Presents a summary of the logged errors.
  --errors           Shows the errors stored at the error database.
  --error-count      Shows the corrected and uncorrected error counts using sysfs.
@@ -168,6 +169,7 @@ sub parse_cmdline
     $conf{opt}{errors} = 0;
     $conf{opt}{error_count} = 0;
     $conf{opt}{per_rank} = 0;
+    $conf{opt}{human} = 0;
     $conf{opt}{vendor_errors_summary} = 0;
     $conf{opt}{vendor_errors} = 0;
     $conf{opt}{since} = '';
@@ -191,6 +193,7 @@ sub parse_cmdline
 			 "errors" =>          \$conf{opt}{errors},
 			 "error-count" =>     \$conf{opt}{error_count},
 			 "per-rank" =>        \$conf{opt}{per_rank},
+			 "human|h" =>         \$conf{opt}{human},
 			 "vendor-errors-summary" =>    \$conf{opt}{vendor_errors_summary},
 			 "vendor-errors" =>   \$conf{opt}{vendor_errors},
 			 "since=s" =>         \$conf{opt}{since},
@@ -208,6 +211,11 @@ sub parse_cmdline
 
     if ($conf{opt}{per_rank} && !$conf{opt}{error_count}) {
 	log_error ("Only use --per-rank with --error-count\n");
+	exit (1);
+    }
+
+    if ($conf{opt}{human} && !$conf{opt}{display_memory_layout}) {
+	log_error ("Only use --human with --layout\n");
 	exit (1);
     }
 
@@ -866,7 +874,19 @@ sub dimm_display_layer_rev($@)
 	if (!$size) {
 	    $size = 0;
 	}
-	my $s = sprintf "  %6i MB  |", $size;
+	my $s;
+	if ($conf{opt}{human}) {
+	    my @units = ('MB', 'GB', 'TB', 'PB');
+	    my $i = 0;
+	    my $scaled = $size;
+	    while ($scaled >= 1024 && $i < $#units) {
+		$scaled /= 1024;
+		$i++;
+	    }
+	    $s = sprintf "  %4i %s  |", $scaled, $units[$i];
+	} else {
+	    $s = sprintf "  %6i MB  |", $size;
+	}
 	$item_size = length($s);
 	return $s;
     }
