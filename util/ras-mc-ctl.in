@@ -871,7 +871,7 @@ sub dimm_display_layer_rev($@)
 	if (!$size) {
 	    $size = 0;
 	}
-	my $s = sprintf "  %4i MB  |", $size;
+	my $s = sprintf "  %6i MB  |", $size;
 	$item_size = length($s);
 	return $s;
     }
