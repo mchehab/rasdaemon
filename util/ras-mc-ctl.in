@@ -26,6 +26,7 @@ my $dbname      = "@RASSTATEDIR@/@RAS_DB_FNAME@";
 my $prefix      = "@prefix@";
 my $sysconfdir  = "@sysconfdir@";
 my $dmidecode   = find_prog ("dmidecode");
+my $unknown_hw  = "<undefined>";
 
 my $has_aer = 0;
 my $has_arm = 0;
@@ -423,17 +424,17 @@ sub get_mainboard_info {
 	($vendor, $model) = guess_vendor_model ();
     }
 
-    $conf{mainboard}{vendor} = $vendor;
-    $conf{mainboard}{model}  = $model;
+    $conf{mainboard}{vendor} = $vendor || $unknown_hw;
+    $conf{mainboard}{model}  = $model  || $unknown_hw;
 
     ($pvendor, $pname) = guess_product ();
     # since product vendor is rare, use mainboard's vendor
     if ($pvendor) {
 	$conf{mainboard}{product_vendor} = $pvendor;
     } else {
-	$conf{mainboard}{product_vendor} = $vendor;
+	$conf{mainboard}{product_vendor} = $conf{mainboard}{vendor};
     }
-    $conf{mainboard}{product_name} = $pname if $pname;
+    $conf{mainboard}{product_name} = $pname || $unknown_hw;
 }
 
 sub guess_vendor_model_dmidecode {
