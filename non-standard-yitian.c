@@ -70,10 +70,10 @@ static const struct yitian_ras_type_info yitian_payload_error_type[] = {
 
 #ifdef HAVE_SQLITE3
 static const struct db_fields yitian_ddr_payload_fields[] = {
-	{ .name = "id",                 .type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",          .type = "TEXT" },
-	{ .name = "address",            .type = "INTEGER" },
-	{ .name = "regs_dump",		    .type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP},
+	{ .name = "address",		.type = DB_TYPE_INT64 },
+	{ .name = "regs_dump",		.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor yitian_ddr_payload_section_tab = {

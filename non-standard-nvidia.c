@@ -528,17 +528,17 @@ static int nvidia_decode_vera_cper_sec(const void *buf, size_t len,
 #ifdef HAVE_SQLITE3
 
 static const struct db_fields nvidia_ns_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "signature",		.type = "TEXT" },
-	{ .name = "error_type",		.type = "INTEGER" },
-	{ .name = "error_instance",	.type = "INTEGER" },
-	{ .name = "severity",		.type = "INTEGER" },
-	{ .name = "socket",		.type = "INTEGER" },
-	{ .name = "number_regs",	.type = "INTEGER" },
-	{ .name = "instance_base",	.type = "INTEGER" },
-	{ .name = "reg_data",		.type = "BLOB" },
-	{ .name = "raw_data",		.type = "BLOB" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP},
+	{ .name = "signature",		.type = DB_TYPE_TEXT },
+	{ .name = "error_type",		.type = DB_TYPE_INT32 },
+	{ .name = "error_instance",	.type = DB_TYPE_INT32 },
+	{ .name = "severity",		.type = DB_TYPE_INT32 },
+	{ .name = "socket",		.type = DB_TYPE_INT32 },
+	{ .name = "number_regs",	.type = DB_TYPE_INT32 },
+	{ .name = "instance_base",	.type = DB_TYPE_INT64 },
+	{ .name = "reg_data",		.type = DB_TYPE_BLOB },
+	{ .name = "raw_data",		.type = DB_TYPE_BLOB },
 };
 
 static const struct db_table_descriptor nvidia_ns_table = {
@@ -606,19 +606,19 @@ static int nvidia_ns_decode(struct ras_events *ras,
 }
 
 static const struct db_fields nvidia_vera_ns_fields[] = {
-	{ .name = "id",				.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",			.type = "TEXT" },
-	{ .name = "signature",			.type = "TEXT" },
-	{ .name = "event_type",			.type = "INTEGER" },
-	{ .name = "event_sub_type",		.type = "INTEGER" },
-	{ .name = "event_link_id",		.type = "INTEGER" },
-	{ .name = "source_device_type",		.type = "INTEGER" },
-	{ .name = "event_context_count",	.type = "INTEGER" },
-	{ .name = "socket",			.type = "INTEGER" },
-	{ .name = "architecture",		.type = "INTEGER" },
-	{ .name = "chip_serial_number",		.type = "BLOB" },
-	{ .name = "instance_base",		.type = "INTEGER" },
-	{ .name = "raw_data",			.type = "BLOB" },
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP},
+	{ .name = "signature",			.type = DB_TYPE_TEXT },
+	{ .name = "event_type",			.type = DB_TYPE_INT32 },
+	{ .name = "event_sub_type",		.type = DB_TYPE_INT32 },
+	{ .name = "event_link_id",		.type = DB_TYPE_INT64 },
+	{ .name = "source_device_type",		.type = DB_TYPE_INT32 },
+	{ .name = "event_context_count",	.type = DB_TYPE_INT32 },
+	{ .name = "socket",			.type = DB_TYPE_INT32 },
+	{ .name = "architecture",		.type = DB_TYPE_INT64 },
+	{ .name = "chip_serial_number",		.type = DB_TYPE_BLOB },
+	{ .name = "instance_base",		.type = DB_TYPE_INT64 },
+	{ .name = "raw_data",			.type = DB_TYPE_BLOB },
 };
 
 static const struct db_table_descriptor nvidia_vera_ns_table = {

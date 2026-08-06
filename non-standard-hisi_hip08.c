@@ -478,16 +478,16 @@ static const char *pcie_local_sub_module_name(uint8_t id)
 
 #ifdef HAVE_SQLITE3
 static const struct db_fields hip08_oem_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",          .type = "TEXT" },
-	{ .name = "version",		.type = "INTEGER" },
-	{ .name = "soc_id",		.type = "INTEGER" },
-	{ .name = "socket_id",		.type = "INTEGER" },
-	{ .name = "nimbus_id",		.type = "INTEGER" },
-	{ .name = "module_id",		.type = "TEXT" },
-	{ .name = "sub_module_id",	.type = "TEXT" },
-	{ .name = "err_severity",	.type = "TEXT" },
-	{ .name = "regs_dump",		.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",          .type = DB_TYPE_TIMESTAMP},
+	{ .name = "version",		.type = DB_TYPE_INT32 },
+	{ .name = "soc_id",		.type = DB_TYPE_INT32 },
+	{ .name = "socket_id",		.type = DB_TYPE_INT32 },
+	{ .name = "nimbus_id",		.type = DB_TYPE_INT32 },
+	{ .name = "module_id",		.type = DB_TYPE_TEXT },
+	{ .name = "sub_module_id",	.type = DB_TYPE_TEXT },
+	{ .name = "err_severity",	.type = DB_TYPE_TEXT },
+	{ .name = "regs_dump",		.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor hip08_oem_type1_event_tab = {
@@ -503,18 +503,18 @@ static const struct db_table_descriptor hip08_oem_type2_event_tab = {
 };
 
 static const struct db_fields hip08_pcie_local_event_fields[] = {
-	{ .name = "id",                 .type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",          .type = "TEXT" },
-	{ .name = "version",            .type = "INTEGER" },
-	{ .name = "soc_id",             .type = "INTEGER" },
-	{ .name = "socket_id",          .type = "INTEGER" },
-	{ .name = "nimbus_id",          .type = "INTEGER" },
-	{ .name = "sub_module_id",      .type = "TEXT" },
-	{ .name = "core_id",		.type = "INTEGER" },
-	{ .name = "port_id",		.type = "INTEGER" },
-	{ .name = "err_severity",       .type = "TEXT" },
-	{ .name = "err_type",		.type = "INTEGER" },
-	{ .name = "regs_dump",		.type = "TEXT" },
+	{ .name = "id",                 .type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",          .type = DB_TYPE_TIMESTAMP},
+	{ .name = "version",            .type = DB_TYPE_INT32 },
+	{ .name = "soc_id",             .type = DB_TYPE_INT32 },
+	{ .name = "socket_id",          .type = DB_TYPE_INT32 },
+	{ .name = "nimbus_id",          .type = DB_TYPE_INT32 },
+	{ .name = "sub_module_id",      .type = DB_TYPE_TEXT },
+	{ .name = "core_id",		.type = DB_TYPE_INT32 },
+	{ .name = "port_id",		.type = DB_TYPE_INT32 },
+	{ .name = "err_severity",       .type = DB_TYPE_TEXT },
+	{ .name = "err_type",		.type = DB_TYPE_INT32 },
+	{ .name = "regs_dump",		.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor hip08_pcie_local_event_tab = {

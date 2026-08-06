@@ -356,18 +356,18 @@ static const char *oem_subtype_name(const struct amp_ras_type_info *info,
 #ifdef HAVE_SQLITE3
 /*key pair definition for ampere specific error payload type 0*/
 static const struct db_fields amp_payload0_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",          .type = "TEXT" },
-	{ .name = "type",		.type = "TEXT" },
-	{ .name = "subtype",		.type = "TEXT" },
-	{ .name = "instance",		.type = "INTEGER" },
-	{ .name = "socket_num",		.type = "INTEGER" },
-	{ .name = "status_reg",		.type = "INTEGER" },
-	{ .name = "addr_reg",		.type = "INTEGER" },
-	{ .name = "misc0",		.type = "INTEGER" },
-	{ .name = "misc1",		.type = "INTEGER" },
-	{ .name = "misc2",		.type = "INTEGER" },
-	{ .name = "misc3",		.type = "INTEGER" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",          .type = DB_TYPE_TIMESTAMP },
+	{ .name = "type",		.type = DB_TYPE_TEXT },
+	{ .name = "subtype",		.type = DB_TYPE_TEXT },
+	{ .name = "instance",		.type = DB_TYPE_INT32 },
+	{ .name = "socket_num",		.type = DB_TYPE_INT32 },
+	{ .name = "status_reg",		.type = DB_TYPE_INT64 },
+	{ .name = "addr_reg",		.type = DB_TYPE_INT64 },
+	{ .name = "misc0",		.type = DB_TYPE_INT64 },
+	{ .name = "misc1",		.type = DB_TYPE_INT64 },
+	{ .name = "misc2",		.type = DB_TYPE_INT64 },
+	{ .name = "misc3",		.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor amp_payload0_event_tab = {
@@ -378,22 +378,22 @@ static const struct db_table_descriptor amp_payload0_event_tab = {
 
 /*key pair definition for ampere specific error payload type 1*/
 static const struct db_fields amp_payload1_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",          .type = "TEXT" },
-	{ .name = "type",		.type = "TEXT" },
-	{ .name = "subtype",		.type = "TEXT" },
-	{ .name = "instance",		.type = "INTEGER" },
-	{ .name = "socket_num",		.type = "INTEGER" },
-	{ .name = "uncore_err_status",	.type = "INTEGER" },
-	{ .name = "uncore_err_mask",	.type = "INTEGER" },
-	{ .name = "uncore_err_sev",	.type = "INTEGER" },
-	{ .name = "core_err_status",	.type = "INTEGER" },
-	{ .name = "core_err_mask",	.type = "INTEGER" },
-	{ .name = "root_err_cmd",	.type = "INTEGER" },
-	{ .name = "root_err_status",	.type = "INTEGER" },
-	{ .name = "src_id",		.type = "INTEGER" },
-	{ .name = "reserved1",		.type = "INTEGER" },
-	{ .name = "reserverd2",		.type = "INTEGER" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",          .type = DB_TYPE_TIMESTAMP },
+	{ .name = "type",		.type = DB_TYPE_TEXT },
+	{ .name = "subtype",		.type = DB_TYPE_TEXT },
+	{ .name = "instance",		.type = DB_TYPE_INT32 },
+	{ .name = "socket_num",		.type = DB_TYPE_INT32 },
+	{ .name = "uncore_err_status",	.type = DB_TYPE_INT32 },
+	{ .name = "uncore_err_mask",	.type = DB_TYPE_INT32 },
+	{ .name = "uncore_err_sev",	.type = DB_TYPE_INT32 },
+	{ .name = "core_err_status",	.type = DB_TYPE_INT32 },
+	{ .name = "core_err_mask",	.type = DB_TYPE_INT32 },
+	{ .name = "root_err_cmd",	.type = DB_TYPE_INT32 },
+	{ .name = "root_err_status",	.type = DB_TYPE_INT32 },
+	{ .name = "src_id",		.type = DB_TYPE_INT32 },
+	{ .name = "reserved1",		.type = DB_TYPE_INT32 },
+	{ .name = "reserverd2",		.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor amp_payload1_event_tab = {
@@ -404,21 +404,21 @@ static const struct db_table_descriptor amp_payload1_event_tab = {
 
 /*key pair definition for ampere specific error payload type 2*/
 static const struct db_fields amp_payload2_event_fields[] = {
-	{ .name = "id",                 .type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",          .type = "TEXT" },
-	{ .name = "type",		.type = "TEXT" },
-	{ .name = "subtype",		.type = "TEXT" },
-	{ .name = "instance",		.type = "INTEGER" },
-	{ .name = "socket_num",		.type = "INTEGER" },
-	{ .name = "ce_report_reg",	.type = "INTEGER" },
-	{ .name = "ce_location",	.type = "INTEGER" },
-	{ .name = "ce_addr",		.type = "INTEGER" },
-	{ .name = "ue_report_reg",	.type = "INTEGER" },
-	{ .name = "ue_location",	.type = "INTEGER" },
-	{ .name = "ue_addr",		.type = "INTEGER" },
-	{ .name = "reserved1",		.type = "INTEGER" },
-	{ .name = "reserved2",		.type = "INTEGER" },
-	{ .name = "reserved2",		.type = "INTEGER" },
+	{ .name = "id",                 .type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",          .type = DB_TYPE_TIMESTAMP },
+	{ .name = "type",		.type = DB_TYPE_TEXT },
+	{ .name = "subtype",		.type = DB_TYPE_TEXT },
+	{ .name = "instance",		.type = DB_TYPE_INT32 },
+	{ .name = "socket_num",		.type = DB_TYPE_INT32 },
+	{ .name = "ce_report_reg",	.type = DB_TYPE_INT32 },
+	{ .name = "ce_location",	.type = DB_TYPE_INT32 },
+	{ .name = "ce_addr",		.type = DB_TYPE_INT32 },
+	{ .name = "ue_report_reg",	.type = DB_TYPE_INT32 },
+	{ .name = "ue_location",	.type = DB_TYPE_INT32 },
+	{ .name = "ue_addr",		.type = DB_TYPE_INT32 },
+	{ .name = "reserved1",		.type = DB_TYPE_INT32 },
+	{ .name = "reserved2",		.type = DB_TYPE_INT64 },
+	{ .name = "reserved2",		.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor amp_payload2_event_tab = {
@@ -429,18 +429,18 @@ static const struct db_table_descriptor amp_payload2_event_tab = {
 
 /*key pair definition for ampere specific error payload type 3*/
 static const struct db_fields amp_payload3_event_fields[] = {
-	{ .name = "id",                 .type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",          .type = "TEXT" },
-	{ .name = "type",		.type = "TEXT" },
-	{ .name = "subtype",		.type = "TEXT" },
-	{ .name = "instance",		.type = "INTEGER" },
-	{ .name = "socket_num",		.type = "INTEGER" },
-	{ .name = "fw_spec_data0",	.type = "INTEGER" },
-	{ .name = "fw_spec_data1",	.type = "INTEGER" },
-	{ .name = "fw_spec_data2",	.type = "INTEGER" },
-	{ .name = "fw_spec_data3",	.type = "INTEGER" },
-	{ .name = "fw_spec_data4",	.type = "INTEGER" },
-	{ .name = "fw_spec_data5",	.type = "INTEGER" },
+	{ .name = "id",                 .type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",          .type = DB_TYPE_TIMESTAMP },
+	{ .name = "type",		.type = DB_TYPE_TEXT },
+	{ .name = "subtype",		.type = DB_TYPE_TEXT },
+	{ .name = "instance",		.type = DB_TYPE_INT32 },
+	{ .name = "socket_num",		.type = DB_TYPE_INT32 },
+	{ .name = "fw_spec_data0",	.type = DB_TYPE_INT64 },
+	{ .name = "fw_spec_data1",	.type = DB_TYPE_INT64 },
+	{ .name = "fw_spec_data2",	.type = DB_TYPE_INT64 },
+	{ .name = "fw_spec_data3",	.type = DB_TYPE_INT64 },
+	{ .name = "fw_spec_data4",	.type = DB_TYPE_INT64 },
+	{ .name = "fw_spec_data5",	.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor amp_payload3_event_tab = {

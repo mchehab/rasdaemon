@@ -367,9 +367,22 @@ struct sqlite3_priv {
 #endif
 };
 
+enum db_type {
+	DB_TYPE_SERIAL,		/* auto-increment integer */
+	DB_TYPE_INT64,		/* 64-bit signed integer */
+	DB_TYPE_INT32,		/* 32-bit signed integer */
+
+	DB_TYPE_TIMESTAMP,	/* ISO timestamp */
+
+	DB_TYPE_TEXT,		/* Variable-length string */
+
+	DB_TYPE_BLOB,		/* Binary data */
+};
+
 struct db_fields {
 	const char *name;
-	const char *type;
+	enum db_type type;
+	bool is_pk;
 };
 
 struct db_table_descriptor {

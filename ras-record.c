@@ -28,25 +28,51 @@
 
 #define SQLITE_RAS_DB RASSTATEDIR "/" RAS_DB_FNAME
 
+static inline const char *db_get_sql_type(enum db_type type, bool is_pk)
+{
+	/*
+	* On sqlite3, integers are 64 bits and there's no timestamp type
+	*/
+	switch (type) {
+	case DB_TYPE_SERIAL:
+	case DB_TYPE_INT64:
+	case DB_TYPE_INT32:
+		if (is_pk)
+			return "INTEGER PRIMARY KEY";
+		return "INTEGER";
+	case DB_TYPE_TIMESTAMP:
+	case DB_TYPE_TEXT:
+		if (is_pk)
+			return "TEXT PRIMARY KEY";
+		return "TEXT";
+	case DB_TYPE_BLOB:
+	default:
+		if (is_pk)
+			return "BLOB PRIMARY KEY";
+		return "BLOB";
+	}
+}
+
+
 /*
  * Table and functions to handle ras:mc_event
  */
 
 static const struct db_fields mc_event_fields[] = {
-		{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-		{ .name = "timestamp",		.type = "TEXT" },
-		{ .name = "err_count",		.type = "INTEGER" },
-		{ .name = "err_type",		.type = "TEXT" },
-		{ .name = "err_msg",		.type = "TEXT" },
-		{ .name = "label",		.type = "TEXT" },
-		{ .name = "mc",			.type = "INTEGER" },
-		{ .name = "top_layer",		.type = "INTEGER" },
-		{ .name = "middle_layer",		.type = "INTEGER" },
-		{ .name = "lower_layer",		.type = "INTEGER" },
-		{ .name = "address",		.type = "INTEGER" },
-		{ .name = "grain",		.type = "INTEGER" },
-		{ .name = "syndrome",		.type = "INTEGER" },
-		{ .name = "driver_detail",	.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP},
+	{ .name = "err_count",		.type = DB_TYPE_INT32 },
+	{ .name = "err_type",		.type = DB_TYPE_TEXT },
+	{ .name = "err_msg",		.type = DB_TYPE_TEXT },
+	{ .name = "label",		.type = DB_TYPE_TEXT },
+	{ .name = "mc",			.type = DB_TYPE_INT32 },
+	{ .name = "top_layer",		.type = DB_TYPE_INT32 },
+	{ .name = "middle_layer",	.type = DB_TYPE_INT32 },
+	{ .name = "lower_layer",	.type = DB_TYPE_INT32 },
+	{ .name = "address",		.type = DB_TYPE_INT64 },
+	{ .name = "grain",		.type = DB_TYPE_INT64 },
+	{ .name = "syndrome",		.type = DB_TYPE_INT64 },
+	{ .name = "driver_detail",	.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor mc_event_tab = {
@@ -97,11 +123,11 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 
 #ifdef HAVE_AER
 static const struct db_fields aer_event_fields[] = {
-		{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-		{ .name = "timestamp",		.type = "TEXT" },
-		{ .name = "dev_name",		.type = "TEXT" },
-		{ .name = "err_type",		.type = "TEXT" },
-		{ .name = "err_msg",		.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "dev_name",		.type = DB_TYPE_TEXT },
+	{ .name = "err_type",		.type = DB_TYPE_TEXT },
+	{ .name = "err_msg",		.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor aer_event_tab = {
@@ -145,13 +171,13 @@ int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 
 #ifdef HAVE_NON_STANDARD
 static const struct db_fields non_standard_event_fields[] = {
-		{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-		{ .name = "timestamp",		.type = "TEXT" },
-		{ .name = "sec_type",		.type = "BLOB" },
-		{ .name = "fru_id",		.type = "BLOB" },
-		{ .name = "fru_text",		.type = "TEXT" },
-		{ .name = "severity",		.type = "TEXT" },
-		{ .name = "error",		.type = "BLOB" },
+		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+		{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+		{ .name = "sec_type",		.type = DB_TYPE_BLOB },
+		{ .name = "fru_id",		.type = DB_TYPE_BLOB },
+		{ .name = "fru_text",		.type = DB_TYPE_TEXT },
+		{ .name = "severity",		.type = DB_TYPE_TEXT },
+		{ .name = "error",		.type = DB_TYPE_BLOB },
 };
 
 static const struct db_table_descriptor non_standard_event_tab = {
@@ -196,21 +222,21 @@ int ras_store_non_standard_record(struct ras_events *ras, struct ras_non_standar
 
 #ifdef HAVE_ARM
 static const struct db_fields arm_event_fields[] = {
-		{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-		{ .name = "timestamp",		.type = "TEXT" },
-		{ .name = "error_count",		.type = "INTEGER" },
-		{ .name = "affinity",		.type = "INTEGER" },
-		{ .name = "mpidr",		.type = "INTEGER" },
-		{ .name = "running_state",	.type = "INTEGER" },
-		{ .name = "psci_state",		.type = "INTEGER" },
-		{ .name = "err_info",		.type = "BLOB"	},
-		{ .name = "context_info",		.type = "BLOB"	},
-		{ .name = "vendor_info",		.type = "BLOB"	},
-		{ .name = "error_type",		.type = "TEXT" },
-		{ .name = "error_flags",	.type = "TEXT" },
-		{ .name = "error_info",		.type = "INTEGER" },
-		{ .name = "virt_fault_addr",	.type = "INTEGER" },
-		{ .name = "phy_fault_addr",	.type = "INTEGER" },
+		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+		{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+		{ .name = "error_count",	.type = DB_TYPE_INT32 },
+		{ .name = "affinity",		.type = DB_TYPE_INT32 },
+		{ .name = "mpidr",		.type = DB_TYPE_INT64 },
+		{ .name = "running_state",	.type = DB_TYPE_INT32 },
+		{ .name = "psci_state",		.type = DB_TYPE_INT32 },
+		{ .name = "err_info",		.type = DB_TYPE_BLOB },
+		{ .name = "context_info",	.type = DB_TYPE_BLOB },
+		{ .name = "vendor_info",	.type = DB_TYPE_BLOB },
+		{ .name = "error_type",		.type = DB_TYPE_TEXT },
+		{ .name = "error_flags",	.type = DB_TYPE_TEXT },
+		{ .name = "error_info",		.type = DB_TYPE_INT64 },
+		{ .name = "virt_fault_addr",	.type = DB_TYPE_INT64 },
+		{ .name = "phy_fault_addr",	.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor arm_event_tab = {
@@ -263,15 +289,15 @@ int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 
 #ifdef HAVE_EXTLOG
 static const struct db_fields extlog_event_fields[] = {
-		{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-		{ .name = "timestamp",		.type = "TEXT" },
-		{ .name = "etype",		.type = "INTEGER" },
-		{ .name = "error_count",		.type = "INTEGER" },
-		{ .name = "severity",		.type = "INTEGER" },
-		{ .name = "address",		.type = "INTEGER" },
-		{ .name = "fru_id",		.type = "BLOB" },
-		{ .name = "fru_text",		.type = "TEXT" },
-		{ .name = "cper_data",		.type = "BLOB" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "etype",		.type = DB_TYPE_INT32 },
+	{ .name = "error_count",	.type = DB_TYPE_INT32 },
+	{ .name = "severity",		.type = DB_TYPE_INT32 },
+	{ .name = "address",		.type = DB_TYPE_INT64 },
+	{ .name = "fru_id",		.type = DB_TYPE_BLOB },
+	{ .name = "fru_text",		.type = DB_TYPE_TEXT },
+	{ .name = "cper_data",		.type = DB_TYPE_BLOB },
 };
 
 static const struct db_table_descriptor extlog_event_tab = {
@@ -319,36 +345,36 @@ int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event 
 
 #ifdef HAVE_MCE
 static const struct db_fields mce_record_fields[] = {
-		{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-		{ .name = "timestamp",		.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
 
-		/* MCE registers */
-		{ .name = "mcgcap",		.type = "INTEGER" },
-		{ .name = "mcgstatus",		.type = "INTEGER" },
-		{ .name = "status",		.type = "INTEGER" },
-		{ .name = "addr",			.type = "INTEGER" }, // 5
-		{ .name = "misc",			.type = "INTEGER" },
-		{ .name = "ip",			.type = "INTEGER" },
-		{ .name = "tsc",			.type = "INTEGER" },
-		{ .name = "walltime",		.type = "INTEGER" },
-		{ .name = "ppin",			.type = "INTEGER" }, // 10
-		{ .name = "cpu",			.type = "INTEGER" },
-		{ .name = "cpuid",		.type = "INTEGER" },
-		{ .name = "apicid",		.type = "INTEGER" },
-		{ .name = "socketid",		.type = "INTEGER" },
-		{ .name = "cs",			.type = "INTEGER" }, // 15
-		{ .name = "bank",			.type = "INTEGER" },
-		{ .name = "cpuvendor",		.type = "INTEGER" },
-		{ .name = "microcode",      .type = "INTEGER" },
+	/* MCE registers */
+	{ .name = "mcgcap",		.type = DB_TYPE_INT32 },
+	{ .name = "mcgstatus",		.type = DB_TYPE_INT32 },
+	{ .name = "status",		.type = DB_TYPE_INT64 },
+	{ .name = "addr",		.type = DB_TYPE_INT64 }, // 5
+	{ .name = "misc",		.type = DB_TYPE_INT64 },
+	{ .name = "ip",			.type = DB_TYPE_INT64 },
+	{ .name = "tsc",		.type = DB_TYPE_INT64 },
+	{ .name = "walltime",		.type = DB_TYPE_INT64 },
+	{ .name = "ppin",		.type = DB_TYPE_INT32 }, // 10
+	{ .name = "cpu",		.type = DB_TYPE_INT32 },
+	{ .name = "cpuid",		.type = DB_TYPE_INT32 },
+	{ .name = "apicid",		.type = DB_TYPE_INT32 },
+	{ .name = "socketid",		.type = DB_TYPE_INT32 },
+	{ .name = "cs",			.type = DB_TYPE_INT32 }, // 15
+	{ .name = "bank",		.type = DB_TYPE_INT32 },
+	{ .name = "cpuvendor",		.type = DB_TYPE_INT32 },
+	{ .name = "microcode",		.type = DB_TYPE_INT32 },
 
-		/* Parsed data - will likely change */
-		{ .name = "bank_name",		.type = "TEXT" },
-		{ .name = "error_msg",		.type = "TEXT" }, // 20
-		{ .name = "mcgstatus_msg",	.type = "TEXT" },
-		{ .name = "mcistatus_msg",	.type = "TEXT" },
-		{ .name = "mcastatus_msg",	.type = "TEXT" },
-		{ .name = "user_action",		.type = "TEXT" },
-		{ .name = "mc_location",		.type = "TEXT" },
+	/* Parsed data - will likely change */
+	{ .name = "bank_name",		.type = DB_TYPE_TEXT },
+	{ .name = "error_msg",		.type = DB_TYPE_TEXT }, // 20
+	{ .name = "mcgstatus_msg",	.type = DB_TYPE_TEXT },
+	{ .name = "mcistatus_msg",	.type = DB_TYPE_TEXT },
+	{ .name = "mcastatus_msg",	.type = DB_TYPE_TEXT },
+	{ .name = "user_action",	.type = DB_TYPE_TEXT },
+	{ .name = "mc_location",	.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor mce_record_tab = {
@@ -414,13 +440,13 @@ int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev)
 
 #ifdef HAVE_DEVLINK
 static const struct db_fields devlink_event_fields[] = {
-		{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-		{ .name = "timestamp",		.type = "TEXT" },
-		{ .name = "bus_name",		.type = "TEXT" },
-		{ .name = "dev_name",		.type = "TEXT" },
-		{ .name = "driver_name",		.type = "TEXT" },
-		{ .name = "reporter_name",	.type = "TEXT" },
-		{ .name = "msg",			.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "bus_name",		.type = DB_TYPE_TEXT },
+	{ .name = "dev_name",		.type = DB_TYPE_TEXT },
+	{ .name = "driver_name",	.type = DB_TYPE_TEXT },
+	{ .name = "reporter_name",	.type = DB_TYPE_TEXT },
+	{ .name = "msg",		.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor devlink_event_tab = {
@@ -466,14 +492,14 @@ int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 
 #ifdef HAVE_DISKERROR
 static const struct db_fields diskerror_event_fields[] = {
-		{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-		{ .name = "timestamp",		.type = "TEXT" },
-		{ .name = "dev",			.type = "TEXT" },
-		{ .name = "sector",		.type = "INTEGER" },
-		{ .name = "nr_sector",		.type = "INTEGER" },
-		{ .name = "error",		.type = "TEXT" },
-		{ .name = "rwbs",			.type = "TEXT" },
-		{ .name = "cmd",			.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "dev",		.type = DB_TYPE_TEXT },
+	{ .name = "sector",		.type = DB_TYPE_INT64 },
+	{ .name = "nr_sector",		.type = DB_TYPE_INT32 },
+	{ .name = "error",		.type = DB_TYPE_TEXT },
+	{ .name = "rwbs",		.type = DB_TYPE_TEXT },
+	{ .name = "cmd",		.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor diskerror_event_tab = {
@@ -520,11 +546,11 @@ int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev
 
 #ifdef HAVE_MEMORY_FAILURE
 static const struct db_fields mf_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "pfn",		.type = "TEXT" },
-	{ .name = "page_type",		.type = "TEXT" },
-	{ .name = "action_result",	.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "pfn",		.type = DB_TYPE_TEXT },
+	{ .name = "page_type",		.type = DB_TYPE_TEXT },
+	{ .name = "action_result",	.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor mf_event_tab = {
@@ -569,21 +595,21 @@ int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
  * Table and functions to handle cxl:cxl_poison
  */
 static const struct db_fields cxl_poison_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "memdev",		.type = "TEXT" },
-	{ .name = "host",		.type = "TEXT" },
-	{ .name = "serial",		.type = "INTEGER" },
-	{ .name = "trace_type",		.type = "TEXT" },
-	{ .name = "region",		.type = "TEXT" },
-	{ .name = "region_uuid",	.type = "TEXT" },
-	{ .name = "hpa",		.type = "INTEGER" },
-	{ .name = "dpa",		.type = "INTEGER" },
-	{ .name = "dpa_length",		.type = "INTEGER" },
-	{ .name = "source",		.type = "TEXT" },
-	{ .name = "flags",		.type = "INTEGER" },
-	{ .name = "overflow_ts",	.type = "TEXT" },
-	{ .name = "hpa_alias0",		.type = "INTEGER" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "memdev",		.type = DB_TYPE_TEXT },
+	{ .name = "host",		.type = DB_TYPE_TEXT },
+	{ .name = "serial",		.type = DB_TYPE_INT64 },
+	{ .name = "trace_type",		.type = DB_TYPE_TEXT },
+	{ .name = "region",		.type = DB_TYPE_TEXT },
+	{ .name = "region_uuid",	.type = DB_TYPE_TEXT },
+	{ .name = "hpa",		.type = DB_TYPE_INT64 },
+	{ .name = "dpa",		.type = DB_TYPE_INT64 },
+	{ .name = "dpa_length",		.type = DB_TYPE_INT32 },
+	{ .name = "source",		.type = DB_TYPE_TEXT },
+	{ .name = "flags",		.type = DB_TYPE_INT32 },
+	{ .name = "overflow_ts",	.type = DB_TYPE_TEXT },
+	{ .name = "hpa_alias0",		.type = DB_TYPE_INT64},
 };
 
 static const struct db_table_descriptor cxl_poison_event_tab = {
@@ -634,14 +660,14 @@ int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_eve
  * Table and functions to handle cxl:cxl_aer_uncorrectable_error
  */
 static const struct db_fields cxl_aer_ue_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "memdev",		.type = "TEXT" },
-	{ .name = "host",		.type = "TEXT" },
-	{ .name = "serial",		.type = "INTEGER" },
-	{ .name = "error_status",	.type = "INTEGER" },
-	{ .name = "first_error",	.type = "INTEGER" },
-	{ .name = "header_log",		.type = "BLOB" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "memdev",		.type = DB_TYPE_TEXT },
+	{ .name = "host",		.type = DB_TYPE_TEXT },
+	{ .name = "serial",		.type = DB_TYPE_INT64 },
+	{ .name = "error_status",	.type = DB_TYPE_INT32 },
+	{ .name = "first_error",	.type = DB_TYPE_INT32 },
+	{ .name = "header_log",		.type = DB_TYPE_BLOB },
 };
 
 static const struct db_table_descriptor cxl_aer_ue_event_tab = {
@@ -685,12 +711,12 @@ int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_eve
  * Table and functions to handle cxl:cxl_aer_correctable_error
  */
 static const struct db_fields cxl_aer_ce_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "memdev",		.type = "TEXT" },
-	{ .name = "host",		.type = "TEXT" },
-	{ .name = "serial",		.type = "INTEGER" },
-	{ .name = "error_status",	.type = "INTEGER" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "memdev",		.type = DB_TYPE_TEXT },
+	{ .name = "host",		.type = DB_TYPE_TEXT },
+	{ .name = "serial",		.type = DB_TYPE_INT64 },
+	{ .name = "error_status",	.type = DB_TYPE_INT32 },
 };
 
 static const struct db_table_descriptor cxl_aer_ce_event_tab = {
@@ -732,15 +758,15 @@ int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_eve
  * Table and functions to handle cxl:cxl_overflow
  */
 static const struct db_fields cxl_overflow_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "memdev",		.type = "TEXT" },
-	{ .name = "host",		.type = "TEXT" },
-	{ .name = "serial",		.type = "INTEGER" },
-	{ .name = "log_type",		.type = "TEXT" },
-	{ .name = "count",		.type = "INTEGER" },
-	{ .name = "first_ts",		.type = "TEXT" },
-	{ .name = "last_ts",		.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "memdev",		.type = DB_TYPE_TEXT },
+	{ .name = "host",		.type = DB_TYPE_TEXT },
+	{ .name = "serial",		.type = DB_TYPE_INT64 },
+	{ .name = "log_type",		.type = DB_TYPE_TEXT },
+	{ .name = "count",		.type = DB_TYPE_INT32 },
+	{ .name = "first_ts",		.type = DB_TYPE_TEXT },
+	{ .name = "last_ts",		.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor cxl_overflow_event_tab = {
@@ -811,23 +837,23 @@ static int ras_store_cxl_common_hdr(sqlite3_stmt *stmt, struct ras_cxl_event_com
  * Table and functions to handle cxl:cxl_generic_event
  */
 static const struct db_fields cxl_generic_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "memdev",		.type = "TEXT" },
-	{ .name = "host",		.type = "TEXT" },
-	{ .name = "serial",		.type = "INTEGER" },
-	{ .name = "log_type",		.type = "TEXT" },
-	{ .name = "hdr_uuid",		.type = "TEXT" },
-	{ .name = "hdr_flags",		.type = "INTEGER" },
-	{ .name = "hdr_handle",		.type = "INTEGER" },
-	{ .name = "hdr_related_handle",	.type = "INTEGER" },
-	{ .name = "hdr_ts",		.type = "TEXT" },
-	{ .name = "hdr_length",		.type = "INTEGER" },
-	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
-	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
-	{ .name = "hdr_ld_id",		.type = "INTEGER" },
-	{ .name = "hdr_head_id",	.type = "INTEGER" },
-	{ .name = "data",		.type = "BLOB" },
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TEXT },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+	{ .name = "data",			.type = DB_TYPE_BLOB },
 };
 
 static const struct db_table_descriptor cxl_generic_event_tab = {
@@ -870,40 +896,41 @@ int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_e
  * Table and functions to handle cxl:cxl_general_media_event
  */
 static const struct db_fields cxl_general_media_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "memdev",		.type = "TEXT" },
-	{ .name = "host",		.type = "TEXT" },
-	{ .name = "serial",		.type = "INTEGER" },
-	{ .name = "log_type",		.type = "TEXT" },
-	{ .name = "hdr_uuid",		.type = "TEXT" },
-	{ .name = "hdr_flags",		.type = "INTEGER" },
-	{ .name = "hdr_handle",		.type = "INTEGER" },
-	{ .name = "hdr_related_handle",	.type = "INTEGER" },
-	{ .name = "hdr_ts",		.type = "TEXT" },
-	{ .name = "hdr_length",		.type = "INTEGER" },
-	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
-	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
-	{ .name = "hdr_ld_id",		.type = "INTEGER" },
-	{ .name = "hdr_head_id",	.type = "INTEGER" },
-	{ .name = "dpa",		.type = "INTEGER" },
-	{ .name = "dpa_flags",		.type = "INTEGER" },
-	{ .name = "descriptor",		.type = "INTEGER" },
-	{ .name = "type",		.type = "INTEGER" },
-	{ .name = "transaction_type",	.type = "INTEGER" },
-	{ .name = "channel",		.type = "INTEGER" },
-	{ .name = "rank",		.type = "INTEGER" },
-	{ .name = "device",		.type = "INTEGER" },
-	{ .name = "comp_id",		.type = "BLOB" },
-	{ .name = "hpa",		.type = "INTEGER" },
-	{ .name = "region",		.type = "TEXT" },
-	{ .name = "region_uuid",	.type = "TEXT" },
-	{ .name = "pldm_entity_id",	.type = "BLOB" },
-	{ .name = "pldm_resource_id",	.type = "BLOB" },
-	{ .name = "sub_type",		.type = "INTEGER" },
-	{ .name = "cme_threshold_ev_flags",	.type = "INTEGER" },
-	{ .name = "cme_count",		.type = "INTEGER" },
-	{ .name = "hpa_alias0",		.type = "INTEGER" },
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TEXT },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+
+	{ .name = "dpa",			.type = DB_TYPE_INT64 },
+	{ .name = "dpa_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "descriptor",			.type = DB_TYPE_INT32 },
+	{ .name = "type",			.type = DB_TYPE_INT32 },
+	{ .name = "transaction_type",		.type = DB_TYPE_INT32 },
+	{ .name = "channel",			.type = DB_TYPE_INT32 },
+	{ .name = "rank",			.type = DB_TYPE_INT32 },
+	{ .name = "device",			.type = DB_TYPE_INT32 },
+	{ .name = "comp_id",			.type = DB_TYPE_BLOB },
+	{ .name = "hpa",			.type = DB_TYPE_INT64 },
+	{ .name = "region",			.type = DB_TYPE_TEXT },
+	{ .name = "region_uuid",		.type = DB_TYPE_TEXT },
+	{ .name = "pldm_entity_id",		.type = DB_TYPE_BLOB },
+	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
+	{ .name = "sub_type",			.type = DB_TYPE_INT32 },
+	{ .name = "cme_threshold_ev_flags",	.type = DB_TYPE_INT32 },
+	{ .name = "cme_count",			.type = DB_TYPE_INT32 },
+	{ .name = "hpa_alias0",			.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor cxl_general_media_event_tab = {
@@ -967,46 +994,47 @@ int ras_store_cxl_general_media_event(struct ras_events *ras,
  * Table and functions to handle cxl:cxl_dram_event
  */
 static const struct db_fields cxl_dram_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "memdev",		.type = "TEXT" },
-	{ .name = "host",		.type = "TEXT" },
-	{ .name = "serial",		.type = "INTEGER" },
-	{ .name = "log_type",		.type = "TEXT" },
-	{ .name = "hdr_uuid",		.type = "TEXT" },
-	{ .name = "hdr_flags",		.type = "INTEGER" },
-	{ .name = "hdr_handle",		.type = "INTEGER" },
-	{ .name = "hdr_related_handle",	.type = "INTEGER" },
-	{ .name = "hdr_ts",		.type = "TEXT" },
-	{ .name = "hdr_length",		.type = "INTEGER" },
-	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
-	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
-	{ .name = "hdr_ld_id",		.type = "INTEGER" },
-	{ .name = "hdr_head_id",	.type = "INTEGER" },
-	{ .name = "dpa",		.type = "INTEGER" },
-	{ .name = "dpa_flags",		.type = "INTEGER" },
-	{ .name = "descriptor",		.type = "INTEGER" },
-	{ .name = "type",		.type = "INTEGER" },
-	{ .name = "transaction_type",	.type = "INTEGER" },
-	{ .name = "channel",		.type = "INTEGER" },
-	{ .name = "rank",		.type = "INTEGER" },
-	{ .name = "nibble_mask",	.type = "INTEGER" },
-	{ .name = "bank_group",		.type = "INTEGER" },
-	{ .name = "bank",		.type = "INTEGER" },
-	{ .name = "row",		.type = "INTEGER" },
-	{ .name = "column",		.type = "INTEGER" },
-	{ .name = "cor_mask",		.type = "BLOB" },
-	{ .name = "hpa",		.type = "INTEGER" },
-	{ .name = "region",		.type = "TEXT" },
-	{ .name = "region_uuid",	.type = "TEXT" },
-	{ .name = "comp_id",		.type = "BLOB" },
-	{ .name = "pldm_entity_id",	.type = "BLOB" },
-	{ .name = "pldm_resource_id",	.type = "BLOB" },
-	{ .name = "sub_type",		.type = "INTEGER" },
-	{ .name = "sub_channel",	.type = "INTEGER" },
-	{ .name = "cme_threshold_ev_flags",	.type = "INTEGER" },
-	{ .name = "cvme_count",		.type = "INTEGER" },
-	{ .name = "hpa_alias0",		.type = "INTEGER" },
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TEXT },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+
+	{ .name = "dpa",			.type = DB_TYPE_INT64 },
+	{ .name = "dpa_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "descriptor",			.type = DB_TYPE_INT32 },
+	{ .name = "type",			.type = DB_TYPE_INT32 },
+	{ .name = "transaction_type",		.type = DB_TYPE_INT32 },
+	{ .name = "channel",			.type = DB_TYPE_INT32 },
+	{ .name = "rank",			.type = DB_TYPE_INT32 },
+	{ .name = "nibble_mask",		.type = DB_TYPE_INT32 },
+	{ .name = "bank_group",			.type = DB_TYPE_INT32 },
+	{ .name = "bank",			.type = DB_TYPE_INT32 },
+	{ .name = "row",			.type = DB_TYPE_INT32 },
+	{ .name = "column",			.type = DB_TYPE_INT32 },
+	{ .name = "cor_mask",			.type = DB_TYPE_BLOB },
+	{ .name = "hpa",			.type = DB_TYPE_INT64 },
+	{ .name = "region",			.type = DB_TYPE_TEXT },
+	{ .name = "region_uuid",		.type = DB_TYPE_TEXT },
+	{ .name = "comp_id",			.type = DB_TYPE_BLOB },
+	{ .name = "pldm_entity_id",		.type = DB_TYPE_BLOB },
+	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
+	{ .name = "sub_type",			.type = DB_TYPE_INT32 },
+	{ .name = "sub_channel",		.type = DB_TYPE_INT32 },
+	{ .name = "cme_threshold_ev_flags",	.type = DB_TYPE_INT32 },
+	{ .name = "cvme_count",			.type = DB_TYPE_INT32 },
+	{ .name = "hpa_alias0",			.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor cxl_dram_event_tab = {
@@ -1076,35 +1104,36 @@ int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *
  * Table and functions to handle cxl:cxl_memory_module_event
  */
 static const struct db_fields cxl_memory_module_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "memdev",		.type = "TEXT" },
-	{ .name = "host",		.type = "TEXT" },
-	{ .name = "serial",		.type = "INTEGER" },
-	{ .name = "log_type",		.type = "TEXT" },
-	{ .name = "hdr_uuid",		.type = "TEXT" },
-	{ .name = "hdr_flags",		.type = "INTEGER" },
-	{ .name = "hdr_handle",		.type = "INTEGER" },
-	{ .name = "hdr_related_handle",	.type = "INTEGER" },
-	{ .name = "hdr_ts",		.type = "TEXT" },
-	{ .name = "hdr_length",		.type = "INTEGER" },
-	{ .name = "hdr_maint_op_class",	.type = "INTEGER" },
-	{ .name = "hdr_maint_op_sub_class",	.type = "INTEGER" },
-	{ .name = "hdr_ld_id",		.type = "INTEGER" },
-	{ .name = "hdr_head_id",	.type = "INTEGER" },
-	{ .name = "event_type",		.type = "INTEGER" },
-	{ .name = "health_status",	.type = "INTEGER" },
-	{ .name = "media_status",	.type = "INTEGER" },
-	{ .name = "life_used",		.type = "INTEGER" },
-	{ .name = "dirty_shutdown_cnt",	.type = "INTEGER" },
-	{ .name = "cor_vol_err_cnt",	.type = "INTEGER" },
-	{ .name = "cor_per_err_cnt",	.type = "INTEGER" },
-	{ .name = "device_temp",	.type = "INTEGER" },
-	{ .name = "add_status",		.type = "INTEGER" },
-	{ .name = "event_sub_type",	.type = "INTEGER" },
-	{ .name = "comp_id",		.type = "BLOB" },
-	{ .name = "pldm_entity_id",	.type = "BLOB" },
-	{ .name = "pldm_resource_id",	.type = "BLOB" },
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TEXT },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+
+	{ .name = "event_type",			.type = DB_TYPE_INT32 },
+	{ .name = "health_status",		.type = DB_TYPE_INT32 },
+	{ .name = "media_status",		.type = DB_TYPE_INT32 },
+	{ .name = "life_used",			.type = DB_TYPE_INT32 },
+	{ .name = "dirty_shutdown_cnt",		.type = DB_TYPE_INT32 },
+	{ .name = "cor_vol_err_cnt",		.type = DB_TYPE_INT32 },
+	{ .name = "cor_per_err_cnt",		.type = DB_TYPE_INT32 },
+	{ .name = "device_temp",		.type = DB_TYPE_INT32 },
+	{ .name = "add_status",			.type = DB_TYPE_INT32 },
+	{ .name = "event_sub_type",		.type = DB_TYPE_INT32 },
+	{ .name = "comp_id",			.type = DB_TYPE_BLOB },
+	{ .name = "pldm_entity_id",		.type = DB_TYPE_BLOB },
+	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
 };
 
 static const struct db_table_descriptor cxl_memory_module_event_tab = {
@@ -1161,16 +1190,15 @@ int ras_store_cxl_memory_module_event(struct ras_events *ras,
 
 #ifdef HAVE_SIGNAL
 static const struct db_fields signal_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",	.type = "TEXT" },
-	{ .name = "sig",		.type = "INTEGER" },
-	{ .name = "errorno",	.type = "INTEGER" },
-	{ .name = "code",		.type = "INTEGER" },
-	{ .name = "comm",		.type = "TEXT" },
-	{ .name = "pid",		.type = "INTEGER" },
-	{ .name = "grp",		.type = "INTEGER" },
-	{ .name = "res",		.type = "INTEGER" },
-
+	{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",	.type = DB_TYPE_TEXT },
+	{ .name = "sig",	.type = DB_TYPE_INT32 },
+	{ .name = "errorno",	.type = DB_TYPE_INT32 },
+	{ .name = "code",	.type = DB_TYPE_INT32 },
+	{ .name = "comm",	.type = DB_TYPE_TEXT },
+	{ .name = "pid",	.type = DB_TYPE_INT32 },
+	{ .name = "grp",	.type = DB_TYPE_INT32 },
+	{ .name = "res",	.type = DB_TYPE_INT32 },
 };
 
 static const struct db_table_descriptor signal_event_tab = {
@@ -1220,18 +1248,18 @@ int ras_store_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
 
 #ifdef HAVE_RERI
 static const struct db_fields reri_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "err_src_id",		.type = "INTEGER" },
-	{ .name = "source_type",	.type = "INTEGER" },
-	{ .name = "severity",		.type = "INTEGER" },
-	{ .name = "hart_id",		.type = "INTEGER" },
-	{ .name = "cluster_id",		.type = "INTEGER" },
-	{ .name = "status",		.type = "INTEGER" },
-	{ .name = "addr_info",		.type = "INTEGER" },
-	{ .name = "info",		.type = "INTEGER" },
-	{ .name = "suppl_info",		.type = "INTEGER" },
-	{ .name = "timestamp_val",	.type = "INTEGER" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "err_src_id",		.type = DB_TYPE_INT32 },
+	{ .name = "source_type",	.type = DB_TYPE_INT32 },
+	{ .name = "severity",		.type = DB_TYPE_INT32 },
+	{ .name = "hart_id",		.type = DB_TYPE_INT32 },
+	{ .name = "cluster_id",		.type = DB_TYPE_INT32 },
+	{ .name = "status",		.type = DB_TYPE_INT64 },
+	{ .name = "addr_info",		.type = DB_TYPE_INT64 },
+	{ .name = "info",		.type = DB_TYPE_INT64 },
+	{ .name = "suppl_info",		.type = DB_TYPE_INT64 },
+	{ .name = "timestamp_val",	.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor reri_event_tab = {
@@ -1327,8 +1355,9 @@ static int __ras_mc_prepare_stmt(struct sqlite3_priv *priv,
 static int ras_mc_create_table(struct sqlite3_priv *priv,
 			       const struct db_table_descriptor *db_tab)
 {
-	const struct db_fields *field;
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
+	const struct db_fields *field;
+	const char *type;
 	int i, rc;
 
 	p += snprintf(p, end - p, "CREATE TABLE IF NOT EXISTS %s (",
@@ -1336,7 +1365,9 @@ static int ras_mc_create_table(struct sqlite3_priv *priv,
 
 	for (i = 0; i < db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
-		p += snprintf(p, end - p, "%s %s", field->name, field->type);
+		type = db_get_sql_type(field->type, field->is_pk);
+
+		p += snprintf(p, end - p, "%s %s", field->name, type);
 
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
@@ -1362,6 +1393,7 @@ static int ras_mc_alter_table(struct sqlite3_priv *priv,
 {
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
 	const struct db_fields *field;
+	const char *type;
 	int col_count;
 	int i, j, rc, found;
 
@@ -1387,11 +1419,13 @@ static int ras_mc_alter_table(struct sqlite3_priv *priv,
 		}
 
 		if (!found) {
+			type = db_get_sql_type(field->type, field->is_pk);
+
 			/* add new field */
 			p += snprintf(p, end - p, "ALTER TABLE %s ADD ",
 				      db_tab->name);
 			p += snprintf(p, end - p,
-				      "%s %s", field->name, field->type);
+				      "%s %s", field->name, type);
 #ifdef DEBUG_SQL
 			log(TERM, LOG_INFO, "SQL: %s\n", sql);
 #endif

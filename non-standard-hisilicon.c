@@ -142,22 +142,22 @@ int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 #endif
 
 static const struct db_fields hisi_common_section_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "version",		.type = "INTEGER" },
-	{ .name = "soc_id",		.type = "INTEGER" },
-	{ .name = "socket_id",		.type = "INTEGER" },
-	{ .name = "totem_id",		.type = "INTEGER" },
-	{ .name = "nimbus_id",		.type = "INTEGER" },
-	{ .name = "sub_system_id",	.type = "INTEGER" },
-	{ .name = "module_id",		.type = "TEXT" },
-	{ .name = "sub_module_id",	.type = "INTEGER" },
-	{ .name = "core_id",		.type = "INTEGER" },
-	{ .name = "port_id",		.type = "INTEGER" },
-	{ .name = "err_type",		.type = "INTEGER" },
-	{ .name = "pcie_info",		.type = "TEXT" },
-	{ .name = "err_severity",	.type = "TEXT" },
-	{ .name = "regs_dump",		.type = "TEXT" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP},
+	{ .name = "version",		.type = DB_TYPE_INT32 },
+	{ .name = "soc_id",		.type = DB_TYPE_INT32 },
+	{ .name = "socket_id",		.type = DB_TYPE_INT32 },
+	{ .name = "totem_id",		.type = DB_TYPE_INT32 },
+	{ .name = "nimbus_id",		.type = DB_TYPE_INT32 },
+	{ .name = "sub_system_id",	.type = DB_TYPE_INT32 },
+	{ .name = "module_id",		.type = DB_TYPE_TEXT },
+	{ .name = "sub_module_id",	.type = DB_TYPE_INT32 },
+	{ .name = "core_id",		.type = DB_TYPE_INT32 },
+	{ .name = "port_id",		.type = DB_TYPE_INT32 },
+	{ .name = "err_type",		.type = DB_TYPE_INT32 },
+	{ .name = "pcie_info",		.type = DB_TYPE_TEXT },
+	{ .name = "err_severity",	.type = DB_TYPE_TEXT },
+	{ .name = "regs_dump",		.type = DB_TYPE_TEXT },
 };
 
 #ifdef HAVE_SQLITE3
