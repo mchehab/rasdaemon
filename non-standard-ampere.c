@@ -451,22 +451,18 @@ static const struct db_table_descriptor amp_payload3_event_tab = {
 
 /*Save data with different type into sqlite3 db*/
 static void record_amp_data(struct ras_ns_ev_decoder *ev_decoder,
-			    enum amp_oem_data_type data_type,
+			    enum db_field_type data_type,
 			    int id, int64_t data, const char *text)
 {
 	switch (data_type) {
-	case AMP_OEM_DATA_TYPE_INT:
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, id, data);
-		break;
-	case AMP_OEM_DATA_TYPE_INT64:
-		sqlite3_bind_int64(ev_decoder->stmt_dec_record, id, data);
-		break;
-	case AMP_OEM_DATA_TYPE_TEXT:
-		sqlite3_bind_text(ev_decoder->stmt_dec_record, id,
-				  text, -1, NULL);
-		break;
-	default:
-		break;
+		case DB_TYPE_TEXT:
+			ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
+					    id, (uint64_t)text, -1);
+			break;
+		default:
+			ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
+					    id, data, -1);
+			break;
 	}
 }
 
@@ -500,32 +496,32 @@ static void record_amp_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
 				const struct amp_payload0_type_sec *err)
 {
 	if (ev_decoder) {
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+		record_amp_data(ev_decoder, DB_TYPE_TEXT,
 				AMP_PAYLOAD0_FIELD_TYPE, 0, type_str);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+		record_amp_data(ev_decoder, DB_TYPE_TEXT,
 				AMP_PAYLOAD0_FIELD_SUB_TYPE, 0, subtype_str);
 
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD0_FIELD_INS, INSTANCE(err->instance), NULL);
 
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD0_FIELD_SOCKET_NUM,
 			SOCKET_NUM(err->instance), NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD0_FIELD_STATUS_REG, err->err_status, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD0_FIELD_ADDR_REG,
 			err->err_addr, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD0_FIELD_MISC0,
 			err->err_misc_0, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD0_FIELD_MISC1,
 			err->err_misc_1, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD0_FIELD_MISC2,
 			err->err_misc_2, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD0_FIELD_MISC3,
 			err->err_misc_3, NULL);
 		store_amp_err_data(ev_decoder, "amp_payload0_event_tab");
@@ -538,44 +534,44 @@ static void record_amp_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 				const struct amp_payload1_type_sec *err)
 {
 	if (ev_decoder) {
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+		record_amp_data(ev_decoder, DB_TYPE_TEXT,
 				AMP_PAYLOAD1_FIELD_TYPE, 0, type_str);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+		record_amp_data(ev_decoder, DB_TYPE_TEXT,
 				AMP_PAYLOAD1_FIELD_SUB_TYPE, 0, subtype_str);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_INS,
 				INSTANCE(err->instance), NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_SOCKET_NUM,
 				SOCKET_NUM(err->instance), NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_UNCORE_ERR_STATUS,
 				err->uncore_status, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_UNCORE_ERR_MASK,
 				err->uncore_mask, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_UNCORE_ERR_SEV,
 				err->uncore_sev, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_CORE_ERR_STATUS,
 				err->core_status, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_CORE_ERR_MASK,
 				err->core_mask, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_ROOT_ERR_CMD,
 				err->root_err_cmd, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_ROOT_ERR_STATUS,
 				err->root_status, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_SRC_ID,
 				err->src_id, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD1_FIELD_RESERVED1,
 				err->reserved1, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD1_FIELD_RESERVED2,
 				err->reserved2, NULL);
 		store_amp_err_data(ev_decoder, "amp_payload1_event_tab");
@@ -588,40 +584,40 @@ static void record_amp_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const struct amp_payload2_type_sec *err)
 {
 	if (ev_decoder) {
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+		record_amp_data(ev_decoder, DB_TYPE_TEXT,
 				AMP_PAYLOAD2_FIELD_TYPE, 0, type_str);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+		record_amp_data(ev_decoder, DB_TYPE_TEXT,
 				AMP_PAYLOAD2_FIELD_SUB_TYPE, 0, subtype_str);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_INS, INSTANCE(err->instance), NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_SOCKET_NUM,
 			SOCKET_NUM(err->instance), NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_CE_REPORT_REG,
 			err->ce_register, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_CE_LOACATION,
 			err->ce_location, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_CE_ADDR,
 			err->ce_addr, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_UE_REPORT_REG,
 			err->ue_register, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_UE_LOCATION,
 			err->ue_location, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_UE_ADDR,
 			err->ue_addr, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD2_FIELD_RESERVED1,
 			err->reserved1, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD2_FIELD_RESERVED2,
 			err->reserved2, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD2_FIELD_RESERVED3,
 			err->reserved3, NULL);
 		store_amp_err_data(ev_decoder, "amp_payload2_event_tab");
@@ -634,31 +630,31 @@ static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 				const struct amp_payload3_type_sec *err)
 {
 	if (ev_decoder) {
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+		record_amp_data(ev_decoder, DB_TYPE_TEXT,
 				AMP_PAYLOAD3_FIELD_TYPE, 0, type_str);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+		record_amp_data(ev_decoder, DB_TYPE_TEXT,
 				AMP_PAYLOAD3_FIELD_SUB_TYPE, 0, subtype_str);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD3_FIELD_INS, INSTANCE(err->instance), NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD3_FIELD_SOCKET_NUM,
 			SOCKET_NUM(err->instance), NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT,
+		record_amp_data(ev_decoder, DB_TYPE_INT32,
 				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA0,
 			err->fw_speci_data0, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA1,
 			err->fw_speci_data1, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA2,
 			err->fw_speci_data2, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA3,
 			err->fw_speci_data3, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA4,
 			err->fw_speci_data4, NULL);
-		record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_INT64,
+		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA5,
 			err->fw_speci_data5, NULL);
 		store_amp_err_data(ev_decoder, "amp_payload3_event_tab");
@@ -667,7 +663,7 @@ static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 
 #else
 static void record_amp_data(struct ras_ns_ev_decoder *ev_decoder,
-			    enum amp_oem_data_type data_type,
+			    enum db_field_type data_type,
 			    int id, int64_t data, const char *text)
 {
 }
@@ -1067,7 +1063,7 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 			return -1;
 		}
 	}
-	record_amp_data(ev_decoder, AMP_OEM_DATA_TYPE_TEXT,
+	record_amp_data(ev_decoder, DB_TYPE_TEXT,
 			id, 0, event->timestamp);
 #endif
 

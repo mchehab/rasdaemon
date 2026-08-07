@@ -85,21 +85,20 @@ struct hisi_event {
 
 #ifdef HAVE_SQLITE3
 void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
-			enum hisi_oem_data_type data_type,
+			enum db_field_type data_type,
 			       int id, int64_t data, const char *text)
 {
 	if (!ev_decoder->stmt_dec_record)
 		return;
 
 	switch (data_type) {
-	case HISI_OEM_DATA_TYPE_INT:
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, id, data);
+	case DB_TYPE_TEXT:
+		ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
+				    id, (uint64_t)text, -1);
 		break;
-	case HISI_OEM_DATA_TYPE_INT64:
-		sqlite3_bind_int64(ev_decoder->stmt_dec_record, id, data);
-		break;
-	case HISI_OEM_DATA_TYPE_TEXT:
-		sqlite3_bind_text(ev_decoder->stmt_dec_record, id, text, -1, NULL);
+	default:
+		ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
+				    id, data, -1);
 		break;
 	}
 }
@@ -243,12 +242,12 @@ static void decode_module(struct ras_ns_ev_decoder *ev_decoder,
 {
 	if (module_id >= sizeof(module_name) / sizeof(char *)) {
 		HISI_SNPRINTF(event->error_msg, "module=unknown(id=%hhu) ", module_id);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
 				   HISI_COMMON_FIELD_MODULE_ID,
 				   0, "unknown");
 	} else {
 		HISI_SNPRINTF(event->error_msg, "module=%s ", module_name[module_id]);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
 				   HISI_COMMON_FIELD_MODULE_ID,
 				   0, module_name[module_id]);
 	}
@@ -267,7 +266,7 @@ static void decode_int_fields(struct ras_ns_ev_decoder *ev_decoder, int id,
 			      hisi_common_section_fields[id].name, data);
 	}
 
-	record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_INT, id, data, NULL);
+	record_vendor_data(ev_decoder, DB_TYPE_INT32, id, data, NULL);
 }
 
 static void decode_text_fields(struct ras_ns_ev_decoder *ev_decoder, int id,
@@ -287,14 +286,14 @@ static void decode_text_fields(struct ras_ns_ev_decoder *ev_decoder, int id,
 		HISI_SNPRINTF(event->pcie_info, "%04x:%02x:%02x.%x",
 			      err->pcie_info.segment, err->pcie_info.bus,
 			      err->pcie_info.device, err->pcie_info.function);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
 				   id, 0, event->pcie_info);
 	}
 
 	if (id == HISI_COMMON_FIELD_ERR_SEVERITY) {
 		HISI_SNPRINTF(event->error_msg, "err_severity=%s",
 			      err_severity(err->err_severity));
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
 				   id, 0, err_severity(err->err_severity));
 	}
 }
@@ -381,10 +380,10 @@ static int decode_hisi_common_section(struct ras_events *ras,
 	}
 
 	if (ras->record_events) {
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
 				   HISI_COMMON_FIELD_TIMESTAMP,
 				   0, event->timestamp);
-		record_vendor_data(ev_decoder, HISI_OEM_DATA_TYPE_TEXT,
+		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
 				   HISI_COMMON_FIELD_REGS_DUMP, 0, hevent.reg_msg);
 		step_vendor_data_tab(ev_decoder, "hisi_common_section_tab");
 	}

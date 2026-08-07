@@ -140,12 +140,6 @@ struct jm_payload6_type_sec {
 	struct jm_common_sec_tail common_tail;
 };
 
-enum jm_oem_data_type {
-	JM_OEM_DATA_TYPE_INT,
-	JM_OEM_DATA_TYPE_INT64,
-	JM_OEM_DATA_TYPE_TEXT,
-};
-
 enum {
 	JM_PAYLOAD_FIELD_ID,
 	JM_PAYLOAD_FIELD_TIMESTAMP,

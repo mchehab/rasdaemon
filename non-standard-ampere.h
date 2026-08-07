@@ -100,12 +100,6 @@ struct amp_payload3_type_sec {
 	uint64_t   fw_speci_data5;
 };
 
-enum amp_oem_data_type {
-	AMP_OEM_DATA_TYPE_INT,
-	AMP_OEM_DATA_TYPE_INT64,
-	AMP_OEM_DATA_TYPE_TEXT,
-};
-
 enum {
 	AMP_PAYLOAD0_FIELD_ID,
 	AMP_PAYLOAD0_FIELD_TIMESTAMP,

@@ -367,7 +367,7 @@ struct sqlite3_priv {
 #endif
 };
 
-enum db_type {
+enum db_field_type {
 	DB_TYPE_SERIAL,		/* auto-increment integer */
 	DB_TYPE_INT64,		/* 64-bit signed integer */
 	DB_TYPE_INT32,		/* 32-bit signed integer */
@@ -381,7 +381,7 @@ enum db_type {
 
 struct db_fields {
 	const char *name;
-	enum db_type type;
+	enum db_field_type type;
 	bool is_pk;
 };
 
@@ -396,6 +396,12 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras);
 int ras_mc_add_vendor_table(struct ras_events *ras, sqlite3_stmt **stmt,
 			    const struct db_table_descriptor *db_tab);
 int ras_mc_finalize_vendor_table(sqlite3_stmt *stmt);
+
+void ras_store_bind_type(sqlite3_stmt *stmt, const enum db_field_type type,
+			 const int pos, uint64_t value, int len);
+void ras_store_bind(sqlite3_stmt *stmt, const struct db_fields *fields,
+		    const int pos, uint64_t value, int len);
+
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
 int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev);
 int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev);

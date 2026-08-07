@@ -578,26 +578,24 @@ static int nvidia_ns_decode(struct ras_events *ras,
 	if (ev_decoder->stmt_dec_record) {
 		reg_data_len = event->length - sizeof(struct nvidia_cper_sec);
 
-		sqlite3_bind_text(ev_decoder->stmt_dec_record, 1, timestamp, -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(ev_decoder->stmt_dec_record, 2, err->signature, sizeof(err->signature), SQLITE_TRANSIENT);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 3, err->error_type);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 4, err->error_instance);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 5, err->severity);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 6, err->socket);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 7, err->number_regs);
-		sqlite3_bind_int64(ev_decoder->stmt_dec_record, 8, err->instance_base);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 1, (uint64_t)timestamp, -1);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 2, (uint64_t)err->signature, sizeof(err->signature));
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 3, err->error_type, -1);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 4, err->error_instance, -1);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 5, err->severity, -1);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 6, err->socket, -1);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 7, err->number_regs, -1);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 8, err->instance_base, -1);
 
 		if (reg_data_len > 0) {
 			const uint8_t *reg_data = (const uint8_t *)err + sizeof(struct nvidia_cper_sec);
 
-			sqlite3_bind_blob(ev_decoder->stmt_dec_record, 9,
-					  reg_data, reg_data_len, SQLITE_TRANSIENT);
+			ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 9, (uint64_t)reg_data, reg_data_len);
 		} else {
-			sqlite3_bind_null(ev_decoder->stmt_dec_record, 9);
+			ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 9, (uint64_t)NULL, -1);
 		}
 
-		sqlite3_bind_blob(ev_decoder->stmt_dec_record, 10,
-				  event->error, event->length, SQLITE_TRANSIENT);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 10, (uint64_t)event->error, event->length);
 
 		nvidia_store_vendor_record(ev_decoder, "NVIDIA");
 	}
@@ -683,22 +681,18 @@ static int nvidia_vera_ns_decode(struct ras_events *ras,
 		nvidia_vera_print_context(s, &decoded.contexts[i], i);
 
 	if (ev_decoder->stmt_dec_record) {
-		sqlite3_bind_text(ev_decoder->stmt_dec_record, 1, timestamp, -1, SQLITE_TRANSIENT);
-		sqlite3_bind_text(ev_decoder->stmt_dec_record, 2, decoded.signature,
-				  sizeof(decoded.signature) - 1, SQLITE_TRANSIENT);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 3, decoded.event_type);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 4, decoded.event_sub_type);
-		sqlite3_bind_int64(ev_decoder->stmt_dec_record, 5, decoded.event_link_id);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 6, decoded.source_device_type);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 7, decoded.event_context_count);
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, 8, decoded.socket);
-		sqlite3_bind_int64(ev_decoder->stmt_dec_record, 9, decoded.architecture);
-		sqlite3_bind_blob(ev_decoder->stmt_dec_record, 10,
-				  decoded.chip_serial_number,
-				  sizeof(decoded.chip_serial_number), SQLITE_TRANSIENT);
-		sqlite3_bind_int64(ev_decoder->stmt_dec_record, 11, decoded.instance_base);
-		sqlite3_bind_blob(ev_decoder->stmt_dec_record, 12,
-				  event->error, event->length, SQLITE_TRANSIENT);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 1, (uint64_t)timestamp, -1);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 2, (uint64_t)decoded.signature, sizeof(decoded.signature) - 1);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 3, (uint64_t)decoded.event_type, 4);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 4, (uint64_t)decoded.event_sub_type, 4);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 5, (uint64_t)decoded.event_link_id, 4);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 6, (uint64_t)decoded.source_device_type, 4);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 7, (uint64_t)decoded.event_context_count, 4);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 8, (uint64_t)decoded.socket, 4);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 9, (uint64_t)decoded.architecture, 4);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 10, (uint64_t)decoded.chip_serial_number, sizeof(decoded.chip_serial_number));
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 11, (uint64_t)decoded.instance_base, 4);
+		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 12, (uint64_t)event->error, event->length);
 
 		nvidia_store_vendor_record(ev_decoder, "NVIDIA Vera");
 	}

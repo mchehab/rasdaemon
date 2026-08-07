@@ -21,7 +21,7 @@
 #define JM_SNPRINTF	mce_snprintf
 
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-			   enum jm_oem_data_type data_type,
+			   enum db_field_type data_type,
 				int id, int64_t data, const char *text);
 
 struct jm_event {
@@ -476,14 +476,14 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	if (err->val_bits & BIT(JM_COMMON_VALID_SOC_ID)) {
 		JM_SNPRINTF(event->error_msg, "table_version=%hhu decode_version:%hhu",
 			    err->version, PAYLOAD_VERSION);
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
+		record_jm_data(ev_decoder, DB_TYPE_INT32,
 			       JM_PAYLOAD_FIELD_VERSION,
 					err->version, NULL);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SOC_ID)) {
 		JM_SNPRINTF(event->error_msg, "soc=%s", get_jm_soc_desc(err->soc_id));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
+		record_jm_data(ev_decoder, DB_TYPE_INT32,
 			       JM_PAYLOAD_FIELD_SOC_ID,
 				err->soc_id, NULL);
 	}
@@ -491,7 +491,7 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	if (err->val_bits & BIT(JM_COMMON_VALID_SUBSYSTEM_ID)) {
 		JM_SNPRINTF(event->error_msg, "sub system=%s",
 			    get_jm_subsystem_desc(err->subsystem_id));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
+		record_jm_data(ev_decoder, DB_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_SUB_SYS,
 					0, get_jm_subsystem_desc(err->subsystem_id));
 	}
@@ -499,10 +499,10 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	if (err->val_bits & BIT(JM_COMMON_VALID_MODULE_ID)) {
 		JM_SNPRINTF(event->error_msg, "module=%s",
 			    get_jm_module_desc(err->subsystem_id, err->module_id));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
+		record_jm_data(ev_decoder, DB_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_MODULE,
 				0, get_jm_module_desc(err->subsystem_id, err->module_id));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
+		record_jm_data(ev_decoder, DB_TYPE_INT32,
 			       JM_PAYLOAD_FIELD_MODULE_ID,
 				err->module_id, NULL);
 	}
@@ -511,12 +511,12 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 		JM_SNPRINTF(event->error_msg, "sub module=%s",
 			    get_jm_submod_desc(err->subsystem_id,
 					       err->module_id, err->submodule_id));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
+		record_jm_data(ev_decoder, DB_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_SUB_MODULE,
 			0,
 			get_jm_submod_desc(err->subsystem_id,
 					   err->module_id, err->submodule_id));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
+		record_jm_data(ev_decoder, DB_TYPE_INT32,
 			       JM_PAYLOAD_FIELD_MODULE_ID,
 			err->submodule_id, NULL);
 	}
@@ -525,18 +525,18 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 		JM_SNPRINTF(event->error_msg, "dev=%s",
 			    get_jm_dev_desc(err->subsystem_id,
 					    err->module_id, err->submodule_id));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
+		record_jm_data(ev_decoder, DB_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_DEV,
 			0, get_jm_dev_desc(err->subsystem_id,
 					   err->module_id, err->submodule_id));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
+		record_jm_data(ev_decoder, DB_TYPE_INT32,
 			       JM_PAYLOAD_FIELD_DEV_ID,
 					err->dev_id, NULL);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_ERR_TYPE)) {
 		JM_SNPRINTF(event->error_msg, "err_type=%hu", err->err_type);
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_INT,
+		record_jm_data(ev_decoder, DB_TYPE_INT32,
 			       JM_PAYLOAD_FIELD_ERR_TYPE,
 					err->err_type, NULL);
 	}
@@ -544,7 +544,7 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 	if (err->val_bits & BIT(JM_COMMON_VALID_ERR_SEVERITY)) {
 		JM_SNPRINTF(event->error_msg, "err_severity=%s",
 			    jm_err_severity(err->err_severity));
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
+		record_jm_data(ev_decoder, DB_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_ERR_SEVERITY,
 					0, jm_err_severity(err->err_severity));
 	}
@@ -597,22 +597,18 @@ static const struct db_table_descriptor jm_payload0_event_tab = {
 
 /*Save data with different type into sqlite3 db*/
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-			   enum jm_oem_data_type data_type, int id,
+			   enum db_field_type data_type, int id,
 				int64_t data, const char *text)
 {
 	switch (data_type) {
-	case JM_OEM_DATA_TYPE_INT:
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, id, data);
-		break;
-	case JM_OEM_DATA_TYPE_INT64:
-		sqlite3_bind_int64(ev_decoder->stmt_dec_record, id, data);
-		break;
-	case JM_OEM_DATA_TYPE_TEXT:
-		sqlite3_bind_text(ev_decoder->stmt_dec_record, id, text,
-				  -1, NULL);
-		break;
-	default:
-		break;
+		case DB_TYPE_TEXT:
+			ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
+					    id, (uint64_t)text, -1);
+			break;
+		default:
+			ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
+					    id, data, -1);
+			break;
 	}
 }
 
@@ -647,7 +643,7 @@ static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
 				  const char *reg_str)
 {
 	if (ev_decoder) {
-		record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
+		record_jm_data(ev_decoder, DB_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_REGS_DUMP, 0, reg_str);
 		store_jm_err_data(ev_decoder, "jm_payload0_event_tab");
 	}
@@ -655,7 +651,7 @@ static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
 
 #else
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-			   enum jm_oem_data_type data_type,
+			   enum db_field_type data_type,
 				int id, int64_t data, const char *text)
 {
 }
@@ -995,7 +991,7 @@ static int decode_jm_oem_type_error(struct ras_events *ras,
 {
 	int id = JM_PAYLOAD_FIELD_TIMESTAMP;
 
-	record_jm_data(ev_decoder, JM_OEM_DATA_TYPE_TEXT,
+	record_jm_data(ev_decoder, DB_TYPE_TEXT,
 		       id, 0, event->timestamp);
 
 	if (payload_type == PAYLOAD_TYPE_0) {

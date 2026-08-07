@@ -90,9 +90,9 @@ int record_yitian_ddr_reg_dump_event(struct ras_ns_ev_decoder *ev_decoder,
 
 	log(TERM, LOG_INFO, "yitian_ddr_reg_dump_event store: %p\n", stmt);
 
-	sqlite3_bind_text(stmt,  1, ev->timestamp, -1, NULL);
-	sqlite3_bind_int64(stmt,  2, ev->address);
-	sqlite3_bind_text(stmt,  3, ev->reg_msg, -1, NULL);
+	ras_store_bind(stmt, yitian_ddr_payload_fields, 1, (uint64_t)ev->timestamp, -1);
+	ras_store_bind(stmt, yitian_ddr_payload_fields, 2, ev->address, -1);
+	ras_store_bind(stmt, yitian_ddr_payload_fields, 3, (uint64_t)ev->reg_msg, -1);
 
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE)
