@@ -595,7 +595,7 @@ static const struct db_table_descriptor jm_payload0_event_tab = {
 	.num_fields = ARRAY_SIZE(jm_payload0_event_fields),
 };
 
-/*Save data with different type into sqlite3 db*/
+/* Save data with different type into database */
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 			   enum db_field_type data_type, int id,
 				int64_t data, const char *text)
@@ -612,50 +612,19 @@ static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 	}
 }
 
-static int store_jm_err_data(struct ras_ns_ev_decoder *ev_decoder,
-			     const char *tab_name)
-{
-	int rc;
-
-	rc = sqlite3_step(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to do step on sqlite. Table = %s error = %d\n",
-			tab_name, rc);
-
-	rc = sqlite3_reset(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK)
-		log(TERM, LOG_ERR,
-		    "Failed to reset on sqlite. Table = %s error = %d\n",
-			tab_name, rc);
-
-	rc = sqlite3_clear_bindings(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to clear bindings on sqlite. Table = %s error = %d\n",
-			tab_name, rc);
-
-	return rc;
-}
-
-/*save all JaguarMicro Specific Error Payload type 0 to sqlite3 database*/
+/* save all JaguarMicro Specific Error Payload type 0 to database */
 static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
 				  const char *reg_str)
 {
 	if (ev_decoder) {
 		record_jm_data(ev_decoder, DB_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_REGS_DUMP, 0, reg_str);
-		store_jm_err_data(ev_decoder, "jm_payload0_event_tab");
+		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+				    "jm_payload0_event_tab");
 	}
 }
 
 #else
-static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-			   enum db_field_type data_type,
-				int id, int64_t data, const char *text)
-{
-}
-
 static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
 				  const char *reg_str)
 {
@@ -663,8 +632,10 @@ static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
 
 #endif
 
-/*decode JaguarMicro specific error payload type 0, the CPU's data is save*/
-/*to sqlite by ras-arm-handler, others are saved by this function.*/
+/*
+ * decode JaguarMicro specific error payload type 0, the CPU's data is save
+ * to SQL database by ras-arm-handler, others are saved by this function.
+ */
 static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 				const struct jm_payload0_type_sec *err)
@@ -751,7 +722,7 @@ static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
-/*decode JaguarMicro specific error payload type 1 and save to sqlite db*/
+/* decode JaguarMicro specific error payload type 1 and save to database */
 static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					const struct jm_payload1_type_sec *err)
@@ -798,7 +769,7 @@ static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
-/*decode JaguarMicro specific error payload type 2 and save to sqlite db*/
+/* decode JaguarMicro specific error payload type 2 and save to database */
 static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					const struct jm_payload2_type_sec *err)
@@ -841,7 +812,7 @@ static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
-/*decode JaguarMicro specific error payload type 5 and save to sqlite db*/
+/* decode JaguarMicro specific error payload type 5 and save to database */
 static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					const struct jm_payload5_type_sec *err)
@@ -924,7 +895,7 @@ static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
-/*decode JaguarMicro specific error payload type 6 and save to sqlite db*/
+/* decode JaguarMicro specific error payload type 6 and save to database */
 static void decode_jm_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
 					const struct jm_payload6_type_sec *err)
@@ -1072,7 +1043,7 @@ static int add_jm_oem_type0_table(struct ras_events *ras, struct ras_ns_ev_decod
 #ifdef HAVE_SQLITE3
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &jm_payload0_event_tab) != SQLITE_OK) {
+					    &jm_payload0_event_tab) != 0) {
 			log(TERM, LOG_WARNING, "Failed to create sql jm_payload0_event_tab\n");
 			return -1;
 		}

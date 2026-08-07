@@ -33,8 +33,6 @@ static void nvidia_format_timestamp(char *timestamp, size_t len)
 
 #ifdef HAVE_SQLITE3
 
-#include <sqlite3.h>
-
 static int nvidia_add_vendor_table(struct ras_events *ras,
 				   struct ras_ns_ev_decoder *ev_decoder,
 				   const struct db_table_descriptor *table,
@@ -43,29 +41,11 @@ static int nvidia_add_vendor_table(struct ras_events *ras,
 	int rc;
 
 	rc = ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record, table);
-	if (rc != SQLITE_OK)
+	if (rc != 0)
 		log(TERM, LOG_ERR, "Failed to create/prepare %s table: %d\n",
 		    label, rc);
 
 	return rc;
-}
-
-static void nvidia_store_vendor_record(struct ras_ns_ev_decoder *ev_decoder,
-				       const char *label)
-{
-	int rc;
-
-	rc = sqlite3_step(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to store %s event in database: error = %d\n",
-		    label, rc);
-
-	rc = sqlite3_reset(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK)
-		log(TERM, LOG_ERR,
-		    "Failed to reset %s statement: error = %d\n",
-		    label, rc);
 }
 
 #endif  /* HAVE_SQLITE3 */
@@ -596,8 +576,7 @@ static int nvidia_ns_decode(struct ras_events *ras,
 		}
 
 		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_ns_fields, 10, (uint64_t)event->error, event->length);
-
-		nvidia_store_vendor_record(ev_decoder, "NVIDIA");
+		ras_store_eval_stmt(ev_decoder->stmt_dec_record, "NVIDIA");
 	}
 
 	return 0;
@@ -694,7 +673,7 @@ static int nvidia_vera_ns_decode(struct ras_events *ras,
 		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 11, (uint64_t)decoded.instance_base, 4);
 		ras_store_bind(ev_decoder->stmt_dec_record, nvidia_vera_ns_fields, 12, (uint64_t)event->error, event->length);
 
-		nvidia_store_vendor_record(ev_decoder, "NVIDIA Vera");
+		ras_store_eval_stmt(ev_decoder->stmt_dec_record, "NVIDIA Vera");
 	}
 
 	return 0;

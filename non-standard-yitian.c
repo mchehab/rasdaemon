@@ -85,26 +85,14 @@ static const struct db_table_descriptor yitian_ddr_payload_section_tab = {
 int record_yitian_ddr_reg_dump_event(struct ras_ns_ev_decoder *ev_decoder,
 				     struct ras_yitian_ddr_payload_event *ev)
 {
-	int rc;
-	struct sqlite3_stmt *stmt = ev_decoder->stmt_dec_record;
+	log(TERM, LOG_INFO, "yitian_ddr_reg_dump_event store: %p\n",
+	    ev_decoder->stmt_dec_record);
 
-	log(TERM, LOG_INFO, "yitian_ddr_reg_dump_event store: %p\n", stmt);
+	ras_store_bind(ev_decoder->stmt_dec_record, yitian_ddr_payload_fields, 1, (uint64_t)ev->timestamp, -1);
+	ras_store_bind(ev_decoder->stmt_dec_record, yitian_ddr_payload_fields, 2, ev->address, -1);
+	ras_store_bind(ev_decoder->stmt_dec_record, yitian_ddr_payload_fields, 3, (uint64_t)ev->reg_msg, -1);
 
-	ras_store_bind(stmt, yitian_ddr_payload_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(stmt, yitian_ddr_payload_fields, 2, ev->address, -1);
-	ras_store_bind(stmt, yitian_ddr_payload_fields, 3, (uint64_t)ev->reg_msg, -1);
-
-	rc = sqlite3_step(stmt);
-	if (rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to do yitian_ddr_reg_dump_event step on sqlite: error = %d\n", rc);
-	rc = sqlite3_reset(stmt);
-	if (rc != SQLITE_OK)
-		log(TERM, LOG_ERR,
-		    "Failed reset yitian_ddr_reg_dump_event on sqlite: error = %d\n", rc);
-	log(TERM, LOG_INFO, "register inserted at db\n");
-
-	return rc;
+	return ras_store_eval_stmt(ev_decoder->stmt_dec_record, "yitian_ddr_reg_dump_event");
 }
 #endif
 
@@ -209,7 +197,7 @@ static int add_yitian_common_table(struct ras_events *ras,
 #ifdef HAVE_SQLITE3
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &yitian_ddr_payload_section_tab) != SQLITE_OK) {
+					    &yitian_ddr_payload_section_tab) != 0) {
 			log(TERM, LOG_WARNING,
 			    "Failed to create sql yitian_ddr_payload_section_tab\n");
 			return -1;

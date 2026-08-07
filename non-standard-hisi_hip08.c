@@ -656,7 +656,7 @@ static int add_hip08_oem_type1_table(struct ras_events *ras, struct ras_ns_ev_de
 #ifdef HAVE_SQLITE3
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &hip08_oem_type1_event_tab) != SQLITE_OK) {
+					    &hip08_oem_type1_event_tab) != 0) {
 			log(TERM, LOG_WARNING, "Failed to create sql hip08_oem_type1_event_tab\n");
 			return -1;
 		}
@@ -832,7 +832,7 @@ static int add_hip08_oem_type2_table(struct ras_events *ras, struct ras_ns_ev_de
 #ifdef HAVE_SQLITE3
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &hip08_oem_type2_event_tab) != SQLITE_OK) {
+					    &hip08_oem_type2_event_tab) != 0) {
 			log(TERM, LOG_WARNING, "Failed to create sql hip08_oem_type2_event_tab\n");
 			return -1;
 		}
@@ -986,7 +986,7 @@ static int add_hip08_pcie_local_table(struct ras_events *ras, struct ras_ns_ev_d
 #ifdef HAVE_SQLITE3
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &hip08_pcie_local_event_tab) != SQLITE_OK) {
+					    &hip08_pcie_local_event_tab) != 0) {
 			log(TERM, LOG_WARNING, "Failed to create sql hip08_pcie_local_event_tab\n");
 			return -1;
 		}

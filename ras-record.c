@@ -90,6 +90,31 @@ void ras_store_bind(sqlite3_stmt *stmt, const struct db_fields *fields,
 	ras_store_bind_type(stmt, fields[pos - 1].type, pos, value, len);
 }
 
+int ras_store_eval_stmt(struct sqlite3_stmt *stmt, const char *tab_name)
+{
+	int rc;
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		"Failed to do step on sqlite. Table = %s error = %d\n",
+	tab_name, rc);
+
+	rc = sqlite3_reset(stmt);
+	if (rc != SQLITE_OK)
+		log(TERM, LOG_ERR,
+		"Failed to reset on sqlite. Table = %s error = %d\n",
+	tab_name, rc);
+
+	rc = sqlite3_clear_bindings(stmt);
+	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+		log(TERM, LOG_ERR,
+		"Failed to clear bindings on sqlite. Table = %s error = %d\n",
+	tab_name, rc);
+
+	return rc;
+}
+
 /*
  * Table and functions to handle ras:mc_event
  */
@@ -1520,6 +1545,14 @@ int ras_mc_add_vendor_table(struct ras_events *ras,
 	rc = ras_mc_create_table(priv, db_tab);
 	if (rc == SQLITE_OK)
 		rc = ras_mc_prepare_stmt(priv, stmt, db_tab);
+
+	/*
+	 * on sqlite3, SQLITE_OK is actually zero, but let's do it to
+	 * stabilish a generic API contract: returning zero here means no
+	 * error.
+	 */
+	if (rc == SQLITE_OK)
+		return 0;
 
 	return rc;
 }

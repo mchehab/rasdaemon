@@ -105,28 +105,10 @@ void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 
 int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 {
-	int rc;
-
 	if (!ev_decoder->stmt_dec_record)
 		return 0;
 
-	rc = sqlite3_step(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to do %s step on sqlite: error = %d\n", name, rc);
-
-	rc = sqlite3_reset(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK)
-		log(TERM, LOG_ERR,
-		    "Failed to reset %s on sqlite: error = %d\n", name, rc);
-
-	rc = sqlite3_clear_bindings(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to clear bindings %s on sqlite: error = %d\n",
-		    name, rc);
-
-	return rc;
+	return ras_store_eval_stmt(ev_decoder->stmt_dec_record, name);
 }
 #else
 void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
@@ -343,7 +325,7 @@ static int add_hisi_common_table(struct ras_events *ras,
 	if (ras->record_events &&
 	    !ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &hisi_common_section_tab) != SQLITE_OK) {
+					    &hisi_common_section_tab) != 0) {
 			log(TERM, LOG_WARNING, "Failed to create sql hisi_common_section_tab\n");
 			return -1;
 		}

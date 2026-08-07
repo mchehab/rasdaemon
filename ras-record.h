@@ -401,6 +401,8 @@ void ras_store_bind_type(sqlite3_stmt *stmt, const enum db_field_type type,
 			 const int pos, uint64_t value, int len);
 void ras_store_bind(sqlite3_stmt *stmt, const struct db_fields *fields,
 		    const int pos, uint64_t value, int len);
+int ras_store_eval_stmt(struct sqlite3_stmt *stmt, const char *tab_name);
+
 
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
 int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev);

@@ -210,7 +210,7 @@ static const char * const err_bert_sub_type[] = {
 	"PMPRO Fatal",
 };
 
-static char *sqlite3_table_list[] = {
+static char *table_list[] = {
 	"amp_payload0_event_tab",
 	"amp_payload1_event_tab",
 	"amp_payload2_event_tab",
@@ -449,7 +449,7 @@ static const struct db_table_descriptor amp_payload3_event_tab = {
 	.num_fields = ARRAY_SIZE(amp_payload3_event_fields),
 };
 
-/*Save data with different type into sqlite3 db*/
+/* Save data with different type into DB */
 static void record_amp_data(struct ras_ns_ev_decoder *ev_decoder,
 			    enum db_field_type data_type,
 			    int id, int64_t data, const char *text)
@@ -466,31 +466,7 @@ static void record_amp_data(struct ras_ns_ev_decoder *ev_decoder,
 	}
 }
 
-static int store_amp_err_data(struct ras_ns_ev_decoder *ev_decoder,
-			      const char *name)
-{
-	int rc;
-
-	rc = sqlite3_step(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to do %s step on sqlite: error = %d\n", name, rc);
-
-	rc = sqlite3_reset(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK)
-		log(TERM, LOG_ERR,
-		    "Failed to reset %s on sqlite: error = %d\n", name, rc);
-
-	rc = sqlite3_clear_bindings(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to clear bindings %s on sqlite: error = %d\n",
-		    name, rc);
-
-	return rc;
-}
-
-/*save all Ampere Specific Error Payload type 0 to sqlite3 database*/
+/* save all Ampere Specific Error Payload type 0 to database */
 static void record_amp_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const char *type_str, const char *subtype_str,
 				const struct amp_payload0_type_sec *err)
@@ -524,11 +500,12 @@ static void record_amp_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
 		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD0_FIELD_MISC3,
 			err->err_misc_3, NULL);
-		store_amp_err_data(ev_decoder, "amp_payload0_event_tab");
+		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+				    "amp_payload0_event_tab");
 	}
 }
 
-/*save all Ampere Specific Error Payload type 1 to sqlite3 database*/
+/* save all Ampere Specific Error Payload type 1 to database */
 static void record_amp_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const char *type_str, const char *subtype_str,
 				const struct amp_payload1_type_sec *err)
@@ -574,11 +551,12 @@ static void record_amp_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD1_FIELD_RESERVED2,
 				err->reserved2, NULL);
-		store_amp_err_data(ev_decoder, "amp_payload1_event_tab");
+		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+				    "amp_payload1_event_tab");
 	}
 }
 
-/*save all Ampere Specific Error Payload type 2 to sqlite3 database*/
+/* save all Ampere Specific Error Payload type 2 to database */
 static void record_amp_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const char *type_str, const char *subtype_str,
 				    const struct amp_payload2_type_sec *err)
@@ -620,11 +598,12 @@ static void record_amp_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
 		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD2_FIELD_RESERVED3,
 			err->reserved3, NULL);
-		store_amp_err_data(ev_decoder, "amp_payload2_event_tab");
+		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+				    "amp_payload2_event_tab");
 	}
 }
 
-/*save all Ampere Specific Error Payload type 3 to sqlite3 database*/
+/* save all Ampere Specific Error Payload type 3 to database */
 static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const char *type_str, const char *subtype_str,
 				const struct amp_payload3_type_sec *err)
@@ -657,7 +636,8 @@ static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA5,
 			err->fw_speci_data5, NULL);
-		store_amp_err_data(ev_decoder, "amp_payload3_event_tab");
+		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+				    "amp_payload3_event_tab");
 	}
 }
 
@@ -692,14 +672,12 @@ static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 {
 }
 
-static int store_amp_err_data(struct ras_ns_ev_decoder *ev_decoder, char *name)
-{
-	return 0;
-}
 #endif
 
-/*decode ampere specific error payload type 0, the CPU's data is save*/
-/*to sqlite by ras-arm-handler, others are saved by this function.*/
+/*
+ * decode ampere specific error payload type 0, the CPU's data is save
+ * to SQL DB by ras-arm-handler, others are saved by this function.
+ */
 void decode_amp_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				  struct trace_seq *s,
 				const struct amp_payload0_type_sec *err)
@@ -785,7 +763,7 @@ void decode_amp_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-/*decode ampere specific error payload type 1 and save to sqlite db*/
+/* decode ampere specific error payload type 1 and save to database */
 static void decode_amp_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					 struct trace_seq *s,
 					 const struct amp_payload1_type_sec *err)
@@ -869,7 +847,7 @@ static void decode_amp_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-/*decode ampere specific error payload type 2 and save to sqlite db*/
+/* decode ampere specific error payload type 2 and save to database */
 static void decode_amp_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					 struct trace_seq *s,
 					 const struct amp_payload2_type_sec *err)
@@ -954,7 +932,7 @@ static void decode_amp_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-/*decode ampere specific error payload type 3 and save to sqlite db*/
+/* decode ampere specific error payload type 3 and save to database */
 static void decode_amp_payload3_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					 struct trace_seq *s,
 					 const struct amp_payload3_type_sec *err)
@@ -1056,10 +1034,10 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 
 	if (!ev_decoder->stmt_dec_record) {
 		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &db_tab) != SQLITE_OK) {
+					    &db_tab) != 0) {
 			trace_seq_printf(s,
 					 "create sql %s fail\n",
-					 sqlite3_table_list[payload_type]);
+					 table_list[payload_type]);
 			return -1;
 		}
 	}
