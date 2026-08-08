@@ -85,7 +85,7 @@ Usage: $prog [OPTIONS...]
  --delay=N          Delay N seconds before writing DIMM labels.
  --labeldb=DB       Load label database from file DB.
  --layout           Display the memory layout.
- --human, -h        With --layout, scale DIMM sizes to the largest exact unit.
+ --human, -H        With --layout, scale DIMM sizes to the largest exact unit.
  --summary          Presents a summary of the logged errors.
  --errors           Shows the errors stored at the error database.
  --error-count      Shows the corrected and uncorrected error counts using sysfs.
@@ -194,7 +194,7 @@ sub parse_cmdline
 			 "errors" =>          \$conf{opt}{errors},
 			 "error-count" =>     \$conf{opt}{error_count},
 			 "per-rank" =>        \$conf{opt}{per_rank},
-			 "human|h" =>         \$conf{opt}{human},
+			 "human|H" =>         \$conf{opt}{human},
 			 "vendor-errors-summary" =>    \$conf{opt}{vendor_errors_summary},
 			 "vendor-errors" =>   \$conf{opt}{vendor_errors},
 			 "since=s" =>         \$conf{opt}{since},
