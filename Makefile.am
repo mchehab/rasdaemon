@@ -70,129 +70,129 @@ all-local: $(SYSTEMD_SERVICES) $(SYSLOG_SERVICES) $(RSYSLOG_SERVICES) $(LOGROTAT
 
 sbin_PROGRAMS = rasdaemon
 
-rasdaemon_SOURCES = rasdaemon.c
+rasdaemon_SOURCES = core/rasdaemon.c
 
-rasdaemon_SOURCES += bitfield.c
-rasdaemon_SOURCES += modules.c
-rasdaemon_SOURCES += ras-events.c
-rasdaemon_SOURCES += ras-mc-handler.c
-rasdaemon_SOURCES += trigger.c
-rasdaemon_SOURCES += types.c
+rasdaemon_SOURCES += core/bitfield.c
+rasdaemon_SOURCES += core/modules.c
+rasdaemon_SOURCES += core/ras-events.c
+rasdaemon_SOURCES += core/ras-mc-handler.c
+rasdaemon_SOURCES += core/trigger.c
+rasdaemon_SOURCES += core/types.c
 
 # Keep the IFs alphabetically sorted
 
 if WITH_ABRT_REPORT
-   rasdaemon_SOURCES += ras-report.c
+   rasdaemon_SOURCES += modules/ras-report.c
 endif
 
 if WITH_AER
-   rasdaemon_SOURCES += ras-aer-handler.c
+   rasdaemon_SOURCES += modules/ras-aer-handler.c
 endif
 
 if WITH_AMP_NS_DECODE
-   rasdaemon_SOURCES += non-standard-ampere.c
+   rasdaemon_SOURCES += events-arch-arm/non-standard-ampere.c
 endif
 
 if WITH_ARM
-   rasdaemon_SOURCES += ras-arm-handler.c
+   rasdaemon_SOURCES += events-arch-arm/ras-arm-handler.c
 endif
 
 if WITH_CPU_FAULT_ISOLATION
-   rasdaemon_SOURCES += ras-cpu-isolation.c
-   rasdaemon_SOURCES += queue.c
+   rasdaemon_SOURCES += modules/ras-cpu-isolation.c
+   rasdaemon_SOURCES += core/queue.c
 endif
 
 if WITH_CXL
-   rasdaemon_SOURCES += ras-cxl-handler.c
+   rasdaemon_SOURCES += events/ras-cxl-handler.c
 endif
 
 if WITH_DEVLINK
-   rasdaemon_SOURCES += ras-devlink-handler.c
+   rasdaemon_SOURCES += events/ras-devlink-handler.c
 endif
 
 if WITH_DISKERROR
-   rasdaemon_SOURCES += ras-diskerror-handler.c
+   rasdaemon_SOURCES += events/ras-diskerror-handler.c
 endif
 
 if WITH_ERST
-   rasdaemon_SOURCES += ras-erst.c
+   rasdaemon_SOURCES += events-arch-x86/ras-erst.c
 endif
 
 if WITH_EXTLOG
-   rasdaemon_SOURCES += ras-extlog-handler.c
+   rasdaemon_SOURCES += core/ras-extlog-handler.c
 endif
 
 if WITH_HISI_NS_DECODE
-   rasdaemon_SOURCES += non-standard-hisi_hip08.c
-   rasdaemon_SOURCES += non-standard-hisilicon.c
+   rasdaemon_SOURCES += events-arch-arm/non-standard-hisi_hip08.c
+   rasdaemon_SOURCES += events-arch-arm/non-standard-hisilicon.c
 endif
 
 if WITH_JAGUAR_NS_DECODE
-   rasdaemon_SOURCES += non-standard-jaguarmicro.c
+   rasdaemon_SOURCES += events-arch-arm/non-standard-jaguarmicro.c
 endif
 
 if WITH_MCE
-   rasdaemon_SOURCES += mce-amd.c
-   rasdaemon_SOURCES += mce-amd-k8.c
-   rasdaemon_SOURCES += mce-amd-smca.c
-   rasdaemon_SOURCES += mce-intel.c
-   rasdaemon_SOURCES += mce-intel-broadwell-de.c
-   rasdaemon_SOURCES += mce-intel-broadwell-epex.c
-   rasdaemon_SOURCES += mce-intel-diamond.c
-   rasdaemon_SOURCES += mce-intel-dunnington.c
-   rasdaemon_SOURCES += mce-intel-haswell.c
-   rasdaemon_SOURCES += mce-intel-granite.c
-   rasdaemon_SOURCES += mce-intel-i10nm.c
-   rasdaemon_SOURCES += mce-intel-ivb.c
-   rasdaemon_SOURCES += mce-intel-knl.c
-   rasdaemon_SOURCES += mce-intel-nehalem.c
-   rasdaemon_SOURCES += mce-intel-p4-p6.c
-   rasdaemon_SOURCES += mce-intel-sb.c
-   rasdaemon_SOURCES += mce-intel-skylake-xeon.c
-   rasdaemon_SOURCES += mce-intel-tulsa.c
-   rasdaemon_SOURCES += mce-zhaoxin.c
-   rasdaemon_SOURCES += mce-zhaoxin-kh50000.c
-   rasdaemon_SOURCES += ras-mce-handler.c
+   rasdaemon_SOURCES += events-arch-x86/mce-amd.c
+   rasdaemon_SOURCES += events-arch-x86/mce-amd-k8.c
+   rasdaemon_SOURCES += events-arch-x86/mce-amd-smca.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-broadwell-de.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-broadwell-epex.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-diamond.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-dunnington.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-haswell.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-granite.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-i10nm.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-ivb.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-knl.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-nehalem.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-p4-p6.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-sb.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-skylake-xeon.c
+   rasdaemon_SOURCES += events-arch-x86/mce-intel-tulsa.c
+   rasdaemon_SOURCES += events-arch-x86/mce-zhaoxin.c
+   rasdaemon_SOURCES += events-arch-x86/mce-zhaoxin-kh50000.c
+   rasdaemon_SOURCES += events-arch-x86/ras-mce-handler.c
 endif
 
 if WITH_MEMORY_FAILURE
-   rasdaemon_SOURCES += ras-memory-failure-handler.c
+   rasdaemon_SOURCES += events/ras-memory-failure-handler.c
 endif
 
 if WITH_NVIDIA_NS_DECODE
-   rasdaemon_SOURCES += non-standard-nvidia.c
+   rasdaemon_SOURCES += events-arch-arm/non-standard-nvidia.c
 endif
 
 if WITH_NON_STANDARD
-   rasdaemon_SOURCES += ras-non-standard-handler.c
+   rasdaemon_SOURCES += events-arch-arm/ras-non-standard-handler.c
 endif
 
 if WITH_OPENBMC_UNIFIED_SEL
-   rasdaemon_SOURCES += unified-sel.c
+   rasdaemon_SOURCES += events/unified-sel.c
 endif
 
 if WITH_PFA
-   rasdaemon_SOURCES += rbtree.c ras-page-isolation.c
+   rasdaemon_SOURCES += core/rbtree.c modules/ras-page-isolation.c
 endif
 
 if WITH_POISON_PAGE_STAT
-   rasdaemon_SOURCES += ras-poison-page-stat.c
+   rasdaemon_SOURCES += events/ras-poison-page-stat.c
 endif
 
 if WITH_SIGNAL
-   rasdaemon_SOURCES += ras-signal-handler.c
+   rasdaemon_SOURCES += events/ras-signal-handler.c
 endif
 
 if WITH_SQLITE3
-   rasdaemon_SOURCES += ras-record.c
+   rasdaemon_SOURCES += db/ras-record.c
 endif
 
 if WITH_YITIAN_NS_DECODE
-   rasdaemon_SOURCES += non-standard-yitian.c
+   rasdaemon_SOURCES += events-arch-arm/non-standard-yitian.c
 endif
 
 if WITH_RERI
-   rasdaemon_SOURCES += ras-reri-handler.c
+   rasdaemon_SOURCES += events/ras-reri-handler.c
 endif
 
 rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS) $(LIBPCI_LIBS)
@@ -200,39 +200,39 @@ rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS) $(LIBPCI_CFLAGS)
 
 include_HEADERS = config.h
 
-include_HEADERS += bitfield.h
-include_HEADERS += queue.h
-include_HEADERS += rbtree.h
-include_HEADERS += trigger.h
-include_HEADERS += types.h
-include_HEADERS += unified-sel.h
+include_HEADERS += core/bitfield.h
+include_HEADERS += core/queue.h
+include_HEADERS += core/rbtree.h
+include_HEADERS += core/trigger.h
+include_HEADERS += core/types.h
+include_HEADERS += events/unified-sel.h
 
-include_HEADERS += non-standard-ampere.h
-include_HEADERS += non-standard-hisilicon.h
-include_HEADERS += non-standard-jaguarmicro.h
-include_HEADERS += non-standard-nvidia.h
-include_HEADERS += non-standard-yitian.h
+include_HEADERS += events-arch-arm/non-standard-ampere.h
+include_HEADERS += events-arch-arm/non-standard-hisilicon.h
+include_HEADERS += events-arch-arm/non-standard-jaguarmicro.h
+include_HEADERS += events-arch-arm/non-standard-nvidia.h
+include_HEADERS += events-arch-arm/non-standard-yitian.h
 
-include_HEADERS += ras-aer-handler.h
-include_HEADERS += ras-arm-handler.h
-include_HEADERS += ras-cpu-isolation.h
-include_HEADERS += ras-cxl-handler.h
-include_HEADERS += ras-devlink-handler.h
-include_HEADERS += ras-diskerror-handler.h
-include_HEADERS += ras-erst.h
-include_HEADERS += ras-events.h
-include_HEADERS += ras-extlog-handler.h
-include_HEADERS += ras-logger.h
-include_HEADERS += ras-mc-handler.h
-include_HEADERS += ras-mce-handler.h
-include_HEADERS += ras-memory-failure-handler.h
-include_HEADERS += ras-non-standard-handler.h
-include_HEADERS += ras-page-isolation.h
-include_HEADERS += ras-poison-page-stat.h
-include_HEADERS += ras-record.h
-include_HEADERS += ras-report.h
-include_HEADERS += ras-signal-handler.h
-include_HEADERS += ras-reri-handler.h
+include_HEADERS += modules/ras-aer-handler.h
+include_HEADERS += events-arch-arm/ras-arm-handler.h
+include_HEADERS += modules/ras-cpu-isolation.h
+include_HEADERS += events/ras-cxl-handler.h
+include_HEADERS += events/ras-devlink-handler.h
+include_HEADERS += events/ras-diskerror-handler.h
+include_HEADERS += events-arch-x86/ras-erst.h
+include_HEADERS += core/ras-events.h
+include_HEADERS += core/ras-extlog-handler.h
+include_HEADERS += core/ras-logger.h
+include_HEADERS += core/ras-mc-handler.h
+include_HEADERS += events-arch-x86/ras-mce-handler.h
+include_HEADERS += events/ras-memory-failure-handler.h
+include_HEADERS += events-arch-arm/ras-non-standard-handler.h
+include_HEADERS += modules/ras-page-isolation.h
+include_HEADERS += events/ras-poison-page-stat.h
+include_HEADERS += db/ras-record.h
+include_HEADERS += modules/ras-report.h
+include_HEADERS += events/ras-signal-handler.h
+include_HEADERS += events/ras-reri-handler.h
 
 # This rule can't be called with more than one Makefile job (like make -j8)
 # I can't figure out a way to fix that

@@ -1,0 +1,229 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2020. All rights reserved.
+ */
+
+#define _GNU_SOURCE
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "core/ras-logger.h"
+#include "events/ras-memory-failure-handler.h"
+#include "events/ras-poison-page-stat.h"
+#include "modules/ras-report.h"
+#include "core/trigger.h"
+#include "core/types.h"
+
+/* Memory failure - various types of pages */
+enum mf_action_page_type {
+	MF_MSG_KERNEL,
+	MF_MSG_KERNEL_HIGH_ORDER,
+	MF_MSG_SLAB,
+	MF_MSG_DIFFERENT_COMPOUND,
+	MF_MSG_HUGE,
+	MF_MSG_FREE_HUGE,
+	MF_MSG_UNMAP_FAILED,
+	MF_MSG_DIRTY_SWAPCACHE,
+	MF_MSG_CLEAN_SWAPCACHE,
+	MF_MSG_DIRTY_MLOCKED_LRU,
+	MF_MSG_CLEAN_MLOCKED_LRU,
+	MF_MSG_DIRTY_UNEVICTABLE_LRU,
+	MF_MSG_CLEAN_UNEVICTABLE_LRU,
+	MF_MSG_DIRTY_LRU,
+	MF_MSG_CLEAN_LRU,
+	MF_MSG_TRUNCATED_LRU,
+	MF_MSG_BUDDY,
+	MF_MSG_DAX,
+	MF_MSG_UNSPLIT_THP,
+	MF_MSG_UNKNOWN,
+};
+
+/* Action results for various types of pages */
+enum mf_action_result {
+	MF_IGNORED,     /* Error: cannot be handled */
+	MF_FAILED,      /* Error: handling failed */
+	MF_DELAYED,     /* Will be handled later */
+	MF_RECOVERED,   /* Successfully recovered */
+};
+
+/* memory failure page types */
+static const struct {
+	int	type;
+	const char	*page_type;
+} mf_page_type[] = {
+	{ MF_MSG_KERNEL, "reserved kernel page" },
+	{ MF_MSG_KERNEL_HIGH_ORDER, "high-order kernel page"},
+	{ MF_MSG_SLAB, "kernel slab page"},
+	{ MF_MSG_DIFFERENT_COMPOUND, "different compound page after locking"},
+	{ MF_MSG_HUGE, "huge page"},
+	{ MF_MSG_FREE_HUGE, "free huge page"},
+	{ MF_MSG_UNMAP_FAILED, "unmapping failed page"},
+	{ MF_MSG_DIRTY_SWAPCACHE, "dirty swapcache page"},
+	{ MF_MSG_CLEAN_SWAPCACHE, "clean swapcache page"},
+	{ MF_MSG_DIRTY_MLOCKED_LRU, "dirty mlocked LRU page"},
+	{ MF_MSG_CLEAN_MLOCKED_LRU, "clean mlocked LRU page"},
+	{ MF_MSG_DIRTY_UNEVICTABLE_LRU, "dirty unevictable LRU page"},
+	{ MF_MSG_CLEAN_UNEVICTABLE_LRU, "clean unevictable LRU page"},
+	{ MF_MSG_DIRTY_LRU, "dirty LRU page"},
+	{ MF_MSG_CLEAN_LRU, "clean LRU page"},
+	{ MF_MSG_TRUNCATED_LRU, "already truncated LRU page"},
+	{ MF_MSG_BUDDY, "free buddy page"},
+	{ MF_MSG_DAX, "dax page"},
+	{ MF_MSG_UNSPLIT_THP, "unsplit thp"},
+	{ MF_MSG_UNKNOWN, "unknown page"},
+};
+
+/* memory failure action results */
+static const struct {
+	int result;
+	const char *action_result;
+} mf_action_result[] = {
+	{ MF_IGNORED, "Ignored" },
+	{ MF_FAILED, "Failed" },
+	{ MF_DELAYED, "Delayed" },
+	{ MF_RECOVERED, "Recovered" },
+};
+
+#define MAX_ENV 6
+static const char *mf_trigger = NULL;
+
+void mem_fail_event_trigger_setup(void)
+{
+	const char *trigger;
+
+	trigger = getenv("MEM_FAIL_TRIGGER");
+	if (trigger && strcmp(trigger, "")) {
+		mf_trigger = trigger_check(trigger);
+
+		if (!mf_trigger) {
+			log(ALL, LOG_ERR,
+			    "Cannot access memory_fail_event trigger `%s`\n",
+			    trigger);
+		} else {
+			log(ALL, LOG_INFO,
+			    "Setup memory_fail_event trigger `%s`\n",
+			    trigger);
+		}
+	}
+}
+
+static void run_mf_trigger(struct ras_mf_event *ev)
+{
+	char *env[MAX_ENV];
+	int ei = 0;
+	int i;
+
+	if (!mf_trigger)
+		return;
+
+	if (asprintf(&env[ei++], "PATH=%s", getenv("PATH") ?: "/sbin:/usr/sbin:/bin:/usr/bin") < 0)
+		goto free;
+	if (asprintf(&env[ei++], "TIMESTAMP=%s", ev->timestamp) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "PFN=%s", ev->pfn) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "PAGE_TYPE=%s", ev->page_type) < 0)
+		goto free;
+	if (asprintf(&env[ei++], "ACTION_RESULT=%s", ev->action_result) < 0)
+		goto free;
+
+	env[ei] = NULL;
+	assert(ei < MAX_ENV);
+
+	run_trigger(mf_trigger, NULL, env, "memory_fail_event");
+
+free:
+	for (i = 0; i < ei; i++)
+		free(env[i]);
+}
+
+static const char *get_page_type(int page_type)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(mf_page_type); i++)
+		if (mf_page_type[i].type == page_type)
+			return mf_page_type[i].page_type;
+
+	return "unknown page";
+}
+
+static const char *get_action_result(int result)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(mf_action_result); i++)
+		if (mf_action_result[i].result == result)
+			return mf_action_result[i].action_result;
+
+	return "unknown";
+}
+
+int ras_memory_failure_event_handler(struct trace_seq *s,
+				     struct tep_record *record,
+				     struct tep_event *event, void *context)
+{
+	unsigned long long val;
+	struct ras_events *ras = context;
+	time_t now;
+	struct tm *tm;
+	struct ras_mf_event ev;
+
+	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ALERT]);
+	/*
+	 * Newer kernels (3.10-rc1 or upper) provide an uptime clock.
+	 * On previous kernels, the way to properly generate an event would
+	 * be to inject a fake one, measure its timestamp and diff it against
+	 * gettimeofday. We won't do it here. Instead, let's use uptime,
+	 * falling-back to the event report's time, if "uptime" clock is
+	 * not available (legacy kernels).
+	 */
+
+	if (ras->use_uptime)
+		now = record->ts / user_hz + ras->uptime_diff;
+	else
+		now = time(NULL);
+
+	tm = localtime(&now);
+	if (tm)
+		strftime(ev.timestamp, sizeof(ev.timestamp),
+			 "%Y-%m-%d %H:%M:%S %z", tm);
+	else
+		strscpy(ev.timestamp, "1970-01-01 00:00:00 +0000", sizeof(ev.timestamp));
+	trace_seq_printf(s, "%s ", ev.timestamp);
+
+	if (tep_get_field_val(s,  event, "pfn", record, &val, 1) < 0)
+		return -1;
+	snprintf(ev.pfn, sizeof(ev.pfn), "0x%llx", val);
+	trace_seq_printf(s, "pfn=0x%llx ", val);
+
+	if (tep_get_field_val(s, event, "type", record, &val, 1) < 0)
+		return -1;
+	ev.page_type = get_page_type(val);
+	trace_seq_printf(s, "page_type=%s ", ev.page_type);
+
+	if (tep_get_field_val(s, event, "result", record, &val, 1) < 0)
+		return -1;
+	ev.action_result = get_action_result(val);
+	trace_seq_printf(s, "action_result=%s ", ev.action_result);
+
+#ifdef HAVE_POISON_PAGE_STAT
+	ras_poison_page_stat();
+#endif
+
+	/* Store data into the SQLite DB */
+#ifdef HAVE_SQLITE3
+	ras_store_mf_event(ras, &ev);
+#endif
+
+#ifdef HAVE_ABRT_REPORT
+	/* Report event to ABRT */
+	ras_report_mf_event(ras, &ev);
+#endif
+	run_mf_trigger(&ev);
+
+	return 0;
+}
