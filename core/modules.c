@@ -9,84 +9,43 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 
-static struct module_list core_list   = { NULL, NULL };
-static struct module_list db_list     = { NULL, NULL };
-static struct module_list event_list  = { NULL, NULL };
+static struct module_list ras_modules = { 0 };
 
 /*
- * Helpers to handle individual module add/remove and check if enabled
+ * Public functions
  */
-
-static int module_add(struct ras_module_entry **head,
-		      struct ras_module_entry *entry,
-		      struct ras_events *ras)
+int module_register(struct ras_module_entry *entry)
 {
-	int ret = 0;
+	struct ras_module_entry_runtime **head = &ras_modules.head;
+	struct ras_module_entry_runtime *new;
 
-	if (!entry)
+	if (!entry) {
+		log(ALL, LOG_ERR, "module entry is missing!\n");
 		return -EINVAL;
-
-	entry->next = *head;
-	*head       = entry;
-
-	/* Module-specific handler */
-
-	entry->is_enabled = false;
-
-	if (entry->init) {
-		int rc = entry->init(ras);
-
-		if (rc) {
-			log(ALL, LOG_ERR, "core module %s init failed\n", entry->name);
-			ret = 1;
-		} else {
-			entry->is_enabled = true;
-		}
 	}
 
-	return ret;
+	new = calloc(1, sizeof(*new));
+	if (!entry) {
+		log(ALL, LOG_ERR, "no entry to register module %s\n",
+		    entry->name);
 
-}
-
-static void module_remove(struct module_list *list)
-{
-	struct ras_module_entry *cur  = list->head;
-
-	while (cur) {
-		struct ras_module_entry *tmp = cur->next;
-
-		if (cur->cleanup)
-			cur->cleanup();
-
-		free(cur);
-		cur = tmp;
+		return -ENOMEM;
 	}
+
+	new->e = entry;
+	new->next = *head;
+
+	(*head) = new;
+
+	return 0;
 }
-
-static bool module_is_enabled(struct module_list *list, const char *name)
-{
-	struct ras_module_entry *entry = list->head;
-
-	while (entry) {
-		if (!strcmp(entry->name, name))
-			return true;
-
-		entry = entry->next;
-	}
-	return false;
-}
-
-
-/*
- * public API
- */
 
 bool modules_have_sql_backend(void)
 {
-	struct ras_module_entry *entry = db_list.head;
+	struct ras_module_entry_runtime *entry = ras_modules.head;
 
 	while (entry) {
-		if (entry->is_enabled)
+		if (entry->e->level == DB_MODULE && entry->is_enabled)
 			return true;
 
 		entry = entry->next;
@@ -95,36 +54,44 @@ bool modules_have_sql_backend(void)
 	return false;
 }
 
-bool modules_event_handler_is_enabled(const char *name)
+void modules_init(struct ras_events *ras)
 {
-	return module_is_enabled(&event_list, name);
+	struct ras_module_entry_runtime *entry;
+	bool enabled_db = false;
+
+	for (int level = 0; level < MAX_LEVELS; level++) {
+		for (entry = ras_modules.head; entry; entry = entry->next) {
+			if (level == entry->e->level && entry->e->init) {
+				/* Only one database can be enabled */
+				if (level == DB_MODULE && enabled_db)
+					continue;
+
+				if (entry->e->init(ras)) {
+					log(ALL, LOG_ERR,
+					    "module %s init failed\n",
+					    entry->e->name);
+				} else {
+					entry->is_enabled = true;
+					if (level == DB_MODULE)
+						enabled_db = true;
+				}
+			}
+		}
+	}
 }
 
-int modules_register_core(struct ras_module_entry *entry,
-			  struct ras_events *ras)
+bool module_is_enabled(const char *name)
 {
-	return module_add(&core_list.head, entry, ras);
-}
+	struct ras_module_entry_runtime *entry = ras_modules.head;
 
-int modules_register_database(struct ras_module_entry *entry,
-			      struct ras_events *ras)
-{
-	/* Only one DB backend can be used */
-	if (modules_have_sql_backend()) {
-		log(ALL, LOG_ERR,
-		    "database %s already registered, refusing second one\n",
-		    entry->name);
+	while (entry) {
+		if (!strcmp(entry->e->name, name))
+			return true;
 
-		return 1;
+		entry = entry->next;
 	}
 
-	return module_add(&db_list.head, entry, ras);
-}
-
-int modules_register_event_handler(struct ras_module_entry *entry,
-				   struct ras_events *ras)
-{
-	return module_add(&event_list.head, entry, ras);
+	return false;
 }
 
 void modules_unregister(void)
@@ -137,7 +104,18 @@ void modules_unregister(void)
 	 *	needs to handle cleanup() even if called after other event
 	 *	list requrements.
 	 */
-	module_remove(&event_list);
-	module_remove(&db_list);
-	module_remove(&core_list);
+
+	for (int level = MAX_LEVELS - 1; level > 0; level--) {
+		struct ras_module_entry_runtime *cur  = ras_modules.head;
+
+		while (cur) {
+			struct ras_module_entry_runtime *tmp = cur->next;
+
+			if (cur->e->cleanup)
+				cur->e->cleanup();
+
+			free(cur);
+			cur = tmp;
+		}
+	}
 }
