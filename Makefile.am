@@ -73,6 +73,7 @@ sbin_PROGRAMS = rasdaemon
 rasdaemon_SOURCES = rasdaemon.c
 
 rasdaemon_SOURCES += bitfield.c
+rasdaemon_SOURCES += modules.c
 rasdaemon_SOURCES += ras-events.c
 rasdaemon_SOURCES += ras-mc-handler.c
 rasdaemon_SOURCES += trigger.c

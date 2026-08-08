@@ -6,6 +6,7 @@
 
 #ifndef __RAS_LOGGER_H
 
+#include <stdio.h>
 #include <syslog.h>
 
 #include "types.h"
