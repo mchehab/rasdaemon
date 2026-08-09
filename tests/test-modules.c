@@ -3,6 +3,7 @@
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +21,7 @@ int test_register_null_entry(void)
 
 int test_register_single_module(void)
 {
-	static const struct ras_module_entry entry = {
+	const struct ras_module_entry entry = {
 		.name   = "test-module",
 		.init   = NULL,
 		.cleanup = NULL,
@@ -44,7 +45,7 @@ int test_register_modules_in_order(void)
 	struct ras_module_entry_runtime *entry;
 	int rc = 0;
 
-	static const struct ras_module_entry mods[] = {
+	const struct ras_module_entry mods[] = {
 		{
 			.name   = "alpha",
 			.init   = NULL,
@@ -109,7 +110,7 @@ int test_register_mixed_order(void)
 	struct ras_module_entry_runtime *entry;
 	int rc = 0;
 
-	static const struct ras_module_entry mods[] = {
+	const struct ras_module_entry mods[] = {
 		{
 			.name   = "beta",
 			.init   = NULL,
@@ -182,7 +183,7 @@ int test_register_muptiple_levels(void)
 	struct ras_module_entry_runtime *entry;
 	int rc = 0;
 
-	static const struct ras_module_entry mods[] = {
+	const struct ras_module_entry mods[] = {
 		{
 			.name   = "bitfield",
 			.init   = NULL,
@@ -224,13 +225,19 @@ int test_register_muptiple_levels(void)
 }
 
 struct ras_events {
-	const char *name;
+	int count;
+
+	int errors;
+
+	int last_level;
+
+	const char **name;
 };
 
 int test_module_init(const char *name, struct ras_events *ras, void **priv)
 {
-	ras->name = name;
-	fprintf(stderr,"module %s init called.\n", name);
+	ras->name[ras->count] = name;
+	ras->count++;
 
 	*priv = ras;
 
@@ -239,16 +246,31 @@ int test_module_init(const char *name, struct ras_events *ras, void **priv)
 
 void test_module_cleanup(const struct ras_module_entry *entry, void *priv)
 {
-	fprintf(stderr,"level %d: module %s cleanup called.\n",
-		entry->level, entry->name);
+	struct ras_events *ras = priv;
+	int i;
+
+	for (i = 0; i < ras->count; i++)
+		if (!strcmp(entry->name, ras->name[i]))
+			break;
+
+	if (i >= ras->count) {
+		ras->errors++;
+	} else {
+		if (entry->level < ras->last_level)
+			ras->errors++;
+		else
+			ras->last_level = entry->level;
+	}
 }
 
 int test_init_cleanup(void)
 {
 	struct ras_module_entry_runtime *entry;
+	struct ras_events ras = { 0 };
 	int rc = 0;
+	int **idx;
 
-	static const struct ras_module_entry mods[] = {
+	const struct ras_module_entry mods[] = {
 		{
 			.name   = "beta",
 			.init   = test_module_init,
@@ -281,7 +303,7 @@ int test_init_cleanup(void)
 			.level  = CORE_MODULE,
 		},
 	};
-	static const char *names[] = {
+	const char *names[] = {
 		"alpha",
 		"beta",
 		"charlie",
@@ -290,7 +312,7 @@ int test_init_cleanup(void)
 		"foxtrot",
 	};
 
-	static struct ras_events ras;
+	ras.name = calloc(ARRAY_SIZE(mods), sizeof(const char *));
 
 	for (int i = 0; i < ARRAY_SIZE(mods); i++) {
 		rc |= module_register(&mods[i]);
@@ -313,6 +335,8 @@ int test_init_cleanup(void)
 		if (entry)
 			entry = entry->next;
 	}
+
+	rc |= check(ras.errors == 0);
 
 	modules_unregister();
 	rc |= check(ras_modules.head == NULL);
