@@ -14,10 +14,11 @@ static struct module_list ras_modules = { 0 };
 /*
  * Public functions
  */
+
 int module_register(struct ras_module_entry *entry)
 {
 	struct ras_module_entry_runtime **head = &ras_modules.head;
-	struct ras_module_entry_runtime *new;
+	struct ras_module_entry_runtime *new, *cur, *prev = NULL;
 
 	if (!entry) {
 		log(ALL, LOG_ERR, "module entry is missing!\n");
@@ -25,17 +26,28 @@ int module_register(struct ras_module_entry *entry)
 	}
 
 	new = calloc(1, sizeof(*new));
-	if (!entry) {
-		log(ALL, LOG_ERR, "no entry to register module %s\n",
+	if (!new) {
+		log(ALL, LOG_ERR, "no memory to register module %s\n",
 		    entry->name);
-
 		return -ENOMEM;
 	}
 
 	new->e = entry;
-	new->next = *head;
 
-	(*head) = new;
+	/* Keep it alphabetically sorted */
+	for (cur = ras_modules.head; cur; cur = cur->next) {
+		if (strcmp(entry->name, cur->e->name) < 0)
+		break;
+		prev = cur;
+	}
+
+	if (!prev) {
+		new->next = NULL;
+		(*head) = new;
+	} else {
+		new->next = prev->next;
+		prev->next = new;
+	}
 
 	return 0;
 }
