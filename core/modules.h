@@ -24,8 +24,8 @@ enum init_level {
 struct ras_module_entry {
 	const char *name;
 
-	const int (*init)(struct ras_events *ras);
-	const void (*cleanup)(void);
+	const int (*init)(const char *name, struct ras_events *ras, void **priv);
+	const void (*cleanup)(const struct ras_module_entry *entry, void *priv);
 
 	const enum init_level level;
 };
@@ -36,6 +36,8 @@ struct ras_module_entry_runtime {
 
 	bool is_enabled;
 	bool missing_deps;
+
+	void *priv;
 
 	struct ras_module_entry_runtime *next;
 };

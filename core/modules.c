@@ -80,7 +80,7 @@ void modules_init(struct ras_events *ras)
 				if (level == DB_MODULE && enabled_db)
 					continue;
 
-				if (entry->e->init(ras)) {
+				if (entry->e->init(entry->e->name, ras, &entry->priv)) {
 					log(ALL, LOG_ERR,
 					    "module %s init failed\n",
 					    entry->e->name);
@@ -125,14 +125,13 @@ void modules_unregister(void)
 	 *	needs to handle cleanup() even if called after other event
 	 *	list requrements.
 	 */
-	for (int level = MAX_LEVELS - 1; level > 0; level--) {
+	for (int level = MAX_LEVELS - 1; level >= 0; level--) {
 		entry  = ras_modules.head;
 
 		while (entry) {
 			tmp = entry->next;
-
-			if (entry->e->cleanup)
-				entry->e->cleanup();
+			if (entry->e->level == level && entry->e->cleanup && entry->is_enabled)
+				entry->e->cleanup(entry->e, entry->priv);
 
 			entry = entry->next;
 		}
