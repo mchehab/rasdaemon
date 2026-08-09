@@ -53,7 +53,7 @@ struct module_list {
  * Register one module into the given priority list.
  * Returns 0 on success, non-zero if registration failed.
  */
-int module_register(struct ras_module_entry *entry);
+int module_register(const struct ras_module_entry *entry);
 void modules_init(struct ras_events *ras);
 void modules_unregister(void);
 

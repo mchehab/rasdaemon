@@ -9,13 +9,14 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 
-static struct module_list ras_modules = { 0 };
+/* Let's not declare it as static, as we want to access it on unit tests */
+struct module_list ras_modules = { 0 };
 
 /*
  * Public functions
  */
 
-int module_register(struct ras_module_entry *entry)
+int module_register(const struct ras_module_entry *entry)
 {
 	struct ras_module_entry_runtime **head = &ras_modules.head;
 	struct ras_module_entry_runtime *new, *cur, *prev = NULL;
@@ -37,13 +38,14 @@ int module_register(struct ras_module_entry *entry)
 	/* Keep it alphabetically sorted */
 	for (cur = ras_modules.head; cur; cur = cur->next) {
 		if (strcmp(entry->name, cur->e->name) < 0)
-		break;
+			break;
+
 		prev = cur;
 	}
 
 	if (!prev) {
-		new->next = NULL;
-		(*head) = new;
+		new->next =*head;
+		*head = new;
 	} else {
 		new->next = prev->next;
 		prev->next = new;
@@ -83,6 +85,9 @@ void modules_init(struct ras_events *ras)
 					    "module %s init failed\n",
 					    entry->e->name);
 				} else {
+					log(ALL, LOG_INFO,
+					    "module %s enabled\n",
+					    entry->e->name);
 					entry->is_enabled = true;
 					if (level == DB_MODULE)
 						enabled_db = true;
@@ -108,7 +113,11 @@ bool module_is_enabled(const char *name)
 
 void modules_unregister(void)
 {
+	struct ras_module_entry_runtime *entry, *tmp;
+
 	/*
+	 * Cleanup each module
+	 *
 	 * NOTE:
 	 *	The logic here assumes that modules at the same level
 	 *	can be unregistered in any order. It means that modules
@@ -116,18 +125,26 @@ void modules_unregister(void)
 	 *	needs to handle cleanup() even if called after other event
 	 *	list requrements.
 	 */
-
 	for (int level = MAX_LEVELS - 1; level > 0; level--) {
-		struct ras_module_entry_runtime *cur  = ras_modules.head;
+		entry  = ras_modules.head;
 
-		while (cur) {
-			struct ras_module_entry_runtime *tmp = cur->next;
+		while (entry) {
+			tmp = entry->next;
 
-			if (cur->e->cleanup)
-				cur->e->cleanup();
+			if (entry->e->cleanup)
+				entry->e->cleanup();
 
-			free(cur);
-			cur = tmp;
+			entry = entry->next;
 		}
 	}
+
+	/* Free them and remove head */
+	entry = ras_modules.head;
+	while (entry) {
+		tmp = entry->next;
+		free(entry);
+		entry = tmp;
+	}
+
+	ras_modules.head = NULL;
 }
