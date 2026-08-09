@@ -82,6 +82,7 @@ noinst_LIBRARIES = librasdaemon.a
 
 librasdaemon_a_SOURCES = core/bitfield.c
 librasdaemon_a_SOURCES += core/modules.c
+librasdaemon_a_SOURCES += core/ras-logger.c
 librasdaemon_a_SOURCES += core/ras-events.c
 librasdaemon_a_SOURCES += core/ras-mc-handler.c
 librasdaemon_a_SOURCES += core/trigger.c

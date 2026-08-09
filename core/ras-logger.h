@@ -5,8 +5,13 @@
  */
 
 #ifndef __RAS_LOGGER_H
+#define __RAS_LOGGER_H
 
+#include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "core/types.h"
@@ -22,17 +27,38 @@
 #define SYSLOG	BIT(0)
 #define TERM	BIT(1)
 #define ALL	(SYSLOG | TERM)
+
+extern bool mock_output;
+extern char *mock_log_buf ;
+extern size_t mock_log_len;
+
 /* TODO: global logging limit mask */
 
-#define log(where, level, fmt, args...) do {			\
-	if ((where) & SYSLOG)					\
-		syslog(level, fmt, ##args);			\
-	if ((where) & TERM) {					\
-		fprintf(stderr, "%s: ", TOOL_NAME);		\
-		fprintf(stderr, fmt, ##args);			\
-		fflush(stderr);					\
-	}							\
+#define log(where, level, fmt, args...) do {				\
+	if (mock_output) {						\
+		char tmp[4096]			;			\
+		int len = snprintf(tmp, sizeof(tmp),			\
+				   "\t" fmt, ##args);			\
+		size_t new_len = mock_log_len + len;			\
+		mock_log_buf = realloc(mock_log_buf, new_len + 1);	\
+		assert(mock_log_buf);					\
+		strcpy(mock_log_buf + mock_log_len, tmp);		\
+                mock_log_len = new_len;					\
+	} else {							\
+		if ((where) & SYSLOG)					\
+			syslog(level, fmt, ##args);			\
+		if ((where) & TERM) {					\
+			fprintf(stderr, "%s: ", TOOL_NAME);		\
+			fprintf(stderr, fmt, ##args);			\
+			fflush(stderr);					\
+		}							\
+	}								\
 } while (0)
 
-#define __RAS_LOGGER_H
+/* Ancillary routines to output logs when mock_output is true */
+
+void ras_logger_clean(void);
+void ras_logger_flush(void);
+
+
 #endif

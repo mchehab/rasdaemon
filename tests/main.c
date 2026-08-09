@@ -3,6 +3,8 @@
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
+#include "core/ras-logger.h"
+
 /*
  * Instead of creating a header file for each test, let's just add them
  * all here, in alphabetic order.
@@ -11,6 +13,8 @@ int test_modules(void);
 
 int main(void)
 {
+	mock_output = true;
+
 	int rc = 0;
 	rc |= test_modules();
 

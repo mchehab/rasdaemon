@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "core/modules.h"
+#include "core/ras-logger.h"
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;
@@ -369,8 +370,11 @@ int test_modules(void)
 		printf("%02i/%02i:   Running %s\n",
 		       i + 1, n_tests, tests[i].name);
 
-		if (tests[i].fn())
+		ras_logger_clean();
+		if (tests[i].fn()) {
+			ras_logger_flush();
 			failures++;
+		}
 	}
 	if (!failures)
 		printf("All module registration tests passed.\n");
