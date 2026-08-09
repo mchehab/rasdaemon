@@ -68,135 +68,143 @@ SUFFIXES += .syslog-ng .syslog-ng.in
 # system after ./configure phase
 all-local: $(SYSTEMD_SERVICES) $(SYSLOG_SERVICES) $(RSYSLOG_SERVICES) $(LOGROTATE_SERVICES)
 
-sbin_PROGRAMS = rasdaemon
+sbin_PROGRAMS = rasdaemon unittest
 
+# Main program
 rasdaemon_SOURCES = core/rasdaemon.c
 
-rasdaemon_SOURCES += core/bitfield.c
-rasdaemon_SOURCES += core/modules.c
-rasdaemon_SOURCES += core/ras-events.c
-rasdaemon_SOURCES += core/ras-mc-handler.c
-rasdaemon_SOURCES += core/trigger.c
-rasdaemon_SOURCES += core/types.c
+# Unit tests
+unittest_SOURCES = tests/main.c
+unittest_SOURCES += tests/test-modules.c
+
+# Rasdaemon libraries is where the code actually sits
+noinst_LIBRARIES = librasdaemon.a
+
+librasdaemon_a_SOURCES = core/bitfield.c
+librasdaemon_a_SOURCES += core/modules.c
+librasdaemon_a_SOURCES += core/ras-events.c
+librasdaemon_a_SOURCES += core/ras-mc-handler.c
+librasdaemon_a_SOURCES += core/trigger.c
+librasdaemon_a_SOURCES += core/types.c
 
 # Keep the IFs alphabetically sorted
 
 if WITH_ABRT_REPORT
-   rasdaemon_SOURCES += modules/ras-report.c
+   librasdaemon_a_SOURCES += modules/ras-report.c
 endif
 
 if WITH_AER
-   rasdaemon_SOURCES += modules/ras-aer-handler.c
+   librasdaemon_a_SOURCES += modules/ras-aer-handler.c
 endif
 
 if WITH_AMP_NS_DECODE
-   rasdaemon_SOURCES += events-arch-arm/non-standard-ampere.c
+   librasdaemon_a_SOURCES += events-arch-arm/non-standard-ampere.c
 endif
 
 if WITH_ARM
-   rasdaemon_SOURCES += events-arch-arm/ras-arm-handler.c
+   librasdaemon_a_SOURCES += events-arch-arm/ras-arm-handler.c
 endif
 
 if WITH_CPU_FAULT_ISOLATION
-   rasdaemon_SOURCES += modules/ras-cpu-isolation.c
-   rasdaemon_SOURCES += core/queue.c
+   librasdaemon_a_SOURCES += modules/ras-cpu-isolation.c
+   librasdaemon_a_SOURCES += core/queue.c
 endif
 
 if WITH_CXL
-   rasdaemon_SOURCES += events/ras-cxl-handler.c
+   librasdaemon_a_SOURCES += events/ras-cxl-handler.c
 endif
 
 if WITH_DEVLINK
-   rasdaemon_SOURCES += events/ras-devlink-handler.c
+   librasdaemon_a_SOURCES += events/ras-devlink-handler.c
 endif
 
 if WITH_DISKERROR
-   rasdaemon_SOURCES += events/ras-diskerror-handler.c
+   librasdaemon_a_SOURCES += events/ras-diskerror-handler.c
 endif
 
 if WITH_ERST
-   rasdaemon_SOURCES += events-arch-x86/ras-erst.c
+   librasdaemon_a_SOURCES += events-arch-x86/ras-erst.c
 endif
 
 if WITH_EXTLOG
-   rasdaemon_SOURCES += core/ras-extlog-handler.c
+   librasdaemon_a_SOURCES += core/ras-extlog-handler.c
 endif
 
 if WITH_HISI_NS_DECODE
-   rasdaemon_SOURCES += events-arch-arm/non-standard-hisi_hip08.c
-   rasdaemon_SOURCES += events-arch-arm/non-standard-hisilicon.c
+   librasdaemon_a_SOURCES += events-arch-arm/non-standard-hisi_hip08.c
+   librasdaemon_a_SOURCES += events-arch-arm/non-standard-hisilicon.c
 endif
 
 if WITH_JAGUAR_NS_DECODE
-   rasdaemon_SOURCES += events-arch-arm/non-standard-jaguarmicro.c
+   librasdaemon_a_SOURCES += events-arch-arm/non-standard-jaguarmicro.c
 endif
 
 if WITH_MCE
-   rasdaemon_SOURCES += events-arch-x86/mce-amd.c
-   rasdaemon_SOURCES += events-arch-x86/mce-amd-k8.c
-   rasdaemon_SOURCES += events-arch-x86/mce-amd-smca.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-broadwell-de.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-broadwell-epex.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-diamond.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-dunnington.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-haswell.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-granite.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-i10nm.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-ivb.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-knl.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-nehalem.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-p4-p6.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-sb.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-skylake-xeon.c
-   rasdaemon_SOURCES += events-arch-x86/mce-intel-tulsa.c
-   rasdaemon_SOURCES += events-arch-x86/mce-zhaoxin.c
-   rasdaemon_SOURCES += events-arch-x86/mce-zhaoxin-kh50000.c
-   rasdaemon_SOURCES += events-arch-x86/ras-mce-handler.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-amd.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-amd-k8.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-amd-smca.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-broadwell-de.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-broadwell-epex.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-diamond.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-dunnington.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-haswell.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-granite.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-i10nm.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-ivb.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-knl.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-nehalem.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-p4-p6.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-sb.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-skylake-xeon.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-intel-tulsa.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-zhaoxin.c
+   librasdaemon_a_SOURCES += events-arch-x86/mce-zhaoxin-kh50000.c
+   librasdaemon_a_SOURCES += events-arch-x86/ras-mce-handler.c
 endif
 
 if WITH_MEMORY_FAILURE
-   rasdaemon_SOURCES += events/ras-memory-failure-handler.c
+   librasdaemon_a_SOURCES += events/ras-memory-failure-handler.c
 endif
 
 if WITH_NVIDIA_NS_DECODE
-   rasdaemon_SOURCES += events-arch-arm/non-standard-nvidia.c
+   librasdaemon_a_SOURCES += events-arch-arm/non-standard-nvidia.c
 endif
 
 if WITH_NON_STANDARD
-   rasdaemon_SOURCES += events-arch-arm/ras-non-standard-handler.c
+   librasdaemon_a_SOURCES += events-arch-arm/ras-non-standard-handler.c
 endif
 
 if WITH_OPENBMC_UNIFIED_SEL
-   rasdaemon_SOURCES += events/unified-sel.c
+   librasdaemon_a_SOURCES += events/unified-sel.c
 endif
 
 if WITH_PFA
-   rasdaemon_SOURCES += core/rbtree.c modules/ras-page-isolation.c
+   librasdaemon_a_SOURCES += core/rbtree.c modules/ras-page-isolation.c
 endif
 
 if WITH_POISON_PAGE_STAT
-   rasdaemon_SOURCES += events/ras-poison-page-stat.c
+   librasdaemon_a_SOURCES += events/ras-poison-page-stat.c
 endif
 
 if WITH_SIGNAL
-   rasdaemon_SOURCES += events/ras-signal-handler.c
+   librasdaemon_a_SOURCES += events/ras-signal-handler.c
 endif
 
 if WITH_SQLITE3
-   rasdaemon_SOURCES += db/ras-record.c
+   librasdaemon_a_SOURCES += db/ras-record.c
 endif
 
 if WITH_YITIAN_NS_DECODE
-   rasdaemon_SOURCES += events-arch-arm/non-standard-yitian.c
+   librasdaemon_a_SOURCES += events-arch-arm/non-standard-yitian.c
 endif
 
 if WITH_RERI
-   rasdaemon_SOURCES += events/ras-reri-handler.c
+   librasdaemon_a_SOURCES += events/ras-reri-handler.c
 endif
 
-rasdaemon_LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS) $(LIBPCI_LIBS)
-rasdaemon_CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS) $(LIBPCI_CFLAGS)
+LDADD = -lpthread $(SQLITE3_LIBS) $(LIBTRACEEVENT_LIBS) $(LIBPCI_LIBS) librasdaemon.a
+CFLAGS = $(SQLITE3_CFLAGS) $(LIBTRACEEVENT_CFLAGS) $(LIBPCI_CFLAGS)
 
 include_HEADERS = config.h
 
@@ -255,6 +263,9 @@ rpmlint:
 
 upload:
 	scp `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm @PACKAGE@-@PACKAGE_VERSION@.tar.bz2 misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon
+
+test: unittest librasdaemon.a
+	./unittest
 
 # custom target
 install-data-local:
