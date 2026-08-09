@@ -223,12 +223,110 @@ int test_register_muptiple_levels(void)
 	return rc;
 }
 
+struct ras_events {
+	const char *name;
+};
+
+int test_module_init(const char *name, struct ras_events *ras, void **priv)
+{
+	ras->name = name;
+	fprintf(stderr,"module %s init called.\n", name);
+
+	*priv = ras;
+
+	return 0;
+}
+
+void test_module_cleanup(const struct ras_module_entry *entry, void *priv)
+{
+	fprintf(stderr,"level %d: module %s cleanup called.\n",
+		entry->level, entry->name);
+}
+
+int test_init_cleanup(void)
+{
+	struct ras_module_entry_runtime *entry;
+	int rc = 0;
+
+	static const struct ras_module_entry mods[] = {
+		{
+			.name   = "beta",
+			.init   = test_module_init,
+			.cleanup = test_module_cleanup,
+			.level  = SUB_EVENT_MODULE,
+		}, {
+			.name   = "echo",
+			.init   = test_module_init,
+			.cleanup = test_module_cleanup,
+			.level  = BASE_EVENT_MODULE,
+		}, {
+			.name   = "charlie",
+			.init   = test_module_init,
+			.cleanup = test_module_cleanup,
+			.level  = CORE_MODULE,
+		}, {
+			.name   = "delta",
+			.init   = test_module_init,
+			.cleanup = test_module_cleanup,
+			.level  = DB_MODULE,
+		}, {
+			.name   = "foxtrot",
+			.init   = test_module_init,
+			.cleanup = test_module_cleanup,
+			.level  = CORE_MODULE,
+		}, {
+			.name   = "alpha",
+			.init   = test_module_init,
+			.cleanup = test_module_cleanup,
+			.level  = CORE_MODULE,
+		},
+	};
+	static const char *names[] = {
+		"alpha",
+		"beta",
+		"charlie",
+		"delta",
+		"echo",
+		"foxtrot",
+	};
+
+	static struct ras_events ras;
+
+	for (int i = 0; i < ARRAY_SIZE(mods); i++) {
+		rc |= module_register(&mods[i]);
+		rc |= check(rc == 0);
+	}
+
+	modules_init(&ras);
+
+	entry = ras_modules.head;
+	for (int i = 0;  i < ARRAY_SIZE(mods); i++) {
+		if (!entry) {
+			fprintf(stderr,
+				"FAIL: %s:%d: module #%d: %s is missing\n",
+				__FILE__, __LINE__, i, names[i]);
+			rc |= -1;
+		} else {
+			rc |= check(!strcmp(entry->e->name, names[i]));
+		}
+
+		if (entry)
+			entry = entry->next;
+	}
+
+	modules_unregister();
+	rc |= check(ras_modules.head == NULL);
+
+	return rc;
+}
+
 struct test_case tests[] = {
 	{ test_register_null_entry,		"NULL entry" },
 	{ test_register_single_module,		"single module" },
 	{ test_register_modules_in_order,	"modules in order" },
 	{ test_register_mixed_order,		"modules out of order" },
 	{ test_register_muptiple_levels,	"multiple levels" },
+	{ test_init_cleanup,			"init/cleanup" },
 };
 
 /*
