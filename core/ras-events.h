@@ -44,30 +44,30 @@ enum {
 struct ras_db;
 
 struct ras_events {
-	char tracing[MAX_PATH + 1];
-	struct tep_handle *pevent;
-	int page_size;
+	char			tracing[MAX_PATH + 1];
+	struct tep_handle	*pevent;
+	int			page_size;
 
 	/* Booleans */
-	unsigned	use_uptime: 1;
-	unsigned        record_events: 1;
+	unsigned		use_uptime: 1;
+	unsigned		record_events: 1;
 
 	/* For timestamp */
-	time_t		uptime_diff;
+	time_t			uptime_diff;
 
 	/* For ras-record and ras-db */
-	struct ras_db	*db;
-	void		*db_priv;
-	int		db_ref_count;
-	pthread_mutex_t	db_lock;
+	struct ras_db		*db;
+	void			*db_priv;
+	int			db_ref_count;
+	pthread_mutex_t		db_lock;
 
 	/* For the mce handler */
-	struct mce_priv	*mce_priv;
+	struct mce_priv		*mce_priv;
 
 	/* For ABRT socket*/
-	int socketfd;
+	int			socketfd;
 
-	struct tep_event_filter *filters[NR_EVENTS];
+	struct tep_event_filter	*filters[NR_EVENTS];
 };
 
 struct pthread_data {

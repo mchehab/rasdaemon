@@ -14,12 +14,80 @@
 #include "config.h"
 
 #include "core/ras-logger.h"
-#include "core/ras-events.h"
+
 #include "db/ras-db.h"
+#include "db/ras-db-backend.h"
 
 #define SQLITE_RAS_DB RASSTATEDIR "/" RAS_DB_FNAME
 
-const char *db_get_sql_type(enum db_field_type type, bool is_pk)
+static int db_sqlite3_open(struct ras_db *__db, unsigned int cpu)
+{
+	sqlite3 *db = (void *) __db;
+	struct ras_record_priv *priv;
+	int rc;
+
+	struct stat st = {0};
+
+	if (stat(RASSTATEDIR, &st) == -1) {
+		if (errno != ENOENT) {
+			log(TERM, LOG_ERR,
+			    "Failed to read state directory " RASSTATEDIR);
+			return -1;
+		}
+
+		if (mkdir(RASSTATEDIR, 0700) == -1) {
+			log(TERM, LOG_ERR,
+			    "Failed to create state directory " RASSTATEDIR);
+			return -1;
+		}
+	}
+
+	rc = sqlite3_initialize();
+	if (rc != SQLITE_OK) {
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to initialize sqlite: error = %d\n",
+		    cpu, rc);
+		return -1;
+	}
+
+	do {
+		rc = sqlite3_open_v2(SQLITE_RAS_DB, &db,
+				     SQLITE_OPEN_FULLMUTEX |
+				     SQLITE_OPEN_READWRITE |
+				     SQLITE_OPEN_CREATE, NULL);
+		if (rc == SQLITE_BUSY)
+			usleep(10000);
+	} while (rc == SQLITE_BUSY);
+
+	if (rc != SQLITE_OK) {
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to connect to %s: error = %d\n",
+		    cpu, SQLITE_RAS_DB, rc);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int db_sqlite3_close(struct ras_db *__db, unsigned int cpu)
+{
+	sqlite3 *db = (void *) __db;
+	int rc;
+
+	rc = sqlite3_close_v2((sqlite3 *)db);
+	if (rc != SQLITE_OK)
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to close sqlite: error = %d\n", cpu, rc);
+
+	rc = sqlite3_shutdown();
+	if (rc != SQLITE_OK)
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to shutdown sqlite: error = %d\n", cpu, rc);
+
+	return 0;
+}
+
+static const char *db_sqlite3_get_sql_type(enum db_field_type type, bool is_pk)
 {
 	/*
 	* On sqlite3, integers are 64 bits and there's no timestamp type
@@ -44,8 +112,9 @@ const char *db_get_sql_type(enum db_field_type type, bool is_pk)
 	}
 }
 
-void db_bind_type(struct ras_stmt *__stmt, const enum db_field_type type,
-			 const int pos, uint64_t value, int len)
+static void db_sqlite3_bind_type(struct ras_stmt *__stmt,
+				 const enum db_field_type type,
+				 const int pos, uint64_t value, int len)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
 
@@ -72,8 +141,9 @@ void db_bind_type(struct ras_stmt *__stmt, const enum db_field_type type,
 	}
 }
 
-void db_bind(struct ras_stmt *stmt, const struct db_fields *fields,
-		    const int pos, uint64_t value, int len)
+static void db_sqlite3_bind(struct ras_stmt *stmt,
+			   const struct db_fields *fields,
+			   const int pos, uint64_t value, int len)
 {
 	if (pos < 1) {
 		log(TERM, LOG_INFO, "invalid pos: %d\n", pos);
@@ -83,7 +153,7 @@ void db_bind(struct ras_stmt *stmt, const struct db_fields *fields,
 	db_bind_type(stmt, fields[pos - 1].type, pos, value, len);
 }
 
-int db_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
+static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
 	int rc;
@@ -109,8 +179,8 @@ int db_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 	return rc;
 }
 
-int db_create_table(struct ras_db *__db,
-		    const struct db_table_descriptor *db_tab)
+static int db_sqlite3_create_table(struct ras_db *__db,
+				   const struct db_table_descriptor *db_tab)
 {
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
 	const struct db_fields *field;
@@ -145,9 +215,9 @@ int db_create_table(struct ras_db *__db,
 	return rc;
 }
 
-int db_alter_table(struct ras_db *__db,
-		       struct ras_stmt **__stmt,
-		       const struct db_table_descriptor *db_tab)
+static int db_sqlite3_alter_table(struct ras_db *__db,
+				  struct ras_stmt **__stmt,
+				  const struct db_table_descriptor *db_tab)
 {
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
 	sqlite3_stmt **stmt = (void *)__stmt;
@@ -206,8 +276,8 @@ int db_alter_table(struct ras_db *__db,
 }
 
 static int __db_prepare_stmt(struct sqlite3 *db,
-				 sqlite3_stmt **stmt,
-				 const struct db_table_descriptor *db_tab)
+			     sqlite3_stmt **stmt,
+			     const struct db_table_descriptor *db_tab)
 
 {
 	int i, rc;
@@ -251,9 +321,9 @@ static int __db_prepare_stmt(struct sqlite3 *db,
 	return rc;
 }
 
-int db_prepare_stmt(struct ras_db *__db,
-			struct ras_stmt **__stmt,
-			const struct db_table_descriptor *db_tab)
+static int db_sqlite3_prepare_stmt(struct ras_db *__db,
+				   struct ras_stmt **__stmt,
+				   const struct db_table_descriptor *db_tab)
 {
 	sqlite3_stmt **stmt = (sqlite3_stmt **)__stmt;
 	sqlite3 *db = (sqlite3 *)__db;
@@ -284,137 +354,58 @@ int db_prepare_stmt(struct ras_db *__db,
 	return rc;
 }
 
-// TODO: remove struct ras_events *ras, replacing it by struct ras_db
-int db_create_table_prep_stmt(struct ras_events *ras,
-			    struct ras_stmt **stmt,
-			    const struct db_table_descriptor *db_tab)
-{
-	struct ras_db *db = ras->db;
-	int rc;
-
-	rc = db_create_table(db, db_tab);
-	if (rc == SQLITE_OK)
-		rc = db_prepare_stmt(db, stmt, db_tab);
-
-	/*
-	 * on sqlite3, SQLITE_OK is actually zero, but let's do it to
-	 * stabilish a generic API contract: returning zero here means no
-	 * error.
-	 */
-	if (rc == SQLITE_OK)
-		return 0;
-
-	return rc;
-}
-
-int db_finalize(struct ras_stmt *__stmt)
+static int db_sqlite3_finalize(unsigned int cpu,
+			       struct ras_stmt *__stmt, const char *name)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
 	int rc;
 
 	rc = sqlite3_finalize(stmt);
-	if (rc != SQLITE_OK)
+	if (rc == SQLITE_OK)
+		return 0;
+
+	if (cpu >= 0)
+		log(TERM, LOG_ERR,
+		    "cpu %u: Failed to finalize %s. Sqlite: error = %d\n",
+		    cpu, name, rc);
+	else
 		log(TERM, LOG_ERR,
 		    "Failed to finalize sqlite: error = %d\n", rc);
 
-		return rc;
+	return rc;
 }
 
-int db_open(unsigned int cpu, struct ras_events *ras, size_t size_priv)
+static const struct ras_db_backend_ops sqlite3_backend_ops = {
+	.open                   = db_sqlite3_open,
+	.close                  = db_sqlite3_close,
+
+	.get_sql_type           = db_sqlite3_get_sql_type,
+	.bind_type              = db_sqlite3_bind_type,
+	.bind                   = db_sqlite3_bind,
+
+	.eval_stmt              = db_sqlite3_eval_stmt,
+	.create_table           = db_sqlite3_create_table,
+	.alter_table            = db_sqlite3_alter_table,
+	.prepare_stmt           = db_sqlite3_prepare_stmt,
+	.finalize               = db_sqlite3_finalize,
+};
+
+static struct ras_db_backend_entry sqlite3_backend_entry = {
+	.name = "sqlite3",
+	.ops  = &sqlite3_backend_ops,
+};
+
+/*
+ * Automatically register the backend.
+ */
+__attribute__((constructor)) static void sqlite3_register_backend(void)
 {
-	sqlite3 *db = (void *) ras->db;
-	struct ras_record_priv *priv;
-	int rc;
+	int ret;
 
-	ras->db_ref_count++;
-	if (ras->db_ref_count > 1)
-		return 0;
-
-	ras->db_priv = NULL;
-
-	priv = calloc(1, size_priv);
-	if (!priv)
-		return -1;
-
-	struct stat st = {0};
-
-	if (stat(RASSTATEDIR, &st) == -1) {
-		if (errno != ENOENT) {
-			log(TERM, LOG_ERR,
-			    "Failed to read state directory " RASSTATEDIR);
-			goto error;
-		}
-
-		if (mkdir(RASSTATEDIR, 0700) == -1) {
-			log(TERM, LOG_ERR,
-			    "Failed to create state directory " RASSTATEDIR);
-			goto error;
-		}
-	}
-
-	rc = sqlite3_initialize();
-	if (rc != SQLITE_OK) {
-		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to initialize sqlite: error = %d\n",
-		    cpu, rc);
-		goto error;
-	}
-
-	do {
-		rc = sqlite3_open_v2(SQLITE_RAS_DB, &db,
-				     SQLITE_OPEN_FULLMUTEX |
-				     SQLITE_OPEN_READWRITE |
-				     SQLITE_OPEN_CREATE, NULL);
-		if (rc == SQLITE_BUSY)
-			usleep(10000);
-	} while (rc == SQLITE_BUSY);
-
-	if (rc != SQLITE_OK) {
-		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to connect to %s: error = %d\n",
-		    cpu, SQLITE_RAS_DB, rc);
-		goto error;
-	}
-
-	ras->db = (struct ras_db *)db;
-	ras->db_priv = priv;
-	return 0;
-
-error:
-	free(priv);
-	return -1;
-}
-
-int db_cpu_finalize(unsigned int cpu, struct ras_stmt *__stmt, const char *name)
-{
-	sqlite3_stmt *stmt = (void *)__stmt;
-
-	if (stmt) {
-		int rc = sqlite3_finalize(stmt);
-		if (rc != SQLITE_OK)
-			log(TERM, LOG_ERR,
-			    "cpu %u: Failed to finalize %s. Sqlite: error = %d\n",
-                            cpu, name, rc);
+	ret = db_backend_register(&sqlite3_backend_entry);
+	if (ret != 0) {
+		log(TERM, LOG_ERR, "Failed to register SQLite3 backend: %d\n", ret);
+	} else {
+		log(TERM, LOG_INFO, "SQLite3 backend registered successfully.\n");
 	}
 }
-
-int db_close(unsigned int cpu, struct ras_events *ras)
-{
-	int rc;
-
-	rc = sqlite3_close_v2((sqlite3 *)ras->db);
-	if (rc != SQLITE_OK)
-		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to close sqlite: error = %d\n", cpu, rc);
-
-	rc = sqlite3_shutdown();
-	if (rc != SQLITE_OK)
-		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to shutdown sqlite: error = %d\n", cpu, rc);
-
-	free(ras->db_priv);
-	ras->db_priv = NULL;
-
-	return 0;
-}
-

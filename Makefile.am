@@ -194,6 +194,7 @@ endif
 
 if WITH_SQLITE3
    librasdaemon_a_SOURCES += db/db-sqlite3.c
+   librasdaemon_a_SOURCES += db/ras-db.c
    librasdaemon_a_SOURCES += db/ras-record.c
 endif
 
