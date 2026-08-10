@@ -303,7 +303,7 @@ test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wstrict-prototypes"
 
 AC_SUBST([rasstatedir], [$localstatedir/lib/rasdaemon])
-AC_DEFINE_DIR([RASSTATEDIR], [rasstatedir], [rasdaemon db store state dir])
+AC_DEFINE([RASSTATEDIR], ["rasstatedir"], [rasdaemon db store state dir])
 AC_SUBST([RASSTATEDIR])
 
 AC_ARG_WITH(sysconfdefdir,

@@ -41,6 +41,8 @@ enum {
 	NR_EVENTS
 };
 
+struct ras_db;
+
 struct ras_events {
 	char tracing[MAX_PATH + 1];
 	struct tep_handle *pevent;
@@ -53,10 +55,11 @@ struct ras_events {
 	/* For timestamp */
 	time_t		uptime_diff;
 
-	/* For ras-record */
-	void	*db_priv;
-	int	db_ref_count;
-	pthread_mutex_t db_lock;
+	/* For ras-record and ras-db */
+	struct ras_db	*db;
+	void		*db_priv;
+	int		db_ref_count;
+	pthread_mutex_t	db_lock;
 
 	/* For the mce handler */
 	struct mce_priv	*mce_priv;

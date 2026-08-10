@@ -13,6 +13,8 @@
 #include <stdint.h>
 
 #include "config.h"
+
+#include "db/ras-db.h"
 #include "core/types.h"
 
 extern long user_hz;
@@ -318,91 +320,53 @@ struct ras_signal_event;
 struct ras_cxl_memory_sparing_event;
 struct ras_reri_event;
 
+struct ras_record_priv {
+	struct ras_stmt	*stmt_mc_event;
+	/* AER */
+	struct ras_stmt	*stmt_aer_event;
+
+	/* MCE */
+	struct ras_stmt	*stmt_mce_record;
+
+	/* EXTLOG */
+	struct ras_stmt	*stmt_extlog_record;
+
+	/* NON_STANDARD */
+	struct ras_stmt	*stmt_non_standard_record;
+
+	/* ARM */
+	struct ras_stmt	*stmt_arm_record;
+
+	/* DEVLINK */
+	struct ras_stmt	*stmt_devlink_event;
+
+	/* DISKERROR */
+	struct ras_stmt	*stmt_diskerror_event;
+
+	/* MEMORY_FAILURE */
+	struct ras_stmt	*stmt_mf_event;
+
+	/* CXL */
+	struct ras_stmt	*stmt_cxl_poison_event;
+	struct ras_stmt	*stmt_cxl_aer_ue_event;
+	struct ras_stmt	*stmt_cxl_aer_ce_event;
+	struct ras_stmt	*stmt_cxl_overflow_event;
+	struct ras_stmt	*stmt_cxl_generic_event;
+	struct ras_stmt	*stmt_cxl_general_media_event;
+	struct ras_stmt	*stmt_cxl_dram_event;
+	struct ras_stmt	*stmt_cxl_memory_module_event;
+
+	/* SIGNAL */
+	struct ras_stmt	*stmt_signal_event;
+
+	/* RERI */
+	struct ras_stmt	*stmt_reri_event;
+};
+
+
 #ifdef HAVE_SQLITE3
-
-#include <sqlite3.h>
-
-struct sqlite3_priv {
-	sqlite3		*db;
-	sqlite3_stmt	*stmt_mc_event;
-#ifdef HAVE_AER
-	sqlite3_stmt	*stmt_aer_event;
-#endif
-#ifdef HAVE_MCE
-	sqlite3_stmt	*stmt_mce_record;
-#endif
-#ifdef HAVE_EXTLOG
-	sqlite3_stmt	*stmt_extlog_record;
-#endif
-#ifdef HAVE_NON_STANDARD
-	sqlite3_stmt	*stmt_non_standard_record;
-#endif
-#ifdef HAVE_ARM
-	sqlite3_stmt	*stmt_arm_record;
-#endif
-#ifdef HAVE_DEVLINK
-	sqlite3_stmt	*stmt_devlink_event;
-#endif
-#ifdef HAVE_DISKERROR
-	sqlite3_stmt	*stmt_diskerror_event;
-#endif
-#ifdef HAVE_MEMORY_FAILURE
-	sqlite3_stmt	*stmt_mf_event;
-#endif
-#ifdef HAVE_CXL
-	sqlite3_stmt	*stmt_cxl_poison_event;
-	sqlite3_stmt	*stmt_cxl_aer_ue_event;
-	sqlite3_stmt	*stmt_cxl_aer_ce_event;
-	sqlite3_stmt	*stmt_cxl_overflow_event;
-	sqlite3_stmt	*stmt_cxl_generic_event;
-	sqlite3_stmt	*stmt_cxl_general_media_event;
-	sqlite3_stmt	*stmt_cxl_dram_event;
-	sqlite3_stmt	*stmt_cxl_memory_module_event;
-#endif
-#ifdef HAVE_SIGNAL
-	sqlite3_stmt	*stmt_signal_event;
-#endif
-#ifdef HAVE_RERI
-	sqlite3_stmt	*stmt_reri_event;
-#endif
-};
-
-enum db_field_type {
-	DB_TYPE_SERIAL,		/* auto-increment integer */
-	DB_TYPE_INT64,		/* 64-bit signed integer */
-	DB_TYPE_INT32,		/* 32-bit signed integer */
-
-	DB_TYPE_TIMESTAMP,	/* ISO timestamp */
-
-	DB_TYPE_TEXT,		/* Variable-length string */
-
-	DB_TYPE_BLOB,		/* Binary data */
-};
-
-struct db_fields {
-	const char *name;
-	enum db_field_type type;
-	bool is_pk;
-};
-
-struct db_table_descriptor {
-	const char              *name;
-	const struct db_fields  *fields;
-	size_t                  num_fields;
-};
-
 int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras);
 int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras);
-int ras_mc_add_vendor_table(struct ras_events *ras, sqlite3_stmt **stmt,
-			    const struct db_table_descriptor *db_tab);
-int ras_mc_finalize_vendor_table(sqlite3_stmt *stmt);
-
-void ras_store_bind_type(sqlite3_stmt *stmt, const enum db_field_type type,
-			 const int pos, uint64_t value, int len);
-void ras_store_bind(sqlite3_stmt *stmt, const struct db_fields *fields,
-		    const int pos, uint64_t value, int len);
-int ras_store_eval_stmt(struct sqlite3_stmt *stmt, const char *tab_name);
-
 
 int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev);
 int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev);

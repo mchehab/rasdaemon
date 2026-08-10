@@ -193,6 +193,7 @@ if WITH_SIGNAL
 endif
 
 if WITH_SQLITE3
+   librasdaemon_a_SOURCES += db/ras-db.c
    librasdaemon_a_SOURCES += db/ras-record.c
 endif
 
