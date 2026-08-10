@@ -602,11 +602,11 @@ static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 {
 	switch (data_type) {
 		case DB_TYPE_TEXT:
-			ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
+			db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
 					    id, (uint64_t)text, -1);
 			break;
 		default:
-			ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
+			db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
 					    id, data, -1);
 			break;
 	}
@@ -619,7 +619,7 @@ static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
 	if (ev_decoder) {
 		record_jm_data(ev_decoder, DB_TYPE_TEXT,
 			       JM_PAYLOAD_FIELD_REGS_DUMP, 0, reg_str);
-		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+		db_eval_stmt(ev_decoder->stmt_dec_record,
 				    "jm_payload0_event_tab");
 	}
 }
@@ -1042,7 +1042,7 @@ static int add_jm_oem_type0_table(struct ras_events *ras, struct ras_ns_ev_decod
 {
 #ifdef HAVE_SQLITE3
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &jm_payload0_event_tab) != 0) {
 			log(TERM, LOG_WARNING, "Failed to create sql jm_payload0_event_tab\n");
 			return -1;

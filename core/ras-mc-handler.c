@@ -300,7 +300,7 @@ int ras_mc_event_handler(struct trace_seq *s,
 
 	/* Insert data into the SGBD */
 
-	ras_store_mc_event(ras, &ev);
+	db_mc_event(ras, &ev);
 
 	ras_mc_event_stat(now, &ev);
 

@@ -131,7 +131,7 @@ int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
 
 	/* Store data into the SQLite DB */
 #ifdef HAVE_SQLITE3
-	ras_store_signal_event(ras, &ev);
+	db_signal_event(ras, &ev);
 #endif
 
 #ifdef HAVE_ABRT_REPORT

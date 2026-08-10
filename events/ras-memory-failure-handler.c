@@ -216,7 +216,7 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 
 	/* Store data into the SQLite DB */
 #ifdef HAVE_SQLITE3
-	ras_store_mf_event(ras, &ev);
+	db_mf_event(ras, &ev);
 #endif
 
 #ifdef HAVE_ABRT_REPORT

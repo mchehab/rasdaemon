@@ -93,11 +93,11 @@ void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 
 	switch (data_type) {
 	case DB_TYPE_TEXT:
-		ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
+		db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
 				    id, (uint64_t)text, -1);
 		break;
 	default:
-		ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
+		db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
 				    id, data, -1);
 		break;
 	}
@@ -108,7 +108,7 @@ int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 	if (!ev_decoder->stmt_dec_record)
 		return 0;
 
-	return ras_store_eval_stmt(ev_decoder->stmt_dec_record, name);
+	return db_eval_stmt(ev_decoder->stmt_dec_record, name);
 }
 #else
 void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
@@ -324,7 +324,7 @@ static int add_hisi_common_table(struct ras_events *ras,
 #ifdef HAVE_SQLITE3
 	if (ras->record_events &&
 	    !ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &hisi_common_section_tab) != 0) {
 			log(TERM, LOG_WARNING, "Failed to create sql hisi_common_section_tab\n");
 			return -1;

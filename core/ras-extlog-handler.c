@@ -294,7 +294,7 @@ int ras_extlog_mem_event_handler(struct trace_seq *s,
 
 	report_extlog_mem_event(ras, record, s, &ev);
 
-	ras_store_extlog_mem_record(ras, &ev);
+	db_extlog_mem_record(ras, &ev);
 
 	return 0;
 }

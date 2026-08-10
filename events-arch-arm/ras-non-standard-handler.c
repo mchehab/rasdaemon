@@ -139,7 +139,7 @@ void ras_ns_finalize_vendor_tables(void)
 
 	while (ns_ev_decoder) {
 		if (ns_ev_decoder->stmt_dec_record) {
-			ras_mc_finalize_vendor_table(ns_ev_decoder->stmt_dec_record);
+			db_finalize(ns_ev_decoder->stmt_dec_record);
 			ns_ev_decoder->stmt_dec_record = NULL;
 		}
 		ns_ev_decoder = ns_ev_decoder->next;
@@ -262,7 +262,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
-	ras_store_non_standard_record(ras, &ev);
+	db_non_standard_record(ras, &ev);
 #endif
 
 #ifdef HAVE_ABRT_REPORT

@@ -48,7 +48,7 @@ static const struct db_table_descriptor mc_event_tab = {
 	.num_fields = ARRAY_SIZE(mc_event_fields),
 };
 
-int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
+int db_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -57,21 +57,21 @@ int ras_store_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 		return 0;
 	log(TERM, LOG_INFO, "mc_event store: %p\n", priv->stmt_mc_event);
 
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  2, ev->error_count, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  3, (uint64_t)ev->error_type, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  4, (uint64_t)ev->msg, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  5, (uint64_t)ev->label, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  6, ev->mc_index, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  7, ev->top_layer, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  8, ev->middle_layer, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields,  9, ev->lower_layer, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields, 10, ev->address, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields, 11, ev->grain, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields, 12, ev->syndrome, -1);
-	ras_store_bind(priv->stmt_mc_event, mc_event_fields, 13, (uint64_t)ev->driver_detail, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  2, ev->error_count, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  3, (uint64_t)ev->error_type, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  4, (uint64_t)ev->msg, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  5, (uint64_t)ev->label, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  6, ev->mc_index, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  7, ev->top_layer, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  8, ev->middle_layer, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields,  9, ev->lower_layer, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields, 10, ev->address, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields, 11, ev->grain, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields, 12, ev->syndrome, -1);
+	db_bind(priv->stmt_mc_event, mc_event_fields, 13, (uint64_t)ev->driver_detail, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_mc_event, "mc_event");
+	rc = db_eval_stmt(priv->stmt_mc_event, "mc_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -97,7 +97,7 @@ static const struct db_table_descriptor aer_event_tab = {
 	.num_fields = ARRAY_SIZE(aer_event_fields),
 };
 
-int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
+int db_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -106,12 +106,12 @@ int ras_store_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 		return 0;
 	log(TERM, LOG_INFO, "aer_event store: %p\n", priv->stmt_aer_event);
 
-	ras_store_bind(priv->stmt_aer_event, aer_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_aer_event, aer_event_fields, 2, (uint64_t)ev->dev_name, -1);
-	ras_store_bind(priv->stmt_aer_event, aer_event_fields, 3, (uint64_t)ev->error_type, -1);
-	ras_store_bind(priv->stmt_aer_event, aer_event_fields, 4, (uint64_t)ev->msg, -1);
+	db_bind(priv->stmt_aer_event, aer_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_aer_event, aer_event_fields, 2, (uint64_t)ev->dev_name, -1);
+	db_bind(priv->stmt_aer_event, aer_event_fields, 3, (uint64_t)ev->error_type, -1);
+	db_bind(priv->stmt_aer_event, aer_event_fields, 4, (uint64_t)ev->msg, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_aer_event, "aer_event");
+	rc = db_eval_stmt(priv->stmt_aer_event, "aer_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -140,7 +140,7 @@ static const struct db_table_descriptor non_standard_event_tab = {
 	.num_fields = ARRAY_SIZE(non_standard_event_fields),
 };
 
-int ras_store_non_standard_record(struct ras_events *ras, struct ras_non_standard_event *ev)
+int db_non_standard_record(struct ras_events *ras, struct ras_non_standard_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -149,14 +149,14 @@ int ras_store_non_standard_record(struct ras_events *ras, struct ras_non_standar
 		return 0;
 	log(TERM, LOG_INFO, "non_standard_event store: %p\n", priv->stmt_non_standard_record);
 
-	ras_store_bind(priv->stmt_non_standard_record, non_standard_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_non_standard_record, non_standard_event_fields, 2, (uint64_t)ev->sec_type, -1);
-	ras_store_bind(priv->stmt_non_standard_record, non_standard_event_fields, 3, (uint64_t)ev->fru_id,  16);
-	ras_store_bind(priv->stmt_non_standard_record, non_standard_event_fields, 4, (uint64_t)ev->fru_text, -1);
-	ras_store_bind(priv->stmt_non_standard_record, non_standard_event_fields, 5, (uint64_t)ev->severity, -1);
-	ras_store_bind(priv->stmt_non_standard_record, non_standard_event_fields, 6, (uint64_t)ev->error,  ev->length);
+	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 2, (uint64_t)ev->sec_type, -1);
+	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 3, (uint64_t)ev->fru_id,  16);
+	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 4, (uint64_t)ev->fru_text, -1);
+	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 5, (uint64_t)ev->severity, -1);
+	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 6, (uint64_t)ev->error,  ev->length);
 
-	rc = ras_store_eval_stmt(priv->stmt_non_standard_record, "non_standard_record");
+	rc = db_eval_stmt(priv->stmt_non_standard_record, "non_standard_record");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 }
@@ -191,7 +191,7 @@ static const struct db_table_descriptor arm_event_tab = {
 	.num_fields = ARRAY_SIZE(arm_event_fields),
 };
 
-int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
+int db_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -200,22 +200,22 @@ int ras_store_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 		return 0;
 	log(TERM, LOG_INFO, "arm_event store: %p\n", priv->stmt_arm_record);
 
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 2, ev->error_count, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 3, ev->affinity, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 4, ev->mpidr, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 5, ev->running_state, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 6, ev->psci_state, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 7, (uint64_t)ev->pei_error,  ev->pei_len);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 8, (uint64_t)ev->ctx_error,  ev->ctx_len);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 9, (uint64_t)ev->vsei_error,  ev->oem_len);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 10, (uint64_t)ev->error_types, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 11, (uint64_t)ev->error_flags, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 12, ev->error_info, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 13, ev->virt_fault_addr, -1);
-	ras_store_bind(priv->stmt_arm_record, arm_event_fields, 14, ev->phy_fault_addr, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 2, ev->error_count, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 3, ev->affinity, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 4, ev->mpidr, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 5, ev->running_state, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 6, ev->psci_state, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 7, (uint64_t)ev->pei_error,  ev->pei_len);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 8, (uint64_t)ev->ctx_error,  ev->ctx_len);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 9, (uint64_t)ev->vsei_error,  ev->oem_len);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 10, (uint64_t)ev->error_types, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 11, (uint64_t)ev->error_flags, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 12, ev->error_info, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 13, ev->virt_fault_addr, -1);
+	db_bind(priv->stmt_arm_record, arm_event_fields, 14, ev->phy_fault_addr, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_arm_record, "arm_record");
+	rc = db_eval_stmt(priv->stmt_arm_record, "arm_record");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -242,7 +242,7 @@ static const struct db_table_descriptor extlog_event_tab = {
 	.num_fields = ARRAY_SIZE(extlog_event_fields),
 };
 
-int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev)
+int db_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -251,16 +251,16 @@ int ras_store_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event 
 		return 0;
 	log(TERM, LOG_INFO, "extlog_record store: %p\n", priv->stmt_extlog_record);
 
-	ras_store_bind(priv->stmt_extlog_record, extlog_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_extlog_record, extlog_event_fields, 2, ev->etype, -1);
-	ras_store_bind(priv->stmt_extlog_record, extlog_event_fields, 3, ev->error_seq, -1);
-	ras_store_bind(priv->stmt_extlog_record, extlog_event_fields, 4, ev->severity, -1);
-	ras_store_bind(priv->stmt_extlog_record, extlog_event_fields, 5, ev->address, -1);
-	ras_store_bind(priv->stmt_extlog_record, extlog_event_fields, 6, (uint64_t)ev->fru_id,  16);
-	ras_store_bind(priv->stmt_extlog_record, extlog_event_fields, 7, (uint64_t)ev->fru_text, -1);
-	ras_store_bind(priv->stmt_extlog_record, extlog_event_fields, 8, (uint64_t)ev->cper_data,  ev->cper_data_length);
+	db_bind(priv->stmt_extlog_record, extlog_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_extlog_record, extlog_event_fields, 2, ev->etype, -1);
+	db_bind(priv->stmt_extlog_record, extlog_event_fields, 3, ev->error_seq, -1);
+	db_bind(priv->stmt_extlog_record, extlog_event_fields, 4, ev->severity, -1);
+	db_bind(priv->stmt_extlog_record, extlog_event_fields, 5, ev->address, -1);
+	db_bind(priv->stmt_extlog_record, extlog_event_fields, 6, (uint64_t)ev->fru_id,  16);
+	db_bind(priv->stmt_extlog_record, extlog_event_fields, 7, (uint64_t)ev->fru_text, -1);
+	db_bind(priv->stmt_extlog_record, extlog_event_fields, 8, (uint64_t)ev->cper_data,  ev->cper_data_length);
 
-	rc = ras_store_eval_stmt(priv->stmt_extlog_record, "extlog_record");
+	rc = db_eval_stmt(priv->stmt_extlog_record, "extlog_record");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -312,7 +312,7 @@ static const struct db_table_descriptor mce_record_tab = {
 	.num_fields = ARRAY_SIZE(mce_record_fields),
 };
 
-int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev)
+int db_mce_record(struct ras_events *ras, struct mce_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -321,34 +321,34 @@ int ras_store_mce_record(struct ras_events *ras, struct mce_event *ev)
 		return 0;
 	log(TERM, LOG_INFO, "mce_record store: %p\n", priv->stmt_mce_record);
 
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 2, ev->mcgcap, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 3, ev->mcgstatus, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 4, ev->status, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 5, ev->addr, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 6, ev->misc, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 7, ev->ip, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 8, ev->tsc, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 9, ev->walltime, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 10, ev->ppin, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 11, ev->cpu, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 12, ev->cpuid, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 13, ev->apicid, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 14, ev->socketid, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 15, ev->cs, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 16, ev->bank, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 17, ev->cpuvendor, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 18, ev->microcode, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 2, ev->mcgcap, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 3, ev->mcgstatus, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 4, ev->status, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 5, ev->addr, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 6, ev->misc, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 7, ev->ip, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 8, ev->tsc, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 9, ev->walltime, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 10, ev->ppin, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 11, ev->cpu, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 12, ev->cpuid, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 13, ev->apicid, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 14, ev->socketid, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 15, ev->cs, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 16, ev->bank, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 17, ev->cpuvendor, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 18, ev->microcode, -1);
 
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 19, (uint64_t)ev->bank_name, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 20, (uint64_t)ev->error_msg, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 21, (uint64_t)ev->mcgstatus_msg, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 22, (uint64_t)ev->mcistatus_msg, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 23, (uint64_t)ev->mcastatus_msg, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 24, (uint64_t)ev->user_action, -1);
-	ras_store_bind(priv->stmt_mce_record, mce_record_fields, 25, (uint64_t)ev->mc_location, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 19, (uint64_t)ev->bank_name, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 20, (uint64_t)ev->error_msg, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 21, (uint64_t)ev->mcgstatus_msg, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 22, (uint64_t)ev->mcistatus_msg, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 23, (uint64_t)ev->mcastatus_msg, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 24, (uint64_t)ev->user_action, -1);
+	db_bind(priv->stmt_mce_record, mce_record_fields, 25, (uint64_t)ev->mc_location, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_mce_record, "mce_record");
+	rc = db_eval_stmt(priv->stmt_mce_record, "mce_record");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -377,7 +377,7 @@ static const struct db_table_descriptor devlink_event_tab = {
 	.num_fields = ARRAY_SIZE(devlink_event_fields),
 };
 
-int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev)
+int db_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -386,14 +386,14 @@ int ras_store_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 		return 0;
 	log(TERM, LOG_INFO, "devlink_event store: %p\n", priv->stmt_devlink_event);
 
-	ras_store_bind(priv->stmt_devlink_event, devlink_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_devlink_event, devlink_event_fields, 2, (uint64_t)ev->bus_name, -1);
-	ras_store_bind(priv->stmt_devlink_event, devlink_event_fields, 3, (uint64_t)ev->dev_name, -1);
-	ras_store_bind(priv->stmt_devlink_event, devlink_event_fields, 4, (uint64_t)ev->driver_name, -1);
-	ras_store_bind(priv->stmt_devlink_event, devlink_event_fields, 5, (uint64_t)ev->reporter_name, -1);
-	ras_store_bind(priv->stmt_devlink_event, devlink_event_fields, 6, (uint64_t)ev->msg, -1);
+	db_bind(priv->stmt_devlink_event, devlink_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_devlink_event, devlink_event_fields, 2, (uint64_t)ev->bus_name, -1);
+	db_bind(priv->stmt_devlink_event, devlink_event_fields, 3, (uint64_t)ev->dev_name, -1);
+	db_bind(priv->stmt_devlink_event, devlink_event_fields, 4, (uint64_t)ev->driver_name, -1);
+	db_bind(priv->stmt_devlink_event, devlink_event_fields, 5, (uint64_t)ev->reporter_name, -1);
+	db_bind(priv->stmt_devlink_event, devlink_event_fields, 6, (uint64_t)ev->msg, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_devlink_event, "devlink_event");
+	rc = db_eval_stmt(priv->stmt_devlink_event, "devlink_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -423,7 +423,7 @@ static const struct db_table_descriptor diskerror_event_tab = {
 	.num_fields = ARRAY_SIZE(diskerror_event_fields),
 };
 
-int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
+int db_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -432,15 +432,15 @@ int ras_store_diskerror_event(struct ras_events *ras, struct diskerror_event *ev
 		return 0;
 	log(TERM, LOG_INFO, "diskerror_event store: %p\n", priv->stmt_diskerror_event);
 
-	ras_store_bind(priv->stmt_diskerror_event, diskerror_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_diskerror_event, diskerror_event_fields, 2, (uint64_t)ev->dev, -1);
-	ras_store_bind(priv->stmt_diskerror_event, diskerror_event_fields, 3, ev->sector, -1);
-	ras_store_bind(priv->stmt_diskerror_event, diskerror_event_fields, 4, ev->nr_sector, -1);
-	ras_store_bind(priv->stmt_diskerror_event, diskerror_event_fields, 5, (uint64_t)ev->error, -1);
-	ras_store_bind(priv->stmt_diskerror_event, diskerror_event_fields, 6, (uint64_t)ev->rwbs, -1);
-	ras_store_bind(priv->stmt_diskerror_event, diskerror_event_fields, 7, (uint64_t)ev->cmd, -1);
+	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 2, (uint64_t)ev->dev, -1);
+	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 3, ev->sector, -1);
+	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 4, ev->nr_sector, -1);
+	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 5, (uint64_t)ev->error, -1);
+	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 6, (uint64_t)ev->rwbs, -1);
+	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 7, (uint64_t)ev->cmd, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_diskerror_event, "diskerror_event");
+	rc = db_eval_stmt(priv->stmt_diskerror_event, "diskerror_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -467,7 +467,7 @@ static const struct db_table_descriptor mf_event_tab = {
 	.num_fields = ARRAY_SIZE(mf_event_fields),
 };
 
-int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
+int db_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -476,12 +476,12 @@ int ras_store_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 		return 0;
 	log(TERM, LOG_INFO, "memory_failure_event store: %p\n", priv->stmt_mf_event);
 
-	ras_store_bind(priv->stmt_mf_event, mf_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_mf_event, mf_event_fields, 2, (uint64_t)ev->pfn, -1);
-	ras_store_bind(priv->stmt_mf_event, mf_event_fields, 3, (uint64_t)ev->page_type, -1);
-	ras_store_bind(priv->stmt_mf_event, mf_event_fields, 4, (uint64_t)ev->action_result, -1);
+	db_bind(priv->stmt_mf_event, mf_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_mf_event, mf_event_fields, 2, (uint64_t)ev->pfn, -1);
+	db_bind(priv->stmt_mf_event, mf_event_fields, 3, (uint64_t)ev->page_type, -1);
+	db_bind(priv->stmt_mf_event, mf_event_fields, 4, (uint64_t)ev->action_result, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_mf_event, "mf_event");
+	rc = db_eval_stmt(priv->stmt_mf_event, "mf_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -517,7 +517,7 @@ static const struct db_table_descriptor cxl_poison_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_poison_event_fields),
 };
 
-int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
+int db_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -526,22 +526,22 @@ int ras_store_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_eve
 		return 0;
 	log(TERM, LOG_INFO, "cxl_poison_event store: %p\n", priv->stmt_cxl_poison_event);
 
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 2, (uint64_t)ev->memdev, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 3, (uint64_t)ev->host, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 4, ev->serial, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 5, (uint64_t)ev->trace_type, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 6, (uint64_t)ev->region, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 7, (uint64_t)ev->uuid, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 8, ev->hpa, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 9, ev->dpa, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 10, ev->dpa_length, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 11, (uint64_t)ev->source, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 12, ev->flags, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 13, (uint64_t)ev->overflow_ts, -1);
-	ras_store_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 14, ev->hpa_alias0, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 2, (uint64_t)ev->memdev, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 3, (uint64_t)ev->host, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 4, ev->serial, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 5, (uint64_t)ev->trace_type, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 6, (uint64_t)ev->region, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 7, (uint64_t)ev->uuid, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 8, ev->hpa, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 9, ev->dpa, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 10, ev->dpa_length, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 11, (uint64_t)ev->source, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 12, ev->flags, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 13, (uint64_t)ev->overflow_ts, -1);
+	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 14, ev->hpa_alias0, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_cxl_poison_event, "cxl_poison_event");
+	rc = db_eval_stmt(priv->stmt_cxl_poison_event, "cxl_poison_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -568,7 +568,7 @@ static const struct db_table_descriptor cxl_aer_ue_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_aer_ue_event_fields),
 };
 
-int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev)
+int db_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -577,15 +577,15 @@ int ras_store_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_eve
 		return 0;
 	log(TERM, LOG_INFO, "cxl_aer_ue_event store: %p\n", priv->stmt_cxl_aer_ue_event);
 
-	ras_store_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 2, (uint64_t)ev->memdev, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 3, (uint64_t)ev->host, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 4, ev->serial, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 5, ev->error_status, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 6, ev->first_error, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 7, (uint64_t)ev->header_log, CXL_HEADERLOG_SIZE);
+	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 2, (uint64_t)ev->memdev, -1);
+	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 3, (uint64_t)ev->host, -1);
+	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 4, ev->serial, -1);
+	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 5, ev->error_status, -1);
+	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 6, ev->first_error, -1);
+	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 7, (uint64_t)ev->header_log, CXL_HEADERLOG_SIZE);
 
-	rc = ras_store_eval_stmt(priv->stmt_cxl_aer_ue_event, "cxl_aer_ue_event");
+	rc = db_eval_stmt(priv->stmt_cxl_aer_ue_event, "cxl_aer_ue_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -610,7 +610,7 @@ static const struct db_table_descriptor cxl_aer_ce_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_aer_ce_event_fields),
 };
 
-int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
+int db_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -619,13 +619,13 @@ int ras_store_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_eve
 		return 0;
 	log(TERM, LOG_INFO, "cxl_aer_ce_event store: %p\n", priv->stmt_cxl_aer_ce_event);
 
-	ras_store_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 2, (uint64_t)ev->memdev, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 3, (uint64_t)ev->host, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 4, ev->serial, -1);
-	ras_store_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 5, ev->error_status, -1);
+	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 2, (uint64_t)ev->memdev, -1);
+	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 3, (uint64_t)ev->host, -1);
+	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 4, ev->serial, -1);
+	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 5, ev->error_status, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_cxl_aer_ce_event, "cxl_aer_ce_event");
+	rc = db_eval_stmt(priv->stmt_cxl_aer_ce_event, "cxl_aer_ce_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -653,7 +653,7 @@ static const struct db_table_descriptor cxl_overflow_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_overflow_event_fields),
 };
 
-int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
+int db_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -662,23 +662,23 @@ int ras_store_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow
 		return 0;
 	log(TERM, LOG_INFO, "cxl_overflow_event store: %p\n", priv->stmt_cxl_overflow_event);
 
-	ras_store_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 2, (uint64_t)ev->memdev, -1);
-	ras_store_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 3, (uint64_t)ev->host, -1);
-	ras_store_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 4, ev->serial, -1);
-	ras_store_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 5, (uint64_t)ev->log_type, -1);
-	ras_store_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 6, ev->count, -1);
-	ras_store_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 7, (uint64_t)ev->first_ts, -1);
-	ras_store_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 8, (uint64_t)ev->last_ts, -1);
+	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 2, (uint64_t)ev->memdev, -1);
+	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 3, (uint64_t)ev->host, -1);
+	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 4, ev->serial, -1);
+	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 5, (uint64_t)ev->log_type, -1);
+	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 6, ev->count, -1);
+	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 7, (uint64_t)ev->first_ts, -1);
+	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 8, (uint64_t)ev->last_ts, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_cxl_overflow_event, "cxl_overflow_event");
+	rc = db_eval_stmt(priv->stmt_cxl_overflow_event, "cxl_overflow_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
 	return rc;
 }
 
-static int ras_store_cxl_common_hdr(struct ras_stmt *stmt,
+static int db_cxl_common_hdr(struct ras_stmt *stmt,
 				    const struct db_fields *fields,
 				    struct ras_cxl_event_common_hdr *hdr)
 {
@@ -687,21 +687,21 @@ static int ras_store_cxl_common_hdr(struct ras_stmt *stmt,
 	if (!stmt || !hdr)
 		return -1;
 
-	ras_store_bind(stmt, fields, idx++, (uint64_t)hdr->timestamp, -1);
-	ras_store_bind(stmt, fields, idx++, (uint64_t)hdr->memdev, -1);
-	ras_store_bind(stmt, fields, idx++, (uint64_t)hdr->host, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->serial, -1);
-	ras_store_bind(stmt, fields, idx++, (uint64_t)hdr->log_type, -1);
-	ras_store_bind(stmt, fields, idx++, (uint64_t)hdr->hdr_uuid, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->hdr_flags, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->hdr_handle, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->hdr_related_handle, -1);
-	ras_store_bind(stmt, fields, idx++, (uint64_t)hdr->hdr_timestamp, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->hdr_length, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->hdr_maint_op_class, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->hdr_maint_op_sub_class, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->hdr_ld_id, -1);
-	ras_store_bind(stmt, fields, idx++, hdr->hdr_head_id, -1);
+	db_bind(stmt, fields, idx++, (uint64_t)hdr->timestamp, -1);
+	db_bind(stmt, fields, idx++, (uint64_t)hdr->memdev, -1);
+	db_bind(stmt, fields, idx++, (uint64_t)hdr->host, -1);
+	db_bind(stmt, fields, idx++, hdr->serial, -1);
+	db_bind(stmt, fields, idx++, (uint64_t)hdr->log_type, -1);
+	db_bind(stmt, fields, idx++, (uint64_t)hdr->hdr_uuid, -1);
+	db_bind(stmt, fields, idx++, hdr->hdr_flags, -1);
+	db_bind(stmt, fields, idx++, hdr->hdr_handle, -1);
+	db_bind(stmt, fields, idx++, hdr->hdr_related_handle, -1);
+	db_bind(stmt, fields, idx++, (uint64_t)hdr->hdr_timestamp, -1);
+	db_bind(stmt, fields, idx++, hdr->hdr_length, -1);
+	db_bind(stmt, fields, idx++, hdr->hdr_maint_op_class, -1);
+	db_bind(stmt, fields, idx++, hdr->hdr_maint_op_sub_class, -1);
+	db_bind(stmt, fields, idx++, hdr->hdr_ld_id, -1);
+	db_bind(stmt, fields, idx++, hdr->hdr_head_id, -1);
 
 	return idx;
 }
@@ -735,7 +735,7 @@ static const struct db_table_descriptor cxl_generic_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_generic_event_fields),
 };
 
-int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
+int db_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
 {
 	struct ras_record_priv *priv = ras->db_priv;
 	int idx;
@@ -745,16 +745,16 @@ int ras_store_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_e
 		return -1;
 	log(TERM, LOG_INFO, "cxl_generic_event store: %p\n", priv->stmt_cxl_generic_event);
 
-	idx = ras_store_cxl_common_hdr(priv->stmt_cxl_generic_event,
+	idx = db_cxl_common_hdr(priv->stmt_cxl_generic_event,
 				       cxl_generic_event_fields,
 				       &ev->hdr);
 	if (idx <= 0)
 		return -1;
 
-	ras_store_bind(priv->stmt_cxl_generic_event, cxl_generic_event_fields,
+	db_bind(priv->stmt_cxl_generic_event, cxl_generic_event_fields,
 		       idx++, (uint64_t)ev->data, CXL_EVENT_RECORD_DATA_LENGTH);
 
-	rc = ras_store_eval_stmt(priv->stmt_cxl_generic_event, "cxl_generic_event");
+	rc = db_eval_stmt(priv->stmt_cxl_generic_event, "cxl_generic_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -808,7 +808,7 @@ static const struct db_table_descriptor cxl_general_media_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_general_media_event_fields),
 };
 
-int ras_store_cxl_general_media_event(struct ras_events *ras,
+int db_cxl_general_media_event(struct ras_events *ras,
 				      struct ras_cxl_general_media_event *ev)
 {
 	struct ras_record_priv *priv = ras->db_priv;
@@ -820,31 +820,31 @@ int ras_store_cxl_general_media_event(struct ras_events *ras,
 	log(TERM, LOG_INFO, "cxl_general_media_event store: %p\n",
 	    priv->stmt_cxl_general_media_event);
 
-	idx = ras_store_cxl_common_hdr(priv->stmt_cxl_general_media_event,
+	idx = db_cxl_common_hdr(priv->stmt_cxl_general_media_event,
 				       cxl_general_media_event_fields,
 				       &ev->hdr);
 	if (idx <= 0)
 		return -1;
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->dpa, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->dpa_flags, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->descriptor, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->type, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->transaction_type, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->channel, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->rank, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->device, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->hpa, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->region, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->region_uuid, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->sub_type, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->cme_threshold_ev_flags, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->cme_count, -1);
-	ras_store_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->hpa_alias0, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->dpa, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->dpa_flags, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->descriptor, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->type, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->transaction_type, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->channel, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->rank, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->device, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->hpa, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->region, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->region_uuid, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->sub_type, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->cme_threshold_ev_flags, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->cme_count, -1);
+	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->hpa_alias0, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_cxl_general_media_event, "cxl_general_media_event");
+	rc = db_eval_stmt(priv->stmt_cxl_general_media_event, "cxl_general_media_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -904,7 +904,7 @@ static const struct db_table_descriptor cxl_dram_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_dram_event_fields),
 };
 
-int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
+int db_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
 {
 	struct ras_record_priv *priv = ras->db_priv;
 	int idx;
@@ -915,37 +915,37 @@ int ras_store_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *
 	log(TERM, LOG_INFO, "cxl_dram_event store: %p\n",
 	    priv->stmt_cxl_dram_event);
 
-	idx = ras_store_cxl_common_hdr(priv->stmt_cxl_dram_event,
+	idx = db_cxl_common_hdr(priv->stmt_cxl_dram_event,
 				       cxl_dram_event_fields,
 				       &ev->hdr);
 	if (idx <= 0)
 		return -1;
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->dpa, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->dpa_flags, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->descriptor, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->type, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->transaction_type, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->channel, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->rank, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->nibble_mask, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->bank_group, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->bank, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->row, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->column, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->cor_mask, CXL_EVENT_DER_CORRECTION_MASK_SIZE);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->hpa, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->region, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->region_uuid, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->sub_type, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->sub_channel, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->cme_threshold_ev_flags, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->cvme_count, -1);
-	ras_store_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->hpa_alias0, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->dpa, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->dpa_flags, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->descriptor, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->type, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->transaction_type, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->channel, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->rank, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->nibble_mask, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->bank_group, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->bank, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->row, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->column, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->cor_mask, CXL_EVENT_DER_CORRECTION_MASK_SIZE);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->hpa, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->region, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->region_uuid, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->sub_type, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->sub_channel, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->cme_threshold_ev_flags, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->cvme_count, -1);
+	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->hpa_alias0, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_cxl_dram_event, "cxl_dram_event");
+	rc = db_eval_stmt(priv->stmt_cxl_dram_event, "cxl_dram_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -994,7 +994,7 @@ static const struct db_table_descriptor cxl_memory_module_event_tab = {
 	.num_fields = ARRAY_SIZE(cxl_memory_module_event_fields),
 };
 
-int ras_store_cxl_memory_module_event(struct ras_events *ras,
+int db_cxl_memory_module_event(struct ras_events *ras,
 				      struct ras_cxl_memory_module_event *ev)
 {
 	struct ras_record_priv *priv = ras->db_priv;
@@ -1006,26 +1006,26 @@ int ras_store_cxl_memory_module_event(struct ras_events *ras,
 	log(TERM, LOG_INFO, "cxl_memory_module_event store: %p\n",
 	    priv->stmt_cxl_memory_module_event);
 
-	idx = ras_store_cxl_common_hdr(priv->stmt_cxl_memory_module_event,
+	idx = db_cxl_common_hdr(priv->stmt_cxl_memory_module_event,
 				       cxl_memory_module_event_fields,
 				       &ev->hdr);
 	if (idx <= 0)
 		return -1;
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->event_type, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->health_status, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->media_status, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->life_used, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->dirty_shutdown_cnt, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->cor_vol_err_cnt, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->cor_per_err_cnt, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->device_temp, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->add_status, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->event_sub_type, -1);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	ras_store_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->event_type, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->health_status, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->media_status, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->life_used, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->dirty_shutdown_cnt, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->cor_vol_err_cnt, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->cor_per_err_cnt, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->device_temp, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->add_status, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->event_sub_type, -1);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
 
-	rc = ras_store_eval_stmt(priv->stmt_cxl_memory_module_event, "cxl_memory_module_event");
+	rc = db_eval_stmt(priv->stmt_cxl_memory_module_event, "cxl_memory_module_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -1052,7 +1052,7 @@ static const struct db_table_descriptor signal_event_tab = {
 	.num_fields = ARRAY_SIZE(signal_event_fields),
 };
 
-int ras_store_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
+int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -1061,16 +1061,16 @@ int ras_store_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
 		return -1;
 	log(TERM, LOG_INFO, "signal_event store: %p\n", priv->stmt_signal_event);
 
-	ras_store_bind(priv->stmt_signal_event, signal_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_signal_event, signal_event_fields, 2, ev->sig, -1);
-	ras_store_bind(priv->stmt_signal_event, signal_event_fields, 3, ev->error_no, -1);
-	ras_store_bind(priv->stmt_signal_event, signal_event_fields, 4, ev->code, -1);
-	ras_store_bind(priv->stmt_signal_event, signal_event_fields, 5, (uint64_t)ev->comm, -1);
-	ras_store_bind(priv->stmt_signal_event, signal_event_fields, 6, ev->pid, -1);
-	ras_store_bind(priv->stmt_signal_event, signal_event_fields, 7, ev->group, -1);
-	ras_store_bind(priv->stmt_signal_event, signal_event_fields, 8, ev->result, -1);
+	db_bind(priv->stmt_signal_event, signal_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_signal_event, signal_event_fields, 2, ev->sig, -1);
+	db_bind(priv->stmt_signal_event, signal_event_fields, 3, ev->error_no, -1);
+	db_bind(priv->stmt_signal_event, signal_event_fields, 4, ev->code, -1);
+	db_bind(priv->stmt_signal_event, signal_event_fields, 5, (uint64_t)ev->comm, -1);
+	db_bind(priv->stmt_signal_event, signal_event_fields, 6, ev->pid, -1);
+	db_bind(priv->stmt_signal_event, signal_event_fields, 7, ev->group, -1);
+	db_bind(priv->stmt_signal_event, signal_event_fields, 8, ev->result, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_signal_event, "signal_event");
+	rc = db_eval_stmt(priv->stmt_signal_event, "signal_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -1104,7 +1104,7 @@ static const struct db_table_descriptor reri_event_tab = {
 	.num_fields = ARRAY_SIZE(reri_event_fields),
 };
 
-int ras_store_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
+int db_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
 {
 	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
@@ -1113,19 +1113,19 @@ int ras_store_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
 		return 0;
 	log(TERM, LOG_INFO, "reri_event store: %p\n", priv->stmt_reri_event);
 
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 2, ev->err_src_id, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 3, ev->source_type, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 4, ev->severity, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 5, ev->hart_id, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 6, ev->cluster_id, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 7, ev->status, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 8, ev->addr_info, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 9, ev->info, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 10, ev->suppl_info, -1);
-	ras_store_bind(priv->stmt_reri_event, reri_event_fields, 11, ev->timestamp_val, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 1, (uint64_t)ev->timestamp, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 2, ev->err_src_id, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 3, ev->source_type, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 4, ev->severity, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 5, ev->hart_id, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 6, ev->cluster_id, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 7, ev->status, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 8, ev->addr_info, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 9, ev->info, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 10, ev->suppl_info, -1);
+	db_bind(priv->stmt_reri_event, reri_event_fields, 11, ev->timestamp_val, -1);
 
-	rc = ras_store_eval_stmt(priv->stmt_reri_event, "reri_event");
+	rc = db_eval_stmt(priv->stmt_reri_event, "reri_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -1144,14 +1144,14 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	printf("Calling %s()\n", __func__);
 
-	rc = ras_mc_opendb(cpu, ras, sizeof(*priv));
+	rc = db_open(cpu, ras, sizeof(*priv));
 	if (!rc)
 		return -1;
 
 #ifdef HAVE_AER
-	rc = ras_mc_create_table(ras->db, &aer_event_tab);
+	rc = db_create_table(ras->db, &aer_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_aer_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_aer_event,
 					 &aer_event_tab);
 		if (rc)
 			return -1;
@@ -1159,9 +1159,9 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_EXTLOG
-	rc = ras_mc_create_table(ras->db, &extlog_event_tab);
+	rc = db_create_table(ras->db, &extlog_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_extlog_record,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_extlog_record,
 					 &extlog_event_tab);
 		if (rc)
 			return -1;
@@ -1169,9 +1169,9 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_MCE
-	rc = ras_mc_create_table(ras->db, &mce_record_tab);
+	rc = db_create_table(ras->db, &mce_record_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_mce_record,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_mce_record,
 					 &mce_record_tab);
 		if (rc)
 			return -1;
@@ -1179,9 +1179,9 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_NON_STANDARD
-	rc = ras_mc_create_table(ras->db, &non_standard_event_tab);
+	rc = db_create_table(ras->db, &non_standard_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_non_standard_record,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_non_standard_record,
 					 &non_standard_event_tab);
 		if (rc)
 			return -1;
@@ -1189,18 +1189,18 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_ARM
-	rc = ras_mc_create_table(ras->db, &arm_event_tab);
+	rc = db_create_table(ras->db, &arm_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_arm_record,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_arm_record,
 					 &arm_event_tab);
 		if (rc)
 			return -1;
 	}
 #endif
 #ifdef HAVE_DEVLINK
-	rc = ras_mc_create_table(ras->db, &devlink_event_tab);
+	rc = db_create_table(ras->db, &devlink_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_devlink_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_devlink_event,
 					 &devlink_event_tab);
 		if (rc)
 			return -1;
@@ -1208,9 +1208,9 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_DISKERROR
-	rc = ras_mc_create_table(ras->db, &diskerror_event_tab);
+	rc = db_create_table(ras->db, &diskerror_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_diskerror_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_diskerror_event,
 					 &diskerror_event_tab);
 		if (rc)
 			return -1;
@@ -1218,9 +1218,9 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_MEMORY_FAILURE
-	rc = ras_mc_create_table(ras->db, &mf_event_tab);
+	rc = db_create_table(ras->db, &mf_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_mf_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_mf_event,
 					 &mf_event_tab);
 		if (rc)
 			return -1;
@@ -1228,65 +1228,65 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_CXL
-	rc = ras_mc_create_table(ras->db, &cxl_poison_event_tab);
+	rc = db_create_table(ras->db, &cxl_poison_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_cxl_poison_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_poison_event,
 					 &cxl_poison_event_tab);
 		if (rc)
 			return -1;
 	}
 
-	rc = ras_mc_create_table(ras->db, &cxl_aer_ue_event_tab);
+	rc = db_create_table(ras->db, &cxl_aer_ue_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_cxl_aer_ue_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_aer_ue_event,
 					 &cxl_aer_ue_event_tab);
 		if (rc)
 			return -1;
 	}
 
-	rc = ras_mc_create_table(ras->db, &cxl_aer_ce_event_tab);
+	rc = db_create_table(ras->db, &cxl_aer_ce_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_cxl_aer_ce_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_aer_ce_event,
 					 &cxl_aer_ce_event_tab);
 		if (rc)
 			return -1;
 	}
 
-	rc = ras_mc_create_table(ras->db, &cxl_overflow_event_tab);
+	rc = db_create_table(ras->db, &cxl_overflow_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_cxl_overflow_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_overflow_event,
 					 &cxl_overflow_event_tab);
 		if (rc)
 			return -1;
 	}
 
-	rc = ras_mc_create_table(ras->db, &cxl_generic_event_tab);
+	rc = db_create_table(ras->db, &cxl_generic_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_cxl_generic_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_generic_event,
 					 &cxl_generic_event_tab);
 		if (rc)
 			return -1;
 	}
 
-	rc = ras_mc_create_table(ras->db, &cxl_general_media_event_tab);
+	rc = db_create_table(ras->db, &cxl_general_media_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_cxl_general_media_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_general_media_event,
 					 &cxl_general_media_event_tab);
 		if (rc)
 			return -1;
 	}
 
-	rc = ras_mc_create_table(ras->db, &cxl_dram_event_tab);
+	rc = db_create_table(ras->db, &cxl_dram_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_cxl_dram_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_dram_event,
 					 &cxl_dram_event_tab);
 		if (rc)
 			return -1;
 	}
 
-	rc = ras_mc_create_table(ras->db, &cxl_memory_module_event_tab);
+	rc = db_create_table(ras->db, &cxl_memory_module_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_cxl_memory_module_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_memory_module_event,
 					 &cxl_memory_module_event_tab);
 		if (rc)
 			return -1;
@@ -1294,9 +1294,9 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_SIGNAL
-	rc = ras_mc_create_table(ras->db, &signal_event_tab);
+	rc = db_create_table(ras->db, &signal_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_signal_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_signal_event,
 					 &signal_event_tab);
 		if (rc)
 			return -1;
@@ -1304,9 +1304,9 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #endif
 
 #ifdef HAVE_RERI
-	rc = ras_mc_create_table(ras->db, &reri_event_tab);
+	rc = db_create_table(ras->db, &reri_event_tab);
 	if (!rc) {
-		rc = ras_mc_prepare_stmt(ras->db, &priv->stmt_reri_event,
+		rc = db_prepare_stmt(ras->db, &priv->stmt_reri_event,
 					 &reri_event_tab);
 		if (rc)
 			return -1;
@@ -1338,64 +1338,64 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 	if (!db)
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_mc_event, "mc_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_mc_event, "mc_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_aer_event, "aer_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_aer_event, "aer_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_extlog_record, "extlog_record"))
+	if (db_cpu_finalize(cpu, priv->stmt_extlog_record, "extlog_record"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_mce_record, "mce_record"))
+	if (db_cpu_finalize(cpu, priv->stmt_mce_record, "mce_record"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_non_standard_record, "non_standard_record"))
+	if (db_cpu_finalize(cpu, priv->stmt_non_standard_record, "non_standard_record"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_arm_record, "arm_record"))
+	if (db_cpu_finalize(cpu, priv->stmt_arm_record, "arm_record"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_devlink_event, "devlink_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_devlink_event, "devlink_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_diskerror_event, "diskerror_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_diskerror_event, "diskerror_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_mf_event, "mf_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_mf_event, "mf_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_cxl_poison_event, "cxl_poison_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_cxl_poison_event, "cxl_poison_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_cxl_aer_ue_event, "cxl_aer_ue_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_cxl_aer_ue_event, "cxl_aer_ue_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_cxl_aer_ce_event, "cxl_aer_ce_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_cxl_aer_ce_event, "cxl_aer_ce_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_cxl_overflow_event, "cxl_overflow_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_cxl_overflow_event, "cxl_overflow_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_cxl_generic_event, "cxl_generic_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_cxl_generic_event, "cxl_generic_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_cxl_general_media_event, "cxl_general_media_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_cxl_general_media_event, "cxl_general_media_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_cxl_dram_event, "cxl_dram_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_cxl_dram_event, "cxl_dram_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_cxl_memory_module_event, "cxl_memory_module_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_cxl_memory_module_event, "cxl_memory_module_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_signal_event, "signal_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_signal_event, "signal_event"))
 		return -1;
 
-	if (ras_mc_finalize(cpu, priv->stmt_reri_event, "reri_event"))
+	if (db_cpu_finalize(cpu, priv->stmt_reri_event, "reri_event"))
 		return -1;
 
-	return ras_mc_closedb(cpu, ras);
+	return db_close(cpu, ras);
 }
 
 #endif

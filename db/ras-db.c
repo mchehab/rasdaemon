@@ -44,7 +44,7 @@ const char *db_get_sql_type(enum db_field_type type, bool is_pk)
 	}
 }
 
-void ras_store_bind_type(struct ras_stmt *__stmt, const enum db_field_type type,
+void db_bind_type(struct ras_stmt *__stmt, const enum db_field_type type,
 			 const int pos, uint64_t value, int len)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
@@ -72,7 +72,7 @@ void ras_store_bind_type(struct ras_stmt *__stmt, const enum db_field_type type,
 	}
 }
 
-void ras_store_bind(struct ras_stmt *stmt, const struct db_fields *fields,
+void db_bind(struct ras_stmt *stmt, const struct db_fields *fields,
 		    const int pos, uint64_t value, int len)
 {
 	if (pos < 1) {
@@ -80,10 +80,10 @@ void ras_store_bind(struct ras_stmt *stmt, const struct db_fields *fields,
 		return;
 	}
 
-	ras_store_bind_type(stmt, fields[pos - 1].type, pos, value, len);
+	db_bind_type(stmt, fields[pos - 1].type, pos, value, len);
 }
 
-int ras_store_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
+int db_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
 	int rc;
@@ -109,8 +109,8 @@ int ras_store_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 	return rc;
 }
 
-int ras_mc_create_table(struct ras_db *__db,
-		        const struct db_table_descriptor *db_tab)
+int db_create_table(struct ras_db *__db,
+		    const struct db_table_descriptor *db_tab)
 {
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
 	const struct db_fields *field;
@@ -145,7 +145,7 @@ int ras_mc_create_table(struct ras_db *__db,
 	return rc;
 }
 
-int ras_mc_alter_table(struct ras_db *__db,
+int db_alter_table(struct ras_db *__db,
 		       struct ras_stmt **__stmt,
 		       const struct db_table_descriptor *db_tab)
 {
@@ -205,7 +205,7 @@ int ras_mc_alter_table(struct ras_db *__db,
 	return rc;
 }
 
-static int __ras_mc_prepare_stmt(struct sqlite3 *db,
+static int __db_prepare_stmt(struct sqlite3 *db,
 				 sqlite3_stmt **stmt,
 				 const struct db_table_descriptor *db_tab)
 
@@ -251,7 +251,7 @@ static int __ras_mc_prepare_stmt(struct sqlite3 *db,
 	return rc;
 }
 
-int ras_mc_prepare_stmt(struct ras_db *__db,
+int db_prepare_stmt(struct ras_db *__db,
 			struct ras_stmt **__stmt,
 			const struct db_table_descriptor *db_tab)
 {
@@ -259,7 +259,7 @@ int ras_mc_prepare_stmt(struct ras_db *__db,
 	sqlite3 *db = (sqlite3 *)__db;
 	int rc;
 
-	rc = __ras_mc_prepare_stmt(db, stmt, db_tab);
+	rc = __db_prepare_stmt(db, stmt, db_tab);
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to prepare insert db at table %s (db %s): error = %s\n",
@@ -268,7 +268,7 @@ int ras_mc_prepare_stmt(struct ras_db *__db,
 		log(TERM, LOG_INFO, "Trying to alter db at table %s (db %s)\n",
 		    db_tab->name, SQLITE_RAS_DB);
 
-		rc = ras_mc_alter_table(__db, __stmt, db_tab);
+		rc = db_alter_table(__db, __stmt, db_tab);
 		if (rc != SQLITE_OK && rc != SQLITE_DONE) {
 			log(TERM, LOG_ERR,
 			    "Failed to alter db at table %s (db %s): error = %s\n",
@@ -278,23 +278,23 @@ int ras_mc_prepare_stmt(struct ras_db *__db,
 			return rc;
 		}
 
-		rc = __ras_mc_prepare_stmt(db, stmt, db_tab);
+		rc = __db_prepare_stmt(db, stmt, db_tab);
 	}
 
 	return rc;
 }
 
 // TODO: remove struct ras_events *ras, replacing it by struct ras_db
-int ras_mc_add_vendor_table(struct ras_events *ras,
+int db_create_table_prep_stmt(struct ras_events *ras,
 			    struct ras_stmt **stmt,
 			    const struct db_table_descriptor *db_tab)
 {
 	struct ras_db *db = ras->db;
 	int rc;
 
-	rc = ras_mc_create_table(db, db_tab);
+	rc = db_create_table(db, db_tab);
 	if (rc == SQLITE_OK)
-		rc = ras_mc_prepare_stmt(db, stmt, db_tab);
+		rc = db_prepare_stmt(db, stmt, db_tab);
 
 	/*
 	 * on sqlite3, SQLITE_OK is actually zero, but let's do it to
@@ -307,7 +307,7 @@ int ras_mc_add_vendor_table(struct ras_events *ras,
 	return rc;
 }
 
-int ras_mc_finalize_vendor_table(struct ras_stmt *__stmt)
+int db_finalize(struct ras_stmt *__stmt)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
 	int rc;
@@ -320,7 +320,7 @@ int ras_mc_finalize_vendor_table(struct ras_stmt *__stmt)
 		return rc;
 }
 
-int ras_mc_opendb(unsigned int cpu, struct ras_events *ras, size_t size_priv)
+int db_open(unsigned int cpu, struct ras_events *ras, size_t size_priv)
 {
 	sqlite3 *db = (void *) ras->db;
 	struct ras_record_priv *priv;
@@ -385,7 +385,7 @@ error:
 	return -1;
 }
 
-int ras_mc_finalize(unsigned int cpu, struct ras_stmt *__stmt, const char *name)
+int db_cpu_finalize(unsigned int cpu, struct ras_stmt *__stmt, const char *name)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
 
@@ -398,7 +398,7 @@ int ras_mc_finalize(unsigned int cpu, struct ras_stmt *__stmt, const char *name)
 	}
 }
 
-int ras_mc_closedb(unsigned int cpu, struct ras_events *ras)
+int db_close(unsigned int cpu, struct ras_events *ras)
 {
 	int rc;
 

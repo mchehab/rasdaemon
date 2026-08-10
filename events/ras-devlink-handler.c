@@ -58,7 +58,7 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
-	ras_store_devlink_event(ras, &ev);
+	db_devlink_event(ras, &ev);
 #endif
 
 #ifdef HAVE_ABRT_REPORT
@@ -131,7 +131,7 @@ int ras_devlink_event_handler(struct trace_seq *s,
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
-	ras_store_devlink_event(ras, &ev);
+	db_devlink_event(ras, &ev);
 #endif
 
 #ifdef HAVE_ABRT_REPORT

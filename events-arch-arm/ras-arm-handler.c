@@ -598,7 +598,7 @@ int ras_arm_event_handler(struct trace_seq *s,
 
 	/* Insert data into the SGBD */
 #ifdef HAVE_SQLITE3
-	ras_store_arm_record(ras, &ev);
+	db_arm_record(ras, &ev);
 #endif
 
 #ifdef HAVE_ABRT_REPORT

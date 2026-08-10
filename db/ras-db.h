@@ -71,7 +71,7 @@ struct ras_events;
  * @value: Raw 64-bit integer representation of the value
  * @len: Length for text/blob types, -1 if null-terminated
  */
-void ras_store_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
+void db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 			 const int pos, uint64_t value, int len);
 
 /**
@@ -82,28 +82,26 @@ void ras_store_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
  * @value: Pointer to raw data buffer containing all field values
  * @len: Length of the buffer (optional, depends on implementation)
  */
-void ras_store_bind(struct ras_stmt *stmt, const struct db_fields *fields,
+void db_bind(struct ras_stmt *stmt, const struct db_fields *fields,
 		    const int pos, uint64_t value, int len);
 
 
 /* TODO: add documentation to those */
 const char *db_get_sql_type(enum db_field_type type, bool is_pk);
-int ras_store_eval_stmt(struct ras_stmt *stmt, const char *tab_name);
-int ras_mc_create_table(struct ras_db *db,
+int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name);
+int db_create_table(struct ras_db *db,
 			const struct db_table_descriptor *db_tab);
-int ras_mc_alter_table(struct ras_db *db,
+int db_alter_table(struct ras_db *db,
 		       struct ras_stmt **stmt,
 		       const struct db_table_descriptor *db_tab);
-int ras_mc_prepare_stmt(struct ras_db *db,
+int db_prepare_stmt(struct ras_db *db,
 			struct ras_stmt **stmt,
 			const struct db_table_descriptor *db_tab);
-int ras_mc_add_vendor_table(struct ras_events *ras, struct ras_stmt **stmt,
+int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
 			    const struct db_table_descriptor *db_tab);
-int ras_mc_finalize_vendor_table(struct ras_stmt *stmt);
-int ras_mc_finalize(unsigned int cpu, struct ras_stmt *__stmt, const char *name);
-int ras_mc_opendb(unsigned int cpu, struct ras_events *ras, size_t size_priv);
-int ras_mc_closedb(unsigned int cpu, struct ras_events *ras);
-
-
+int db_finalize(struct ras_stmt *stmt);
+int db_cpu_finalize(unsigned int cpu, struct ras_stmt *__stmt, const char *name);
+int db_open(unsigned int cpu, struct ras_events *ras, size_t size_priv);
+int db_close(unsigned int cpu, struct ras_events *ras);
 
 #endif /* RAS_DB_H */

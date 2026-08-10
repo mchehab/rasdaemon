@@ -456,11 +456,11 @@ static void record_amp_data(struct ras_ns_ev_decoder *ev_decoder,
 {
 	switch (data_type) {
 		case DB_TYPE_TEXT:
-			ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
+			db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
 					    id, (uint64_t)text, -1);
 			break;
 		default:
-			ras_store_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
+			db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
 					    id, data, -1);
 			break;
 	}
@@ -500,7 +500,7 @@ static void record_amp_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
 		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD0_FIELD_MISC3,
 			err->err_misc_3, NULL);
-		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+		db_eval_stmt(ev_decoder->stmt_dec_record,
 				    "amp_payload0_event_tab");
 	}
 }
@@ -551,7 +551,7 @@ static void record_amp_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD1_FIELD_RESERVED2,
 				err->reserved2, NULL);
-		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+		db_eval_stmt(ev_decoder->stmt_dec_record,
 				    "amp_payload1_event_tab");
 	}
 }
@@ -598,7 +598,7 @@ static void record_amp_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
 		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD2_FIELD_RESERVED3,
 			err->reserved3, NULL);
-		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+		db_eval_stmt(ev_decoder->stmt_dec_record,
 				    "amp_payload2_event_tab");
 	}
 }
@@ -636,7 +636,7 @@ static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 		record_amp_data(ev_decoder, DB_TYPE_INT64,
 				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA5,
 			err->fw_speci_data5, NULL);
-		ras_store_eval_stmt(ev_decoder->stmt_dec_record,
+		db_eval_stmt(ev_decoder->stmt_dec_record,
 				    "amp_payload3_event_tab");
 	}
 }
@@ -1033,7 +1033,7 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 	}
 
 	if (!ev_decoder->stmt_dec_record) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
+		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &db_tab) != 0) {
 			trace_seq_printf(s,
 					 "create sql %s fail\n",

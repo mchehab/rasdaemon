@@ -326,7 +326,7 @@ int ras_reri_event_handler(struct trace_seq *s,
 	trace_seq_puts(s, "\n");
 
 #ifdef HAVE_SQLITE3
-	ras_store_reri_event(ras, &ev);
+	db_reri_event(ras, &ev);
 #endif
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
