@@ -15,6 +15,7 @@ config.h.in
 config.h.in~
 stamp-h1
 aclocal.m4
+confdefs.h
 config.guess
 config.log
 config.status
@@ -23,9 +24,12 @@ configure
 depcomp
 install-sh
 libtool
+librasdaemon.a
 ltmain.sh
 missing
 rasdaemon
+unittest
+*/.dirstamp
 *.o
 *.c~
 *.h~
