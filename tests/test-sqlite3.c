@@ -106,7 +106,7 @@ int test_db_bind_type(void)
 	/* Prepare an INSERT statement */
 	db_create_table_prep_stmt(&ras, &stmt, NULL);
 	if (!stmt) {
-		printf("  Failed to prepare stmt for bind test\n");
+		printf("\tFAIL: prepare stmt for bind test\n");
 		return 1;
 	}
 
@@ -129,7 +129,7 @@ int test_db_bind(void)
 
 	db_create_table_prep_stmt(&ras, &stmt, NULL);
 	if (!stmt) {
-		printf("  Failed to prepare stmt for bind\n");
+		printf("\tFAIL: prepare stmt for bind\n");
 		return 1;
 	}
 
@@ -154,7 +154,7 @@ int test_db_prepare_stmt(void)
 
 	db_create_table_prep_stmt(&ras, &stmt, NULL);
 	if (!stmt) {
-		printf("  Failed to prepare stmt\n");
+		printf("\tFAIL: prepare stmt\n");
 		return 1;
 	}
 
@@ -180,7 +180,7 @@ int test_db_create_table(void)
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!db) {
-		printf("  Failed to open database for create_table test\n");
+		printf("\tFAIL: open database for create_table test\n");
 		return 1;
 	}
 
@@ -210,13 +210,13 @@ int test_db_alter_table(void)
 
 	module_init(&ras, "db-sqlite3");
 	if (!ras_modules.head) {
-		printf("  Failed to init for alter_table test\n");
+		printf("\tFAIL: init for alter_table test\n");
 		return 1;
 	}
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!ras.db) {
-		printf("  Failed to open database for alter_table test\n");
+		printf("\tFAIL: open database for alter_table test\n");
 		return 1;
 	}
 
@@ -251,13 +251,13 @@ int test_db_eval_stmt(void)
 
 	module_init(&ras, "db-sqlite3");
 	if (!ras_modules.head) {
-		printf("  Failed to init for eval test\n");
+		printf("\tFAIL: init for eval test\n");
 		return 1;
 	}
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!ras.db) {
-		printf("  Failed to open database for eval test\n");
+		printf("\tFAIL: open database for eval test\n");
 		return 1;
 	}
 
@@ -288,7 +288,7 @@ int test_db_eval_stmt(void)
 		rc = db_finalize(stmt);
 		check(rc == 0);
 	} else {
-		printf("  Failed to prepare stmt for eval test\n");
+		printf("\tFAIL: prepare stmt for eval test\n");
 		return 1;
 	}
 
@@ -304,13 +304,13 @@ int test_db_cpu_finalize(void)
 
 	module_init(&ras, "db-sqlite3");
 	if (!ras_modules.head) {
-		printf("  Failed to init for cpu_finalize test\n");
+		printf("\tFAIL: init for cpu_finalize test\n");
 		return 1;
 	}
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!ras.db) {
-		printf("  Failed to open database for cpu_finalize test\n");
+		printf("\tFAIL: open database for cpu_finalize test\n");
 		return 1;
 	}
 
@@ -338,7 +338,7 @@ int test_db_cpu_finalize(void)
 		rc = db_cpu_finalize(0, stmt, "test_tbl");
 		check(rc == 0);
 	} else {
-		printf("  Failed to prepare stmt for cpu_finalize test\n");
+		printf("\tFAIL: prepare stmt for cpu_finalize test\n");
 		return 1;
 	}
 
@@ -354,13 +354,13 @@ int test_db_insert_and_select(void)
 
 	module_init(&ras, "db-sqlite3");
 	if (!ras_modules.head) {
-		printf("  Failed to init for insert/select test\n");
+		printf("\tFAIL: init for insert/select test\n");
 		return 1;
 	}
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!ras.db) {
-		printf("  Failed to open database for insert/select test\n");
+		printf("\tFAIL: open database for insert/select test\n");
 		return 1;
 	}
 
@@ -378,7 +378,7 @@ int test_db_insert_and_select(void)
 
 	rc = db_create_table(ras.db, &table_desc);
 	if (rc) {
-		printf("  Failed to create table\n");
+		printf("\tFAIL: create table\n");
 		return 1;
 	}
 
@@ -390,7 +390,7 @@ int test_db_insert_and_select(void)
 
 	rc = db_prepare_stmt(ras.db, &stmt, &table_desc);
 	if (rc) {
-		printf("  Failed to prepare INSERT stmt\n");
+		printf("\tFAIL: prepare INSERT stmt\n");
 		return 1;
 	}
 
@@ -400,7 +400,7 @@ int test_db_insert_and_select(void)
 
 	rc = db_eval_stmt(stmt, "test_tbl");
 	if (rc) {
-		printf("  Failed to eval INSERT stmt\n");
+		printf("\tFAIL: eval INSERT stmt\n");
 		return 1;
 	}
 
@@ -408,13 +408,13 @@ int test_db_insert_and_select(void)
 	/* Prepare a SELECT statement: SELECT * FROM test_tbl */
 	rc = db_prepare_stmt(ras.db, &stmt, &table_desc);
 	if (rc) {
-		printf("  Failed to prepare SELECT stmt\n");
+		printf("\tFAIL: prepare SELECT stmt\n");
 		return 1;
 	}
 
 	rc = db_eval_stmt(stmt, "test_tbl");
 	if (rc) {
-		printf("  Failed to eval SELECT stmt\n");
+		printf("\tFAIL: eval SELECT stmt\n");
 		return 1;
 	}
 
@@ -423,14 +423,14 @@ int test_db_insert_and_select(void)
 
 	rc = db_finalize(stmt);
 	if (rc) {
-		printf("  Failed to finalize SELECT stmt\n");
+		printf("\tFAIL: finalize SELECT stmt\n");
 		return 1;
 	}
 
 	/* ---- INSERT another row id=2, val=99 ---- */
 	rc = db_prepare_stmt(ras.db, &stmt, &table_desc);
 	if (rc) {
-		printf("  Failed to prepare second INSERT stmt\n");
+		printf("\tFAIL: prepare second INSERT stmt\n");
 		return 1;
 	}
 
@@ -439,20 +439,20 @@ int test_db_insert_and_select(void)
 
 	rc = db_eval_stmt(stmt, "test_tbl");
 	if (rc) {
-		printf("  Failed to eval second INSERT stmt\n");
+		printf("\tFAIL: eval second INSERT stmt\n");
 		return 1;
 	}
 
 	/* ---- SELECT again and verify two rows exist ---- */
 	rc = db_prepare_stmt(ras.db, &stmt, &table_desc);
 	if (rc) {
-		printf("  Failed to prepare final SELECT stmt\n");
+		printf("\tFAIL: prepare final SELECT stmt\n");
 		return 1;
 	}
 
 	rc = db_eval_stmt(stmt, "test_tbl");
 	if (rc) {
-		printf("  Failed to eval final SELECT stmt\n");
+		printf("\tFAIL: eval final SELECT stmt\n");
 		return 1;
 	}
 

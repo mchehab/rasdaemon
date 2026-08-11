@@ -10,7 +10,7 @@
 		int __rc;						\
 		do {							\
 			if (!(cond)) {					\
-				fprintf(stderr, "FAIL: %s:%d: %s\n",	\
+				fprintf(stderr, "\tFAIL: %s:%d: %s\n",	\
 					__FILE__, __LINE__, #cond);	\
 				__rc = -1;				\
 			} else {					\
