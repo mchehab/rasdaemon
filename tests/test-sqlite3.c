@@ -57,7 +57,6 @@ int test_db_get_sql_type(void)
 	if (type_str) {
 		rc = strcmp(type_str, "INTEGER");
 		check(rc == 0);
-		free((void *)type_str);
 	}
 
 	type_str = db_get_sql_type(DB_TYPE_INT32, false);
@@ -65,7 +64,6 @@ int test_db_get_sql_type(void)
 	if (type_str) {
 		rc = strcmp(type_str, "INTEGER");
 		check(rc == 0);
-		free((void *)type_str);
 	}
 
 	type_str = db_get_sql_type(DB_TYPE_TEXT, false);
@@ -73,7 +71,6 @@ int test_db_get_sql_type(void)
 	if (type_str) {
 		rc = strcmp(type_str, "TEXT");
 		check(rc == 0);
-		free((void *)type_str);
 	}
 
 	type_str = db_get_sql_type(DB_TYPE_TIMESTAMP, false);
@@ -81,7 +78,6 @@ int test_db_get_sql_type(void)
 	if (type_str) {
 		rc = strcmp(type_str, "TIMESTAMP");
 		check(rc == 0);
-		free((void *)type_str);
 	}
 
 	type_str = db_get_sql_type(DB_TYPE_BLOB, false);
@@ -89,7 +85,6 @@ int test_db_get_sql_type(void)
 	if (type_str) {
 		rc = strcmp(type_str, "BLOB");
 		check(rc == 0);
-		free((void *)type_str);
 	}
 
 	/* Primary-key variant */
@@ -98,7 +93,6 @@ int test_db_get_sql_type(void)
 	if (type_str) {
 		rc = strcmp(type_str, "INTEGER PRIMARY KEY");
 		check(rc == 0);
-		free((void *)type_str);
 	}
 
 	return rc;
