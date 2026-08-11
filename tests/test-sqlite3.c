@@ -488,6 +488,10 @@ int test_cleanup(void)
 	return rc;
 }
 
+/*
+ * Unit test runner
+ */
+
 static struct test_case tests[] = {
 	{ test_sqlite3_init, "initialize sqlite3 backend" },
 	{ test_db_get_sql_type, "test db_get_sql_type for various field types" },
@@ -504,23 +508,5 @@ static struct test_case tests[] = {
 
 int test_sqlite3(void)
 {
-	unsigned int n_tests = ARRAY_SIZE(tests);
-	unsigned int i, failures = 0;
-
-	printf("Testing sqlite3 backend functionality:\n");
-	for (i = 0; i < n_tests; i++) {
-		printf("%02u/%02u:   Running %s\n",
-		       i + 1, n_tests, tests[i].name);
-		ras_logger_clean();
-		if (tests[i].fn()) {
-			ras_logger_flush();
-			failures++;
-		}
-	}
-	if (!failures)
-		printf("All module registration and DB API tests passed.\n");
-	else
-		printf("%u tests failed, %u succeeded.\n",
-		       failures, n_tests - failures);
-		return 0;
+	return run_tests("sqlite3 backend", tests,  ARRAY_SIZE(tests));
 }

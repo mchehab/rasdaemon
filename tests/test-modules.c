@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "core/modules.h"
-#include "core/ras-logger.h"
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;
@@ -345,6 +344,10 @@ int test_init_cleanup(void)
 	return rc;
 }
 
+/*
+ * Unit test runner
+ */
+
 static struct test_case tests[] = {
 	{ test_register_null_entry,		"NULL entry" },
 	{ test_register_single_module,		"single module" },
@@ -354,33 +357,7 @@ static struct test_case tests[] = {
 	{ test_init_cleanup,			"init/cleanup" },
 };
 
-/*
- * Unit test runner
- */
-
 int test_modules(void)
 {
-	unsigned int n_tests = ARRAY_SIZE(tests);
-	unsigned int i, failures = 0;
-
-	printf("Testing modules functionality:\n");
-
-
-	for (i = 0; i < n_tests; i++) {
-		printf("%02i/%02i:   Running %s\n",
-		       i + 1, n_tests, tests[i].name);
-
-		ras_logger_clean();
-		if (tests[i].fn()) {
-			ras_logger_flush();
-			failures++;
-		}
-	}
-	if (!failures)
-		printf("All module registration tests passed.\n");
-	else
-		printf("%i tests failed, %i succeded.\n",
-		       failures, n_tests - failures);
-
-	return 0;
+	return run_tests("modules support", tests,  ARRAY_SIZE(tests));
 }
