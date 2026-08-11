@@ -13,6 +13,7 @@
 
 #include "config.h"
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 
 #include "db/ras-db.h"
@@ -375,6 +376,10 @@ static int db_sqlite3_finalize(unsigned int cpu,
 	return rc;
 }
 
+/*
+ * Database register data and init code
+ */
+
 static const struct ras_db_backend_ops sqlite3_backend_ops = {
 	.open                   = db_sqlite3_open,
 	.close                  = db_sqlite3_close,
@@ -395,16 +400,38 @@ static struct ras_db_backend_entry sqlite3_backend_entry = {
 	.ops  = &sqlite3_backend_ops,
 };
 
-/*
- * Automatically register the backend.
- */
-__attribute__((constructor)) static void sqlite3_register_backend(void)
+static int sqlite3_init(const char *name, struct ras_events *ras, void **priv)
 {
 	int ret;
 
 	ret = db_backend_register(&sqlite3_backend_entry);
 	if (ret != 0) {
-		log(TERM, LOG_ERR, "Failed to register SQLite3 backend: %d\n", ret);
+		log(TERM, LOG_ERR, "Failed to init SQLite3 backend: %d\n", ret);
+	} else {
+		log(TERM, LOG_INFO, "SQLite3 DB backend registered.\n");
+	}
+}
+
+/*
+ * Module auto-register data and code
+ */
+
+const struct ras_module_entry db_sqlite3_module = {
+	.name = "db-sqlite3",
+	.init = sqlite3_init,
+	.level = DB_MODULE,
+};
+
+/*
+ * Automatically register the module.
+ */
+__attribute__((constructor)) static void sqlite3_register_backend(void)
+{
+	int ret;
+
+	ret = module_register(&db_sqlite3_module);
+	if (ret != 0) {
+		log(TERM, LOG_ERR, "Failed to register SQLite3 module", ret);
 	} else {
 		log(TERM, LOG_INFO, "SQLite3 backend registered successfully.\n");
 	}

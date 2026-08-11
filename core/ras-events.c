@@ -997,26 +997,20 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 	return 0;
 }
 
-int handle_ras_events(int record_events, int enable_ipmitool)
+int handle_ras_events(struct ras_events *ras, int record_events,
+		      int enable_ipmitool)
 {
 	int rc, page_size, i;
 	int num_events = 0;
 	unsigned int cpus;
 	struct tep_handle *pevent = NULL;
 	struct pthread_data *data = NULL;
-	struct ras_events *ras = NULL;
 #ifdef HAVE_DEVLINK
 	char *filter_str = NULL;
 #endif
 #ifdef HAVE_SIGNAL
 	char signal_filter[64];
 #endif
-
-	ras = calloc(1, sizeof(*ras));
-	if (!ras) {
-		log(TERM, LOG_ERR, "Can't allocate memory for ras struct\n");
-		return -errno;
-	}
 
 	rc = get_tracing_dir(ras);
 	if (rc < 0) {

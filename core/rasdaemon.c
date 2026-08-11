@@ -11,6 +11,8 @@
 #include <unistd.h>
 
 #include "events-arch-x86/ras-erst.h"
+
+#include "core/modules.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "events/ras-poison-page-stat.h"
@@ -126,6 +128,7 @@ long user_hz;
 
 int main(int argc, char *argv[])
 {
+	struct ras_events *ras;
 	struct arguments args;
 	int idx = -1;
 
@@ -236,7 +239,15 @@ int main(int argc, char *argv[])
 #endif
 #endif
 
-	handle_ras_events(args.record_events, args.enable_ipmitool);
+	ras = calloc(1, sizeof(*ras));
+	if (!ras) {
+		log(TERM, LOG_ERR, "Can't allocate memory for ras struct\n");
+		return -errno;
+	}
+
+	modules_init(ras);
+
+	handle_ras_events(ras, args.record_events, args.enable_ipmitool);
 
 	return 0;
 }
