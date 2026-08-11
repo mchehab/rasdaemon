@@ -345,7 +345,7 @@ int test_init_cleanup(void)
 	return rc;
 }
 
-struct test_case tests[] = {
+static struct test_case tests[] = {
 	{ test_register_null_entry,		"NULL entry" },
 	{ test_register_single_module,		"single module" },
 	{ test_register_modules_in_order,	"modules in order" },

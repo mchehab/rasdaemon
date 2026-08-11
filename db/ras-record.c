@@ -1144,7 +1144,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	printf("Calling %s()\n", __func__);
 
-	rc = db_open(cpu, ras, sizeof(*priv));
+	rc = db_open(NULL, cpu, ras, sizeof(*priv));
 	if (!rc)
 		return -1;
 

@@ -64,6 +64,16 @@ struct db_table_descriptor {
 };
 
 /**
+ * struct db_backend - Specify what DB backend will be used
+ * @backend:	Name of backend driver
+ * @conn_parms:	Connection parameters (specific to each type of DB
+ */
+struct db_backend {
+	const char *name;
+	void *conn_parms;
+};
+
+/**
  * ops_bind_type - Bind a single value based on its type descriptor
  * @stmt:	Statement handle provided by the backend
  * @type:	The type of data being bound
@@ -172,7 +182,7 @@ int db_finalize(struct ras_stmt *stmt);
  * @name:	Name string for the resource being cleaned up
  *
  * Returns:
- * 0 on success or a negative errno value on failure.
+ * 0 on success or a negative errno value on failure..conn
  */
 int db_cpu_finalize(unsigned int cpu, struct ras_stmt *stmt, const char *name);
 
@@ -185,7 +195,8 @@ int db_cpu_finalize(unsigned int cpu, struct ras_stmt *stmt, const char *name);
  * Returns:
  * 0 on success or a negative errno value on failure.
  */
-int db_open(unsigned int cpu, struct ras_events *ras, size_t size_priv);
+int db_open(struct db_backend *backend, unsigned int cpu,
+	    struct ras_events *ras, size_t size_priv);
 
 /**
  * db_close - Close and release resources of an open database connection

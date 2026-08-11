@@ -10,6 +10,7 @@
  * all here, in alphabetic order.
  */
 int test_modules(void);
+int test_sqlite3(void);
 
 int main(void)
 {
@@ -17,6 +18,7 @@ int main(void)
 
 	int rc = 0;
 	rc |= test_modules();
+	rc += test_sqlite3();
 
 	return rc;
 }

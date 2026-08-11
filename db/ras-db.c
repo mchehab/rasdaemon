@@ -79,9 +79,11 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 
 const struct ras_db_backend_ops *ops = NULL;
 
-int db_open(unsigned int cpu, struct ras_events *ras, size_t size_priv)
+int db_open(struct db_backend *backend, unsigned int cpu,
+	    struct ras_events *ras, size_t size_priv)
 {
 	struct ras_db_backend_entry *entry = &ras_db_backends;
+	void *conn_parms;
 	struct ras_db *db;
 	int rc;
 
@@ -95,7 +97,15 @@ int db_open(unsigned int cpu, struct ras_events *ras, size_t size_priv)
 
 	entry = entry->next;
 	while (entry) {
-		rc = entry->ops->open(ras->db, cpu);
+		if (backend && backend->name != entry->name)
+			continue;
+
+		if (backend)
+			conn_parms = backend->conn_parms;
+		else
+			conn_parms = NULL;
+
+		rc = entry->ops->open(ras->db, conn_parms, cpu);
 		if (rc >= 0) {
 		ras->db = db;
 		ops = entry->ops;

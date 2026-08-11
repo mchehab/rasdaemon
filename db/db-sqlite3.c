@@ -18,27 +18,54 @@
 
 #include "db/ras-db.h"
 #include "db/ras-db-backend.h"
+#include "db/db-sqlite3.h"
 
-#define SQLITE_RAS_DB RASSTATEDIR "/" RAS_DB_FNAME
+/* Store the DB name on a static var to be used later on logs */
+static char *full_fname = NULL;
 
-static int db_sqlite3_open(struct ras_db *__db, unsigned int cpu)
+static int db_sqlite3_open(struct ras_db *__db, void *__conn_parms,
+			   unsigned int cpu)
 {
-	sqlite3 *db = (void *) __db;
+	struct db_sqlite3_conn_params *conn_parms = __conn_parms;
+	const char *fname = RAS_DB_FNAME;
+	const char *dir = RASSTATEDIR;
 	struct ras_record_priv *priv;
-	int rc;
-
+	sqlite3 *db = (void *) __db;
 	struct stat st = {0};
+	int flags, rc;
 
-	if (stat(RASSTATEDIR, &st) == -1) {
+	flags = SQLITE_OPEN_FULLMUTEX |
+		SQLITE_OPEN_READWRITE |
+		SQLITE_OPEN_CREATE;
+
+	/*
+	 * Allow overriding default values with private parameters
+	 */
+	if (conn_parms) {
+		if (conn_parms->fname)
+			fname = conn_parms->fname;
+		if (conn_parms->dir)
+			dir = conn_parms->dir;
+		if (conn_parms->extra_flags)
+			flags |= conn_parms->extra_flags;
+	}
+
+	if (asprintf(&full_fname, "%s/%s", dir, fname) < 0) {
+		log(TERM, LOG_ERR,
+		    "Failed to create sqlite3 filename. Memory full?");
+		return -1;
+	}
+
+	if (stat(dir, &st) == -1) {
 		if (errno != ENOENT) {
 			log(TERM, LOG_ERR,
-			    "Failed to read state directory " RASSTATEDIR);
+			    "Failed to read state directory %s", dir);
 			return -1;
 		}
 
-		if (mkdir(RASSTATEDIR, 0700) == -1) {
+		if (mkdir(dir, 0700) == -1) {
 			log(TERM, LOG_ERR,
-			    "Failed to create state directory " RASSTATEDIR);
+			    "Failed to create state directory %s", dir);
 			return -1;
 		}
 	}
@@ -52,10 +79,7 @@ static int db_sqlite3_open(struct ras_db *__db, unsigned int cpu)
 	}
 
 	do {
-		rc = sqlite3_open_v2(SQLITE_RAS_DB, &db,
-				     SQLITE_OPEN_FULLMUTEX |
-				     SQLITE_OPEN_READWRITE |
-				     SQLITE_OPEN_CREATE, NULL);
+		rc = sqlite3_open_v2(full_fname, &db, flags, NULL);
 		if (rc == SQLITE_BUSY)
 			usleep(10000);
 	} while (rc == SQLITE_BUSY);
@@ -63,7 +87,7 @@ static int db_sqlite3_open(struct ras_db *__db, unsigned int cpu)
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "cpu %u: Failed to connect to %s: error = %d\n",
-		    cpu, SQLITE_RAS_DB, rc);
+		    cpu, full_fname, rc);
 		return -1;
 	}
 
@@ -211,7 +235,7 @@ static int db_sqlite3_create_table(struct ras_db *__db,
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to create table %s on %s: error = %d\n",
-		    db_tab->name, SQLITE_RAS_DB, rc);
+		    db_tab->name, full_fname, rc);
 	}
 	return rc;
 }
@@ -233,7 +257,7 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to query fields from the table %s on %s: error = %d\n",
-		    db_tab->name, SQLITE_RAS_DB, rc);
+		    db_tab->name, full_fname, rc);
 		return rc;
 	}
 
@@ -265,7 +289,7 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 				log(TERM, LOG_ERR,
 				    "Failed to add new field %s to the table %s on %s: error = %d\n",
 				    field->name, db_tab->name,
-				    SQLITE_RAS_DB, rc);
+				    full_fname, rc);
 				return rc;
 			}
 			p = sql;
@@ -313,7 +337,7 @@ static int __db_prepare_stmt(struct sqlite3 *db,
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to prepare insert db at table %s (db %s): error = %s\n",
-		    db_tab->name, SQLITE_RAS_DB, sqlite3_errmsg(db));
+		    db_tab->name, full_fname, sqlite3_errmsg(db));
 		stmt = NULL;
 	} else {
 		log(TERM, LOG_INFO, "Recording %s events\n", db_tab->name);
@@ -334,16 +358,16 @@ static int db_sqlite3_prepare_stmt(struct ras_db *__db,
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to prepare insert db at table %s (db %s): error = %s\n",
-		    db_tab->name, SQLITE_RAS_DB, sqlite3_errmsg(db));
+		    db_tab->name, full_fname, sqlite3_errmsg(db));
 
 		log(TERM, LOG_INFO, "Trying to alter db at table %s (db %s)\n",
-		    db_tab->name, SQLITE_RAS_DB);
+		    db_tab->name, full_fname);
 
 		rc = db_alter_table(__db, __stmt, db_tab);
 		if (rc != SQLITE_OK && rc != SQLITE_DONE) {
 			log(TERM, LOG_ERR,
 			    "Failed to alter db at table %s (db %s): error = %s\n",
-			    db_tab->name, SQLITE_RAS_DB,
+			    db_tab->name, full_fname,
        sqlite3_errmsg(db));
 			stmt = NULL;
 			return rc;

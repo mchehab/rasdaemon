@@ -76,6 +76,7 @@ rasdaemon_SOURCES = core/rasdaemon.c
 # Unit tests
 unittest_SOURCES = tests/main.c
 unittest_SOURCES += tests/test-modules.c
+unittest_SOURCES += tests/test-sqlite3.c
 
 # Rasdaemon libraries is where the code actually sits
 noinst_LIBRARIES = librasdaemon.a
