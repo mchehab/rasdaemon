@@ -56,6 +56,9 @@ struct module_list {
  * Returns 0 on success, non-zero if registration failed.
  */
 int module_register(const struct ras_module_entry *entry);
+
+int module_init(struct ras_events *ras, const char *name);
+
 void modules_init(struct ras_events *ras);
 void modules_unregister(void);
 

@@ -68,6 +68,31 @@ bool modules_have_sql_backend(void)
 	return false;
 }
 
+int module_init(struct ras_events *ras, const char *name)
+{
+	struct ras_module_entry_runtime *entry;
+	bool enabled_db = false;
+
+	for (entry = ras_modules.head; entry; entry = entry->next) {
+		if (!strcmp(name, entry->e->name) && entry->e->init) {
+			if (entry->e->init(entry->e->name, ras, &entry->priv)) {
+				log(ALL, LOG_ERR,
+					"module %s init failed\n",
+					entry->e->name);
+			} else {
+				log(ALL, LOG_INFO,
+					"module %s enabled\n",
+					entry->e->name);
+				entry->is_enabled = true;
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void modules_init(struct ras_events *ras)
 {
 	struct ras_module_entry_runtime *entry;
