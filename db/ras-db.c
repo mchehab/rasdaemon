@@ -15,6 +15,7 @@
 #include "db/ras-db-backend.h"
 
 struct ras_db_backend_entry ras_db_backends = { 0 };
+const struct ras_db_backend_ops *ras_db_ops = NULL;
 
 int db_backend_register(struct ras_db_backend_entry *entry)
 {
@@ -66,7 +67,7 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 /*
  * Callback wrappers.
  *
- * NOTE: They don't need to check if ops->callback is not
+ * NOTE: They don't need to check if ras_db_ops->callback is not
  *	 NULL, as the register code above already warrants it.
  */
 
@@ -76,8 +77,6 @@ int db_backend_register(struct ras_db_backend_entry *entry)
  * one db_priv at ras_events. To keep it simple, use a static var to
  * store the active backend,
  */
-
-const struct ras_db_backend_ops *ops = NULL;
 
 int db_open(struct db_backend *backend, unsigned int cpu,
 	    struct ras_events *ras, size_t size_priv)
@@ -108,7 +107,7 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		rc = entry->ops->open(ras->db, conn_parms, cpu);
 		if (rc >= 0) {
 		ras->db = db;
-		ops = entry->ops;
+		ras_db_ops = entry->ops;
 		return 0;
 		}
 		entry = entry->next;
@@ -122,7 +121,7 @@ int db_close(unsigned int cpu, struct ras_events *ras)
 {
 	int rc;
 
-	if (!ops)
+	if (!ras_db_ops)
 		return 0;
 
 	ras->db_ref_count--;
@@ -130,8 +129,8 @@ int db_close(unsigned int cpu, struct ras_events *ras)
 	if (ras->db_ref_count > 0)
 		return 0;
 
-	rc = ops->close(ras->db, cpu);
-	ops = NULL;
+	rc = ras_db_ops->close(ras->db, cpu);
+	ras_db_ops = NULL;
 	free(ras->db);
 	ras->db = NULL;
 
@@ -140,56 +139,56 @@ int db_close(unsigned int cpu, struct ras_events *ras)
 
 const char *db_get_sql_type(enum db_field_type type, bool is_pk)
 {
-	if (!ops)
+	if (!ras_db_ops)
 		return "";
 
-	return ops->get_sql_type(type, is_pk);
+	return ras_db_ops->get_sql_type(type, is_pk);
 }
 
 void db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 		  int pos, uint64_t value, int len)
 {
-	if (ops)
-		ops->bind_type(stmt, type, pos, value, len);
+	if (ras_db_ops)
+		ras_db_ops->bind_type(stmt, type, pos, value, len);
 }
 
 void db_bind(struct ras_stmt *stmt, const struct db_fields *fields,
 	     int pos, uint64_t value, int len)
 {
-	if (ops)
-		ops->bind(stmt, fields, pos, value, len);
+	if (ras_db_ops)
+		ras_db_ops->bind(stmt, fields, pos, value, len);
 }
 
 int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name)
 {
-	if (!ops)
+	if (!ras_db_ops)
 		return 0;
 
-	return ops->eval_stmt(stmt, tab_name);
+	return ras_db_ops->eval_stmt(stmt, tab_name);
 }
 
 int db_create_table(struct ras_db *db, const struct db_table_descriptor *db_tab)
 {
-	if (!ops)
+	if (!ras_db_ops)
 		return 0;
 
-	return ops->create_table(db, db_tab);
+	return ras_db_ops->create_table(db, db_tab);
 }
 
 int db_alter_table(struct ras_db *db, struct ras_stmt **stmt,
 		   const struct db_table_descriptor *db_tab)
 {
-	if (!ops)
+	if (!ras_db_ops)
 		return 0;
-	return ops->alter_table(db, stmt, db_tab);
+	return ras_db_ops->alter_table(db, stmt, db_tab);
 }
 
 int db_prepare_stmt(struct ras_db *db, struct ras_stmt **stmt,
 		    const struct db_table_descriptor *db_tab)
 {
-	if (!ops)
+	if (!ras_db_ops)
 		return 0;
-	return ops->prepare_stmt(db, stmt, db_tab);
+	return ras_db_ops->prepare_stmt(db, stmt, db_tab);
 }
 
 int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
@@ -197,32 +196,32 @@ int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
 {
 	int rc;
 
-	if (!ops)
+	if (!ras_db_ops)
 		return 0;
 
-	rc = ops->create_table(ras->db, db_tab);
+	rc = ras_db_ops->create_table(ras->db, db_tab);
 	if (rc)
 		return rc;
 
-	return ops->prepare_stmt(ras->db, stmt, db_tab);
+	return ras_db_ops->prepare_stmt(ras->db, stmt, db_tab);
 }
 
 int db_finalize(struct ras_stmt *stmt)
 {
-	if (!ops)
+	if (!ras_db_ops)
 		return 0;
 
 	if (!stmt)
 		return 0;
 
-	return ops->finalize(-1, stmt, NULL);
+	return ras_db_ops->finalize(-1, stmt, NULL);
 }
 
 int db_cpu_finalize(unsigned int cpu, struct ras_stmt *stmt, const char *name)
 {
-		if (!ops)
+		if (!ras_db_ops)
 			return 0;
 
-		return ops->finalize(cpu, stmt, name);
+		return ras_db_ops->finalize(cpu, stmt, name);
 }
 
