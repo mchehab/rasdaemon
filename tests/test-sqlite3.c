@@ -466,7 +466,7 @@ int test_cleanup(void)
  */
 
 static struct test_case tests[] = {
-	{ test_sqlite3_init, "initialize sqlite3 backend" },
+	{ test_sqlite3_init, "initialize sqlite3 backend", .fatal=true },
 	{ test_db_get_sql_type, "test db_get_sql_type for various field types" },
 	{ test_db_bind_type, "test db_bind_type with INT32 and TEXT" },
 	{ test_db_bind, "test db_bind with multiple fields at once" },

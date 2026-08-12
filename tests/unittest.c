@@ -8,9 +8,11 @@
 #include "core/ras-logger.h"
 #include "tests/unittest.h"
 
+#include "core/modules.h"
+
 int run_tests(const char *name, const struct test_case tests[], size_t len)
 {
-	unsigned int i, failures = 0;
+	unsigned int i, success = 0, failures;
 
 	printf("Testing %s (%d tests):\n", name, len);
 	for (i = 0; i < len; i++) {
@@ -18,14 +20,20 @@ int run_tests(const char *name, const struct test_case tests[], size_t len)
 		ras_logger_clean();
 		if (tests[i].fn()) {
 			ras_logger_flush();
-			failures++;
+			if (tests[i].fatal) {
+				printf("\tFATAL error. Aborting other tests.\n");
+				break;
+			}
+		} else {
+			success++;
 		}
 	}
+	failures = len - success;
 	if (!failures)
 		printf("%s: a tests passed.\n", name);
 	else
 		printf("%s: %u tests failed, %u succeeded.\n",
-		       name, failures, len - failures);
+		       name, failures, success);
 
 	printf("\n");
 

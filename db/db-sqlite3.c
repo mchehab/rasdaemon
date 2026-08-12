@@ -434,6 +434,8 @@ static int sqlite3_init(const char *name, struct ras_events *ras, void **priv)
 	} else {
 		log(TERM, LOG_INFO, "SQLite3 DB backend initialized.\n");
 	}
+
+	return ret;
 }
 
 /*
