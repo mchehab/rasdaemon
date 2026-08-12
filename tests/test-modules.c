@@ -359,5 +359,6 @@ static struct test_case tests[] = {
 
 int test_modules(void)
 {
+	modules_unregister();
 	return run_tests("modules support", tests,  ARRAY_SIZE(tests));
 }

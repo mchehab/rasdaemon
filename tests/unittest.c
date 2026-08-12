@@ -30,7 +30,7 @@ int run_tests(const char *name, const struct test_case tests[], size_t len)
 	}
 	failures = len - success;
 	if (!failures)
-		printf("%s: a tests passed.\n", name);
+		printf("%s: all tests passed.\n", name);
 	else
 		printf("%s: %u tests failed, %u succeeded.\n",
 		       name, failures, success);
