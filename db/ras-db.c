@@ -95,10 +95,10 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 	if (!db)
 		return -ENOMEM;
 
-	entry = entry->next;
-	while (entry) {
-		if (backend && backend->name != entry->name)
+	for (entry = entry->next; entry;  entry = entry->next) {
+		if (backend && backend->name != entry->name) {
 			continue;
+		}
 
 		if (backend)
 			conn_parms = backend->conn_parms;
