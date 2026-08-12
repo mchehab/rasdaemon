@@ -73,8 +73,8 @@ static int db_sqlite3_open(struct ras_db *__db, void *__conn_parms,
 	rc = sqlite3_initialize();
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to initialize sqlite: error = %d\n",
-		    cpu, rc);
+		    "cpu %u: Failed to initialize sqlite: %s (error %d)\n",
+		    cpu, sqlite3_errstr(rc), rc);
 		return -1;
 	}
 
@@ -86,8 +86,8 @@ static int db_sqlite3_open(struct ras_db *__db, void *__conn_parms,
 
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to connect to %s: error = %d\n",
-		    cpu, full_fname, rc);
+		    "cpu %u: Failed to connect to %s: %s (error %d)\n",
+		    cpu, full_fname, sqlite3_errstr(rc), rc);
 		return -1;
 	}
 
@@ -102,12 +102,14 @@ static int db_sqlite3_close(struct ras_db *__db, unsigned int cpu)
 	rc = sqlite3_close_v2((sqlite3 *)db);
 	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to close sqlite: error = %d\n", cpu, rc);
+		    "cpu %u: Failed to close sqlite: %s (error %d)\n", cpu,
+		    sqlite3_errstr(rc), rc);
 
 	rc = sqlite3_shutdown();
 	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to shutdown sqlite: error = %d\n", cpu, rc);
+		    "cpu %u: Failed to shutdown sqlite: %s (error %d)\n", cpu,
+		    sqlite3_errstr(rc), rc);
 
 	return 0;
 }
@@ -186,19 +188,19 @@ static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
-		"Failed to do step on sqlite. Table = %s error = %d\n",
-	tab_name, rc);
+		"Failed to do step on sqlite. Table = %s: %s (error %d)\n",
+	tab_name, sqlite3_errstr(rc), rc);
 
 	rc = sqlite3_reset(stmt);
 	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
-		"Failed to reset on sqlite. Table = %s error = %d\n",
-	tab_name, rc);
+		"Failed to reset on sqlite. Table = %s: %s (error %d)\n",
+	tab_name, sqlite3_errstr(rc), rc);
 
 	rc = sqlite3_clear_bindings(stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
-		"Failed to clear bindings on sqlite. Table = %s error = %d\n",
+		"Failed to clear bindings on sqlite. Table = %s: %s (error %d)\n",
 	tab_name, rc);
 
 	return rc;
@@ -234,8 +236,8 @@ static int db_sqlite3_create_table(struct ras_db *__db,
 	rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
-		    "Failed to create table %s on %s: error = %d\n",
-		    db_tab->name, full_fname, rc);
+		    "Failed to create table %s on %s: %s (error %d)\n",
+		    db_tab->name, full_fname, sqlite3_errstr(rc), rc);
 	}
 	return rc;
 }
@@ -256,8 +258,8 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 	rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
-		    "Failed to query fields from the table %s on %s: error = %d\n",
-		    db_tab->name, full_fname, rc);
+		    "Failed to query fields from the table %s on %s: : %s (error %d)\n",
+		    db_tab->name, full_fname, sqlite3_errstr(rc), rc);
 		return rc;
 	}
 
@@ -287,9 +289,9 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 			rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
 			if (rc != SQLITE_OK) {
 				log(TERM, LOG_ERR,
-				    "Failed to add new field %s to the table %s on %s: error = %d\n",
+				    "Failed to add new field %s to the table %s on %s: %s (error %d)\n",
 				    field->name, db_tab->name,
-				    full_fname, rc);
+				    full_fname, sqlite3_errstr(rc), rc);
 				return rc;
 			}
 			p = sql;
@@ -391,8 +393,8 @@ static int db_sqlite3_finalize(unsigned int cpu,
 
 	if (cpu >= 0)
 		log(TERM, LOG_ERR,
-		    "cpu %u: Failed to finalize %s. Sqlite: error = %d\n",
-		    cpu, name, rc);
+		    "cpu %u: Failed to finalize %s. Sqlite:  %s (error %d)\n",
+		    cpu, name, sqlite3_errstr(rc), rc);
 	else
 		log(TERM, LOG_ERR,
 		    "Failed to finalize sqlite: error = %d\n", rc);
