@@ -442,11 +442,15 @@ int test_db_insert_and_select(void)
 int test_sqlite3_init(void)
 {
 	int rc = module_init(&ras, "db-sqlite3");
+	printf("test_sqlite3_init: %d\n", rc);
 	check(rc == 0);
 
 	rc |= check(module_is_enabled("db-sqlite3"));
 
+	/* We do want module init logs flushed */
 	ras_logger_flush();
+
+	printf("test_sqlite3_init: %d", rc);
 
 	return rc;
 }

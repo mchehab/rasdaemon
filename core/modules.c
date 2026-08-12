@@ -85,12 +85,12 @@ int module_init(struct ras_events *ras, const char *name)
 					entry->e->name);
 				entry->is_enabled = true;
 
-				return true;
+				return false;
 			}
 		}
 	}
 
-	return false;
+	return true;
 }
 
 void modules_init(struct ras_events *ras)
