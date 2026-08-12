@@ -442,7 +442,6 @@ int test_db_insert_and_select(void)
 int test_sqlite3_init(void)
 {
 	int rc = module_init(&ras, "db-sqlite3");
-	printf("test_sqlite3_init: %d\n", rc);
 	check(rc == 0);
 
 	rc |= check(module_is_enabled("db-sqlite3"));
@@ -450,7 +449,18 @@ int test_sqlite3_init(void)
 	/* We do want module init logs flushed */
 	ras_logger_flush();
 
-	printf("test_sqlite3_init: %d", rc);
+	if (rc)
+		return rc;
+
+	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
+	if (!ras.db) {
+		printf("\tFAIL: open database\n");
+		return 1;
+	}
+	db_close(0, &ras);
+
+	/* We do want module init logs flushed */
+	ras_logger_flush();
 
 	return rc;
 }
@@ -458,7 +468,6 @@ int test_sqlite3_init(void)
 int test_cleanup(void)
 {
 	int rc;
-	rc = db_open(&backend, 0, &ras, 15);
 	modules_unregister();
 	rc |= check(ras_modules.head == NULL);
 	rc |= check(ras_modules.next == NULL);

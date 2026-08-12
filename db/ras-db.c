@@ -87,15 +87,22 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 	int rc;
 
 	ras->db_ref_count++;
-	if (ras->db_ref_count > 1)
+	if (ras->db_ref_count > 1) {
+		log(TERM, LOG_INFO,
+		    "Database was already opened.\n");
 		return 0;
+	}
 
 	db = calloc(1, size_priv);
-	if (!db)
+	if (!db) {
+		log(TERM, LOG_ERR,
+		    "Failed to allocate memory for SQLite3 backend\n");
+		ras->db_ref_count--;
 		return -ENOMEM;
+	}
 
 	for (entry = entry->next; entry;  entry = entry->next) {
-		if (backend && backend->name != entry->name) {
+		if (backend && strcmp(backend->name, entry->name)) {
 			continue;
 		}
 
@@ -104,16 +111,22 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		else
 			conn_parms = NULL;
 
+
 		rc = entry->ops->open(ras->db, conn_parms, cpu);
-		if (rc >= 0) {
-		ras->db = db;
-		ras_db_ops = entry->ops;
-		return 0;
+		if (!rc) {
+			ras->db = db;
+			ras_db_ops = entry->ops;
+			log(TERM, LOG_INFO,
+			    "Database opened with %s backend.\n",
+			    backend->name);
+
+			return 0;
 		}
 		entry = entry->next;
 	}
 	free(db);
 
+	ras->db_ref_count--;
 	return -1;
 }
 

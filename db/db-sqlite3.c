@@ -111,7 +111,7 @@ static int db_sqlite3_close(struct ras_db *__db, unsigned int cpu)
 		    "cpu %u: Failed to shutdown sqlite: %s (error %d)\n", cpu,
 		    sqlite3_errstr(rc), rc);
 
-	return 0;
+	return rc;
 }
 
 static const char *db_sqlite3_get_sql_type(enum db_field_type type, bool is_pk)
