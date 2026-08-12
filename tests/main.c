@@ -17,8 +17,10 @@ int main(void)
 	mock_output = true;
 
 	int rc = 0;
+	rc |= test_sqlite3();
+
+	/* Should be the last one, as it will mock with probed modules */
 	rc |= test_modules();
-	rc += test_sqlite3();
 
 	return rc;
 }

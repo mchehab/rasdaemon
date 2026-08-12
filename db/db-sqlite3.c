@@ -449,7 +449,8 @@ const struct ras_module_entry db_sqlite3_module = {
 /*
  * Automatically register the module.
  */
-__attribute__((constructor)) static void sqlite3_register_backend(void)
+
+__attribute__((constructor)) void sqlite3_register(void)
 {
 	int ret;
 

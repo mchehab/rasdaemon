@@ -8,3 +8,5 @@ struct db_sqlite3_conn_params {
 	const char *dir;
 	int extra_flags;
 };
+
+void sqlite3_register_backend(void);

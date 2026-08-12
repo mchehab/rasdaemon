@@ -92,6 +92,8 @@ librasdaemon_a_SOURCES += core/ras-mc-handler.c
 librasdaemon_a_SOURCES += core/trigger.c
 librasdaemon_a_SOURCES += core/types.c
 
+AM_LDFLAGS =
+
 # Keep the IFs alphabetically sorted
 
 if WITH_ABRT_REPORT
@@ -200,6 +202,9 @@ if WITH_SQLITE3
    librasdaemon_a_SOURCES += db/db-sqlite3.c
    librasdaemon_a_SOURCES += db/ras-db.c
    librasdaemon_a_SOURCES += db/ras-record.c
+
+   # Needed to ensure module init
+   AM_LDFLAGS += -Wl,-u,sqlite3_register
 endif
 
 if WITH_YITIAN_NS_DECODE

@@ -175,8 +175,6 @@ int test_db_create_table(void)
 	int rc;
 
 	/* Open a database connection first */
-	rc = module_init(&ras, "db-sqlite3");
-	check(rc == 0);
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!db) {
@@ -207,12 +205,6 @@ int test_db_alter_table(void)
 {
 	struct ras_stmt *stmt;
 	int rc;
-
-	module_init(&ras, "db-sqlite3");
-	if (!ras_modules.head) {
-		printf("\tFAIL: init for alter_table test\n");
-		return 1;
-	}
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!ras.db) {
@@ -248,12 +240,6 @@ int test_db_eval_stmt(void)
 {
 	struct ras_stmt *stmt;
 	int rc;
-
-	module_init(&ras, "db-sqlite3");
-	if (!ras_modules.head) {
-		printf("\tFAIL: init for eval test\n");
-		return 1;
-	}
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!ras.db) {
@@ -302,12 +288,6 @@ int test_db_cpu_finalize(void)
 	struct ras_stmt *stmt;
 	int rc;
 
-	module_init(&ras, "db-sqlite3");
-	if (!ras_modules.head) {
-		printf("\tFAIL: init for cpu_finalize test\n");
-		return 1;
-	}
-
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!ras.db) {
 		printf("\tFAIL: open database for cpu_finalize test\n");
@@ -351,12 +331,6 @@ int test_db_insert_and_select(void)
 {
 	struct ras_stmt *stmt;
 	int rc = 0;
-
-	module_init(&ras, "db-sqlite3");
-	if (!ras_modules.head) {
-		printf("\tFAIL: init for insert/select test\n");
-		return 1;
-	}
 
 	db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	if (!ras.db) {
@@ -469,6 +443,11 @@ int test_sqlite3_init(void)
 {
 	int rc = module_init(&ras, "db-sqlite3");
 	check(rc == 0);
+
+	rc |= check(module_is_enabled("db-sqlite3"));
+
+	ras_logger_flush();
+
 	return rc;
 }
 
