@@ -4,7 +4,6 @@
  * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
-#define _GNU_SOURCE
 #include <pci/pci.h>
 #include <stdio.h>
 #include <stdlib.h>

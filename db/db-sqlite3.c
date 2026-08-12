@@ -432,7 +432,7 @@ static int sqlite3_init(const char *name, struct ras_events *ras, void **priv)
 	if (ret != 0) {
 		log(TERM, LOG_ERR, "Failed to init SQLite3 backend: %d\n", ret);
 	} else {
-		log(TERM, LOG_INFO, "SQLite3 DB backend registered.\n");
+		log(TERM, LOG_INFO, "SQLite3 DB backend initialized.\n");
 	}
 }
 

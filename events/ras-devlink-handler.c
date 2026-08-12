@@ -4,7 +4,6 @@
  * Copyright (C) 2019 Cong Wang <xiyou.wangcong@gmail.com>
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

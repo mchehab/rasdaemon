@@ -24,14 +24,14 @@
  * Arguments(argp) handling logic and main
  */
 
-#define TOOL_NAME "rasdaemon"
+#define PROG_NAME "rasdaemon"
 #define TOOL_DESCRIPTION "RAS daemon to log the RAS events."
 #define ARGS_DOC "<options>"
 #define DISABLE "DISABLE"
 #define MC_CE_STAT_THRESHOLD "MC_CE_STAT_THRESHOLD"
 #define POISON_STAT_THRESHOLD "POISON_STAT_THRESHOLD"
 
-const char *argp_program_version = TOOL_NAME " " VERSION;
+const char *argp_program_version = PROG_NAME " " VERSION;
 const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.org>";
 
 struct arguments {
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 	argp_parse(&argp, argc, argv, 0,  &idx, &args);
 
 	if (idx < 0) {
-		argp_help(&argp, stderr, ARGP_HELP_STD_HELP, TOOL_NAME);
+		argp_help(&argp, stderr, ARGP_HELP_STD_HELP, PROG_NAME);
 		return -1;
 	}
 
@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	openlog(TOOL_NAME, 0, LOG_DAEMON);
+	openlog(PROG_NAME, 0, LOG_DAEMON);
 	if (!args.foreground)
 		if (daemon(0, 0))
 			exit(EXIT_FAILURE);

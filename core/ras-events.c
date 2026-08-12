@@ -40,6 +40,8 @@
 #include "events/ras-reri-handler.h"
 #include "core/trigger.h"
 
+#define TOOL_NAME "rasdaemon"
+
 /*
  * Polling time, if read() doesn't block. Currently, trace_pipe_raw never
  * blocks on read(). So, we need to sleep for a while, to avoid spending

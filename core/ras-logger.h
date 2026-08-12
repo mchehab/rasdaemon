@@ -8,6 +8,7 @@
 #define __RAS_LOGGER_H
 
 #include <assert.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,9 +21,7 @@
  * Logging macros
  */
 
-#ifndef TOOL_NAME
-	#define TOOL_NAME "rasdaemon"
-#endif
+#define binary_name (program_invocation_short_name)
 
 #define SYSLOG	BIT(0)
 #define TERM	BIT(1)
@@ -48,7 +47,7 @@ extern size_t mock_log_len;
 		if ((where) & SYSLOG)					\
 			syslog(level, fmt, ##args);			\
 		if ((where) & TERM) {					\
-			fprintf(stderr, "%s: ", TOOL_NAME);		\
+			fprintf(stderr, "%s: ", binary_name);		\
 			fprintf(stderr, fmt, ##args);			\
 			fflush(stderr);					\
 		}							\
@@ -59,6 +58,5 @@ extern size_t mock_log_len;
 
 void ras_logger_clean(void);
 void ras_logger_flush(void);
-
 
 #endif
