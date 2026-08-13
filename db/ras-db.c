@@ -83,7 +83,7 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 {
 	struct ras_db_backend_entry *entry = &ras_db_backends;
 	void *conn_parms;
-	struct ras_db *db;
+	void *db_priv;
 	int rc;
 
 	ras->db_ref_count++;
@@ -93,8 +93,8 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		return 0;
 	}
 
-	db = calloc(1, size_priv);
-	if (!db) {
+	db_priv = calloc(1, size_priv);
+	if (!db_priv) {
 		log(TERM, LOG_ERR,
 		    "Failed to allocate memory for SQLite3 backend\n");
 		ras->db_ref_count--;
@@ -112,9 +112,9 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 			conn_parms = NULL;
 
 
-		rc = entry->ops->open(ras->db, conn_parms, cpu);
+		rc = entry->ops->open(&ras->db, conn_parms, cpu);
 		if (!rc) {
-			ras->db = db;
+			ras->db_priv = db_priv;
 			ras_db_ops = entry->ops;
 			log(TERM, LOG_INFO,
 			    "Database opened with %s backend.\n",
@@ -124,7 +124,7 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		}
 		entry = entry->next;
 	}
-	free(db);
+	free(db_priv);
 
 	ras->db_ref_count--;
 	return -1;
@@ -144,7 +144,7 @@ int db_close(unsigned int cpu, struct ras_events *ras)
 
 	rc = ras_db_ops->close(ras->db, cpu);
 	ras_db_ops = NULL;
-	free(ras->db);
+	free(ras->db_priv);
 	ras->db = NULL;
 
 	return rc;

@@ -23,14 +23,14 @@
 /* Store the DB name on a static var to be used later on logs */
 static char *full_fname = NULL;
 
-static int db_sqlite3_open(struct ras_db *__db, void *__conn_parms,
+static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 			   unsigned int cpu)
 {
 	struct db_sqlite3_conn_params *conn_parms = __conn_parms;
 	const char *fname = RAS_DB_FNAME;
 	const char *dir = RASSTATEDIR;
 	struct ras_record_priv *priv;
-	sqlite3 *db = (void *) __db;
+	sqlite3 **db = (void *)__db;
 	struct stat st = {0};
 	int flags, rc;
 
@@ -79,7 +79,7 @@ static int db_sqlite3_open(struct ras_db *__db, void *__conn_parms,
 	}
 
 	do {
-		rc = sqlite3_open_v2(full_fname, &db, flags, NULL);
+		rc = sqlite3_open_v2(full_fname, db, flags, NULL);
 		if (rc == SQLITE_BUSY)
 			usleep(10000);
 	} while (rc == SQLITE_BUSY);
