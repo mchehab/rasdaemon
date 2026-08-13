@@ -86,19 +86,19 @@ static uint32_t parse_output_format(
 	struct argp_state *state
 )
 {
-	if (strcmp(value, "standard") == 0) {
+	if (strcasecmp(value, "standard") == 0) {
 		return CM_OUTPUT_STANDARD;
 	}
 
-	if (strcmp(value, "tap") == 0) {
+	if (strcasecmp(value, "tap") == 0) {
 		return CM_OUTPUT_TAP;
 	}
 
-	if (strcmp(value, "xml") == 0) {
+	if (strcasecmp(value, "xml") == 0) {
 		return CM_OUTPUT_XML;
 	}
 
-	if (strcmp(value, "subunit") == 0) {
+	if (strcasecmp(value, "subunit") == 0) {
 		return CM_OUTPUT_SUBUNIT;
 	}
 
