@@ -169,6 +169,11 @@ static void filter_output(const char *format, va_list args)
 	 *	 won't use colors, which is not the end of times.
 	 */
 
+	if (!*format == '[' || strlen(format) < 12 || format[11] != ']') {
+		vfprintf(stdout, format, args);
+		return;
+	}
+
 #if 0 /* we should add a flag to optionally drop it */
 	if (!strncmp(format, "[ RUN      ]", 12)) {
 		return;
@@ -185,18 +190,21 @@ static void filter_output(const char *format, va_list args)
 	else if (!strncmp(format, "[  SKIPPED ]", 12))
 		color = get_color(YELLOW);
 
+	fputc('[', stdout);
+
 	if (color)
 		fputs(color, stdout);
 
-	for (int i=0; i < 12; i++)
+	for (int i=1; i < 11; i++)
 		fputc(format[i], stdout);
 
 	color = get_color(RESET);
 	if (color)
 		fputs(color, stdout);
 
-	vfprintf(stdout, &format[12], args);
+	fputc(']', stdout);
 
+	vfprintf(stdout, &format[12], args);
 }
 
 const struct CMCallbacks callbacks = {
