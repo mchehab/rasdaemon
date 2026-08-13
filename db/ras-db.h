@@ -85,7 +85,7 @@ void db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 		  const int pos, uint64_t value, int len);
 
 /**
- * ops_bind - Bind a complete set of fields from an event structure
+ * ops_bind - Bind fields from an event structure using fields definition
  * @stmt:	Statement handle provided by the backend
  * @fields:	Table descriptor providing type metadata for binding
  * @pos:	Starting position index (1-based)
@@ -165,6 +165,17 @@ int db_prepare_insert_stmt(struct ras_db *db,
  */
 int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
 			      const struct db_table_descriptor *db_tab);
+
+
+/**
+ * db_exec_sql - Execute a SQL statement
+ * @stmt:	Prepared statement handle to finalize
+ * @sql:	SQL command to execute
+ *
+ * Returns:
+ * 0 on success or a negative errno value on failure.
+ */
+int db_exec_sql(struct ras_db *db, const char *sql);
 
 /**
  * db_finalize - Finalize and release resources for a prepared statement

@@ -20,6 +20,8 @@
 #include "db/ras-db-backend.h"
 #include "db/db-sqlite3.h"
 
+#define DEBUG_SQL
+
 /* Store the DB name on a static var to be used later on logs */
 static char *full_fname = NULL;
 
@@ -144,9 +146,14 @@ static void db_sqlite3_bind_type(struct ras_stmt *__stmt,
 				 const int pos, uint64_t value, int len)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
+	const char *str;
 
 	switch (type) {
 		case DB_TYPE_SERIAL:
+			/* Use NULL to let sqlite3 to autofill it */
+			sqlite3_bind_null(stmt, pos);
+			break;
+
 		case DB_TYPE_INT32:
 			sqlite3_bind_int(stmt, pos, value);
 			break;
@@ -157,14 +164,14 @@ static void db_sqlite3_bind_type(struct ras_stmt *__stmt,
 
 		case DB_TYPE_TIMESTAMP:
 		case DB_TYPE_TEXT:
-			sqlite3_bind_text(stmt, pos, (const char *)value,
-					  len, SQLITE_TRANSIENT);
-			break;
-
 		case DB_TYPE_BLOB:
 		default:
-			sqlite3_bind_blob(stmt, pos, (const char *)value,
-					  len, SQLITE_TRANSIENT);
+			if (!value)
+				sqlite3_bind_null(stmt, pos);
+			else
+				sqlite3_bind_text(stmt, pos, (const char *)value,
+						  len, SQLITE_TRANSIENT);
+			break;
 	}
 }
 
@@ -188,19 +195,19 @@ static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
-		"Failed to do step on sqlite. Table = %s: %s (error %d)\n",
-	tab_name, sqlite3_errstr(rc), rc);
+		    "Failed to do step on sqlite. Table = %s: %s (error %d)\n",
+		    tab_name, sqlite3_errstr(rc), rc);
 
 	rc = sqlite3_reset(stmt);
 	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
-		"Failed to reset on sqlite. Table = %s: %s (error %d)\n",
+		    "Failed to reset on sqlite. Table = %s: %s (error %d)\n",
 	tab_name, sqlite3_errstr(rc), rc);
 
 	rc = sqlite3_clear_bindings(stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
-		"Failed to clear bindings on sqlite. Table = %s: %s (error %d)\n",
+		    "Failed to clear bindings on sqlite. Table = %s: %s (error %d)\n",
 	tab_name, rc);
 
 	return rc;
@@ -213,12 +220,13 @@ static int db_sqlite3_exec_sql(struct ras_db *__db, const char *sql)
 
 #ifdef DEBUG_SQL
 	log(TERM, LOG_INFO, "SQL: %s\n", sql);
+	ras_logger_flush();
 #endif
 
 	rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
-		    "Failed to exec'%s': %s (error %d)\n",
+		    "Failed to exec '%s': %s (error %d)\n",
 		    sql, sqlite3_errstr(rc), rc);
 	}
 
@@ -326,18 +334,24 @@ static int __db_prepare_insert_stmt(struct sqlite3 *db,
 			p += snprintf(p, end - p, ", ");
 	}
 
-	p += snprintf(p, end - p, ") VALUES ( NULL, ");
+	p += snprintf(p, end - p, ") VALUES (");
 
-	for (i = 1; i < db_tab->num_fields; i++) {
-		if (i <  db_tab->num_fields - 1)
-			strscat(sql, "?, ", sizeof(sql));
+	for (i = 0; i < db_tab->num_fields; i++) {
+		if (db_tab->fields[i].type == DB_TYPE_SERIAL)
+			strscat(sql, "NULL", sizeof(sql));
 		else
-			strscat(sql, "?)", sizeof(sql));
+			strscat(sql, "?", sizeof(sql));
+
+		if (i <  db_tab->num_fields - 1)
+			strscat(sql, ", ", sizeof(sql));
+		else
+			strscat(sql, ")", sizeof(sql));
 	}
 
-	#ifdef DEBUG_SQL
+#ifdef DEBUG_SQL
 	log(TERM, LOG_INFO, "SQL: %s\n", sql);
-	#endif
+	ras_logger_flush();
+#endif
 
 	rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
 	if (rc != SQLITE_OK) {

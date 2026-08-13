@@ -193,6 +193,7 @@ int db_alter_table(struct ras_db *db, struct ras_stmt **stmt,
 {
 	if (!ras_db_ops)
 		return 0;
+
 	return ras_db_ops->alter_table(db, stmt, db_tab);
 }
 
@@ -217,6 +218,14 @@ int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
 		return rc;
 
 	return ras_db_ops->prepare_stmt(ras->db, stmt, db_tab);
+}
+
+int db_exec_sql(struct ras_db *db, const char *sql)
+{
+	if (!ras_db_ops)
+		return 0;
+
+	return ras_db_ops->db_exec_sql(db, sql);
 }
 
 int db_finalize(struct ras_stmt *stmt)
