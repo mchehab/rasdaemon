@@ -35,7 +35,6 @@ struct ras_module_entry_runtime {
 	const struct ras_module_entry *e;
 
 	bool is_enabled;
-	bool missing_deps;
 
 	void *priv;
 

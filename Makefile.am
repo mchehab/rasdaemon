@@ -77,9 +77,8 @@ rasdaemon_SOURCES = core/rasdaemon.c
 unittest_SOURCES = tests/main.c
 unittest_SOURCES += tests/test-modules.c
 unittest_SOURCES += tests/test-sqlite3.c
-unittest_SOURCES += tests/unittest.c
 
-unittest_CFLAGS = -g
+unittest_CFLAGS = -g -lcmocka
 
 # Rasdaemon libraries is where the code actually sits
 noinst_LIBRARIES = librasdaemon.a
