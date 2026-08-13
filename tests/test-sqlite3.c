@@ -94,12 +94,23 @@ static void test_db_bind_type(void **state)
 	const char *s = "boo";
 	int rc;
 
+	static const struct db_fields fields[] = {
+		{ .name = "id",   .type = DB_TYPE_INT32, .is_pk = true },
+		{ .name = "val",  .type = DB_TYPE_TEXT,  .is_pk = false },
+	};
+
+	static const struct db_table_descriptor db_tab = {
+		.name = "test_tbl",
+		.fields = fields,
+		.num_fields = sizeof(fields) / sizeof(fields[0]),
+	};
+
 	rc = db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
 
 	/* Prepare an INSERT statement */
-	rc = db_create_table_prep_stmt(&ras, &stmt, NULL);
+	rc = db_create_table_prep_stmt(&ras, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
@@ -107,9 +118,6 @@ static void test_db_bind_type(void **state)
 	db_bind_type(stmt, DB_TYPE_TEXT, 2, (uint64_t)s, (int)strlen("s"));
 
 	rc = db_finalize(stmt);
-	assert_int_equal(rc, 0);
-
-	rc = db_close(0, &ras);
 	assert_int_equal(rc, 0);
 
 	rc = db_close(0, &ras);
@@ -126,11 +134,17 @@ static void test_db_bind(void **state)
 		{ .name = "val",  .type = DB_TYPE_INT32,  .is_pk = false },
 	};
 
+	static const struct db_table_descriptor db_tab = {
+		.name = "test_tbl",
+		.fields = fields,
+		.num_fields = sizeof(fields) / sizeof(fields[0]),
+	};
+
 	rc = db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
 
-	db_create_table_prep_stmt(&ras, &stmt, NULL);
+	db_create_table_prep_stmt(&ras, &stmt, &db_tab);
 	assert_non_null(stmt);
 
 	/* Bind a set of fields */
@@ -148,14 +162,25 @@ static void test_db_prepare_stmt(void **state)
 	struct ras_stmt *stmt;
 	int rc;
 
+	static const struct db_fields fields[] = {
+		{ .name = "id",   .type = DB_TYPE_SERIAL, .is_pk = true },
+		{ .name = "val",  .type = DB_TYPE_INT32,  .is_pk = false },
+	};
+
+	static const struct db_table_descriptor db_tab = {
+		.name = "test_tbl",
+		.fields = fields,
+		.num_fields = sizeof(fields) / sizeof(fields[0]),
+	};
+
 	rc = db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
 
-	db_create_table_prep_stmt(&ras, &stmt, NULL);
+	db_create_table(ras.db, &db_tab);
 	assert_non_null(stmt);
 
-	rc = db_prepare_stmt(NULL, &stmt, NULL);
+	rc = db_prepare_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 
 	rc = db_finalize(stmt);
@@ -167,7 +192,6 @@ static void test_db_prepare_stmt(void **state)
 
 static void test_db_create_table(void **state)
 {
-	struct ras_db *db;
 	int rc;
 
 	static const struct db_fields fields[] = {
@@ -175,7 +199,7 @@ static void test_db_create_table(void **state)
 		{ .name = "val",  .type = DB_TYPE_INT32,  .is_pk = false },
 	};
 
-	static const struct db_table_descriptor table_desc = {
+	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
 		.num_fields = sizeof(fields) / sizeof(fields[0]),
@@ -187,7 +211,7 @@ static void test_db_create_table(void **state)
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
 
-	rc = db_create_table(db, &table_desc);
+	rc = db_create_table(ras.db, &db_tab);
 	assert_int_equal(rc, 0);
 
 	rc = db_close(0, &ras);
@@ -215,7 +239,7 @@ static void test_db_alter_table(void **state)
 		{ .name = "val",  .type = DB_TYPE_INT64,  .is_pk = false },
 	};
 
-	static const struct db_table_descriptor table_desc = {
+	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
 		.num_fields = ARRAY_SIZE(fields),
@@ -228,7 +252,7 @@ static void test_db_alter_table(void **state)
 	rc = db_create_table(ras.db, &org_table_desc);
 	assert_int_equal(rc, 0);
 
-	rc = db_alter_table(ras.db, &stmt, &table_desc);
+	rc = db_alter_table(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 
 	rc = db_close(0, &ras);
@@ -244,7 +268,7 @@ static void test_db_eval_stmt(void **state)
 		{ .name = "id",   .type = DB_TYPE_SERIAL, .is_pk = true },
 		{ .name = "val",  .type = DB_TYPE_INT32,  .is_pk = false },
 	};
-	static const struct db_table_descriptor table_desc = {
+	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
 		.num_fields = sizeof(fields) / sizeof(fields[0]),
@@ -254,7 +278,10 @@ static void test_db_eval_stmt(void **state)
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
 
-	rc = db_prepare_stmt(ras.db, &stmt, &table_desc);
+	rc = db_create_table(ras.db, &db_tab);
+	assert_int_equal(rc, 0);
+
+	rc = db_prepare_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
@@ -279,7 +306,7 @@ static void test_db_cpu_finalize(void **state)
 		{ .name = "val",  .type = DB_TYPE_INT32,  .is_pk = false },
 	};
 
-	static const struct db_table_descriptor table_desc = {
+	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
 		.num_fields = sizeof(fields) / sizeof(fields[0]),
@@ -289,7 +316,10 @@ static void test_db_cpu_finalize(void **state)
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
 
-	rc = db_prepare_stmt(ras.db, &stmt, &table_desc);
+	rc = db_create_table(ras.db, &db_tab);
+	assert_int_equal(rc, 0);
+
+	rc = db_prepare_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
