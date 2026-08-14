@@ -306,7 +306,7 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 	return rc;
 }
 
-static int __db_prepare_stmt(struct sqlite3 *db,
+static int __db_prepare_insert_stmt(struct sqlite3 *db,
 			     sqlite3_stmt **stmt,
 			     const struct db_table_descriptor *db_tab)
 
@@ -352,15 +352,15 @@ static int __db_prepare_stmt(struct sqlite3 *db,
 	return rc;
 }
 
-static int db_sqlite3_prepare_stmt(struct ras_db *__db,
-				   struct ras_stmt **__stmt,
-				   const struct db_table_descriptor *db_tab)
+static int db_sqlite3_prepare_insert_stmt(struct ras_db *__db,
+					  struct ras_stmt **__stmt,
+					  const struct db_table_descriptor *db_tab)
 {
 	sqlite3_stmt **stmt = (sqlite3_stmt **)__stmt;
 	sqlite3 *db = (sqlite3 *)__db;
 	int rc;
 
-	rc = __db_prepare_stmt(db, stmt, db_tab);
+	rc = __db_prepare_insert_stmt(db, stmt, db_tab);
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to prepare insert db at table %s (db %s): error = %s\n",
@@ -379,7 +379,7 @@ static int db_sqlite3_prepare_stmt(struct ras_db *__db,
 			return rc;
 		}
 
-		rc = __db_prepare_stmt(db, stmt, db_tab);
+		rc = __db_prepare_insert_stmt(db, stmt, db_tab);
 	}
 
 	return rc;
@@ -423,7 +423,7 @@ static const struct ras_db_backend_ops sqlite3_backend_ops = {
 	.eval_stmt              = db_sqlite3_eval_stmt,
 	.create_table           = db_sqlite3_create_table,
 	.alter_table            = db_sqlite3_alter_table,
-	.prepare_stmt           = db_sqlite3_prepare_stmt,
+	.prepare_stmt           = db_sqlite3_prepare_insert_stmt,
 	.finalize               = db_sqlite3_finalize,
 };
 

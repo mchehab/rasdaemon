@@ -142,7 +142,7 @@ int db_alter_table(struct ras_db *db,
 		   const struct db_table_descriptor *db_tab);
 
 /**
- * db_prepare_stmt - Prepare a generic SQL statement for execution
+ * db_prepare_insert_stmt - Prepare a generic SQL statement for execution
  * @db:	Database connection handle (opaque)
  * @stmt:	Output pointer for the prepared statement handle
  * @db_tab:	Table descriptor providing context for the query
@@ -150,7 +150,7 @@ int db_alter_table(struct ras_db *db,
  * Returns:
  * 0 on success or a negative errno value on failure.
  */
-int db_prepare_stmt(struct ras_db *db,
+int db_prepare_insert_stmt(struct ras_db *db,
 		    struct ras_stmt **stmt,
 		    const struct db_table_descriptor *db_tab);
 

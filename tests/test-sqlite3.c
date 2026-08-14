@@ -180,7 +180,7 @@ static void test_db_prepare_stmt(void **state)
 	db_create_table(ras.db, &db_tab);
 	assert_non_null(stmt);
 
-	rc = db_prepare_stmt(ras.db, &stmt, &db_tab);
+	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 
 	rc = db_finalize(stmt);
@@ -319,7 +319,7 @@ static void test_db_cpu_finalize(void **state)
 	rc = db_create_table(ras.db, &db_tab);
 	assert_int_equal(rc, 0);
 
-	rc = db_prepare_stmt(ras.db, &stmt, &db_tab);
+	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 

@@ -196,8 +196,8 @@ int db_alter_table(struct ras_db *db, struct ras_stmt **stmt,
 	return ras_db_ops->alter_table(db, stmt, db_tab);
 }
 
-int db_prepare_stmt(struct ras_db *db, struct ras_stmt **stmt,
-		    const struct db_table_descriptor *db_tab)
+int db_prepare_insert_stmt(struct ras_db *db, struct ras_stmt **stmt,
+			   const struct db_table_descriptor *db_tab)
 {
 	if (!ras_db_ops)
 		return 0;

@@ -1151,7 +1151,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_AER
 	rc = db_create_table(ras->db, &aer_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_aer_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_aer_event,
 					 &aer_event_tab);
 		if (rc)
 			return -1;
@@ -1161,7 +1161,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_EXTLOG
 	rc = db_create_table(ras->db, &extlog_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_extlog_record,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_extlog_record,
 					 &extlog_event_tab);
 		if (rc)
 			return -1;
@@ -1171,7 +1171,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_MCE
 	rc = db_create_table(ras->db, &mce_record_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_mce_record,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_mce_record,
 					 &mce_record_tab);
 		if (rc)
 			return -1;
@@ -1181,7 +1181,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_NON_STANDARD
 	rc = db_create_table(ras->db, &non_standard_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_non_standard_record,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_non_standard_record,
 					 &non_standard_event_tab);
 		if (rc)
 			return -1;
@@ -1191,7 +1191,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_ARM
 	rc = db_create_table(ras->db, &arm_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_arm_record,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_arm_record,
 					 &arm_event_tab);
 		if (rc)
 			return -1;
@@ -1200,7 +1200,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_DEVLINK
 	rc = db_create_table(ras->db, &devlink_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_devlink_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_devlink_event,
 					 &devlink_event_tab);
 		if (rc)
 			return -1;
@@ -1210,7 +1210,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_DISKERROR
 	rc = db_create_table(ras->db, &diskerror_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_diskerror_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_diskerror_event,
 					 &diskerror_event_tab);
 		if (rc)
 			return -1;
@@ -1220,7 +1220,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_MEMORY_FAILURE
 	rc = db_create_table(ras->db, &mf_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_mf_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_mf_event,
 					 &mf_event_tab);
 		if (rc)
 			return -1;
@@ -1230,7 +1230,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_CXL
 	rc = db_create_table(ras->db, &cxl_poison_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_poison_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_cxl_poison_event,
 					 &cxl_poison_event_tab);
 		if (rc)
 			return -1;
@@ -1238,7 +1238,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	rc = db_create_table(ras->db, &cxl_aer_ue_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_aer_ue_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_cxl_aer_ue_event,
 					 &cxl_aer_ue_event_tab);
 		if (rc)
 			return -1;
@@ -1246,7 +1246,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	rc = db_create_table(ras->db, &cxl_aer_ce_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_aer_ce_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_cxl_aer_ce_event,
 					 &cxl_aer_ce_event_tab);
 		if (rc)
 			return -1;
@@ -1254,7 +1254,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	rc = db_create_table(ras->db, &cxl_overflow_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_overflow_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_cxl_overflow_event,
 					 &cxl_overflow_event_tab);
 		if (rc)
 			return -1;
@@ -1262,7 +1262,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	rc = db_create_table(ras->db, &cxl_generic_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_generic_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_cxl_generic_event,
 					 &cxl_generic_event_tab);
 		if (rc)
 			return -1;
@@ -1270,7 +1270,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	rc = db_create_table(ras->db, &cxl_general_media_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_general_media_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_cxl_general_media_event,
 					 &cxl_general_media_event_tab);
 		if (rc)
 			return -1;
@@ -1278,7 +1278,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	rc = db_create_table(ras->db, &cxl_dram_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_dram_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_cxl_dram_event,
 					 &cxl_dram_event_tab);
 		if (rc)
 			return -1;
@@ -1286,7 +1286,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	rc = db_create_table(ras->db, &cxl_memory_module_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_cxl_memory_module_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_cxl_memory_module_event,
 					 &cxl_memory_module_event_tab);
 		if (rc)
 			return -1;
@@ -1296,7 +1296,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_SIGNAL
 	rc = db_create_table(ras->db, &signal_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_signal_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_signal_event,
 					 &signal_event_tab);
 		if (rc)
 			return -1;
@@ -1306,7 +1306,7 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 #ifdef HAVE_RERI
 	rc = db_create_table(ras->db, &reri_event_tab);
 	if (!rc) {
-		rc = db_prepare_stmt(ras->db, &priv->stmt_reri_event,
+		rc = db_prepare_insert_stmt(ras->db, &priv->stmt_reri_event,
 					 &reri_event_tab);
 		if (rc)
 			return -1;
