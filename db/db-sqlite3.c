@@ -20,7 +20,7 @@
 #include "db/ras-db-backend.h"
 #include "db/db-sqlite3.h"
 
-#define DEBUG_SQL
+//#define DEBUG_SQL
 
 /* Store the DB name on a static var to be used later on logs */
 static char *full_fname = NULL;
@@ -180,23 +180,30 @@ static void db_sqlite3_bind(const struct db_table_descriptor *db_tab,
 			    const int pos, uint64_t value, int len)
 {
 	const struct db_fields *fields = db_tab->fields;
-	int field_pos = 0;
+	int i, field_pos = 0;
 
 	if (pos < 1) {
-		log(TERM, LOG_INFO, "table %s: invalid pos: %d\n",
+		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
 		    db_tab->name, pos);
 		return;
 	}
 
-	for (int i = 0; i < db_tab->num_fields; i++) {
+	for (i = 0; i < db_tab->num_fields; i++) {
 		if (fields[i].type == DB_TYPE_SERIAL)
 			continue;
 
-		if (++field_pos == pos)
+		if (field_pos == pos - 1)
 			break;
+
+		field_pos++;
+	}
+	if (field_pos != pos - 1) {
+		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
+		    db_tab->name, pos);
+		return;
 	}
 
-	db_bind_type(stmt, fields[field_pos].type, pos, value, len);
+	db_bind_type(stmt, fields[i].type, pos, value, len);
 }
 
 static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
