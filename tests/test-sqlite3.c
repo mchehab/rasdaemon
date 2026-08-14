@@ -33,7 +33,7 @@ struct mock_priv {
 static struct db_sqlite3_conn_params conn_parms = {
 	.dir = "/tmp",
 	.fname = "sqlite3_mock.db",
-//	.extra_flags = SQLITE_OPEN_MEMORY,
+	.extra_flags = SQLITE_OPEN_MEMORY,
 };
 
 struct db_backend backend = {
@@ -58,6 +58,7 @@ static void sqlite3_compare_value(void **state,
 {
 	int type = sqlite3_column_type(stmt, pos);
 	const char *str;
+	char msg[256];
 	int exp_type;
 	uint64_t val;
 
@@ -97,14 +98,15 @@ static void sqlite3_compare_value(void **state,
 			str = (const char *)sqlite3_column_blob(stmt, pos);
 	}
 
-	printf("pos %d, type %d, str: %p, expected: %p\n", pos, type, str, expected->string);
-
 	if (!expected->string) {
-		assert_null(str);
+		snprintf(msg, sizeof(msg), "element #%d should be NULL", pos);
+		assert_null_msg(str, msg);
 		return;
 	}
 
-	assert_non_null(str);
+	snprintf(msg, sizeof(msg),
+		 "element #%d should be a string instead of NULL", pos);
+	assert_non_null_msg(str, msg);
 	assert_string_equal(str, expected->string);
 }
 
@@ -200,7 +202,7 @@ static void test_db_no_binding(void **state)
 	static const struct db_fields fields[] = {
 		{ .name = "id",   .type = DB_TYPE_SERIAL,    .is_pk = true },
 		{ .name = "val",  .type = DB_TYPE_TEXT       },
-		{ .name = "time",  .type = DB_TYPE_TIMESTAMP },
+		{ .name = "time", .type = DB_TYPE_TIMESTAMP  },
 	};
 
 	static const struct db_table_descriptor db_tab = {
@@ -217,13 +219,17 @@ static void test_db_no_binding(void **state)
 			.type = fields[1].type,
 			.string = NULL,
 		},
+		{
+			.type = fields[2].type,
+			.string = NULL,
+		},
 	};
 
 	db_create_table(ras.db, &db_tab);
-	assert_non_null(stmt);
 
 	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
+	assert_non_null(stmt);
 
 	/* No bindings here */
 
@@ -235,6 +241,7 @@ static void test_db_no_binding(void **state)
 
 	rc = sqlite3_check_values(state, ras.db, &stmt, &db_tab,
 				  vals, ARRAY_SIZE(vals));
+	assert_int_equal(rc, 0);
 }
 
 /* check if db_bind_type is working */
@@ -271,7 +278,6 @@ static void test_db_bind_type(void **state)
 		},
 	};
 
-	/* Prepare an INSERT statement */
 	rc = db_create_table_prep_stmt(&ras, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
@@ -335,8 +341,6 @@ static void test_db_bind(void **state)
 
 	rc = sqlite3_check_values(state, ras.db, &stmt, &db_tab,
 				  vals, ARRAY_SIZE(vals));
-
-	rc = db_finalize(stmt);
 	assert_int_equal(rc, 0);
 }
 
@@ -395,15 +399,18 @@ static void test_db_alter_table(void **state)
 	assert_int_equal(rc, 0);
 }
 
-static void test_db_cpu_finalize(void **state)
+static void test_db_complex_table(void **state)
 {
 	struct mock_priv *priv = ras.db_priv;
 	struct ras_stmt *stmt = priv->stmt;
 	int rc, pos = 1;
 
 	static const struct db_fields fields[] = {
-		{ .name = "id",   .type = DB_TYPE_SERIAL, .is_pk = true },
-		{ .name = "val",  .type = DB_TYPE_INT32,  .is_pk = false },
+		{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP },
+		{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
+		{ .name = "sec_type",	.type = DB_TYPE_BLOB },
+		{ .name = "severity",	.type = DB_TYPE_TEXT },
+		{ .name = "error",	.type = DB_TYPE_BLOB },
 	};
 
 	static const struct db_table_descriptor db_tab = {
@@ -414,24 +421,36 @@ static void test_db_cpu_finalize(void **state)
 	static struct db_values vals[] = {
 		{
 			.type = fields[0].type,
-			.value = 1,
+			.string = "2026-01-01 12:59:30",
 		},
 		{
 			.type = fields[1].type,
-			.value = 99,
+			.value = 1,
+		},
+		{
+			.type = fields[2].type,
+			.string = "blob1",
+		},
+		{
+			.type = fields[3].type,
+			.string = "text",
+		},
+		{
+			.type = fields[4].type,
+			.string = "blob2",
 		},
 	};
 
-	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
+	rc = db_create_table_prep_stmt(&ras, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
-	db_bind(&db_tab, stmt, pos++, vals[1].value, -1);
+	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[0].string, -1);
+	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[2].string, -1);
+	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[3].string, -1);
+	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[4].string, -1);
 
 	rc = db_eval_stmt(stmt, db_tab.name);
-	assert_int_equal(rc, 0);
-
-	rc = db_cpu_finalize(0, stmt, db_tab.name);
 	assert_int_equal(rc, 0);
 
 	rc = sqlite3_check_values(state, ras.db, &stmt, &db_tab,
@@ -525,7 +544,7 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test_setup_teardown(test_db_alter_table,
 					tests_setup, tests_teardown),
 
-	cmocka_unit_test_setup_teardown(test_db_cpu_finalize,
+	cmocka_unit_test_setup_teardown(test_db_complex_table,
 					tests_setup, tests_teardown),
 
 	cmocka_unit_test(test_cleanup),
