@@ -15,6 +15,8 @@ struct ras_db_backend_ops {
 	void (*bind)(struct ras_stmt *stmt, const struct db_fields *fields,
 		int pos, uint64_t value, int len);
 
+	int  (*db_exec_sql)(struct ras_db *__db, const char *sql);
+
 	int  (*eval_stmt)(struct ras_stmt *stmt, const char *tab_name);
 
 	int  (*create_table)(struct ras_db *db,

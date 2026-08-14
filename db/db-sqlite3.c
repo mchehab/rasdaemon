@@ -206,6 +206,25 @@ static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 	return rc;
 }
 
+static int db_sqlite3_exec_sql(struct ras_db *__db, const char *sql)
+{
+	sqlite3		*db = (void *)__db;
+	int rc;
+
+#ifdef DEBUG_SQL
+	log(TERM, LOG_INFO, "SQL: %s\n", sql);
+#endif
+
+	rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
+	if (rc != SQLITE_OK) {
+		log(TERM, LOG_ERR,
+		    "Failed to exec'%s': %s (error %d)\n",
+		    sql, sqlite3_errstr(rc), rc);
+	}
+
+	return rc;
+}
+
 static int db_sqlite3_create_table(struct ras_db *__db,
 				   const struct db_table_descriptor *db_tab)
 {
@@ -229,17 +248,7 @@ static int db_sqlite3_create_table(struct ras_db *__db,
 	}
 	p += snprintf(p, end - p, ")");
 
-#ifdef DEBUG_SQL
-	log(TERM, LOG_INFO, "SQL: %s\n", sql);
-#endif
-
-	rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
-	if (rc != SQLITE_OK) {
-		log(TERM, LOG_ERR,
-		    "Failed to create table %s on %s: %s (error %d)\n",
-		    db_tab->name, full_fname, sqlite3_errstr(rc), rc);
-	}
-	return rc;
+	return db_sqlite3_exec_sql(__db, sql);
 }
 
 static int db_sqlite3_alter_table(struct ras_db *__db,
@@ -276,6 +285,7 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 		}
 
 		if (!found) {
+			int ret;
 			type = db_get_sql_type(field->type, field->is_pk);
 
 			/* add new field */
@@ -283,19 +293,13 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 				      db_tab->name);
 			p += snprintf(p, end - p,
 				      "%s %s", field->name, type);
-#ifdef DEBUG_SQL
-			log(TERM, LOG_INFO, "SQL: %s\n", sql);
-#endif
-			rc = sqlite3_exec(db, sql, NULL, NULL, NULL);
-			if (rc != SQLITE_OK) {
-				log(TERM, LOG_ERR,
-				    "Failed to add new field %s to the table %s on %s: %s (error %d)\n",
-				    field->name, db_tab->name,
-				    full_fname, sqlite3_errstr(rc), rc);
-				return rc;
-			}
+
+			ret = db_sqlite3_exec_sql(__db, sql);
+			if (ret)
+				rc = ret;
+
 			p = sql;
-			memset(sql, 0, sizeof(sql));
+			*p = '\0';
 		}
 	}
 
@@ -413,6 +417,8 @@ static const struct ras_db_backend_ops sqlite3_backend_ops = {
 	.get_sql_type           = db_sqlite3_get_sql_type,
 	.bind_type              = db_sqlite3_bind_type,
 	.bind                   = db_sqlite3_bind,
+
+	.db_exec_sql		= db_sqlite3_exec_sql,
 
 	.eval_stmt              = db_sqlite3_eval_stmt,
 	.create_table           = db_sqlite3_create_table,

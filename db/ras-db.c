@@ -27,7 +27,7 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 	if (!ops || !ops->get_sql_type || !ops->bind_type || !ops->bind ||
 	    !ops->eval_stmt || !ops->create_table || !ops->alter_table ||
 	    !ops->prepare_stmt || !ops->finalize || !ops->open ||
-	    !ops->close) {
+	    !ops->close || !ops->db_exec_sql) {
 		log(TERM, LOG_ERR, "Incomplete ops for backend %s\n", name);
 		return -EINVAL;
 	}
