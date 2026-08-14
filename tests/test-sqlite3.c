@@ -33,7 +33,7 @@ struct mock_priv {
 static struct db_sqlite3_conn_params conn_parms = {
 	.dir = "/tmp",
 	.fname = "sqlite3_mock.db",
-	.extra_flags = SQLITE_OPEN_MEMORY,
+//	.extra_flags = SQLITE_OPEN_MEMORY,
 };
 
 struct db_backend backend = {
@@ -327,8 +327,8 @@ static void test_db_bind(void **state)
 	db_create_table_prep_stmt(&ras, &stmt, &db_tab);
 	assert_non_null(stmt);
 
-	db_bind(stmt, fields, pos++, (uint64_t)vals[1].string, -1);
-	db_bind(stmt, fields, pos++, (uint64_t)vals[2].string, -1);
+	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[1].string, -1);
+	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[2].string, -1);
 
 	rc = db_eval_stmt(stmt, db_tab.name);
 	assert_int_equal(rc, 0);
@@ -399,7 +399,7 @@ static void test_db_cpu_finalize(void **state)
 {
 	struct mock_priv *priv = ras.db_priv;
 	struct ras_stmt *stmt = priv->stmt;
-	int rc;
+	int rc, pos = 1;
 
 	static const struct db_fields fields[] = {
 		{ .name = "id",   .type = DB_TYPE_SERIAL, .is_pk = true },
@@ -426,7 +426,7 @@ static void test_db_cpu_finalize(void **state)
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
-	db_bind(stmt, fields, 1, vals[1].value, -1);
+	db_bind(&db_tab, stmt, pos++, vals[1].value, -1);
 
 	rc = db_eval_stmt(stmt, db_tab.name);
 	assert_int_equal(rc, 0);

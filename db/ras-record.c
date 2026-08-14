@@ -50,26 +50,26 @@ static const struct db_table_descriptor mc_event_tab = {
 
 int db_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_mc_event)
 		return 0;
 	log(TERM, LOG_INFO, "mc_event store: %p\n", priv->stmt_mc_event);
 
-	db_bind(priv->stmt_mc_event, mc_event_fields,  1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields,  2, ev->error_count, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields,  3, (uint64_t)ev->error_type, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields,  4, (uint64_t)ev->msg, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields,  5, (uint64_t)ev->label, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields,  6, ev->mc_index, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields,  7, ev->top_layer, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields,  8, ev->middle_layer, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields,  9, ev->lower_layer, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields, 10, ev->address, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields, 11, ev->grain, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields, 12, ev->syndrome, -1);
-	db_bind(priv->stmt_mc_event, mc_event_fields, 13, (uint64_t)ev->driver_detail, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->error_count, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->error_type, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->msg, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->label, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->mc_index, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->top_layer, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->middle_layer, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->lower_layer, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->address, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->grain, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->syndrome, -1);
+	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->driver_detail, -1);
 
 	rc = db_eval_stmt(priv->stmt_mc_event, "mc_event");
 	if (!rc)
@@ -85,7 +85,7 @@ int db_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 #ifdef HAVE_AER
 static const struct db_fields aer_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "dev_name",		.type = DB_TYPE_TEXT },
 	{ .name = "err_type",		.type = DB_TYPE_TEXT },
 	{ .name = "err_msg",		.type = DB_TYPE_TEXT },
@@ -99,17 +99,17 @@ static const struct db_table_descriptor aer_event_tab = {
 
 int db_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_aer_event)
 		return 0;
 	log(TERM, LOG_INFO, "aer_event store: %p\n", priv->stmt_aer_event);
 
-	db_bind(priv->stmt_aer_event, aer_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_aer_event, aer_event_fields, 2, (uint64_t)ev->dev_name, -1);
-	db_bind(priv->stmt_aer_event, aer_event_fields, 3, (uint64_t)ev->error_type, -1);
-	db_bind(priv->stmt_aer_event, aer_event_fields, 4, (uint64_t)ev->msg, -1);
+	db_bind(&aer_event_tab, priv->stmt_aer_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&aer_event_tab, priv->stmt_aer_event, pos++, (uint64_t)ev->dev_name, -1);
+	db_bind(&aer_event_tab, priv->stmt_aer_event, pos++, (uint64_t)ev->error_type, -1);
+	db_bind(&aer_event_tab, priv->stmt_aer_event, pos++, (uint64_t)ev->msg, -1);
 
 	rc = db_eval_stmt(priv->stmt_aer_event, "aer_event");
 	if (!rc)
@@ -126,7 +126,7 @@ int db_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 #ifdef HAVE_NON_STANDARD
 static const struct db_fields non_standard_event_fields[] = {
 		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-		{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 		{ .name = "sec_type",		.type = DB_TYPE_BLOB },
 		{ .name = "fru_id",		.type = DB_TYPE_BLOB },
 		{ .name = "fru_text",		.type = DB_TYPE_TEXT },
@@ -142,19 +142,19 @@ static const struct db_table_descriptor non_standard_event_tab = {
 
 int db_non_standard_record(struct ras_events *ras, struct ras_non_standard_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_non_standard_record)
 		return 0;
 	log(TERM, LOG_INFO, "non_standard_event store: %p\n", priv->stmt_non_standard_record);
 
-	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 2, (uint64_t)ev->sec_type, -1);
-	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 3, (uint64_t)ev->fru_id,  16);
-	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 4, (uint64_t)ev->fru_text, -1);
-	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 5, (uint64_t)ev->severity, -1);
-	db_bind(priv->stmt_non_standard_record, non_standard_event_fields, 6, (uint64_t)ev->error,  ev->length);
+	db_bind(&non_standard_event_tab, priv->stmt_non_standard_record, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&non_standard_event_tab, priv->stmt_non_standard_record, pos++, (uint64_t)ev->sec_type, -1);
+	db_bind(&non_standard_event_tab, priv->stmt_non_standard_record, pos++, (uint64_t)ev->fru_id,  16);
+	db_bind(&non_standard_event_tab, priv->stmt_non_standard_record, pos++, (uint64_t)ev->fru_text, -1);
+	db_bind(&non_standard_event_tab, priv->stmt_non_standard_record, pos++, (uint64_t)ev->severity, -1);
+	db_bind(&non_standard_event_tab, priv->stmt_non_standard_record, pos++, (uint64_t)ev->error,  ev->length);
 
 	rc = db_eval_stmt(priv->stmt_non_standard_record, "non_standard_record");
 	if (!rc)
@@ -169,7 +169,7 @@ int db_non_standard_record(struct ras_events *ras, struct ras_non_standard_event
 #ifdef HAVE_ARM
 static const struct db_fields arm_event_fields[] = {
 		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-		{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 		{ .name = "error_count",	.type = DB_TYPE_INT32 },
 		{ .name = "affinity",		.type = DB_TYPE_INT32 },
 		{ .name = "mpidr",		.type = DB_TYPE_INT64 },
@@ -193,27 +193,27 @@ static const struct db_table_descriptor arm_event_tab = {
 
 int db_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_arm_record)
 		return 0;
 	log(TERM, LOG_INFO, "arm_event store: %p\n", priv->stmt_arm_record);
 
-	db_bind(priv->stmt_arm_record, arm_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 2, ev->error_count, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 3, ev->affinity, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 4, ev->mpidr, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 5, ev->running_state, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 6, ev->psci_state, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 7, (uint64_t)ev->pei_error,  ev->pei_len);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 8, (uint64_t)ev->ctx_error,  ev->ctx_len);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 9, (uint64_t)ev->vsei_error,  ev->oem_len);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 10, (uint64_t)ev->error_types, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 11, (uint64_t)ev->error_flags, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 12, ev->error_info, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 13, ev->virt_fault_addr, -1);
-	db_bind(priv->stmt_arm_record, arm_event_fields, 14, ev->phy_fault_addr, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, ev->error_count, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, ev->affinity, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, ev->mpidr, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, ev->running_state, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, ev->psci_state, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, (uint64_t)ev->pei_error,  ev->pei_len);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, (uint64_t)ev->ctx_error,  ev->ctx_len);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, (uint64_t)ev->vsei_error,  ev->oem_len);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, (uint64_t)ev->error_types, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, (uint64_t)ev->error_flags, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, ev->error_info, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, ev->virt_fault_addr, -1);
+	db_bind(&arm_event_tab, priv->stmt_arm_record, pos++, ev->phy_fault_addr, -1);
 
 	rc = db_eval_stmt(priv->stmt_arm_record, "arm_record");
 	if (!rc)
@@ -226,7 +226,7 @@ int db_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 #ifdef HAVE_EXTLOG
 static const struct db_fields extlog_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "etype",		.type = DB_TYPE_INT32 },
 	{ .name = "error_count",	.type = DB_TYPE_INT32 },
 	{ .name = "severity",		.type = DB_TYPE_INT32 },
@@ -244,21 +244,21 @@ static const struct db_table_descriptor extlog_event_tab = {
 
 int db_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_extlog_record)
 		return 0;
 	log(TERM, LOG_INFO, "extlog_record store: %p\n", priv->stmt_extlog_record);
 
-	db_bind(priv->stmt_extlog_record, extlog_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_extlog_record, extlog_event_fields, 2, ev->etype, -1);
-	db_bind(priv->stmt_extlog_record, extlog_event_fields, 3, ev->error_seq, -1);
-	db_bind(priv->stmt_extlog_record, extlog_event_fields, 4, ev->severity, -1);
-	db_bind(priv->stmt_extlog_record, extlog_event_fields, 5, ev->address, -1);
-	db_bind(priv->stmt_extlog_record, extlog_event_fields, 6, (uint64_t)ev->fru_id,  16);
-	db_bind(priv->stmt_extlog_record, extlog_event_fields, 7, (uint64_t)ev->fru_text, -1);
-	db_bind(priv->stmt_extlog_record, extlog_event_fields, 8, (uint64_t)ev->cper_data,  ev->cper_data_length);
+	db_bind(&extlog_event_tab, priv->stmt_extlog_record, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&extlog_event_tab, priv->stmt_extlog_record, pos++, ev->etype, -1);
+	db_bind(&extlog_event_tab, priv->stmt_extlog_record, pos++, ev->error_seq, -1);
+	db_bind(&extlog_event_tab, priv->stmt_extlog_record, pos++, ev->severity, -1);
+	db_bind(&extlog_event_tab, priv->stmt_extlog_record, pos++, ev->address, -1);
+	db_bind(&extlog_event_tab, priv->stmt_extlog_record, pos++, (uint64_t)ev->fru_id,  16);
+	db_bind(&extlog_event_tab, priv->stmt_extlog_record, pos++, (uint64_t)ev->fru_text, -1);
+	db_bind(&extlog_event_tab, priv->stmt_extlog_record, pos++, (uint64_t)ev->cper_data,  ev->cper_data_length);
 
 	rc = db_eval_stmt(priv->stmt_extlog_record, "extlog_record");
 	if (!rc)
@@ -275,7 +275,7 @@ int db_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev)
 #ifdef HAVE_MCE
 static const struct db_fields mce_record_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 
 	/* MCE registers */
 	{ .name = "mcgcap",		.type = DB_TYPE_INT32 },
@@ -314,39 +314,39 @@ static const struct db_table_descriptor mce_record_tab = {
 
 int db_mce_record(struct ras_events *ras, struct mce_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_mce_record)
 		return 0;
 	log(TERM, LOG_INFO, "mce_record store: %p\n", priv->stmt_mce_record);
 
-	db_bind(priv->stmt_mce_record, mce_record_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 2, ev->mcgcap, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 3, ev->mcgstatus, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 4, ev->status, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 5, ev->addr, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 6, ev->misc, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 7, ev->ip, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 8, ev->tsc, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 9, ev->walltime, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 10, ev->ppin, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 11, ev->cpu, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 12, ev->cpuid, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 13, ev->apicid, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 14, ev->socketid, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 15, ev->cs, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 16, ev->bank, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 17, ev->cpuvendor, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 18, ev->microcode, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->mcgcap, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->mcgstatus, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->status, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->addr, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->misc, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->ip, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->tsc, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->walltime, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->ppin, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->cpu, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->cpuid, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->apicid, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->socketid, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->cs, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->bank, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->cpuvendor, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, ev->microcode, -1);
 
-	db_bind(priv->stmt_mce_record, mce_record_fields, 19, (uint64_t)ev->bank_name, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 20, (uint64_t)ev->error_msg, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 21, (uint64_t)ev->mcgstatus_msg, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 22, (uint64_t)ev->mcistatus_msg, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 23, (uint64_t)ev->mcastatus_msg, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 24, (uint64_t)ev->user_action, -1);
-	db_bind(priv->stmt_mce_record, mce_record_fields, 25, (uint64_t)ev->mc_location, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, (uint64_t)ev->bank_name, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, (uint64_t)ev->error_msg, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, (uint64_t)ev->mcgstatus_msg, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, (uint64_t)ev->mcistatus_msg, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, (uint64_t)ev->mcastatus_msg, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, (uint64_t)ev->user_action, -1);
+	db_bind(&mce_record_tab, priv->stmt_mce_record, pos++, (uint64_t)ev->mc_location, -1);
 
 	rc = db_eval_stmt(priv->stmt_mce_record, "mce_record");
 	if (!rc)
@@ -363,7 +363,7 @@ int db_mce_record(struct ras_events *ras, struct mce_event *ev)
 #ifdef HAVE_DEVLINK
 static const struct db_fields devlink_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "bus_name",		.type = DB_TYPE_TEXT },
 	{ .name = "dev_name",		.type = DB_TYPE_TEXT },
 	{ .name = "driver_name",	.type = DB_TYPE_TEXT },
@@ -379,19 +379,19 @@ static const struct db_table_descriptor devlink_event_tab = {
 
 int db_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_devlink_event)
 		return 0;
 	log(TERM, LOG_INFO, "devlink_event store: %p\n", priv->stmt_devlink_event);
 
-	db_bind(priv->stmt_devlink_event, devlink_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_devlink_event, devlink_event_fields, 2, (uint64_t)ev->bus_name, -1);
-	db_bind(priv->stmt_devlink_event, devlink_event_fields, 3, (uint64_t)ev->dev_name, -1);
-	db_bind(priv->stmt_devlink_event, devlink_event_fields, 4, (uint64_t)ev->driver_name, -1);
-	db_bind(priv->stmt_devlink_event, devlink_event_fields, 5, (uint64_t)ev->reporter_name, -1);
-	db_bind(priv->stmt_devlink_event, devlink_event_fields, 6, (uint64_t)ev->msg, -1);
+	db_bind(&devlink_event_tab, priv->stmt_devlink_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&devlink_event_tab, priv->stmt_devlink_event, pos++, (uint64_t)ev->bus_name, -1);
+	db_bind(&devlink_event_tab, priv->stmt_devlink_event, pos++, (uint64_t)ev->dev_name, -1);
+	db_bind(&devlink_event_tab, priv->stmt_devlink_event, pos++, (uint64_t)ev->driver_name, -1);
+	db_bind(&devlink_event_tab, priv->stmt_devlink_event, pos++, (uint64_t)ev->reporter_name, -1);
+	db_bind(&devlink_event_tab, priv->stmt_devlink_event, pos++, (uint64_t)ev->msg, -1);
 
 	rc = db_eval_stmt(priv->stmt_devlink_event, "devlink_event");
 	if (!rc)
@@ -408,7 +408,7 @@ int db_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 #ifdef HAVE_DISKERROR
 static const struct db_fields diskerror_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "dev",		.type = DB_TYPE_TEXT },
 	{ .name = "sector",		.type = DB_TYPE_INT64 },
 	{ .name = "nr_sector",		.type = DB_TYPE_INT32 },
@@ -425,20 +425,20 @@ static const struct db_table_descriptor diskerror_event_tab = {
 
 int db_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_diskerror_event)
 		return 0;
 	log(TERM, LOG_INFO, "diskerror_event store: %p\n", priv->stmt_diskerror_event);
 
-	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 2, (uint64_t)ev->dev, -1);
-	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 3, ev->sector, -1);
-	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 4, ev->nr_sector, -1);
-	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 5, (uint64_t)ev->error, -1);
-	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 6, (uint64_t)ev->rwbs, -1);
-	db_bind(priv->stmt_diskerror_event, diskerror_event_fields, 7, (uint64_t)ev->cmd, -1);
+	db_bind(&diskerror_event_tab, priv->stmt_diskerror_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&diskerror_event_tab, priv->stmt_diskerror_event, pos++, (uint64_t)ev->dev, -1);
+	db_bind(&diskerror_event_tab, priv->stmt_diskerror_event, pos++, ev->sector, -1);
+	db_bind(&diskerror_event_tab, priv->stmt_diskerror_event, pos++, ev->nr_sector, -1);
+	db_bind(&diskerror_event_tab, priv->stmt_diskerror_event, pos++, (uint64_t)ev->error, -1);
+	db_bind(&diskerror_event_tab, priv->stmt_diskerror_event, pos++, (uint64_t)ev->rwbs, -1);
+	db_bind(&diskerror_event_tab, priv->stmt_diskerror_event, pos++, (uint64_t)ev->cmd, -1);
 
 	rc = db_eval_stmt(priv->stmt_diskerror_event, "diskerror_event");
 	if (!rc)
@@ -455,7 +455,7 @@ int db_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
 #ifdef HAVE_MEMORY_FAILURE
 static const struct db_fields mf_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "pfn",		.type = DB_TYPE_TEXT },
 	{ .name = "page_type",		.type = DB_TYPE_TEXT },
 	{ .name = "action_result",	.type = DB_TYPE_TEXT },
@@ -469,17 +469,17 @@ static const struct db_table_descriptor mf_event_tab = {
 
 int db_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_mf_event)
 		return 0;
 	log(TERM, LOG_INFO, "memory_failure_event store: %p\n", priv->stmt_mf_event);
 
-	db_bind(priv->stmt_mf_event, mf_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_mf_event, mf_event_fields, 2, (uint64_t)ev->pfn, -1);
-	db_bind(priv->stmt_mf_event, mf_event_fields, 3, (uint64_t)ev->page_type, -1);
-	db_bind(priv->stmt_mf_event, mf_event_fields, 4, (uint64_t)ev->action_result, -1);
+	db_bind(&mf_event_tab, priv->stmt_mf_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&mf_event_tab, priv->stmt_mf_event, pos++, (uint64_t)ev->pfn, -1);
+	db_bind(&mf_event_tab, priv->stmt_mf_event, pos++, (uint64_t)ev->page_type, -1);
+	db_bind(&mf_event_tab, priv->stmt_mf_event, pos++, (uint64_t)ev->action_result, -1);
 
 	rc = db_eval_stmt(priv->stmt_mf_event, "mf_event");
 	if (!rc)
@@ -495,7 +495,7 @@ int db_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
  */
 static const struct db_fields cxl_poison_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "memdev",		.type = DB_TYPE_TEXT },
 	{ .name = "host",		.type = DB_TYPE_TEXT },
 	{ .name = "serial",		.type = DB_TYPE_INT64 },
@@ -519,27 +519,27 @@ static const struct db_table_descriptor cxl_poison_event_tab = {
 
 int db_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_cxl_poison_event)
 		return 0;
 	log(TERM, LOG_INFO, "cxl_poison_event store: %p\n", priv->stmt_cxl_poison_event);
 
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 2, (uint64_t)ev->memdev, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 3, (uint64_t)ev->host, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 4, ev->serial, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 5, (uint64_t)ev->trace_type, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 6, (uint64_t)ev->region, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 7, (uint64_t)ev->uuid, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 8, ev->hpa, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 9, ev->dpa, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 10, ev->dpa_length, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 11, (uint64_t)ev->source, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 12, ev->flags, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 13, (uint64_t)ev->overflow_ts, -1);
-	db_bind(priv->stmt_cxl_poison_event, cxl_poison_event_fields, 14, ev->hpa_alias0, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, (uint64_t)ev->memdev, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, (uint64_t)ev->host, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, ev->serial, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, (uint64_t)ev->trace_type, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, (uint64_t)ev->region, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, (uint64_t)ev->uuid, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, ev->hpa, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, ev->dpa, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, ev->dpa_length, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, (uint64_t)ev->source, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, ev->flags, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, (uint64_t)ev->overflow_ts, -1);
+	db_bind(&cxl_poison_event_tab, priv->stmt_cxl_poison_event, pos++, ev->hpa_alias0, -1);
 
 	rc = db_eval_stmt(priv->stmt_cxl_poison_event, "cxl_poison_event");
 	if (!rc)
@@ -553,7 +553,7 @@ int db_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
  */
 static const struct db_fields cxl_aer_ue_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "memdev",		.type = DB_TYPE_TEXT },
 	{ .name = "host",		.type = DB_TYPE_TEXT },
 	{ .name = "serial",		.type = DB_TYPE_INT64 },
@@ -570,20 +570,20 @@ static const struct db_table_descriptor cxl_aer_ue_event_tab = {
 
 int db_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_cxl_aer_ue_event)
 		return 0;
 	log(TERM, LOG_INFO, "cxl_aer_ue_event store: %p\n", priv->stmt_cxl_aer_ue_event);
 
-	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 2, (uint64_t)ev->memdev, -1);
-	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 3, (uint64_t)ev->host, -1);
-	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 4, ev->serial, -1);
-	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 5, ev->error_status, -1);
-	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 6, ev->first_error, -1);
-	db_bind(priv->stmt_cxl_aer_ue_event, cxl_aer_ue_event_fields, 7, (uint64_t)ev->header_log, CXL_HEADERLOG_SIZE);
+	db_bind(&cxl_aer_ue_event_tab, priv->stmt_cxl_aer_ue_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&cxl_aer_ue_event_tab, priv->stmt_cxl_aer_ue_event, pos++, (uint64_t)ev->memdev, -1);
+	db_bind(&cxl_aer_ue_event_tab, priv->stmt_cxl_aer_ue_event, pos++, (uint64_t)ev->host, -1);
+	db_bind(&cxl_aer_ue_event_tab, priv->stmt_cxl_aer_ue_event, pos++, ev->serial, -1);
+	db_bind(&cxl_aer_ue_event_tab, priv->stmt_cxl_aer_ue_event, pos++, ev->error_status, -1);
+	db_bind(&cxl_aer_ue_event_tab, priv->stmt_cxl_aer_ue_event, pos++, ev->first_error, -1);
+	db_bind(&cxl_aer_ue_event_tab, priv->stmt_cxl_aer_ue_event, pos++, (uint64_t)ev->header_log, CXL_HEADERLOG_SIZE);
 
 	rc = db_eval_stmt(priv->stmt_cxl_aer_ue_event, "cxl_aer_ue_event");
 	if (!rc)
@@ -597,7 +597,7 @@ int db_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev)
  */
 static const struct db_fields cxl_aer_ce_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "memdev",		.type = DB_TYPE_TEXT },
 	{ .name = "host",		.type = DB_TYPE_TEXT },
 	{ .name = "serial",		.type = DB_TYPE_INT64 },
@@ -612,18 +612,18 @@ static const struct db_table_descriptor cxl_aer_ce_event_tab = {
 
 int db_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_cxl_aer_ce_event)
 		return 0;
 	log(TERM, LOG_INFO, "cxl_aer_ce_event store: %p\n", priv->stmt_cxl_aer_ce_event);
 
-	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 2, (uint64_t)ev->memdev, -1);
-	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 3, (uint64_t)ev->host, -1);
-	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 4, ev->serial, -1);
-	db_bind(priv->stmt_cxl_aer_ce_event, cxl_aer_ce_event_fields, 5, ev->error_status, -1);
+	db_bind(&cxl_aer_ce_event_tab, priv->stmt_cxl_aer_ce_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&cxl_aer_ce_event_tab, priv->stmt_cxl_aer_ce_event, pos++, (uint64_t)ev->memdev, -1);
+	db_bind(&cxl_aer_ce_event_tab, priv->stmt_cxl_aer_ce_event, pos++, (uint64_t)ev->host, -1);
+	db_bind(&cxl_aer_ce_event_tab, priv->stmt_cxl_aer_ce_event, pos++, ev->serial, -1);
+	db_bind(&cxl_aer_ce_event_tab, priv->stmt_cxl_aer_ce_event, pos++, ev->error_status, -1);
 
 	rc = db_eval_stmt(priv->stmt_cxl_aer_ce_event, "cxl_aer_ce_event");
 	if (!rc)
@@ -637,7 +637,7 @@ int db_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
  */
 static const struct db_fields cxl_overflow_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "memdev",		.type = DB_TYPE_TEXT },
 	{ .name = "host",		.type = DB_TYPE_TEXT },
 	{ .name = "serial",		.type = DB_TYPE_INT64 },
@@ -655,21 +655,21 @@ static const struct db_table_descriptor cxl_overflow_event_tab = {
 
 int db_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
 {
-	int rc;
 	struct ras_record_priv *priv = ras->db_priv;
+	int rc, pos = 1;
 
 	if (!priv || !priv->stmt_cxl_overflow_event)
 		return 0;
 	log(TERM, LOG_INFO, "cxl_overflow_event store: %p\n", priv->stmt_cxl_overflow_event);
 
-	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 2, (uint64_t)ev->memdev, -1);
-	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 3, (uint64_t)ev->host, -1);
-	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 4, ev->serial, -1);
-	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 5, (uint64_t)ev->log_type, -1);
-	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 6, ev->count, -1);
-	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 7, (uint64_t)ev->first_ts, -1);
-	db_bind(priv->stmt_cxl_overflow_event, cxl_overflow_event_fields, 8, (uint64_t)ev->last_ts, -1);
+	db_bind(&cxl_overflow_event_tab, priv->stmt_cxl_overflow_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&cxl_overflow_event_tab, priv->stmt_cxl_overflow_event, pos++, (uint64_t)ev->memdev, -1);
+	db_bind(&cxl_overflow_event_tab, priv->stmt_cxl_overflow_event, pos++, (uint64_t)ev->host, -1);
+	db_bind(&cxl_overflow_event_tab, priv->stmt_cxl_overflow_event, pos++, ev->serial, -1);
+	db_bind(&cxl_overflow_event_tab, priv->stmt_cxl_overflow_event, pos++, (uint64_t)ev->log_type, -1);
+	db_bind(&cxl_overflow_event_tab, priv->stmt_cxl_overflow_event, pos++, ev->count, -1);
+	db_bind(&cxl_overflow_event_tab, priv->stmt_cxl_overflow_event, pos++, (uint64_t)ev->first_ts, -1);
+	db_bind(&cxl_overflow_event_tab, priv->stmt_cxl_overflow_event, pos++, (uint64_t)ev->last_ts, -1);
 
 	rc = db_eval_stmt(priv->stmt_cxl_overflow_event, "cxl_overflow_event");
 	if (!rc)
@@ -678,30 +678,30 @@ int db_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event 
 	return rc;
 }
 
-static int db_cxl_common_hdr(struct ras_stmt *stmt,
-				    const struct db_fields *fields,
-				    struct ras_cxl_event_common_hdr *hdr)
+static int db_cxl_common_hdr(const struct db_table_descriptor *db_tab,
+			     struct ras_stmt *stmt,
+			     struct ras_cxl_event_common_hdr *hdr)
 {
 	int idx = 1;
 
 	if (!stmt || !hdr)
 		return -1;
 
-	db_bind(stmt, fields, idx++, (uint64_t)hdr->timestamp, -1);
-	db_bind(stmt, fields, idx++, (uint64_t)hdr->memdev, -1);
-	db_bind(stmt, fields, idx++, (uint64_t)hdr->host, -1);
-	db_bind(stmt, fields, idx++, hdr->serial, -1);
-	db_bind(stmt, fields, idx++, (uint64_t)hdr->log_type, -1);
-	db_bind(stmt, fields, idx++, (uint64_t)hdr->hdr_uuid, -1);
-	db_bind(stmt, fields, idx++, hdr->hdr_flags, -1);
-	db_bind(stmt, fields, idx++, hdr->hdr_handle, -1);
-	db_bind(stmt, fields, idx++, hdr->hdr_related_handle, -1);
-	db_bind(stmt, fields, idx++, (uint64_t)hdr->hdr_timestamp, -1);
-	db_bind(stmt, fields, idx++, hdr->hdr_length, -1);
-	db_bind(stmt, fields, idx++, hdr->hdr_maint_op_class, -1);
-	db_bind(stmt, fields, idx++, hdr->hdr_maint_op_sub_class, -1);
-	db_bind(stmt, fields, idx++, hdr->hdr_ld_id, -1);
-	db_bind(stmt, fields, idx++, hdr->hdr_head_id, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->timestamp, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->memdev, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->host, -1);
+	db_bind(db_tab, stmt, idx++, hdr->serial, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->log_type, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->hdr_uuid, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_flags, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_handle, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_related_handle, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->hdr_timestamp, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_length, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_maint_op_class, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_maint_op_sub_class, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_ld_id, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_head_id, -1);
 
 	return idx;
 }
@@ -711,7 +711,7 @@ static int db_cxl_common_hdr(struct ras_stmt *stmt,
  */
 static const struct db_fields cxl_generic_event_fields[] = {
 	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",			.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
 	{ .name = "memdev",			.type = DB_TYPE_TEXT },
 	{ .name = "host",			.type = DB_TYPE_TEXT },
 	{ .name = "serial",			.type = DB_TYPE_INT64 },
@@ -745,14 +745,13 @@ int db_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *e
 		return -1;
 	log(TERM, LOG_INFO, "cxl_generic_event store: %p\n", priv->stmt_cxl_generic_event);
 
-	idx = db_cxl_common_hdr(priv->stmt_cxl_generic_event,
-				       cxl_generic_event_fields,
-				       &ev->hdr);
+	idx = db_cxl_common_hdr(&cxl_generic_event_tab,
+				priv->stmt_cxl_generic_event, &ev->hdr);
 	if (idx <= 0)
 		return -1;
 
-	db_bind(priv->stmt_cxl_generic_event, cxl_generic_event_fields,
-		       idx++, (uint64_t)ev->data, CXL_EVENT_RECORD_DATA_LENGTH);
+	db_bind(&cxl_generic_event_tab, priv->stmt_cxl_generic_event,
+		idx++, (uint64_t)ev->data, CXL_EVENT_RECORD_DATA_LENGTH);
 
 	rc = db_eval_stmt(priv->stmt_cxl_generic_event, "cxl_generic_event");
 	if (!rc)
@@ -766,7 +765,7 @@ int db_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *e
  */
 static const struct db_fields cxl_general_media_event_fields[] = {
 	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",			.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
 	{ .name = "memdev",			.type = DB_TYPE_TEXT },
 	{ .name = "host",			.type = DB_TYPE_TEXT },
 	{ .name = "serial",			.type = DB_TYPE_INT64 },
@@ -820,29 +819,28 @@ int db_cxl_general_media_event(struct ras_events *ras,
 	log(TERM, LOG_INFO, "cxl_general_media_event store: %p\n",
 	    priv->stmt_cxl_general_media_event);
 
-	idx = db_cxl_common_hdr(priv->stmt_cxl_general_media_event,
-				       cxl_general_media_event_fields,
-				       &ev->hdr);
+	idx = db_cxl_common_hdr(&cxl_general_media_event_tab,
+				priv->stmt_cxl_general_media_event, &ev->hdr);
 	if (idx <= 0)
 		return -1;
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->dpa, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->dpa_flags, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->descriptor, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->type, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->transaction_type, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->channel, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->rank, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->device, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->hpa, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->region, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->region_uuid, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->sub_type, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->cme_threshold_ev_flags, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->cme_count, -1);
-	db_bind(priv->stmt_cxl_general_media_event, cxl_general_media_event_fields, idx++, ev->hpa_alias0, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->dpa, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->dpa_flags, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->descriptor, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->type, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->transaction_type, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->channel, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->rank, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->device, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->hpa, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, (uint64_t)ev->region, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, (uint64_t)ev->region_uuid, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->sub_type, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->cme_threshold_ev_flags, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->cme_count, -1);
+	db_bind(&cxl_general_media_event_tab, priv->stmt_cxl_general_media_event, idx++, ev->hpa_alias0, -1);
 
 	rc = db_eval_stmt(priv->stmt_cxl_general_media_event, "cxl_general_media_event");
 	if (!rc)
@@ -856,7 +854,7 @@ int db_cxl_general_media_event(struct ras_events *ras,
  */
 static const struct db_fields cxl_dram_event_fields[] = {
 	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",			.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
 	{ .name = "memdev",			.type = DB_TYPE_TEXT },
 	{ .name = "host",			.type = DB_TYPE_TEXT },
 	{ .name = "serial",			.type = DB_TYPE_INT64 },
@@ -915,35 +913,35 @@ int db_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
 	log(TERM, LOG_INFO, "cxl_dram_event store: %p\n",
 	    priv->stmt_cxl_dram_event);
 
-	idx = db_cxl_common_hdr(priv->stmt_cxl_dram_event,
-				       cxl_dram_event_fields,
-				       &ev->hdr);
+	idx = db_cxl_common_hdr(&cxl_dram_event_tab,
+				priv->stmt_cxl_dram_event, &ev->hdr);
 	if (idx <= 0)
 		return -1;
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->dpa, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->dpa_flags, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->descriptor, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->type, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->transaction_type, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->channel, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->rank, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->nibble_mask, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->bank_group, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->bank, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->row, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->column, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->cor_mask, CXL_EVENT_DER_CORRECTION_MASK_SIZE);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->hpa, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->region, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->region_uuid, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->sub_type, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->sub_channel, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->cme_threshold_ev_flags, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->cvme_count, -1);
-	db_bind(priv->stmt_cxl_dram_event, cxl_dram_event_fields, idx++, ev->hpa_alias0, -1);
+
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->dpa, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->dpa_flags, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->descriptor, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->type, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->transaction_type, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->channel, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->rank, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->nibble_mask, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->bank_group, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->bank, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->row, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->column, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, (uint64_t)ev->cor_mask, CXL_EVENT_DER_CORRECTION_MASK_SIZE);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->hpa, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, (uint64_t)ev->region, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, (uint64_t)ev->region_uuid, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->sub_type, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->sub_channel, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->cme_threshold_ev_flags, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->cvme_count, -1);
+	db_bind(&cxl_dram_event_tab, priv->stmt_cxl_dram_event, idx++, ev->hpa_alias0, -1);
 
 	rc = db_eval_stmt(priv->stmt_cxl_dram_event, "cxl_dram_event");
 	if (!rc)
@@ -957,7 +955,7 @@ int db_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
  */
 static const struct db_fields cxl_memory_module_event_fields[] = {
 	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",			.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
 	{ .name = "memdev",			.type = DB_TYPE_TEXT },
 	{ .name = "host",			.type = DB_TYPE_TEXT },
 	{ .name = "serial",			.type = DB_TYPE_INT64 },
@@ -1006,24 +1004,24 @@ int db_cxl_memory_module_event(struct ras_events *ras,
 	log(TERM, LOG_INFO, "cxl_memory_module_event store: %p\n",
 	    priv->stmt_cxl_memory_module_event);
 
-	idx = db_cxl_common_hdr(priv->stmt_cxl_memory_module_event,
-				       cxl_memory_module_event_fields,
-				       &ev->hdr);
+	idx = db_cxl_common_hdr(&cxl_memory_module_event_tab,
+				priv->stmt_cxl_memory_module_event, &ev->hdr);
 	if (idx <= 0)
 		return -1;
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->event_type, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->health_status, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->media_status, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->life_used, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->dirty_shutdown_cnt, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->cor_vol_err_cnt, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->cor_per_err_cnt, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->device_temp, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->add_status, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, ev->event_sub_type, -1);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	db_bind(priv->stmt_cxl_memory_module_event, cxl_memory_module_event_fields, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->event_type, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->health_status, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->media_status, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->life_used, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->dirty_shutdown_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->cor_vol_err_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->cor_per_err_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->device_temp, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->add_status, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, ev->event_sub_type, -1);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_memory_module_event_tab, priv->stmt_cxl_memory_module_event, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
 
 	rc = db_eval_stmt(priv->stmt_cxl_memory_module_event, "cxl_memory_module_event");
 	if (!rc)
@@ -1036,7 +1034,7 @@ int db_cxl_memory_module_event(struct ras_events *ras,
 #ifdef HAVE_SIGNAL
 static const struct db_fields signal_event_fields[] = {
 	{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",	.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP },
 	{ .name = "sig",	.type = DB_TYPE_INT32 },
 	{ .name = "errorno",	.type = DB_TYPE_INT32 },
 	{ .name = "code",	.type = DB_TYPE_INT32 },
@@ -1054,21 +1052,21 @@ static const struct db_table_descriptor signal_event_tab = {
 
 int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
 {
-	int rc;
+	int rc, pos = 0;
 	struct ras_record_priv *priv = ras->db_priv;
 
 	if (!priv || !priv->stmt_signal_event)
 		return -1;
 	log(TERM, LOG_INFO, "signal_event store: %p\n", priv->stmt_signal_event);
 
-	db_bind(priv->stmt_signal_event, signal_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_signal_event, signal_event_fields, 2, ev->sig, -1);
-	db_bind(priv->stmt_signal_event, signal_event_fields, 3, ev->error_no, -1);
-	db_bind(priv->stmt_signal_event, signal_event_fields, 4, ev->code, -1);
-	db_bind(priv->stmt_signal_event, signal_event_fields, 5, (uint64_t)ev->comm, -1);
-	db_bind(priv->stmt_signal_event, signal_event_fields, 6, ev->pid, -1);
-	db_bind(priv->stmt_signal_event, signal_event_fields, 7, ev->group, -1);
-	db_bind(priv->stmt_signal_event, signal_event_fields, 8, ev->result, -1);
+	db_bind(&signal_event_tab, priv->stmt_signal_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&signal_event_tab, priv->stmt_signal_event, pos++, ev->sig, -1);
+	db_bind(&signal_event_tab, priv->stmt_signal_event, pos++, ev->error_no, -1);
+	db_bind(&signal_event_tab, priv->stmt_signal_event, pos++, ev->code, -1);
+	db_bind(&signal_event_tab, priv->stmt_signal_event, pos++, (uint64_t)ev->comm, -1);
+	db_bind(&signal_event_tab, priv->stmt_signal_event, pos++, ev->pid, -1);
+	db_bind(&signal_event_tab, priv->stmt_signal_event, pos++, ev->group, -1);
+	db_bind(&signal_event_tab, priv->stmt_signal_event, pos++, ev->result, -1);
 
 	rc = db_eval_stmt(priv->stmt_signal_event, "signal_event");
 	if (!rc)
@@ -1085,7 +1083,7 @@ int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
 #ifdef HAVE_RERI
 static const struct db_fields reri_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TEXT },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
 	{ .name = "err_src_id",		.type = DB_TYPE_INT32 },
 	{ .name = "source_type",	.type = DB_TYPE_INT32 },
 	{ .name = "severity",		.type = DB_TYPE_INT32 },
@@ -1106,24 +1104,24 @@ static const struct db_table_descriptor reri_event_tab = {
 
 int db_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
 {
-	int rc;
+	int rc, pos = 1;
 	struct ras_record_priv *priv = ras->db_priv;
 
 	if (!priv || !priv->stmt_reri_event)
 		return 0;
 	log(TERM, LOG_INFO, "reri_event store: %p\n", priv->stmt_reri_event);
 
-	db_bind(priv->stmt_reri_event, reri_event_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 2, ev->err_src_id, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 3, ev->source_type, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 4, ev->severity, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 5, ev->hart_id, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 6, ev->cluster_id, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 7, ev->status, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 8, ev->addr_info, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 9, ev->info, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 10, ev->suppl_info, -1);
-	db_bind(priv->stmt_reri_event, reri_event_fields, 11, ev->timestamp_val, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->err_src_id, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->source_type, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->severity, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->hart_id, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->cluster_id, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->status, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->addr_info, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->info, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->suppl_info, -1);
+	db_bind(&reri_event_tab, priv->stmt_reri_event, pos++, ev->timestamp_val, -1);
 
 	rc = db_eval_stmt(priv->stmt_reri_event, "reri_event");
 	if (!rc)

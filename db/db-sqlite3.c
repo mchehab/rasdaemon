@@ -175,16 +175,28 @@ static void db_sqlite3_bind_type(struct ras_stmt *__stmt,
 	}
 }
 
-static void db_sqlite3_bind(struct ras_stmt *stmt,
-			   const struct db_fields *fields,
-			   const int pos, uint64_t value, int len)
+static void db_sqlite3_bind(const struct db_table_descriptor *db_tab,
+			    struct ras_stmt *stmt,
+			    const int pos, uint64_t value, int len)
 {
+	const struct db_fields *fields = db_tab->fields;
+	int field_pos = 0;
+
 	if (pos < 1) {
-		log(TERM, LOG_INFO, "invalid pos: %d\n", pos);
+		log(TERM, LOG_INFO, "table %s: invalid pos: %d\n",
+		    db_tab->name, pos);
 		return;
 	}
 
-	db_bind_type(stmt, fields[pos - 1].type, pos, value, len);
+	for (int i = 0; i < db_tab->num_fields; i++) {
+		if (fields[i].type == DB_TYPE_SERIAL)
+			continue;
+
+		if (++field_pos == pos)
+			break;
+	}
+
+	db_bind_type(stmt, fields[field_pos].type, pos, value, len);
 }
 
 static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
@@ -387,8 +399,7 @@ static int db_sqlite3_prepare_insert_stmt(struct ras_db *__db,
 		if (rc != SQLITE_OK && rc != SQLITE_DONE) {
 			log(TERM, LOG_ERR,
 			    "Failed to alter db at table %s (db %s): error = %s\n",
-			    db_tab->name, full_fname,
-       sqlite3_errmsg(db));
+			    db_tab->name, full_fname, sqlite3_errmsg(db));
 			stmt = NULL;
 			return rc;
 		}

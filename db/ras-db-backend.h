@@ -12,8 +12,8 @@ struct ras_db_backend_ops {
 	const char *(*get_sql_type)(enum db_field_type type, bool is_pk);
 	void (*bind_type)(struct ras_stmt *stmt, enum db_field_type type,
 		int pos, uint64_t value, int len);
-	void (*bind)(struct ras_stmt *stmt, const struct db_fields *fields,
-		int pos, uint64_t value, int len);
+	void (*bind)(const struct db_table_descriptor *db_tab,
+		     struct ras_stmt *stmt, int pos, uint64_t value, int len);
 
 	int  (*db_exec_sql)(struct ras_db *__db, const char *sql);
 

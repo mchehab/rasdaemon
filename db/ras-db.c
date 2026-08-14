@@ -165,11 +165,11 @@ void db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 		ras_db_ops->bind_type(stmt, type, pos, value, len);
 }
 
-void db_bind(struct ras_stmt *stmt, const struct db_fields *fields,
-	     int pos, uint64_t value, int len)
+void db_bind(const struct db_table_descriptor *db_tab,
+	     struct ras_stmt *stmt, int pos, uint64_t value, int len)
 {
 	if (ras_db_ops)
-		ras_db_ops->bind(stmt, fields, pos, value, len);
+		ras_db_ops->bind(db_tab, stmt, pos, value, len);
 }
 
 int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name)

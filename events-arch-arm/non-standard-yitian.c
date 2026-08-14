@@ -85,12 +85,14 @@ static const struct db_table_descriptor yitian_ddr_payload_section_tab = {
 int record_yitian_ddr_reg_dump_event(struct ras_ns_ev_decoder *ev_decoder,
 				     struct ras_yitian_ddr_payload_event *ev)
 {
+	int pos = 1;
+
 	log(TERM, LOG_INFO, "yitian_ddr_reg_dump_event store: %p\n",
 	    ev_decoder->stmt_dec_record);
 
-	db_bind(ev_decoder->stmt_dec_record, yitian_ddr_payload_fields, 1, (uint64_t)ev->timestamp, -1);
-	db_bind(ev_decoder->stmt_dec_record, yitian_ddr_payload_fields, 2, ev->address, -1);
-	db_bind(ev_decoder->stmt_dec_record, yitian_ddr_payload_fields, 3, (uint64_t)ev->reg_msg, -1);
+	db_bind(&yitian_ddr_payload_section_tab, ev_decoder->stmt_dec_record, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&yitian_ddr_payload_section_tab, ev_decoder->stmt_dec_record, pos++, ev->address, -1);
+	db_bind(&yitian_ddr_payload_section_tab, ev_decoder->stmt_dec_record, pos++, (uint64_t)ev->reg_msg, -1);
 
 	return db_eval_stmt(ev_decoder->stmt_dec_record, "yitian_ddr_reg_dump_event");
 }

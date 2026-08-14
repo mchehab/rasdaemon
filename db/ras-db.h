@@ -86,14 +86,14 @@ void db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 
 /**
  * ops_bind - Bind fields from an event structure using fields definition
+ * @db_tab:	Database table descriptor
  * @stmt:	Statement handle provided by the backend
- * @fields:	Table descriptor providing type metadata for binding
- * @pos:	Starting position index (1-based)
+ * @pos:	Starting position index placeholder (starts with 1)
  * @value:	Pointer to raw data buffer containing all field values
  * @len:	Length of the buffer (optional, depends on implementation)
  */
-void db_bind(struct ras_stmt *stmt, const struct db_fields *fields,
-	     const int pos, uint64_t value, int len);
+void db_bind(const struct db_table_descriptor *db_tab,
+	     struct ras_stmt *stmt, int pos, uint64_t value, int len);
 
 /**
  * db_get_sql_type - Return SQL column type string for a given field type
