@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+
+# Extra rasdaemon-specific targets
+
+test: all
+	build/unittest
+
+dist:
+	ninja -C build dist
+
+dist-rpm: dist
+	if [ ! -d "`rpm --eval %{_topdir}`/SOURCES/" ]; then mkdir "`rpm --eval %{_topdir}`/SOURCES/"; fi
+	cp build/meson-dist/@PACKAGE@-@PACKAGE_VERSION@.tar.xz `rpm --eval %{_topdir}`/SOURCES/
+	rpmbuild -ba misc/@PACKAGE@.spec
+	cp `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm .
+
+srpm: dist
+	if [ ! -d "`rpm --eval %{_topdir}`/SOURCES/" ]; then mkdir "`rpm --eval %{_topdir}`/SOURCES/"; fi
+	cp build/meson-dist/@PACKAGE@-@PACKAGE_VERSION@.tar.xz `rpm --eval %{_topdir}`/SOURCES/
+	rpmbuild -bs misc/@PACKAGE@.spec
+
+mock: srpm
+	mock --resultdir="./SRPMS" `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm
+
+rpmlint:
+	rpmlint misc/@PACKAGE@.spec `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm `rpm --eval %{_topdir}`/RPMS/*/@PACKAGE@-@PACKAGE_VERSION@*.rpm
+
+upload:
+	scp `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm @PACKAGE@-@PACKAGE_VERSION@.tar.xz misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon
+

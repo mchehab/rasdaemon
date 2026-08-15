@@ -1,0 +1,29 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+/* Feature detection macros */
+#mesondefine HAVE_SQLITE3
+#mesondefine HAVE_AER
+#mesondefine HAVE_NON_STANDARD
+#mesondefine HAVE_ARM
+#mesondefine HAVE_MCE
+#mesondefine HAVE_EXTLOG
+#mesondefine HAVE_DEVLINK
+#mesondefine HAVE_DISKERROR
+#mesondefine HAVE_MEMORY_FAILURE
+#mesondefine HAVE_CXL
+#mesondefine HAVE_ABRT_REPORT
+#mesondefine HAVE_HISI_NS_DECODE
+#mesondefine HAVE_MEMORY_CE_PFA
+#mesondefine HAVE_MEMORY_ROW_CE_PFA
+#mesondefine HAVE_AMP_NS_DECODE
+#mesondefine HAVE_OPENBMC_UNIFIED_SEL
+#mesondefine HAVE_JAGUAR_NS_DECODE
+#mesondefine HAVE_CPU_FAULT_ISOLATION
+#mesondefine HAVE_YITIAN_NS_DECODE
+#mesondefine HAVE_NVIDIA_NS_DECODE
+#mesondefine HAVE_SIGNAL
+#mesondefine HAVE_ERST
+#mesondefine HAVE_RERI
+
+#endif

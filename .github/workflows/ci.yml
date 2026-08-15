@@ -42,7 +42,7 @@ jobs:
       - name: prepare
         run: |
           dnf install -y mock rpm-build rpmdevtools \
-                         autoconf automake make gcc libtraceevent-devel
+                         meson ninja-build make gcc libtraceevent-devel
           ln -sf fedora-rawhide-x86_64.cfg /etc/mock/default.cfg
           rpmdev-setuptree
       - name: build
@@ -64,13 +64,11 @@ jobs:
       - uses: actions/checkout@v2
       - name: prepare
         run: |
-          dnf install -y sudo autoconf automake libtool gettext-devel hwdata \
+          dnf install -y sudo meson ninja-build gettext-devel hwdata \
                          make gcc libtraceevent-devel sqlite-devel sqlite \
                          pciutils pciutils-devel
       - name: build
         run: |
-          autoreconf -vfi
-          ./configure --enable-all
           make
           make install
 

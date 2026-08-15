@@ -1,0 +1,84 @@
+# Database backend
+# SPDX-License-Identifier: GPL-2.0
+#
+# Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+
+# Keep options sorted, per group
+# SPDX-License-Identifier: GPL-2.0
+#
+# Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+
+#
+# Main options
+#
+
+option('statedir', type: 'string', value: '/var/lib/rasdaemon',
+       description: 'State directory for rasdaemon (default: /var/lib/rasdaemon)',
+)
+
+option('db-fname', type: 'string', value: 'ras-mc_event.db',
+       description: 'RAS events database (default: ras-mc_event.db)',
+)
+
+#
+# Main features
+#
+
+option('abrt-report', type : 'feature',
+        description: 'enable report event to ABRT')
+option('aer', type : 'feature',
+        description: 'enable PCIe AER events')
+option('cpu-fault-isolation', type : 'feature',
+        description: 'enable cpu online fault isolation')
+option('cxl', type : 'feature',
+        description: 'enable CXL events')
+option('devlink', type : 'feature',
+        description: 'enable devlink health events')
+option('diskerror', type : 'feature',
+        description: 'enable disk I/O error events')
+option('erst', type : 'feature',
+        description: 'enable erst')
+option('extlog', type : 'feature',
+        description: 'enable EXTLOG events')
+option('memory-failure', type : 'feature',
+        description: 'enable memory failure events')
+option('memory-ce-pfa', type : 'feature',
+        description: 'enable memory Corrected Error predictive failure analysis')
+option('memory-row-ce-pfa', type : 'feature',
+        description: 'enable memory row Corrected Error predictive failure analysis')
+option('openbmc-unified-sel', type : 'feature',
+        description: 'enable OPENBMC_UNIFIED_SEL events')
+option('signal', type : 'feature',
+        description: 'enable signal event(currently experimental)')
+
+#
+# Database backends
+#
+option('sqlite3', type : 'feature',
+        description: 'enable storing data at SQL lite database')
+
+#
+# Architecture-specific otpions
+#
+option('arm', type : 'feature',
+        description: 'enable ARM events')
+option('mce', type : 'feature',
+        description: 'enable MCE events')
+option('reri', type : 'feature',
+        description: 'enable RISC-V RERI events (RISC-V RAS Error Report Register Interface)')
+
+#
+# Non-standard CPER options
+#
+option('non-standard', type : 'feature',
+        description: 'enable NON_STANDARD events')
+option('amp-ns-decode', type : 'feature',
+        description: 'enable AMP_NS_DECODE events')
+option('hisi-ns-decode', type : 'feature',
+        description: 'enable HISI_NS_DECODE events')
+option('jaguar-ns-decode', type : 'feature',
+        description: 'enable JAGUAR_NS_DECODE events')
+option('yitian-ns-decode', type : 'feature',
+        description: 'enable YITIAN_NS_DECODE events')
+option('nvidia-ns-decode', type : 'feature',
+        description: 'enable NVIDIA_NS_DECODE events')

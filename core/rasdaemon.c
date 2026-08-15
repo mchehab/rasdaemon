@@ -124,8 +124,6 @@ static error_t parse_opt_offline(int key, char *arg,
 }
 #endif
 
-long user_hz;
-
 int main(int argc, char *argv[])
 {
 	struct ras_events *ras;
