@@ -57,7 +57,7 @@ struct module_list {
 int module_register(const struct ras_module_entry *entry);
 
 int module_init(struct ras_events *ras, const char *name);
-int module_cleanup(struct ras_events *ras, const char *name);
+int module_cleanup(const char *name);
 
 void modules_init(struct ras_events *ras);
 void modules_unregister(void);

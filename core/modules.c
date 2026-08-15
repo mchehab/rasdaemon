@@ -74,7 +74,7 @@ int module_init(struct ras_events *ras, const char *name)
 
 	for (entry = ras_modules.head; entry; entry = entry->next) {
 		if (!strcmp(name, entry->e->name) && entry->e->init) {
-			if (entry->e->init(entry->e->name, ras, &entry->priv)) {
+			if (entry->e->init(name, ras, &entry->priv)) {
 				log(ALL, LOG_ERR,
 					"module %s init failed\n",
 					entry->e->name);
@@ -86,6 +86,22 @@ int module_init(struct ras_events *ras, const char *name)
 
 				return false;
 			}
+		}
+	}
+
+	return true;
+}
+
+int module_cleanup(const char *name)
+{
+	struct ras_module_entry_runtime *entry;
+
+	for (entry = ras_modules.head; entry; entry = entry->next) {
+		if (!strcmp(name, entry->e->name) && entry->e->cleanup) {
+			entry->e->cleanup(entry->e, &entry->priv);
+			entry->is_enabled = false;
+
+			return false;
 		}
 	}
 

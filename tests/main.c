@@ -11,11 +11,18 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "config.h"
+
 #include "core/ras-logger.h"
 #include "tests/unittest.h"
 
 static const struct test_group groups[] = {
+#if HAVE_MYSQL > 0
+	{ "mysql", test_mysql },
+#endif
+#if HAVE_SQLITE3 > 0
 	{ "sqlite3", test_sqlite3 },
+#endif
 
 	/* Should be the last one, as it will mock with probed modules */
 	{ "modules", test_modules },

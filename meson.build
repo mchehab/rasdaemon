@@ -21,15 +21,45 @@ c_flags = [
     '-DVERSION="' + meson.project_version() + '"',
 ]
 
-
+unittest_sources = [
+    'tests/main.c',
+    'tests/test-modules.c',
+]
 
 #
 # Dependencies
 #
-sqlite3_dep = dependency('sqlite3', required: not get_option('sqlite3').disabled())
+mysql_dep = dependency('mysqlclient', required: false)
+pg_dep = dependency('libpq', required: false)
+sqlite3_dep = dependency('sqlite3', required: false)
+
+if mysql_dep.found() and not get_option('mysql').disabled()
+    enable_mysql = true
+else
+    enable_mysql = false
+    message('MySQL client devel not found: disabling MySQL support')
+endif
+
+if sqlite3_dep.found() and not get_option('sqlite3').disabled()
+    enable_sqlite3 = true
+else
+    enable_sqlite3 = false
+    message('SQLite3 devel not found: disabling SQLite3 support')
+endif
+
 libtraceevent_dep = dependency('libtraceevent', required: true)
 libpci_dep = dependency('libpci', required: not get_option('aer').disabled())
 cmocka_dep = dependency('cmocka', required: false)
+
+dependencies = [
+    mysql_dep,
+    pg_dep,
+    sqlite3_dep,
+
+    libtraceevent_dep,
+    libpci_dep
+]
+
 
 #
 # Library sources
@@ -165,12 +195,21 @@ if not get_option('signal').disabled()
     lib_sources += 'events/ras-signal-handler.c'
 endif
 
-if not get_option('sqlite3').disabled()
+if enable_sqlite3 or enable_mysql
     lib_sources += [
-        'db/db-sqlite3.c',
         'db/ras-db.c',
         'db/ras-record.c',
     ]
+endif
+
+if enable_mysql
+    lib_sources += 'db/db-mysql.c'
+    unittest_sources += 'tests/test-mysql.c'
+endif
+
+if enable_sqlite3
+    lib_sources += ['db/db-sqlite3.c']
+    unittest_sources += 'tests/test-sqlite3.c'
 endif
 
 if not get_option('yitian-ns-decode').disabled()
@@ -193,12 +232,6 @@ endif
 #
 rasdaemon_sources = ['core/rasdaemon.c']
 
-unittest_sources = [
-    'tests/main.c',
-    'tests/test-modules.c',
-    'tests/test-sqlite3.c',
-]
-
 #
 # Headers
 #
@@ -214,7 +247,6 @@ headers = [
     'core/trigger.h',
     'core/types.h',
     'db/db-mysql.h',
-    'db/db-postgres.h',
     'db/db-sqlite3.h',
     'db/ras-db-backend.h',
     'db/ras-db.h',
@@ -249,7 +281,7 @@ headers = [
 librasdaemon = static_library(
     'rasdaemon',
     lib_sources,
-    dependencies: [sqlite3_dep, libtraceevent_dep, libpci_dep],
+    dependencies: dependencies,
     c_args: c_flags,
 )
 
@@ -259,7 +291,7 @@ librasdaemon = static_library(
 rasdaemon_exe = executable(
     'rasdaemon',
     rasdaemon_sources,
-    dependencies: [sqlite3_dep, libtraceevent_dep, libpci_dep],
+    dependencies: dependencies,
     link_with: [librasdaemon],
     c_args: c_flags,
 )
@@ -267,11 +299,7 @@ rasdaemon_exe = executable(
 #
 # Unit tests
 #
-unittest_deps = [
-    libtraceevent_dep,
-    libpci_dep,
-    sqlite3_dep,
-]
+unittest_deps = dependencies
 
 if cmocka_dep.found()
     unittest_deps += cmocka_dep
@@ -279,7 +307,7 @@ endif
 
 unittest_exe = executable(
     'unittest', unittest_sources,
-    dependencies: unittest_deps,
+    dependencies: dependencies + unittest_deps,
     link_whole: [librasdaemon],
     c_args: ['-g'] + c_flags,
 )
@@ -305,7 +333,9 @@ install_map = {
 
 foreach in_file, install_dir : install_map
     base = fs.name(in_file)
-    out_file = base.replace('.in', '')
+    out_file = base.strip('.in')
+
+    message(out_file)
 
     # Generate the file (output goes to build dir)
     configured = configure_file(
@@ -347,12 +377,13 @@ configure_file(
         'HAVE_MEMORY_CE_PFA' : not get_option('memory-ce-pfa').disabled() ? 1 : 0,
         'HAVE_MEMORY_FAILURE' : not get_option('memory-failure').disabled() ? 1 : 0,
         'HAVE_MEMORY_ROW_CE_PFA' : not get_option('memory-row-ce-pfa').disabled() ? 1 : 0,
+        'HAVE_MYSQL' : enable_mysql ? 1 : 0,
         'HAVE_NON_STANDARD' : not get_option('non-standard').disabled() ? 1 : 0,
         'HAVE_NVIDIA_NS_DECODE' : not get_option('nvidia-ns-decode').disabled() ? 1 : 0,
         'HAVE_OPENBMC_UNIFIED_SEL' : not get_option('openbmc-unified-sel').disabled() ? 1 : 0,
         'HAVE_RERI' : not get_option('reri').disabled() ? 1 : 0,
         'HAVE_SIGNAL' : not get_option('signal').disabled() ? 1 : 0,
-        'HAVE_SQLITE3' : not get_option('sqlite3').disabled() ? 1 : 0,
+        'HAVE_SQLITE3' : enable_sqlite3 ? 1 : 0,
         'HAVE_YITIAN_NS_DECODE' : not get_option('yitian-ns-decode').disabled() ? 1 : 0,
     }
 )
@@ -383,7 +414,8 @@ summary(
 
 summary(
     {
-        'Sqlite3' : not get_option('sqlite3').disabled(),
+        'MySQL/MariaDB' : enable_mysql,
+        'Sqlite3' : enable_sqlite3,
     },
     section : 'Database backends',
 )

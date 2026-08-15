@@ -16,6 +16,7 @@ struct test_group {
 };
 
 int test_modules(void);
+int test_mysql(void);
 int test_sqlite3(void);
 
 #endif

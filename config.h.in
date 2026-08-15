@@ -2,7 +2,9 @@
 #define CONFIG_H
 
 /* Feature detection macros */
+#mesondefine HAVE_MYSQL
 #mesondefine HAVE_SQLITE3
+
 #mesondefine HAVE_AER
 #mesondefine HAVE_NON_STANDARD
 #mesondefine HAVE_ARM

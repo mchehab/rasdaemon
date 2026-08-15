@@ -24,7 +24,7 @@
 
 extern struct module_list ras_modules;
 
-struct ras_events ras = { 0 };
+static struct ras_events ras = { 0 };
 
 struct mock_priv {
 	struct ras_stmt *stmt;
@@ -558,7 +558,7 @@ static int group_setup(void **state)
 
 static int group_teardown(void **state)
 {
-	modules_unregister();
+	module_cleanup("db-sqlite3");
 	return 0;
 }
 

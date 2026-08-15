@@ -6,7 +6,8 @@
 #include "db/ras-db.h"
 
 struct ras_db_backend_ops {
-	int  (*open)(struct ras_db **db, void *conn_parms, unsigned int cpu);
+	int  (*open)(struct ras_db **db, void *conn_parms,
+		     unsigned int cpu);
 	int  (*close)(struct ras_db *db, unsigned int cpu);
 
 	const char *(*get_sql_type)(enum db_field_type type, bool is_pk);
@@ -33,8 +34,9 @@ struct ras_db_backend_ops {
 
 struct ras_db_backend_entry {
 	const char *name;
-
 	const struct ras_db_backend_ops *ops;
+	void *priv;
+	bool allow_remote;
 
 	struct ras_db_backend_entry *next;
 };
