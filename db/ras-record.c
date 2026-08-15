@@ -159,6 +159,8 @@ int db_non_standard_record(struct ras_events *ras, struct ras_non_standard_event
 	rc = db_eval_stmt(priv->stmt_non_standard_record, "non_standard_record");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
 }
 #endif
 
@@ -1137,14 +1139,16 @@ int db_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
 
 int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 {
-	struct ras_record_priv *priv;
 	int rc;
+	struct ras_record_priv *priv;
 
 	printf("Calling %s()\n", __func__);
 
 	rc = db_open(NULL, cpu, ras, sizeof(*priv));
 	if (!rc)
 		return -1;
+
+	priv = ras->db_priv;
 
 #ifdef HAVE_AER
 	rc = db_create_table(ras->db, &aer_event_tab);
@@ -1318,7 +1322,6 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 {
 	struct ras_record_priv *priv = ras->db_priv;
 	struct ras_db *db;
-	int rc;
 
 	printf("Calling %s()\n", __func__);
 

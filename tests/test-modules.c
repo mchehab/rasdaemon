@@ -110,7 +110,6 @@ static void test_register_modules_in_order(void **state)
 static void test_register_mixed_order(void **state)
 {
 	struct ras_module_entry_runtime *entry;
-	char error_msg[256];
 	int rc = 0;
 
 	const struct ras_module_entry mods[] = {
@@ -253,7 +252,6 @@ static void test_init_cleanup(void **state)
 	struct ras_module_entry_runtime *entry;
 	struct ras_events ras = { 0 };
 	int rc = 0;
-	int **idx;
 
 	const struct ras_module_entry mods[] = {
 		{

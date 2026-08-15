@@ -71,7 +71,6 @@ bool modules_have_sql_backend(void)
 int module_init(struct ras_events *ras, const char *name)
 {
 	struct ras_module_entry_runtime *entry;
-	bool enabled_db = false;
 
 	for (entry = ras_modules.head; entry; entry = entry->next) {
 		if (!strcmp(name, entry->e->name) && entry->e->init) {

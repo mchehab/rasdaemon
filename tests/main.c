@@ -103,7 +103,7 @@ static uint32_t parse_output_format(
 	}
 
 	argp_error(state,
-		   "unknown format. Expected: standard, tap, xml, or subunit",
+		   "unknown format: %s. Expected: standard, tap, xml, or subunit",
 		   value);
 
 	return 0;
@@ -169,7 +169,7 @@ static void filter_output(const char *format, va_list args)
 	 *	 won't use colors, which is not the end of times.
 	 */
 
-	if (!*format == '[' || strlen(format) < 12 || format[11] != ']') {
+	if (!(*format == '[') || strlen(format) < 12 || !(format[10] != ']')) {
 		vfprintf(stdout, format, args);
 		return;
 	}

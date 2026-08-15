@@ -160,7 +160,6 @@ static int sqlite3_check_values(void **state,
 static void test_db_get_sql_type(void **state)
 {
 	const char *type_str;
-	int rc;
 
 	type_str = db_get_sql_type(DB_TYPE_SERIAL, false);
 	assert_string_equal(type_str, "INTEGER");
@@ -397,6 +396,9 @@ static void test_db_alter_table(void **state)
 
 	rc = db_create_table(ras.db, &org_table_desc);
 	assert_int_equal(rc, 0);
+
+	rc = db_alter_table(ras.db, &stmt, &db_tab);
+	assert_int_equal(rc, 0);
 }
 
 static void test_db_complex_table(void **state)
@@ -461,7 +463,6 @@ static void test_db_complex_table(void **state)
 /* Check if enabling db-sqlite3 module is working */
 static void test_sqlite3_init(void **state)
 {
-	struct mock_priv *priv;
 	int rc;
 
 	rc = module_init(&ras, "db-sqlite3");

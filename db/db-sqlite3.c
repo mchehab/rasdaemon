@@ -31,7 +31,6 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 	struct db_sqlite3_conn_params *conn_parms = __conn_parms;
 	const char *fname = RAS_DB_FNAME;
 	const char *dir = RASSTATEDIR;
-	struct ras_record_priv *priv;
 	sqlite3 **db = (void *)__db;
 	struct stat st = {0};
 	int flags, rc;
@@ -146,7 +145,6 @@ static void db_sqlite3_bind_type(struct ras_stmt *__stmt,
 				 const int pos, uint64_t value, int len)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
-	const char *str;
 
 	switch (type) {
 		case DB_TYPE_SERIAL:
@@ -221,13 +219,13 @@ static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 	if (rc != SQLITE_OK)
 		log(TERM, LOG_ERR,
 		    "Failed to reset on sqlite. Table = %s: %s (error %d)\n",
-	tab_name, sqlite3_errstr(rc), rc);
+		    tab_name, sqlite3_errstr(rc), rc);
 
 	rc = sqlite3_clear_bindings(stmt);
 	if (rc != SQLITE_OK && rc != SQLITE_DONE)
 		log(TERM, LOG_ERR,
 		    "Failed to clear bindings on sqlite. Table = %s: %s (error %d)\n",
-	tab_name, rc);
+		    tab_name, sqlite3_errstr(rc), rc);
 
 	return rc;
 }
@@ -257,9 +255,8 @@ static int db_sqlite3_create_table(struct ras_db *__db,
 {
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
 	const struct db_fields *field;
-	sqlite3		*db = (void *)__db;
 	const char *type;
-	int i, rc;
+	int i;
 
 	p += snprintf(p, end - p, "CREATE TABLE IF NOT EXISTS %s (",
 		      db_tab->name);
@@ -498,7 +495,7 @@ __attribute__((constructor)) void sqlite3_register(void)
 
 	ret = module_register(&db_sqlite3_module);
 	if (ret != 0) {
-		log(TERM, LOG_ERR, "Failed to register SQLite3 module", ret);
+		log(TERM, LOG_ERR, "Failed to register SQLite3 module: %d", ret);
 	} else {
 		log(TERM, LOG_INFO, "SQLite3 backend registered successfully.\n");
 	}
