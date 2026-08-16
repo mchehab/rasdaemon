@@ -8,6 +8,9 @@
 #
 # Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
+option('disable-all', type : 'boolean', value: false,
+        description: 'disable all features. Useful to check broken deps')
+
 #
 # Main options
 #

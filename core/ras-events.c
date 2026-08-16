@@ -57,6 +57,7 @@
 #endif
 
 char *choices_disable;
+long user_hz;
 
 static const struct event_trigger event_triggers[] = {
 	{ "mc_event", &mc_event_trigger_setup },
@@ -578,8 +579,10 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 
 	log(TERM, LOG_INFO, "Listening to events for cpus 0 to %d\n", n_cpus - 1);
 	if (pdata[0].ras->record_events) {
+#ifdef HAVE_DB
 		if (ras_mc_event_opendb(pdata[0].cpu, pdata[0].ras))
 			goto error;
+#endif
 #ifdef HAVE_NON_STANDARD
 		if (ras_ns_add_vendor_tables(pdata[0].ras))
 			log(TERM, LOG_ERR, "Can't add vendor table\n");
@@ -758,6 +761,7 @@ static void *handle_ras_events_cpu(void *priv)
 	log(TERM, LOG_INFO, "Listening to events on cpu %d\n", pdata->cpu);
 	if (pdata->ras->record_events) {
 		pthread_mutex_lock(&pdata->ras->db_lock);
+#ifdef HAVE_DB
 		if (ras_mc_event_opendb(pdata->cpu, pdata->ras)) {
 			pthread_mutex_unlock(&pdata->ras->db_lock);
 			log(TERM, LOG_ERR, "Can't open database\n");
@@ -766,6 +770,7 @@ static void *handle_ras_events_cpu(void *priv)
 			free(page);
 			return 0;
 		}
+#endif
 #ifdef HAVE_NON_STANDARD
 		if (ras_ns_add_vendor_tables(pdata->ras))
 			log(TERM, LOG_ERR, "Can't add vendor table\n");

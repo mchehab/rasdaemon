@@ -21,8 +21,6 @@
 
 #ifdef HAVE_SQLITE3
 
-long user_hz;
-
 /*
  * Table and functions to handle ras:mc_event
  */

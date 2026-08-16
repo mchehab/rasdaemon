@@ -13,6 +13,7 @@
 #include "core/types.h"
 
 extern char *choices_disable;
+extern long user_hz;
 
 struct mce_priv;
 struct ras_mc_offline_event;

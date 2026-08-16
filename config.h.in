@@ -8,6 +8,7 @@
 #mesondefine HAVE_AER
 #mesondefine HAVE_NON_STANDARD
 #mesondefine HAVE_ARM
+#mesondefine HAVE_DB
 #mesondefine HAVE_MCE
 #mesondefine HAVE_EXTLOG
 #mesondefine HAVE_DEVLINK

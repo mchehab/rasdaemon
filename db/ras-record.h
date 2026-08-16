@@ -17,8 +17,6 @@
 #include "db/ras-db.h"
 #include "core/types.h"
 
-extern long user_hz;
-
 struct ras_events;
 
 struct ras_mc_event {
