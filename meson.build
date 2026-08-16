@@ -2,7 +2,7 @@
 #
 # Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
-project('RASdaemon', 'c',
+project('rasdaemon', 'c',
         version: '0.9.90',
         license: 'GPL-2.0',
         meson_version: '>= 0.58')
@@ -50,6 +50,19 @@ endif
 libtraceevent_dep = dependency('libtraceevent', required: true)
 libpci_dep = dependency('libpci', required: not get_option('aer').disabled())
 cmocka_dep = dependency('cmocka', required: false)
+
+systemd_dep = dependency('systemd', required: false)
+if systemd_dep.found()
+  systemd_unitdir = systemd_dep.get_variable(
+    pkgconfig: 'systemdsystemunitdir',
+    default_value: join_paths(get_option('libdir'), 'systemd', 'system')
+  )
+else
+  systemd_unitdir = get_option('systemdsystemunitdir')
+endif
+
+bash_compdir = get_option('datadir') / 'bash-completion' / 'completions'
+zsh_compdir = get_option('datadir') / 'zsh' / 'site-functions'
 
 dependencies = [
     mysql_dep,
@@ -294,63 +307,157 @@ rasdaemon_exe = executable(
     dependencies: dependencies,
     link_with: [librasdaemon],
     c_args: c_flags,
+    install: true,
+    install_dir: get_option('sbindir'),
+
 )
 
 #
 # Unit tests
 #
-unittest_deps = dependencies
 
 if cmocka_dep.found()
-    unittest_deps += cmocka_dep
+    unittest_exe = executable(
+        'unittest', unittest_sources,
+        dependencies: dependencies + cmocka_dep,
+        link_whole: [librasdaemon],
+        c_args: ['-g'] + c_flags,
+    )
 endif
-
-unittest_exe = executable(
-    'unittest', unittest_sources,
-    dependencies: dependencies + unittest_deps,
-    link_whole: [librasdaemon],
-    c_args: ['-g'] + c_flags,
-)
 
 #
 # Extra install files
 #
 
-install_map = {
-    'Makefile.inc.in': '',
-    'misc/rasdaemon.spec.in': '',
+conf_data = {
+    # Basic package info
+    'PACKAGE' : meson.project_name(),
+    'PACKAGE_VERSION' : meson.project_version(),
 
-    # FIXME: add/adjust install paths for those
-    'man/rasdaemon.1.in': 'man/man1',
-    'man/ras-mc-ctl.8.in': 'man/man1',
-    'misc/rasdaemon.logrotate.in': '',
-    'misc/rasdaemon.rsyslog.in': '',
-    'misc/rasdaemon.service.in': '',
-    'misc/rasdaemon.syslog-ng.in': '',
-    'misc/ras-mc-ctl.service.in': '',
-    'util/ras-mc-ctl.in': '',
+    'prefix' : get_option('prefix'),
+    'sysconfdir' : get_option('sysconfdir'),
+    'localstatedir' : get_option('localstatedir'),
+    'sbindir' : get_option('sbindir'),
+    'SYSCONFDEFDIR' : get_option('sysconfdir') + '/sysconfig',
+
+    'META_DATE' : run_command('date', '+%d %B %Y', check: true).stdout().strip(),
+    'META_ALIAS' : meson.project_name(),
+
+    'RASSTATEDIR' : get_option('statedir'),
+    'RAS_DB_FNAME' : get_option('db-fname'),
+
+    'WITH_AER_TRUE' : not get_option('aer').disabled() ? '' : '#',
+    'WITH_ARM_TRUE' : not get_option('arm').disabled() ? '' : '#',
+    'WITH_CXL_TRUE' : not get_option('cxl').disabled() ? '' : '#',
+    'WITH_DEVLINK_TRUE' : not get_option('devlink').disabled() ? '' : '#',
+    'WITH_DISKERROR_TRUE' : not get_option('diskerror').disabled() ? '' : '#',
+    'WITH_EXTLOG_TRUE' : not get_option('extlog').disabled() ? '' : '#',
+    'WITH_MCE_TRUE' : not get_option('mce').disabled() ? '' : '#',
+    'WITH_MEMORY_FAILURE_TRUE' : not get_option('memory-failure').disabled() ? '' : '#',
+    'WITH_NVIDIA_NS_DECODE_TRUE' : not get_option('nvidia-ns-decode').disabled() ? '' : '#',
+    'WITH_SIGNAL_TRUE' : not get_option('signal').disabled() ? '' : '#',
+}
+
+# Files requiring variable substitution and their install destinations.
+# Value '' means: generate in build tree only (source-only, not installed).
+install_map = {
+    # Source-only
+    'Makefile.inc.in' : '',
+    'misc/rasdaemon.spec.in' : '',
+
+    # Man pages
+    'man/rasdaemon.1.in' : get_option('mandir') + '/man1',
+    'man/ras-mc-ctl.8.in' : get_option('mandir') + '/man1',
+
+    # Systemd service files
+    'misc/rasdaemon.service.in' : systemd_unitdir,
+    'misc/ras-mc-ctl.service.in' : systemd_unitdir,
+
+    # Other files
+    'misc/rasdaemon.syslog-ng.in' : get_option('sysconfdir') + '/syslog-ng/conf.d',
+    'misc/rasdaemon.rsyslog.in' : get_option('sysconfdir') + '/rsyslog.d',
+    'misc/rasdaemon.logrotate.in' : get_option('sysconfdir') + '/logrotate.d',
+
+    'util/ras-mc-ctl.in' : get_option('sbindir'),
+}
+
+# File renaming install rules
+rename_map = {
+    'rasdaemon.syslog-ng' : 'rasdaemon.conf',
+    'rasdaemon.rsyslog' : 'rasdaemon.conf',
+    'rasdaemon.logrotate' : 'rasdaemon',
 }
 
 foreach in_file, install_dir : install_map
     base = fs.name(in_file)
     out_file = base.strip('.in')
 
-    message(out_file)
+    # Determine install rename (if any)
+    install_rename = out_file
+    if rename_map.has_key(out_file)
+        install_rename = rename_map[out_file]
+    endif
 
-    # Generate the file (output goes to build dir)
     configured = configure_file(
         input: in_file,
         output: out_file,
-        configuration : {
-            'PACKAGE' :  meson.project_name(),
-            'PACKAGE_VERSION' :  meson.project_version(),
-        }
+        configuration: conf_data,
     )
 
     if install_dir != ''
-        install_data(configured, install_dir: install_dir)
+        install_data(configured,
+            install_dir: install_dir,
+            rename: install_rename,
+            install_mode: 'rwxr-xr-x',
+        )
     endif
 endforeach
+
+# Install files that don't require configuration
+install_data('misc/rasdaemon.env',
+    install_dir: get_option('sysconfdir') + '/sysconfig',
+    rename: 'rasdaemon',
+    install_mode: 'rwxr-xr-x',
+)
+
+install_data('contrib/mc_event_trigger',
+    install_dir: get_option('sysconfdir') + '/ras/triggers',
+    install_mode: 'rwxr-xr-x',
+)
+install_data('contrib/mem_fail_trigger',
+    install_dir: get_option('sysconfdir') + '/ras/triggers',
+    install_mode: 'rwxr-xr-x',
+)
+
+# DIMM labels
+labels_files = run_command(
+    'find', 'labels', '-maxdepth', '1', '-type', 'f', check: true
+).stdout().strip().split('\n')
+labels_list = []
+foreach f : labels_files
+    if f != ''
+        labels_list += f
+    endif
+endforeach
+if labels_list.length() > 0
+    install_data(labels_list,
+        install_dir: get_option('sysconfdir') + '/ras/dimm_labels.d',
+        install_mode: 'rw-r--r--',
+    )
+endif
+
+# Shell completions
+install_data('completions/ras-mc-ctl.bash',
+    install_dir: bash_compdir,
+    rename: 'ras-mc-ctl',
+    install_mode: 'rw-r--r--',
+)
+
+install_data('completions/ras-mc-ctl.zsh',
+    install_dir: zsh_compdir,
+    rename: '_ras-mc-ctl',
+    install_mode: 'rw-r--r--',
+)
 
 #
 # Auto-generated config.h file
@@ -449,8 +556,6 @@ summary(
     {
         'State directory': get_option('statedir'),
         'SQLite3 database': get_option('db-fname'),
-
-        'rasdaemon version' : meson.project_version(),
     },
-    section : 'Arguments and version',
+    section : 'User defined options',
 )
