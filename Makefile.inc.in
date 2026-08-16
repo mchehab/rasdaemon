@@ -49,6 +49,6 @@ distclean: clean
 	      @PACKAGE@-@PACKAGE_VERSION@*.rpm \
 	      SRPMS/ @PACKAGE@-@PACKAGE_VERSION@*.tar.xz
 
-upload:
-	scp `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm @PACKAGE@-@PACKAGE_VERSION@.tar.xz misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon
+upload: srpm dist
+	scp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm $(DIST_TARBALL) misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon
 
