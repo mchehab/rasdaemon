@@ -158,18 +158,22 @@ const char *db_get_sql_type(enum db_field_type type, bool is_pk)
 	return ras_db_ops->get_sql_type(type, is_pk);
 }
 
-void db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
+int db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 		  int pos, uint64_t value, int len)
 {
-	if (ras_db_ops)
-		ras_db_ops->bind_type(stmt, type, pos, value, len);
+	if (!ras_db_ops)
+		return 0;
+
+	return ras_db_ops->bind_type(stmt, type, pos, value, len);
 }
 
-void db_bind(const struct db_table_descriptor *db_tab,
-	     struct ras_stmt *stmt, int pos, uint64_t value, int len)
+int db_bind(const struct db_table_descriptor *db_tab,
+	    struct ras_stmt *stmt, int pos, uint64_t value, int len)
 {
-	if (ras_db_ops)
-		ras_db_ops->bind(db_tab, stmt, pos, value, len);
+	if (!ras_db_ops)
+		return 0;
+
+	return ras_db_ops->bind(db_tab, stmt, pos, value, len);
 }
 
 int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name)

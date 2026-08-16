@@ -140,40 +140,36 @@ static const char *db_sqlite3_get_sql_type(enum db_field_type type, bool is_pk)
 	}
 }
 
-static void db_sqlite3_bind_type(struct ras_stmt *__stmt,
-				 const enum db_field_type type,
-				 const int pos, uint64_t value, int len)
+static int db_sqlite3_bind_type(struct ras_stmt *__stmt,
+				const enum db_field_type type,
+				const int pos, uint64_t value, int len)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
 
 	switch (type) {
 		case DB_TYPE_SERIAL:
 			/* Use NULL to let sqlite3 to autofill it */
-			sqlite3_bind_null(stmt, pos);
-			break;
+			return sqlite3_bind_null(stmt, pos);
 
 		case DB_TYPE_INT32:
-			sqlite3_bind_int(stmt, pos, value);
-			break;
+			return sqlite3_bind_int(stmt, pos, value);
 
 		case DB_TYPE_INT64:
-			sqlite3_bind_int64(stmt, pos, value);
-			break;
+			return sqlite3_bind_int64(stmt, pos, value);
 
 		case DB_TYPE_TIMESTAMP:
 		case DB_TYPE_TEXT:
 		case DB_TYPE_BLOB:
 		default:
 			if (!value)
-				sqlite3_bind_null(stmt, pos);
-			else
-				sqlite3_bind_text(stmt, pos, (const char *)value,
-						  len, SQLITE_TRANSIENT);
-			break;
+				return sqlite3_bind_null(stmt, pos);
+
+			return sqlite3_bind_text(stmt, pos, (const char *)value,
+						 len, SQLITE_TRANSIENT);
 	}
 }
 
-static void db_sqlite3_bind(const struct db_table_descriptor *db_tab,
+static int db_sqlite3_bind(const struct db_table_descriptor *db_tab,
 			    struct ras_stmt *stmt,
 			    const int pos, uint64_t value, int len)
 {
@@ -183,7 +179,7 @@ static void db_sqlite3_bind(const struct db_table_descriptor *db_tab,
 	if (pos < 1) {
 		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
 		    db_tab->name, pos);
-		return;
+		return -1;
 	}
 
 	for (i = 0; i < db_tab->num_fields; i++) {
@@ -198,10 +194,10 @@ static void db_sqlite3_bind(const struct db_table_descriptor *db_tab,
 	if (field_pos != pos - 1) {
 		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
 		    db_tab->name, pos);
-		return;
+		return -1;
 	}
 
-	db_bind_type(stmt, fields[i].type, pos, value, len);
+	return db_bind_type(stmt, fields[i].type, pos, value, len);
 }
 
 static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)

@@ -80,9 +80,11 @@ struct db_backend {
  * @pos:	Parameter position (1-based index)
  * @value:	Raw 64-bit integer representation of the value
  * @len:	Length for text/blob types, -1 if null-terminated
+ * Returns:
+ * 0 on success or a negative errno value on failure.
  */
-void db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
-		  const int pos, uint64_t value, int len);
+int db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
+		 const int pos, uint64_t value, int len);
 
 /**
  * ops_bind - Bind fields from an event structure using fields definition
@@ -91,9 +93,11 @@ void db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
  * @pos:	Starting position index placeholder (starts with 1)
  * @value:	Pointer to raw data buffer containing all field values
  * @len:	Length of the buffer (optional, depends on implementation)
+ * Returns:
+ * 0 on success or a negative errno value on failure.
  */
-void db_bind(const struct db_table_descriptor *db_tab,
-	     struct ras_stmt *stmt, int pos, uint64_t value, int len);
+int db_bind(const struct db_table_descriptor *db_tab,
+	    struct ras_stmt *stmt, int pos, uint64_t value, int len);
 
 /**
  * db_get_sql_type - Return SQL column type string for a given field type

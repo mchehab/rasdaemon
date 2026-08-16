@@ -166,11 +166,9 @@ static int bind_iso_datetime(MYSQL_BIND *mb, const char *value)
 	return 0;
 }
 
-// FIXME: shall return an error because of the allocation issues
-
-static void db_mysql_bind_type(struct ras_stmt *__stmt,
-			       const enum db_field_type type,
-			       const int pos, uint64_t value, int len)
+static int db_mysql_bind_type(struct ras_stmt *__stmt,
+			      const enum db_field_type type,
+			      const int pos, uint64_t value, int len)
 {
 	struct mysql_stmt_priv *priv = (struct mysql_stmt_priv *)__stmt;
 	unsigned int idx = (unsigned int)pos - 1;
@@ -183,29 +181,43 @@ static void db_mysql_bind_type(struct ras_stmt *__stmt,
 		/* In practice, should never happen */
 		mb->buffer_type = MYSQL_TYPE_NULL;
 		mb->is_null = malloc(sizeof(bool));
+		if (!mb->is_null) {
+			log(TERM, LOG_ERR,
+			    "Failed to allocate memory for NULL\n");
+			return -1;
+		}
 		*(bool *)mb->is_null = true;
-		return;
+		return 0;
 
 	case DB_TYPE_INT32:
 		mb->buffer_type = MYSQL_TYPE_LONG;
 		mb->buffer_length = sizeof(int32_t);
 		mb->buffer = malloc(mb->buffer_length);
+		if (!mb->buffer) {
+			log(TERM, LOG_ERR,
+			    "Failed to allocate memory for INT\n");
+			return -1;
+		}
 		mb->length = &mb->buffer_length;
 		*((int32_t *)mb->buffer) = value;
 
-		return;
+		return 0;
 
 	case DB_TYPE_INT64:
 		mb->buffer_type = MYSQL_TYPE_LONGLONG;
 		mb->buffer_length = sizeof(int64_t);
 		mb->buffer = malloc(mb->buffer_length);
+		if (!mb->buffer) {
+			log(TERM, LOG_ERR,
+			    "Failed to allocate memory for BIG INT\n");
+			return -1;
+		}
 		mb->length = &mb->buffer_length;
 		*(int64_t *)mb->buffer = (int64_t)value;
-		return;
+		return 0;
 
 	case DB_TYPE_TIMESTAMP:
-		bind_iso_datetime(mb, (const char *)(uintptr_t)value);
-		return;
+		return bind_iso_datetime(mb, (const char *)(uintptr_t)value);
 
 	case DB_TYPE_TEXT:
 		mb->buffer_type = MYSQL_TYPE_VAR_STRING;
@@ -219,6 +231,11 @@ static void db_mysql_bind_type(struct ras_stmt *__stmt,
 
 	if (!value) {
 		mb->is_null = malloc(sizeof(bool));
+		if (!mb->buffer) {
+			log(TERM, LOG_ERR,
+			    "Failed to allocate memory for NULL\n");
+			return -1;
+		}
 		*(bool *)mb->is_null = true;
 	} else {
 		const char *str = (const char *)value;
@@ -231,18 +248,29 @@ static void db_mysql_bind_type(struct ras_stmt *__stmt,
 
 		if (type == DB_TYPE_BLOB) {
 			mb->buffer = malloc(len);
+			if (!mb->buffer) {
+				log(TERM, LOG_ERR,
+				"Failed to allocate memory for BLOB\n");
+				return -1;
+			}
 
 			memcpy(mb->buffer, str, len);
 		} else {
 			mb->buffer = malloc(len + 1);
+			if (!mb->buffer) {
+				log(TERM, LOG_ERR,
+				"Failed to allocate memory for TEXT\n");
+				return -1;
+			}
 
 			strncpy(mb->buffer, str, len);
 			*(char *)(mb->buffer + len) = '\0';
 		}
 	}
+	return 0;
 }
 
-static void db_mysql_bind(const struct db_table_descriptor *db_tab,
+static int db_mysql_bind(const struct db_table_descriptor *db_tab,
 			  struct ras_stmt *__stmt,
 			  const int pos, uint64_t value, int len)
 {
@@ -252,7 +280,7 @@ static void db_mysql_bind(const struct db_table_descriptor *db_tab,
 	if (pos < 1) {
 		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
 		    db_tab->name, pos);
-		return;
+		return -1;
 	}
 
 	for (i = 0; i < db_tab->num_fields; i++) {
@@ -267,10 +295,10 @@ static void db_mysql_bind(const struct db_table_descriptor *db_tab,
 	if (field_pos != pos - 1) {
 		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
 		    db_tab->name, pos);
-		return;
+		return -1;
 	}
 
-	db_bind_type(__stmt, fields[i].type, pos, value, len);
+	return db_bind_type(__stmt, fields[i].type, pos, value, len);
 }
 
 static int db_mysql_exec_sql(struct ras_db *__db, const char *sql)
