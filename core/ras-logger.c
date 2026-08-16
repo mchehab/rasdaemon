@@ -22,6 +22,6 @@ void ras_logger_clean(void)
 
 void ras_logger_flush(void)
 {
-	fprintf(stderr, mock_log_buf);
+	fputs(mock_log_buf, stderr);
 	ras_logger_clean();
 }

@@ -4,6 +4,10 @@
 
 # Extra rasdaemon-specific targets
 
+RPM_TOPDIR  ?= $(shell rpm --eval '%{_topdir}')
+DIST_TARBALL = build/meson-dist/@PACKAGE@-@PACKAGE_VERSION@.tar.xz
+SPEC_FILE   = build/rasdaemon.spec
+
 test: all
 	build/unittest
 
@@ -11,21 +15,39 @@ dist:
 	ninja -C build dist
 
 dist-rpm: dist
-	if [ ! -d "`rpm --eval %{_topdir}`/SOURCES/" ]; then mkdir "`rpm --eval %{_topdir}`/SOURCES/"; fi
-	cp build/meson-dist/@PACKAGE@-@PACKAGE_VERSION@.tar.xz `rpm --eval %{_topdir}`/SOURCES/
-	rpmbuild -ba misc/@PACKAGE@.spec
-	cp `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm .
+	if [ ! -d "$(RPM_TOPDIR)/SOURCES/" ]; then \
+		mkdir -p "$(RPM_TOPDIR)/SOURCES/"; \
+	fi
+	cp "${DIST_TARBALL}" "${RPM_TOPDIR}/SOURCES/"
+	rpmbuild -ba  $(SPEC_FILE)
+	cp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm .
+	cp $(RPM_TOPDIR)/RPMS/*/@PACKAGE@-@PACKAGE_VERSION@*.rpm .
 
 srpm: dist
-	if [ ! -d "`rpm --eval %{_topdir}`/SOURCES/" ]; then mkdir "`rpm --eval %{_topdir}`/SOURCES/"; fi
-	cp build/meson-dist/@PACKAGE@-@PACKAGE_VERSION@.tar.xz `rpm --eval %{_topdir}`/SOURCES/
-	rpmbuild -bs misc/@PACKAGE@.spec
+	if [ ! -d "$(RPM_TOPDIR)/SOURCES/" ]; then \
+		mkdir -p "$(RPM_TOPDIR)/SOURCES/"; \
+	fi
+	cp $(DIST_TARBALL) "$(RPM_TOPDIR)/SOURCES/"
+	rpmbuild -bs $(SPEC_FILE)
+	cp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm .
 
 mock: srpm
-	mock --resultdir="./SRPMS" `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm
+	mock --resultdir="./SRPMS" "$(RPM_TOPDIR)/SRPMS/"@PACKAGE@-@PACKAGE_VERSION@*.src.rpm
 
-rpmlint:
-	rpmlint misc/@PACKAGE@.spec `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm `rpm --eval %{_topdir}`/RPMS/*/@PACKAGE@-@PACKAGE_VERSION@*.rpm
+rpmlint: dist-rpm
+	rpmlint $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm
+	rpmlint $(RPM_TOPDIR)/RPMS/*/@PACKAGE@-@PACKAGE_VERSION@*.rpm
+
+local-install:
+	ninja -C build install DESTDIR=$(DESTDIR) --prefix=$(PREFIX)
+
+local-uninstall:
+	ninja -C build uninstall DESTDIR=$(DESTDIR) --prefix=$(PREFIX)
+
+distclean: clean
+	rm -f @PACKAGE@-@PACKAGE_VERSION@*.src.rpm \
+	      @PACKAGE@-@PACKAGE_VERSION@*.rpm \
+	      SRPMS/ @PACKAGE@-@PACKAGE_VERSION@*.tar.xz
 
 upload:
 	scp `rpm --eval %{_topdir}`/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm @PACKAGE@-@PACKAGE_VERSION@.tar.xz misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon

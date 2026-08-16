@@ -7,12 +7,13 @@ Summary:		Utility to receive RAS error tracings
 Group:			Applications/System
 License:		GPLv2
 URL:			http://git.infradead.org/users/mchehab/rasdaemon.git
-Source0:		http://www.infradead.org/~mchehab/rasdaemon/%{name}-%{version}.tar.bz2
+Source0:		http://www.infradead.org/~mchehab/rasdaemon/%{name}-%{version}.tar.xz
 
 ExcludeArch:		s390 s390x
 BuildRequires:		make
 BuildRequires:		gcc
-BuildRequires:		gettext-devel
+BuildRequires:		meson >= 0.58
+BuildRequires:		ninja-build
 BuildRequires:		perl-generators
 BuildRequires:		sqlite-devel
 BuildRequires:		systemd
@@ -23,7 +24,7 @@ Requires:		hwdata
 Requires:		perl-DBD-SQLite
 Requires:		libtraceevent
 %ifarch %{ix86} x86_64 riscv64
-Requires:		pciutils-devel
+Requires:		pciutils
 %endif
 %ifarch %{ix86} x86_64
 Requires:		dmidecode
@@ -44,24 +45,14 @@ EDAC drivers and DIMM labels are loaded at system startup, as well as
 an utility for reporting current error counts from the EDAC sysfs files.
 
 %prep
-%setup -q
+%autosetup -p1
+%meson
 
 %build
-%configure --enable-all --with-sysconfdefdir=%{_sysconfdir}/sysconfig
-
-make %{?_smp_mflags}
+%meson_build
 
 %install
-make install DESTDIR=%{buildroot}
-install -D -p -m 0644 misc/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
-install -D -p -m 0644 misc/ras-mc-ctl.service %{buildroot}%{_unitdir}/ras-mc-ctl.service
-install -D -p -m 0655 misc/%{name}.env %{buildroot}%{_sysconfdir}/sysconfig/%{name}
-install -D -p -m 0655 misc/%{name}.syslog-ng %{buildroot}/usr/share/%{name}/%{name}.syslog-ng
-install -D -p -m 0655 misc/%{name}.logrotate %{buildroot}/usr/share/%{name}/%{name}.logrotate
-install -D -p -m 0655 misc/%{name}.rsyslog %{buildroot}/usr/share/%{name}/%{name}.rsyslog
-install -D -p -m 0644 completions/ras-mc-ctl.bash %{buildroot}%{bash_completions_dir}/ras-mc-ctl
-install -D -p -m 0644 completions/ras-mc-ctl.zsh %{buildroot}%{zsh_completions_dir}/_ras-mc-ctl
-rm INSTALL %{buildroot}/usr/include/*.h
+%meson_install
 
 %files
 %doc AUTHORS ChangeLog COPYING README.md TODO
@@ -69,31 +60,22 @@ rm INSTALL %{buildroot}/usr/include/*.h
 %{_sbindir}/ras-mc-ctl
 %{_mandir}/*/*
 %{_unitdir}/*.service
-%{_sysconfdir}/ras/dimm_labels.d
 %{_sysconfdir}/ras/*/*
 %{bash_completions_dir}/ras-mc-ctl
 %{zsh_completions_dir}/_ras-mc-ctl
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
-%config(noreplace) /usr/share/%{name}/%{name}.syslog-ng
-%config(noreplace) /usr/share/%{name}/%{name}.logrotate
-%config(noreplace) /usr/share/%{name}/%{name}.rsyslog
+%config(noreplace) %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf
+%config(noreplace) %{_sysconfdir}/rsyslog.d/%{name}.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 
 %post
 if systemctl is-active --quiet syslog-ng.service; then
     echo "Syslog service is enabled and running, create config file and restart it";
-    rm -rf %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf;
-    ln -s /usr/share/%{name}/%{name}.syslog-ng %{_sysconfdir}/syslog-ng/conf.d/%{name}.conf;
     systemctl restart syslog-ng.service;
 fi
 if systemctl is-active --quiet rsyslog.service; then
     echo "Rsyslog service is enabled and running, create config file and restart it";
-    rm -rf %{_sysconfdir}/rsyslog.d/%{name}.conf;
-    ln -s /usr/share/%{name}/%{name}.rsyslog %{_sysconfdir}/rsyslog.d/%{name}.conf;
     systemctl restart rsyslog.service;
-fi
-if [ -d "%{_sysconfdir}/logrotate.d" ]; then
-    rm -rf %{_sysconfdir}/logrotate.d/%{name};
-    ln -s /usr/share/%{name}/%{name}.logrotate %{_sysconfdir}/logrotate.d/%{name};
 fi
 if ! systemctl is-enabled --quiet %{name}.service; then
     echo "Rasdaemon service is not enabled, enable it";
@@ -121,6 +103,15 @@ if [ -d "%{_sysconfdir}/logrotate.d" ]; then
 fi
 
 %changelog
+
+* Sun Aug 16 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>  0.9.90-1
+- Lots of internal cahnges including using meson and added support to MySQL
+
+* Sat Jan 21 2023 Mauro Carvalho Chehab <mchehab@kernel.org>  0.7.0
+- Bump to version 0.7.0 with several fixes and additions
+
+* Fri Apr 01 2022 Mauro Carvalho Chehab <mchehab@kernel.org>  0.6.8-1
+- Fix sysconfdir issues and upgrade to version 0.6.8
 
 * Fri Apr 01 2022 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>  0.6.7-3
 - Fix sysconfdir issues
