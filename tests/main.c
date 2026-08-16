@@ -17,10 +17,10 @@
 #include "tests/unittest.h"
 
 static const struct test_group groups[] = {
-#if HAVE_MYSQL > 0
+#ifdef HAVE_MYSQL
 	{ "mysql", test_mysql },
 #endif
-#if HAVE_SQLITE3 > 0
+#ifdef HAVE_SQLITE3
 	{ "sqlite3", test_sqlite3 },
 #endif
 
