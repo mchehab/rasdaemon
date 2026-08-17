@@ -35,8 +35,6 @@ sqlite3_dep = dependency('sqlite3', required: false)
 
 libtraceevent_dep = dependency('libtraceevent', required: true)
 libpci_dep = dependency('libpci', required: not get_option('aer').disabled())
-cmocka_dep = dependency('cmocka', required: false)
-
 systemd_dep = dependency('systemd', required: false)
 if systemd_dep.found()
   systemd_unitdir = systemd_dep.get_variable(
@@ -351,13 +349,22 @@ rasdaemon_exe = executable(
 # Unit tests
 #
 
-if cmocka_dep.found() and not get_option('disable-all')
-    unittest_exe = executable(
-        'unittest', unittest_sources,
-        dependencies: dependencies + cmocka_dep,
-        link_whole: [librasdaemon],
-        c_args: ['-g'] + c_flags,
-    )
+if not get_option('disable-all')
+    cmocka_dep = dependency('cmocka', version: '>= 2.0', required: false)
+    if cmocka_dep.found()
+        c_flags += '-DCMOCKA_VERSION_2'
+    else
+        cmocka_dep = dependency('cmocka', required: false)
+    endif
+
+    if cmocka_dep.found()
+        unittest_exe = executable(
+            'unittest', unittest_sources,
+            dependencies: dependencies + cmocka_dep,
+            link_whole: [librasdaemon],
+            c_args: ['-g'] + c_flags,
+        )
+    endif
 endif
 
 #

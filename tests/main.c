@@ -28,32 +28,6 @@ static const struct test_group groups[] = {
 	{ "modules", test_modules },
 };
 
-static bool stdout_is_vt = false;
-
-enum ansi_color {
-	GREEN,
-	RED,
-	YELLOW,
-	RESET,
-
-	ANSI_MAX_COLORS
-};
-
-static const char *const codes[] = {
-	[GREEN]  = "\033[32m",
-	[RED]    = "\033[31;1m",
-	[YELLOW] = "\033[33;1m",
-	[RESET]  = "\033[0m"
-};
-
-static const char *get_color(enum ansi_color color)
-{
-	if (!stdout_is_vt || color > ANSI_MAX_COLORS)
-		return NULL;
-
-	return codes[color];
-}
-
 const char *argp_program_version = "rasdaemon unit tests 0.1.0";
 const char *argp_program_bug_address = "mchehab@kernel.org";
 
@@ -94,7 +68,7 @@ static uint32_t parse_output_format(
 )
 {
 	if (strcasecmp(value, "standard") == 0) {
-		return CM_OUTPUT_STANDARD;
+		return CM_OUTPUT_STDOUT;
 	}
 
 	if (strcasecmp(value, "tap") == 0) {
@@ -164,6 +138,33 @@ static bool group_is_selected(const struct test_group *group,
 	return selected_group == NULL || !strcasecmp(group->name, selected_group);
 }
 
+static bool stdout_is_vt = false;
+
+#ifdef CMOCKA_VERSION_2
+enum ansi_color {
+	GREEN,
+	RED,
+	YELLOW,
+	RESET,
+
+	ANSI_MAX_COLORS
+};
+
+static const char *const codes[] = {
+	[GREEN]  = "\033[32m",
+	[RED]    = "\033[31;1m",
+	[YELLOW] = "\033[33;1m",
+	[RESET]  = "\033[0m"
+};
+
+static const char *get_color(enum ansi_color color)
+{
+	if (!stdout_is_vt || color > ANSI_MAX_COLORS)
+		return NULL;
+
+	return codes[color];
+}
+
 static void filter_output(const char *format, va_list args)
 {
 	const char *color = NULL;
@@ -218,6 +219,7 @@ const struct CMCallbacks callbacks = {
 	.vprint_message = filter_output,
 	.vprint_error = filter_output,
 };
+#endif
 
 int main(int argc, char **argv)
 {
@@ -249,7 +251,9 @@ int main(int argc, char **argv)
 	/* Set logger to mock mode */
 	mock_output = true;
 
+#ifdef CMOCKA_VERSION_2
 	cmocka_set_callbacks(&callbacks);
+#endif
 	stdout_is_vt = isatty(fileno(stdout));
 
 	for (index = 0; index < group_count; ++index) {
