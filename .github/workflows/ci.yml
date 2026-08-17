@@ -14,17 +14,16 @@ jobs:
     strategy:
       matrix:
         arch: [x64_64, aarch64, ppc64le]
-        config: [--disable-all, --enable-all]
+        config: [disable-all=false, disable-all=true]
     steps:
       - uses: actions/checkout@v2
       - name: prepare
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libsqlite3-dev sqlite3 libtraceevent-dev libtraceevent1 libpci-dev
+          sudo apt-get install -y build-essential meson ninja-build libsqlite3-dev sqlite3 libtraceevent-dev libtraceevent1 libpci-dev
       - name: build
         run: |
-          autoreconf -vfi
-          ./configure ${{ matrix.config }}
+          meson build --reconfigure -D${{ matrix.config }}
           make
           sudo make install
 
@@ -47,8 +46,7 @@ jobs:
           rpmdev-setuptree
       - name: build
         run: |
-          autoreconf -vfi
-          ./configure
+          meson build --reconfigure -Ddisable-all=false
           make mock
 
   openEuler:
@@ -69,6 +67,7 @@ jobs:
                          pciutils pciutils-devel
       - name: build
         run: |
+          meson build --reconfigure -Ddisable-all=false
           make
           make install
 
