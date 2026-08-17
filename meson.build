@@ -100,9 +100,34 @@ mce_sources = [
     'events-arch-x86/ras-mce-handler.c',
 ]
 
+# Enable variables for each feature. Keep it in alphabetic order
+enable_abrt_report = false
+enable_aer = false
+enable_amp_ns_decode = false
+enable_arm = false
+enable_cpu_fault_isolation = false
+enable_cxl = false
 enable_db = false
+enable_devlink = false
+enable_diskerror = false
+enable_erst = false
+enable_extlog = false
+enable_hisi_ns_decode = false
+enable_jaguar_ns_decode = false
+enable_mce = false
+enable_memory_ce_pfa = false
+enable_memory_failure = false
+enable_memory_row_ce_pfa = false
 enable_mysql = false
+enable_non_standard = false
+enable_nvidia_ns_decode = false
+enable_openbmc_unified_sel = false
+enable_page_isolation = false
+enable_poison_page_stat = false
+enable_reri = false
+enable_signal = false
 enable_sqlite3 = false
+enable_yitian_ns_decode = false
 
 if not get_option('disable-all')
     if mysql_dep.found() and not get_option('mysql').disabled()
@@ -120,22 +145,27 @@ if not get_option('disable-all')
     endif
 
     if not get_option('abrt-report').disabled()
+        enable_abrt_report = true
         lib_sources += 'modules/ras-report.c'
     endif
 
     if not get_option('aer').disabled()
+        enable_aer = true
         lib_sources += 'modules/ras-aer-handler.c'
     endif
 
     if not get_option('amp-ns-decode').disabled()
+        enable_amp_ns_decode = true
         lib_sources += 'events-arch-arm/non-standard-ampere.c'
     endif
 
     if not get_option('arm').disabled()
+        enable_arm = true
         lib_sources += 'events-arch-arm/ras-arm-handler.c'
     endif
 
     if not get_option('cpu-fault-isolation').disabled()
+        enable_cpu_fault_isolation = true
         lib_sources += [
             'modules/ras-cpu-isolation.c',
             'core/queue.c'
@@ -143,26 +173,32 @@ if not get_option('disable-all')
     endif
 
     if not get_option('cxl').disabled()
+        enable_cxl = true
         lib_sources += 'events/ras-cxl-handler.c'
     endif
 
     if not get_option('devlink').disabled()
+        enable_devlink = true
         lib_sources += 'events/ras-devlink-handler.c'
     endif
 
     if not get_option('diskerror').disabled()
+        enable_diskerror = true
         lib_sources += 'events/ras-diskerror-handler.c'
     endif
 
     if not get_option('erst').disabled()
+        enable_erst = true
         lib_sources += 'events-arch-x86/ras-erst.c'
     endif
 
     if not get_option('extlog').disabled()
+        enable_extlog = true
         lib_sources += 'core/ras-extlog-handler.c'
     endif
 
     if not get_option('hisi-ns-decode').disabled()
+        enable_hisi_ns_decode = true
         lib_sources += [
             'events-arch-arm/non-standard-hisi_hip08.c',
             'events-arch-arm/non-standard-hisilicon.c',
@@ -170,75 +206,65 @@ if not get_option('disable-all')
     endif
 
     if not get_option('jaguar-ns-decode').disabled()
+        enable_jaguar_ns_decode = true
         lib_sources += 'events-arch-arm/non-standard-jaguarmicro.c'
     endif
 
     if not get_option('mce').disabled()
+        enable_mce = true
         lib_sources += mce_sources
     endif
 
+    if not get_option('memory-ce-pfa').disabled()
+        enable_memory_ce_pfa = true
+        enable_poison_page_stat = true
+        enable_page_isolation = true
+    endif
+
     if not get_option('memory-failure').disabled()
+        enable_memory_failure = true
+        enable_poison_page_stat = true
         lib_sources += 'events/ras-memory-failure-handler.c'
     endif
 
+    if not get_option('memory-row-ce-pfa').disabled()
+        enable_memory_row_ce_pfa = true
+        enable_poison_page_stat = true
+        enable_page_isolation = true
+    endif
+
     if not get_option('nvidia-ns-decode').disabled()
+        enable_nvidia_ns_decode = true
         lib_sources += 'events-arch-arm/non-standard-nvidia.c'
     endif
 
     if not get_option('non-standard').disabled()
+        enable_non_standard = true
         lib_sources += 'events-arch-arm/ras-non-standard-handler.c'
     endif
 
     if not get_option('openbmc-unified-sel').disabled()
+        enable_openbmc_unified_sel = true
         lib_sources += 'events/unified-sel.c'
     endif
 
-    if not get_option('memory-ce-pfa').disabled() or \
-    not get_option('memory-row-ce-pfa').disabled()
-
-        lib_sources += [
-            'modules/ras-page-isolation.c',
-            'core/rbtree.c',
-        ]
-    endif
-
-    if not get_option('memory-ce-pfa').disabled() or \
-    not get_option('memory-row-ce-pfa').disabled() or \
-    not get_option('memory-failure').disabled()
-        lib_sources += 'events/ras-poison-page-stat.c'
-    endif
-
-
     if not get_option('signal').disabled()
+        enable_signal = true
         lib_sources += 'events/ras-signal-handler.c'
     endif
 
-    if enable_sqlite3 or enable_mysql
-        lib_sources += [
-            'db/ras-db.c',
-            'db/ras-record.c',
-        ]
-    endif
-
-    if enable_mysql
-        lib_sources += 'db/db-mysql.c'
-        unittest_sources += 'tests/test-mysql.c'
-    endif
-
-    if enable_sqlite3
-        lib_sources += ['db/db-sqlite3.c']
-        unittest_sources += 'tests/test-sqlite3.c'
-    endif
-
     if not get_option('yitian-ns-decode').disabled()
+        enable_yitian_ns_decode = true
         lib_sources += 'events-arch-arm/non-standard-yitian.c'
     endif
 
     if not get_option('reri').disabled()
+        enable_reri = true
         lib_sources += 'events/ras-reri-handler.c'
     endif
 
     if not get_option('cpu-fault-isolation').disabled()
+        enable_cpu_fault_isolation = true
         lib_sources += [
             'core/queue.c',
             'modules/ras-cpu-isolation.c',
@@ -247,56 +273,51 @@ if not get_option('disable-all')
 endif
 
 #
-# Main program sources
+# Page isolation and memory poison
 #
-rasdaemon_sources = ['core/rasdaemon.c']
+
+if enable_page_isolation
+    lib_sources += [
+        'core/rbtree.c',
+        'modules/ras-page-isolation.c',
+    ]
+endif
+
+if enable_poison_page_stat
+    lib_sources += 'events/ras-poison-page-stat.c'
+endif
 
 #
-# Headers
+# Add database modules
 #
-headers = [
-    'core/bitfield.h',
-    'core/modules.h',
-    'core/queue.h',
-    'core/ras-events.h',
-    'core/ras-extlog-handler.h',
-    'core/ras-logger.h',
-    'core/ras-mc-handler.h',
-    'core/rbtree.h',
-    'core/trigger.h',
-    'core/types.h',
-    'db/db-mysql.h',
-    'db/db-sqlite3.h',
-    'db/ras-db-backend.h',
-    'db/ras-db.h',
-    'db/ras-record.h',
-    'events-arch-arm/non-standard-ampere.h',
-    'events-arch-arm/non-standard-hisilicon.h',
-    'events-arch-arm/non-standard-jaguarmicro.h',
-    'events-arch-arm/non-standard-nvidia.h',
-    'events-arch-arm/non-standard-yitian.h',
-    'events-arch-arm/ras-arm-handler.h',
-    'events-arch-arm/ras-non-standard-handler.h',
-    'events-arch-x86/ras-erst.h',
-    'events-arch-x86/ras-mce-handler.h',
-    'events/ras-cxl-handler.h',
-    'events/ras-devlink-handler.h',
-    'events/ras-diskerror-handler.h',
-    'events/ras-memory-failure-handler.h',
-    'events/ras-poison-page-stat.h',
-    'events/ras-reri-handler.h',
-    'events/ras-signal-handler.h',
-    'events/unified-sel.h',
-    'modules/ras-aer-handler.h',
-    'modules/ras-cpu-isolation.h',
-    'modules/ras-page-isolation.h',
-    'modules/ras-report.h',
-    'tests/unittest.h',
-]
+
+if enable_db
+    lib_sources += [
+        'db/ras-db.c',
+        'db/ras-record.c',
+    ]
+endif
+
+if enable_mysql
+    lib_sources += 'db/db-mysql.c'
+    unittest_sources += 'tests/test-mysql.c'
+endif
+
+if enable_sqlite3
+    lib_sources += ['db/db-sqlite3.c']
+    unittest_sources += 'tests/test-sqlite3.c'
+endif
+
+#
+# Main program sources
+#
+
+rasdaemon_sources = ['core/rasdaemon.c']
 
 #
 # Static library
 #
+
 librasdaemon = static_library(
     'rasdaemon',
     lib_sources,
@@ -307,6 +328,7 @@ librasdaemon = static_library(
 #
 # Main executable
 #
+
 rasdaemon_exe = executable(
     'rasdaemon',
     rasdaemon_sources,
@@ -315,7 +337,6 @@ rasdaemon_exe = executable(
     c_args: c_flags,
     install: true,
     install_dir: get_option('sbindir'),
-
 )
 
 #
@@ -352,20 +373,21 @@ conf_data = {
     'RASSTATEDIR' : get_option('statedir'),
     'RAS_DB_FNAME' : get_option('db-fname'),
 
-    'WITH_AER_TRUE' : not get_option('aer').disabled() ? '' : '#',
-    'WITH_ARM_TRUE' : not get_option('arm').disabled() ? '' : '#',
-    'WITH_CXL_TRUE' : not get_option('cxl').disabled() ? '' : '#',
-    'WITH_DEVLINK_TRUE' : not get_option('devlink').disabled() ? '' : '#',
-    'WITH_DISKERROR_TRUE' : not get_option('diskerror').disabled() ? '' : '#',
-    'WITH_EXTLOG_TRUE' : not get_option('extlog').disabled() ? '' : '#',
-    'WITH_MCE_TRUE' : not get_option('mce').disabled() ? '' : '#',
-    'WITH_MEMORY_FAILURE_TRUE' : not get_option('memory-failure').disabled() ? '' : '#',
-    'WITH_NVIDIA_NS_DECODE_TRUE' : not get_option('nvidia-ns-decode').disabled() ? '' : '#',
-    'WITH_SIGNAL_TRUE' : not get_option('signal').disabled() ? '' : '#',
+    'WITH_AER_TRUE' : enable_aer ? '' : '#',
+    'WITH_ARM_TRUE' : enable_arm ? '' : '#',
+    'WITH_CXL_TRUE' : enable_cxl ? '' : '#',
+    'WITH_DEVLINK_TRUE' : enable_devlink ? '' : '#',
+    'WITH_DISKERROR_TRUE' : enable_diskerror ? '' : '#',
+    'WITH_EXTLOG_TRUE' : enable_extlog ? '' : '#',
+    'WITH_MCE_TRUE' : enable_mce ? '' : '#',
+    'WITH_MEMORY_FAILURE_TRUE' : enable_memory_failure ? '' : '#',
+    'WITH_NVIDIA_NS_DECODE_TRUE' : enable_nvidia_ns_decode ? '' : '#',
+    'WITH_SIGNAL_TRUE' : enable_signal ? '' : '#',
 }
 
 # Files requiring variable substitution and their install destinations.
 # Value '' means: generate in build tree only (source-only, not installed).
+
 install_map = {
     # Source-only
     'Makefile.inc.in' : '',
@@ -388,6 +410,7 @@ install_map = {
 }
 
 # File renaming install rules
+
 rename_map = {
     'rasdaemon.syslog-ng' : 'rasdaemon.conf',
     'rasdaemon.rsyslog' : 'rasdaemon.conf',
@@ -420,6 +443,7 @@ foreach in_file, install_dir : install_map
 endforeach
 
 # Install files that don't require configuration
+
 install_data('misc/rasdaemon.env',
     install_dir: get_option('sysconfdir') + '/sysconfig',
     rename: 'rasdaemon',
@@ -430,21 +454,26 @@ install_data('contrib/mc_event_trigger',
     install_dir: get_option('sysconfdir') + '/ras/triggers',
     install_mode: 'rwxr-xr-x',
 )
+
 install_data('contrib/mem_fail_trigger',
     install_dir: get_option('sysconfdir') + '/ras/triggers',
     install_mode: 'rwxr-xr-x',
 )
 
 # DIMM labels
+
 labels_files = run_command(
     'find', 'labels', '-maxdepth', '1', '-type', 'f', check: true
 ).stdout().strip().split('\n')
+
 labels_list = []
+
 foreach f : labels_files
     if f != ''
         labels_list += f
     endif
 endforeach
+
 if labels_list.length() > 0
     install_data(labels_list,
         install_dir: get_option('sysconfdir') + '/ras/dimm_labels.d',
@@ -453,6 +482,7 @@ if labels_list.length() > 0
 endif
 
 # Shell completions
+
 install_data('completions/ras-mc-ctl.bash',
     install_dir: bash_compdir,
     rename: 'ras-mc-ctl',
@@ -474,31 +504,31 @@ configure_file(
     output : 'config.h',
     configuration : {
         # Keep in alphabetic order
-        'HAVE_ABRT_REPORT' : not get_option('abrt-report').disabled() and not get_option('disable-all'),
-        'HAVE_AER' : not get_option('aer').disabled() and not get_option('disable-all'),
-        'HAVE_AMP_NS_DECODE' : not get_option('amp-ns-decode').disabled() and not get_option('disable-all'),
-        'HAVE_ARM' : not get_option('arm').disabled() and not get_option('disable-all'),
+        'HAVE_ABRT_REPORT' : enable_abrt_report,
+        'HAVE_AER' : enable_aer,
+        'HAVE_AMP_NS_DECODE' : enable_amp_ns_decode,
+        'HAVE_ARM' : enable_arm,
         'HAVE_DB' : enable_db,
-        'HAVE_CPU_FAULT_ISOLATION' : not get_option('cpu-fault-isolation').disabled() and not get_option('disable-all'),
-        'HAVE_CXL' : not get_option('cxl').disabled() and not get_option('disable-all'),
-        'HAVE_DEVLINK' : not get_option('devlink').disabled() and not get_option('disable-all'),
-        'HAVE_DISKERROR' : not get_option('diskerror').disabled() and not get_option('disable-all'),
-        'HAVE_ERST' : not get_option('erst').disabled() and not get_option('disable-all'),
-        'HAVE_EXTLOG' : not get_option('extlog').disabled() and not get_option('disable-all'),
-        'HAVE_HISI_NS_DECODE' : not get_option('hisi-ns-decode').disabled() and not get_option('disable-all'),
-        'HAVE_JAGUAR_NS_DECODE' : not get_option('jaguar-ns-decode').disabled() and not get_option('disable-all'),
-        'HAVE_MCE' : not get_option('mce').disabled() and not get_option('disable-all'),
-        'HAVE_MEMORY_CE_PFA' : not get_option('memory-ce-pfa').disabled() and not get_option('disable-all'),
-        'HAVE_MEMORY_FAILURE' : not get_option('memory-failure').disabled() and not get_option('disable-all'),
-        'HAVE_MEMORY_ROW_CE_PFA' : not get_option('memory-row-ce-pfa').disabled() and not get_option('disable-all'),
+        'HAVE_CPU_FAULT_ISOLATION' : enable_cpu_fault_isolation,
+        'HAVE_CXL' : enable_cxl,
+        'HAVE_DEVLINK' : enable_devlink,
+        'HAVE_DISKERROR' : enable_diskerror,
+        'HAVE_ERST' : enable_erst,
+        'HAVE_EXTLOG' : enable_extlog,
+        'HAVE_HISI_NS_DECODE' : enable_hisi_ns_decode,
+        'HAVE_JAGUAR_NS_DECODE' : enable_jaguar_ns_decode,
+        'HAVE_MCE' : enable_mce,
+        'HAVE_MEMORY_CE_PFA' : enable_memory_ce_pfa,
+        'HAVE_MEMORY_FAILURE' : enable_memory_failure,
+        'HAVE_MEMORY_ROW_CE_PFA' : enable_memory_row_ce_pfa,
         'HAVE_MYSQL' : enable_mysql,
-        'HAVE_NON_STANDARD' : not get_option('non-standard').disabled() and not get_option('disable-all'),
-        'HAVE_NVIDIA_NS_DECODE' : not get_option('nvidia-ns-decode').disabled() and not get_option('disable-all'),
-        'HAVE_OPENBMC_UNIFIED_SEL' : not get_option('openbmc-unified-sel').disabled() and not get_option('disable-all'),
-        'HAVE_RERI' : not get_option('reri').disabled() and not get_option('disable-all'),
-        'HAVE_SIGNAL' : not get_option('signal').disabled() and not get_option('disable-all'),
+        'HAVE_NON_STANDARD' : enable_non_standard,
+        'HAVE_NVIDIA_NS_DECODE' : enable_nvidia_ns_decode,
+        'HAVE_OPENBMC_UNIFIED_SEL' : enable_openbmc_unified_sel,
+        'HAVE_RERI' : enable_reri,
+        'HAVE_SIGNAL' : enable_signal,
         'HAVE_SQLITE3' : enable_sqlite3,
-        'HAVE_YITIAN_NS_DECODE' : not get_option('yitian-ns-decode').disabled() and not get_option('disable-all'),
+        'HAVE_YITIAN_NS_DECODE' : enable_yitian_ns_decode,
     }
 )
 
@@ -509,19 +539,19 @@ configure_file(
 summary(
     {
         # Keep in alphabetic order
-        'ABRT report' : not get_option('abrt-report').disabled() and not get_option('disable-all'),
-        'AER' : not get_option('aer').disabled() and not get_option('disable-all'),
-        'CPU fault isolation' : not get_option('cpu-fault-isolation').disabled() and not get_option('disable-all'),
-        'CXL events' : not get_option('cxl').disabled() and not get_option('disable-all'),
-        'DEVLINK' : not get_option('devlink').disabled() and not get_option('disable-all'),
-        'Disk I/O errors' : not get_option('diskerror').disabled() and not get_option('disable-all'),
-        'ERST' : not get_option('erst').disabled() and not get_option('disable-all'),
-        'EXTLOG' : not get_option('extlog').disabled() and not get_option('disable-all'),
-        'Memory CE PFA' : not get_option('memory-ce-pfa').disabled() and not get_option('disable-all'),
-        'Memory Failure' : not get_option('memory-failure').disabled() and not get_option('disable-all'),
-        'Memory ROW CE PFA' : not get_option('memory-row-ce-pfa').disabled() and not get_option('disable-all'),
-        'OpenBMC unified' : not get_option('openbmc-unified-sel').disabled() and not get_option('disable-all'),
-        'Signal' : not get_option('signal').disabled() and not get_option('disable-all'),
+        'ABRT report' : enable_abrt_report,
+        'AER' : enable_aer,
+        'CPU fault isolation' : enable_cpu_fault_isolation,
+        'CXL events' : enable_cxl,
+        'DEVLINK' : enable_devlink,
+        'Disk I/O errors' : enable_diskerror,
+        'ERST' : enable_erst,
+        'EXTLOG' : enable_extlog,
+        'Memory CE PFA' : enable_memory_ce_pfa,
+        'Memory Failure' : enable_memory_failure,
+        'Memory ROW CE PFA' : enable_memory_row_ce_pfa,
+        'OpenBMC unified' : enable_openbmc_unified_sel,
+        'Signal' : enable_signal,
     },
     section : 'General options',
 )
@@ -536,25 +566,22 @@ summary(
 
 summary(
     {
-        # Keep in alphabetic order
-        'ARM events' : not get_option('arm').disabled() and not get_option('disable-all'),
-        'MCE' : not get_option('mce').disabled() and not get_option('disable-all'),
-        'RERI' : not get_option('reri').disabled() and not get_option('disable-all'),
-
+        'ARM events' : enable_arm,
+        'MCE' : enable_mce,
+        'RERI' : enable_reri,
     },
     section : 'Arch-specific options',
 )
 
 summary(
     {
-        'CPER non-standard' : not get_option('non-standard').disabled() and not get_option('disable-all'),
-
+        'CPER non-standard' : enable_non_standard,
         # Keep in alphabetic order
-        'AMP RAS errors' : not get_option('amp-ns-decode').disabled() and not get_option('disable-all'),
-        'HISI Kunpeng errors' : not get_option('hisi-ns-decode').disabled() and not get_option('disable-all'),
-        'YITIAN RAS errors' : not get_option('yitian-ns-decode').disabled() and not get_option('disable-all'),
-        'JAGUAR RAS errors' : not get_option('jaguar-ns-decode').disabled() and not get_option('disable-all'),
-        'NVIDIA RAS errors' : not get_option('nvidia-ns-decode').disabled() and not get_option('disable-all'),
+        'AMP RAS errors' : enable_amp_ns_decode,
+        'HISI Kunpeng errors' : enable_hisi_ns_decode,
+        'YITIAN RAS errors' : enable_yitian_ns_decode,
+        'JAGUAR RAS errors' : enable_jaguar_ns_decode,
+        'NVIDIA RAS errors' : enable_nvidia_ns_decode,
     },
     section : 'Non-standard CPER records',
 )
