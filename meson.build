@@ -27,14 +27,11 @@ unittest_sources = [
 ]
 
 #
-# Dependencies
+# Global dependencies and install directory paths
 #
-mysql_dep = dependency('mysqlclient', required: false)
-pg_dep = dependency('libpq', required: false)
-sqlite3_dep = dependency('sqlite3', required: false)
 
 libtraceevent_dep = dependency('libtraceevent', required: true)
-libpci_dep = dependency('libpci', required: not get_option('aer').disabled())
+
 systemd_dep = dependency('systemd', required: false)
 if systemd_dep.found()
   systemd_unitdir = systemd_dep.get_variable(
@@ -49,12 +46,7 @@ bash_compdir = get_option('datadir') / 'bash-completion' / 'completions'
 zsh_compdir = get_option('datadir') / 'zsh' / 'site-functions'
 
 dependencies = [
-    mysql_dep,
-    pg_dep,
-    sqlite3_dep,
-
     libtraceevent_dep,
-    libpci_dep
 ]
 
 #
@@ -127,28 +119,50 @@ enable_sqlite3 = false
 enable_yitian_ns_decode = false
 
 if not get_option('disable-all')
+    #
+    # Features that require dependencies
+    #
+    mysql_dep = dependency('mysqlclient', required: false)
+
     if mysql_dep.found() and not get_option('mysql').disabled()
         enable_db = true
         enable_mysql = true
+        dependencies += mysql_dep
+        lib_sources += 'db/db-mysql.c'
+        unittest_sources += 'tests/test-mysql.c'
     else
         message('MySQL client devel not found: disabling MySQL support')
     endif
 
+    sqlite3_dep = dependency('sqlite3', required: false)
     if sqlite3_dep.found() and not get_option('sqlite3').disabled()
         enable_db = true
         enable_sqlite3 = true
+        lib_sources += ['db/db-sqlite3.c']
+        unittest_sources += 'tests/test-sqlite3.c'
+        dependencies += sqlite3_dep
     else
         message('SQLite3 devel not found: disabling SQLite3 support')
     endif
 
+    libpci_dep = dependency('libpci', required: not get_option('aer').disabled())
+    if not get_option('aer').disabled()
+        if libpci_dep.found()
+            enable_aer = true
+            lib_sources += 'modules/ras-aer-handler.c'
+            dependencies += libpci_dep
+        else
+          message('libpci not found: disabling AER support')
+        endif
+    endif
+
+    #
+    # Features that can be built without any external deps
+    #
+
     if not get_option('abrt-report').disabled()
         enable_abrt_report = true
         lib_sources += 'modules/ras-report.c'
-    endif
-
-    if not get_option('aer').disabled()
-        enable_aer = true
-        lib_sources += 'modules/ras-aer-handler.c'
     endif
 
     if not get_option('amp-ns-decode').disabled()
@@ -302,16 +316,6 @@ if enable_db
         'db/ras-db.c',
         'db/ras-record.c',
     ]
-endif
-
-if enable_mysql
-    lib_sources += 'db/db-mysql.c'
-    unittest_sources += 'tests/test-mysql.c'
-endif
-
-if enable_sqlite3
-    lib_sources += ['db/db-sqlite3.c']
-    unittest_sources += 'tests/test-sqlite3.c'
 endif
 
 #

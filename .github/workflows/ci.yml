@@ -16,7 +16,8 @@ jobs:
         arch: [x64_64, aarch64, ppc64le]
         config: [disable-all=false, disable-all=true]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
+
       - name: prepare
         run: |
           sudo apt-get update
@@ -29,43 +30,18 @@ jobs:
           make
           sudo make install
 
-  Unittest:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: prepare
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential meson ninja-build pkg-config \
-                                  git cmake libsqlite3-dev sqlite3 \
-                                  libcmocka-dev \
-                                  libtraceevent-dev libtraceevent1 libpci-dev
-
-      - name: build
-        run: |
-          meson setup build
-          make
-
-      - name: run
-        run: |
-          build/unittest -o tap
-
-
   Fedora:
     name: Fedora
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        arch: [x64_64]
     container:
       image: fedora:rawhide
       options: --privileged
     steps:
       - name: prepare
         run: |
-          dnf install -y git mock rpm-build rpmdevtools pciutils-devel \
-                         meson ninja-build make gcc libtraceevent-devel
+          dnf install -y git mock rpmdevtools meson gcc make \
+                         libtraceevent-devel
+
           ln -sf fedora-rawhide-x86_64.cfg /etc/mock/default.cfg
           rpmdev-setuptree
 
@@ -73,8 +49,8 @@ jobs:
 
       - name: build
         run: |
-          meson setup build -Ddisable-all=false
-          make
+          meson setup build -Ddisable-all=true
+          git config --global safe.directory "*"
           make mock
 
   openEuler:

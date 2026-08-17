@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: GPL-2.0
+
+name: Tests
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  Unittest:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start MySQL
+        run: |
+          sudo systemctl start mysql.service
+          mysqladmin ping --host=127.0.0.1 --user=root --password=root
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential meson ninja-build pkg-config \
+                                  git cmake libsqlite3-dev sqlite3 \
+                                  libcmocka-dev libmysqlclient-dev \
+                                  libtraceevent-dev libtraceevent1 libpci-dev
+
+      - uses: actions/checkout@v7
+
+      - name: Build rasdaemon
+        run: |
+          meson setup build
+          make
+
+      - name: Create database
+        env:
+          MYSQL_PWD: root
+        run: |
+          mysql --host=127.0.0.1 --user=root << EOF
+            CREATE DATABASE IF NOT EXISTS rasdaemon_test;
+            CREATE USER IF NOT EXISTS 'rasdaemon'@'%' IDENTIFIED BY 'mypass';
+            GRANT ALL PRIVILEGES ON rasdaemon_test.* TO 'rasdaemon'@'%';
+            FLUSH PRIVILEGES;
+          EOF
+
+      - name: Run unittest
+        env:
+          RAS_MYSQL_HOST: ""
+          RAS_MYSQL_PORT: "3306"
+          RAS_MYSQL_USER: "rasdaemon"
+          RAS_MYSQL_PASSWORD: "mypass"
+          RAS_MYSQL_DATABASE: "rasdaemon_test"
+        run: |
+          build/unittest -o tap
