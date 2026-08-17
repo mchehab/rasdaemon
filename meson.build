@@ -44,7 +44,7 @@ if systemd_dep.found()
     default_value: join_paths(get_option('libdir'), 'systemd', 'system')
   )
 else
-  systemd_unitdir = get_option('systemdsystemunitdir')
+  systemd_unitdir = join_paths(get_option('libdir'), 'systemd', 'system')
 endif
 
 bash_compdir = get_option('datadir') / 'bash-completion' / 'completions'
