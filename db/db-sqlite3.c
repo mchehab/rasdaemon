@@ -169,37 +169,6 @@ static int db_sqlite3_bind_type(struct ras_stmt *__stmt,
 	}
 }
 
-static int db_sqlite3_bind(const struct db_table_descriptor *db_tab,
-			    struct ras_stmt *stmt,
-			    const int pos, uint64_t value, int len)
-{
-	const struct db_fields *fields = db_tab->fields;
-	int i, field_pos = 0;
-
-	if (pos < 1) {
-		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
-		    db_tab->name, pos);
-		return -1;
-	}
-
-	for (i = 0; i < db_tab->num_fields; i++) {
-		if (fields[i].type == DB_TYPE_SERIAL)
-			continue;
-
-		if (field_pos == pos - 1)
-			break;
-
-		field_pos++;
-	}
-	if (field_pos != pos - 1) {
-		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
-		    db_tab->name, pos);
-		return -1;
-	}
-
-	return db_bind_type(stmt, fields[i].type, pos, value, len);
-}
-
 static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
@@ -441,7 +410,6 @@ static const struct ras_db_backend_ops sqlite3_backend_ops = {
 
 	.get_sql_type           = db_sqlite3_get_sql_type,
 	.bind_type              = db_sqlite3_bind_type,
-	.bind                   = db_sqlite3_bind,
 
 	.db_exec_sql		= db_sqlite3_exec_sql,
 

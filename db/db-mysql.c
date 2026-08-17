@@ -270,37 +270,6 @@ static int db_mysql_bind_type(struct ras_stmt *__stmt,
 	return 0;
 }
 
-static int db_mysql_bind(const struct db_table_descriptor *db_tab,
-			  struct ras_stmt *__stmt,
-			  const int pos, uint64_t value, int len)
-{
-	const struct db_fields *fields = db_tab->fields;
-	int i, field_pos = 0;
-
-	if (pos < 1) {
-		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
-		    db_tab->name, pos);
-		return -1;
-	}
-
-	for (i = 0; i < db_tab->num_fields; i++) {
-		if (fields[i].type == DB_TYPE_SERIAL)
-			continue;
-
-		if (field_pos == pos - 1)
-			break;
-
-		field_pos++;
-	}
-	if (field_pos != pos - 1) {
-		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
-		    db_tab->name, pos);
-		return -1;
-	}
-
-	return db_bind_type(__stmt, fields[i].type, pos, value, len);
-}
-
 static int db_mysql_exec_sql(struct ras_db *__db, const char *sql)
 {
 	MYSQL *db = to_db(__db);
@@ -572,7 +541,6 @@ static const struct ras_db_backend_ops mysql_backend_ops = {
 
 	.get_sql_type		= db_mysql_get_sql_type,
 	.bind_type		= db_mysql_bind_type,
-	.bind			= db_mysql_bind,
 
 	.db_exec_sql		= db_mysql_exec_sql,
 

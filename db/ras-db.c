@@ -24,7 +24,7 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 	struct ras_db_backend_entry **head = &ras_db_backends.next;
 	struct ras_db_backend_entry *new, *cur, *prev = NULL;
 
-	if (!ops || !ops->get_sql_type || !ops->bind_type || !ops->bind ||
+	if (!ops || !ops->get_sql_type || !ops->bind_type ||
 	    !ops->eval_stmt || !ops->create_table || !ops->alter_table ||
 	    !ops->prepare_stmt || !ops->finalize || !ops->open ||
 	    !ops->close || !ops->db_exec_sql) {
@@ -170,10 +170,35 @@ int db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 int db_bind(const struct db_table_descriptor *db_tab,
 	    struct ras_stmt *stmt, int pos, uint64_t value, int len)
 {
+	const struct db_fields *fields = db_tab->fields;
+	int i, field_pos = 0;
+
 	if (!ras_db_ops)
 		return 0;
 
-	return ras_db_ops->bind(db_tab, stmt, pos, value, len);
+	if (pos < 1) {
+		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
+		    db_tab->name, pos);
+		return -1;
+	}
+
+	for (i = 0; i < db_tab->num_fields; i++) {
+		if (fields[i].type == DB_TYPE_SERIAL)
+			continue;
+
+		if (field_pos == pos - 1)
+			break;
+
+		field_pos++;
+	}
+	if (field_pos != pos - 1) {
+		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
+		    db_tab->name, pos);
+		return -1;
+	}
+
+	return db_bind_type(stmt, db_tab->fields[i].type,
+			    pos, value, len);
 }
 
 int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name)
