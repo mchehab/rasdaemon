@@ -1,7 +1,7 @@
 name: Auto-remove "waiting new revision" label on PR update
 
 on:
-  pull_request:
+  pull_request_target:
     types: [synchronize]
 
 permissions:
@@ -14,4 +14,5 @@ jobs:
       - name: Remove label on PR update
         uses: actions-ecosystem/action-remove-labels@v1
         with:
-          labels: 'waiting new revision'
+          labels: waiting new revision
+          fail_on_error: true
