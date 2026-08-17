@@ -12,7 +12,7 @@ Source0:		http://www.infradead.org/~mchehab/rasdaemon/%{name}-%{version}.tar.xz
 ExcludeArch:		s390 s390x
 BuildRequires:		make
 BuildRequires:		gcc
-BuildRequires:		meson >= 0.58
+BuildRequires:		meson >= 0.60
 BuildRequires:		ninja-build
 BuildRequires:		perl-generators
 BuildRequires:		sqlite-devel

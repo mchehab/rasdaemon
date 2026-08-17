@@ -5,7 +5,7 @@
 project('rasdaemon', 'c',
         version: '0.9.90',
         license: 'GPL-2.0',
-        meson_version: '>= 0.58')
+        meson_version: '>= 0.60')
 
 #
 # Compiler
