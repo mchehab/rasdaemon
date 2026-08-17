@@ -20,12 +20,47 @@ jobs:
       - name: prepare
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential meson ninja-build libsqlite3-dev sqlite3 libtraceevent-dev libtraceevent1 libpci-dev
+          sudo apt-get install -y build-essential meson ninja-build pkg-config \
+                                  git cmake libsqlite3-dev sqlite3 \
+                                  libtraceevent-dev libtraceevent1 libpci-dev
       - name: build
         run: |
-          meson build --reconfigure -D${{ matrix.config }}
+          meson setup build --reconfigure -D${{ matrix.config }}
           make
           sudo make install
+
+  Unittest:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: prepare
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential meson ninja-build pkg-config \
+                                  git cmake libsqlite3-dev sqlite3 \
+                                  libtraceevent-dev libtraceevent1 libpci-dev
+
+      # We need at least cmocka 2.0, which is not available on ubuntu 24.04
+      - name: Build cmocka
+        run: |
+          git clone --depth 1 https://gitlab.com/cmocka/cmocka.git
+
+          cmake -S "cmocka" -B "cmocka/build" \
+              -G Ninja -DCMAKE_BUILD_TYPE=Release -DUNIT_TESTING=OFF
+
+          cmake --build "cmocka/build"
+          sudo cmake --install "cmocka/build"
+
+      - name: build
+        run: |
+          meson setup build
+          make
+
+      - name: run
+        run: |
+          build/unittest -o tap
+
 
   Fedora:
     name: Fedora
@@ -37,16 +72,19 @@ jobs:
       image: fedora:rawhide
       options: --privileged
     steps:
-      - uses: actions/checkout@v2
       - name: prepare
         run: |
-          dnf install -y mock rpm-build rpmdevtools \
+          dnf install -y git mock rpm-build rpmdevtools pciutils-devel \
                          meson ninja-build make gcc libtraceevent-devel
           ln -sf fedora-rawhide-x86_64.cfg /etc/mock/default.cfg
           rpmdev-setuptree
+
+      - uses: actions/checkout@v7
+
       - name: build
         run: |
-          meson build --reconfigure -Ddisable-all=false
+          meson setup build -Ddisable-all=false
+          make
           make mock
 
   openEuler:
@@ -59,15 +97,17 @@ jobs:
       image: openeuler/openeuler:24.03-lts-sp3
       options: --privileged
     steps:
-      - uses: actions/checkout@v2
       - name: prepare
         run: |
           dnf install -y sudo meson ninja-build gettext-devel hwdata \
                          make gcc libtraceevent-devel sqlite-devel sqlite \
-                         pciutils pciutils-devel
+                         pciutils pciutils-devel findutils
+
+      - uses: actions/checkout@v7
+
       - name: build
         run: |
-          meson build --reconfigure -Ddisable-all=false
+          meson setup build --reconfigure -Ddisable-all=false
           make
           make install
 
@@ -75,7 +115,8 @@ jobs:
     name: Source code check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
+
       - name: checkpatch
         run: |
             ignore_regex=$(grep -Ev '^\s*#' .github/workflows/checkpatch_ignore.txt | tr '\n' '|')

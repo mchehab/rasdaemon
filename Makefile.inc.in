@@ -12,7 +12,7 @@ test: all
 	build/unittest
 
 dist:
-	ninja -C build dist
+	meson dist -C build
 
 dist-rpm: dist
 	if [ ! -d "$(RPM_TOPDIR)/SOURCES/" ]; then \

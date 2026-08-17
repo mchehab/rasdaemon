@@ -8,7 +8,7 @@ default: all
 
 build/build.ninja:
 	@mkdir build/
-	meson build --reconfigure
+	meson setup build --reconfigure
 
 all: build/build.ninja
 	@ninja -C build

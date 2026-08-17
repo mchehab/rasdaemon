@@ -38,7 +38,7 @@ jobs:
           sudo apt-get install -y build-essential meson ninja-build sqlite3 libtraceevent-dev libtraceevent1
       - name: Create Source Package for version ${{ env.version }}
         run: |
-          meson build --reconfigure -Ddisable-all=false
+          meson setup build --reconfigure -Ddisable-all=false
           make dist-bzip2
       - name: upload
         env:
