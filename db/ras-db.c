@@ -54,7 +54,7 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 	}
 
 	if (!prev) {
-		new->next =*head;
+		new->next = *head;
 		*head = new;
 	} else {
 		new->next = prev->next;
@@ -101,7 +101,7 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		return -ENOMEM;
 	}
 
-	for (entry = entry->next; entry;  entry = entry->next) {
+	for (entry = entry->next; entry; entry = entry->next) {
 		if (backend && strcmp(backend->name, entry->name)) {
 			continue;
 		}
@@ -110,7 +110,6 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 			conn_parms = backend->conn_parms;
 		else
 			conn_parms = NULL;
-
 
 		rc = entry->ops->open(&ras->db, conn_parms, cpu);
 		if (!rc) {
@@ -122,7 +121,6 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 
 			return 0;
 		}
-		entry = entry->next;
 	}
 	free(db_priv);
 

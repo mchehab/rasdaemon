@@ -399,8 +399,7 @@ static int group_setup(void **state)
 
 	conn_parms.user = env_or("RAS_MYSQL_USER", "rasdaemon");
 	conn_parms.password = env_or("RAS_MYSQL_PASSWORD", "");
-	conn_parms.database = env_or("RAS_MYSQL_DATABASE",
-					 "rasdaemon_test");
+	conn_parms.database = env_or("RAS_MYSQL_DATABASE", "rasdaemon_test");
 
 	port = getenv("RAS_MYSQL_PORT");
 	if (port)
