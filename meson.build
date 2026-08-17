@@ -113,6 +113,7 @@ enable_nvidia_ns_decode = false
 enable_openbmc_unified_sel = false
 enable_page_isolation = false
 enable_poison_page_stat = false
+enable_postgresql = false
 enable_reri = false
 enable_signal = false
 enable_sqlite3 = false
@@ -132,6 +133,17 @@ if not get_option('disable-all')
         unittest_sources += 'tests/test-mysql.c'
     else
         message('MySQL client devel not found: disabling MySQL support')
+    endif
+
+    pq_dep = dependency('libpq', required: false)
+    if pq_dep.found() and not get_option('postgresql').disabled()
+        enable_db = true
+        enable_postgresql = true
+        lib_sources += ['db/db-postgresql.c']
+        unittest_sources += 'tests/test-postgresql.c'
+        dependencies += pq_dep
+    else
+        message('libpq devel not found: disabling PostgreSQL support')
     endif
 
     sqlite3_dep = dependency('sqlite3', required: false)
@@ -544,6 +556,7 @@ configure_file(
         'HAVE_NON_STANDARD' : enable_non_standard,
         'HAVE_NVIDIA_NS_DECODE' : enable_nvidia_ns_decode,
         'HAVE_OPENBMC_UNIFIED_SEL' : enable_openbmc_unified_sel,
+        'HAVE_POSTGRESQL' : enable_postgresql,
         'HAVE_RERI' : enable_reri,
         'HAVE_SIGNAL' : enable_signal,
         'HAVE_SQLITE3' : enable_sqlite3,
@@ -579,6 +592,7 @@ summary(
     {
         # Keep in alphabetic order
         'MySQL/MariaDB' : enable_mysql,
+        'PostgreSQL' : enable_postgresql,
         'Sqlite3' : enable_sqlite3,
     },
     section : 'Database backends',

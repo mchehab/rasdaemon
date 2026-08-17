@@ -60,6 +60,9 @@ option('signal', type : 'feature',
 option('mysql', type : 'feature',
         description: 'enable storing data at MySQL/MariaDB database')
 
+option('postgresql', type : 'feature',
+        description: 'enable storing data at PostgreSQL database')
+
 option('sqlite3', type : 'feature',
         description: 'enable storing data at SQL lite database')
 

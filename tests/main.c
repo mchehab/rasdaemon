@@ -20,6 +20,9 @@ static const struct test_group groups[] = {
 #ifdef HAVE_MYSQL
 	{ "mysql", test_mysql },
 #endif
+#ifdef HAVE_POSTGRESQL
+	{ "postgresql", test_postgresql },
+#endif
 #ifdef HAVE_SQLITE3
 	{ "sqlite3", test_sqlite3 },
 #endif

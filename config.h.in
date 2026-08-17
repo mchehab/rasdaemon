@@ -3,6 +3,7 @@
 
 /* Feature detection macros */
 #mesondefine HAVE_MYSQL
+#mesondefine HAVE_POSTGRESQL
 #mesondefine HAVE_SQLITE3
 
 #mesondefine HAVE_AER
