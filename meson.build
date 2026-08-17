@@ -59,7 +59,6 @@ dependencies = [
     libpci_dep
 ]
 
-
 #
 # Library sources
 #
@@ -156,6 +155,7 @@ if not get_option('disable-all')
 
     if not get_option('amp-ns-decode').disabled()
         enable_amp_ns_decode = true
+        enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-ampere.c'
     endif
 
@@ -199,6 +199,7 @@ if not get_option('disable-all')
 
     if not get_option('hisi-ns-decode').disabled()
         enable_hisi_ns_decode = true
+        enable_non_standard = true
         lib_sources += [
             'events-arch-arm/non-standard-hisi_hip08.c',
             'events-arch-arm/non-standard-hisilicon.c',
@@ -207,6 +208,7 @@ if not get_option('disable-all')
 
     if not get_option('jaguar-ns-decode').disabled()
         enable_jaguar_ns_decode = true
+        enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-jaguarmicro.c'
     endif
 
@@ -235,12 +237,8 @@ if not get_option('disable-all')
 
     if not get_option('nvidia-ns-decode').disabled()
         enable_nvidia_ns_decode = true
-        lib_sources += 'events-arch-arm/non-standard-nvidia.c'
-    endif
-
-    if not get_option('non-standard').disabled()
         enable_non_standard = true
-        lib_sources += 'events-arch-arm/ras-non-standard-handler.c'
+        lib_sources += 'events-arch-arm/non-standard-nvidia.c'
     endif
 
     if not get_option('openbmc-unified-sel').disabled()
@@ -255,6 +253,7 @@ if not get_option('disable-all')
 
     if not get_option('yitian-ns-decode').disabled()
         enable_yitian_ns_decode = true
+        enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-yitian.c'
     endif
 
@@ -270,6 +269,15 @@ if not get_option('disable-all')
             'modules/ras-cpu-isolation.c',
         ]
     endif
+endif
+
+#
+# Non-standard (vendor-specific) CPER events
+#
+
+if enable_non_standard
+    enable_non_standard = true
+    lib_sources += 'events-arch-arm/ras-non-standard-handler.c'
 endif
 
 #
@@ -558,6 +566,7 @@ summary(
 
 summary(
     {
+        # Keep in alphabetic order
         'MySQL/MariaDB' : enable_mysql,
         'Sqlite3' : enable_sqlite3,
     },
@@ -566,6 +575,7 @@ summary(
 
 summary(
     {
+        # Keep in alphabetic order
         'ARM events' : enable_arm,
         'MCE' : enable_mce,
         'RERI' : enable_reri,
@@ -575,7 +585,6 @@ summary(
 
 summary(
     {
-        'CPER non-standard' : enable_non_standard,
         # Keep in alphabetic order
         'AMP RAS errors' : enable_amp_ns_decode,
         'HISI Kunpeng errors' : enable_hisi_ns_decode,

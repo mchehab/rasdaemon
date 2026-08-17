@@ -64,7 +64,7 @@ option('sqlite3', type : 'feature',
         description: 'enable storing data at SQL lite database')
 
 #
-# Architecture-specific otpions
+# Architecture-specific options
 #
 option('arm', type : 'feature',
         description: 'enable ARM events')
@@ -76,8 +76,6 @@ option('reri', type : 'feature',
 #
 # Non-standard CPER options
 #
-option('non-standard', type : 'feature',
-        description: 'enable NON_STANDARD events')
 option('amp-ns-decode', type : 'feature',
         description: 'enable AMP_NS_DECODE events')
 option('hisi-ns-decode', type : 'feature',
