@@ -17,6 +17,7 @@
 #include "core/ras-mc-handler.h"
 #include "core/modules.h"
 
+#include "db/ras-db.h"
 #include "db/ras-record.h"
 
 #include "events/ras-poison-page-stat.h"
@@ -180,7 +181,7 @@ int main(int argc, char *argv[])
 		{"enable",  'e', 0, 0, "enable RAS events and exit", 0},
 		{"disable", 'd', 0, 0, "disable RAS events and exit", 0},
 #ifdef HAVE_DB
-		{"record",  'r', 0, 0, "record events via sqlite3", 0},
+		{"record",  'r', 0, 0, "record events at the SQL backend", 0},
 #endif
 		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
@@ -251,6 +252,8 @@ int main(int argc, char *argv[])
 	}
 
 	modules_init(ras);
+
+	db_backend_enable(NULL);
 
 	handle_ras_events(ras, args.record_events, args.enable_ipmitool);
 

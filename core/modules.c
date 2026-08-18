@@ -73,6 +73,9 @@ int module_init(struct ras_events *ras, const char *name)
 	struct ras_module_entry_runtime *entry;
 
 	for (entry = ras_modules.head; entry; entry = entry->next) {
+		if (entry->e->postpone_init)
+			continue;
+
 		if (!strcmp(name, entry->e->name) && entry->e->init) {
 			if (entry->e->init(name, ras, &entry->priv)) {
 				log(ALL, LOG_ERR,

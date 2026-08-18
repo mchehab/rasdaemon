@@ -633,6 +633,7 @@ const struct ras_module_entry db_postgresql_module = {
 	.name = "db-postgresql",
 	.init = pg_init,
 	.level = DB_MODULE,
+	.postpone_init = true,
 };
 
 __attribute__((constructor)) void pg_register(void)

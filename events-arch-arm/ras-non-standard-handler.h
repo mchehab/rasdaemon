@@ -12,10 +12,6 @@
 #include "core/ras-events.h"
 #include "db/ras-record.h"
 
-#ifdef HAVE_DB
-#include <sqlite3.h>
-#endif
-
 struct ras_ns_ev_decoder {
 	struct ras_ns_ev_decoder *next;
 	uint16_t ref_count;

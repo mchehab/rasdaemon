@@ -447,6 +447,7 @@ const struct ras_module_entry db_sqlite3_module = {
 	.name = "db-sqlite3",
 	.init = sqlite3_init,
 	.level = DB_MODULE,
+	.postpone_init = true,
 };
 
 /*

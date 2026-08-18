@@ -14,6 +14,7 @@
 #include "db/ras-db.h"
 #include "db/ras-db-backend.h"
 
+const char *selected_backend = NULL;
 struct ras_db_backend_entry ras_db_backends = { 0 };
 const struct ras_db_backend_ops *ras_db_ops = NULL;
 
@@ -64,6 +65,51 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 	return 0;
 }
 
+const char *db_list_available_backends(void)
+{
+	const struct ras_db_backend_entry *entry;
+	static char buf[256];
+	int len = 0;
+
+	buf[0] = '\0';
+
+	for (entry = ras_db_backends.next; entry; entry = entry->next) {
+		if (len > 0)
+			strncat(buf, ", ", sizeof(buf) - len - 1);
+		strncat(buf, entry->name, sizeof(buf) - len - 1);
+		len = (int)strlen(buf);
+	}
+
+	return buf;
+}
+
+int db_backend_enable(const char *name)
+{
+	const struct ras_db_backend_entry *entry = NULL;
+	const char *backend;
+
+	if (name)
+		backend = name;
+	else
+		backend = env_or("RASDAEMON_DB_BACKEND", "sqlite3");
+
+	for (entry = ras_db_backends.next; entry; entry = entry->next) {
+		if (strcmp(entry->name, backend) == 0)
+			break;
+	}
+
+	if (!entry) {
+		log(TERM, LOG_ERR,
+		    "Backend '%s' not found. Available: %s\n",
+		    backend, db_list_available_backends());
+		return -1;
+	}
+
+	log(TERM, LOG_INFO, "Enabling DB backend: %s\n", backend);
+	selected_backend = backend;
+	return 0;
+}
+
 /*
  * Callback wrappers.
  *
@@ -82,6 +128,7 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 	    struct ras_events *ras, size_t size_priv)
 {
 	struct ras_db_backend_entry *entry = &ras_db_backends;
+	const char *backend_name;
 	void *conn_parms;
 	void *db_priv;
 	int rc;
@@ -96,13 +143,20 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 	db_priv = calloc(1, size_priv);
 	if (!db_priv) {
 		log(TERM, LOG_ERR,
-		    "Failed to allocate memory for SQLite3 backend\n");
+		    "Failed to allocate memory for backend\n");
 		ras->db_ref_count--;
 		return -ENOMEM;
 	}
 
+	if (backend && backend->name)
+		backend_name = backend->name;
+	else
+		backend_name = selected_backend;
+
+	log(TERM, LOG_INFO, "Searching for %s backend.\n", backend_name);
+
 	for (entry = entry->next; entry; entry = entry->next) {
-		if (backend && strcmp(backend->name, entry->name)) {
+		if (strcmp(backend_name, entry->name)) {
 			continue;
 		}
 
@@ -113,17 +167,18 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		else
 			conn_parms = NULL;
 
+
 		rc = entry->ops->open(&ras->db, conn_parms, cpu);
 		if (!rc) {
 			ras->db_priv = db_priv;
 			ras_db_ops = entry->ops;
 			log(TERM, LOG_INFO,
-			    "Database opened with %s backend.\n",
-			    backend->name);
+			    "Database backend started: %s.\n", entry->name);
 
 			return 0;
 		}
 	}
+	log(TERM, LOG_INFO, "Database backend %s not found.\n",	backend_name);
 	free(db_priv);
 
 	ras->db_ref_count--;

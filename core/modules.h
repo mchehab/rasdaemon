@@ -28,6 +28,7 @@ struct ras_module_entry {
 	const void (*cleanup)(const struct ras_module_entry *entry, void *priv);
 
 	const enum init_level level;
+	bool postpone_init;
 };
 
 

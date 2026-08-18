@@ -34,7 +34,7 @@
 
 extern struct module_list ras_modules;
 
-static struct ras_events ras = { 0 };
+extern struct ras_events ras;
 
 struct mock_priv {
 	struct ras_stmt *stmt;
@@ -398,7 +398,7 @@ static int group_setup(void **state)
 	if (port)
 		conn_parms.port = (unsigned short)atoi(port);
 
-	return module_init(&ras, "db-mysql");
+	return db_backend_enable("mysql");
 }
 
 static int group_teardown(void **state)

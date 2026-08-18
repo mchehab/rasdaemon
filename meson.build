@@ -366,7 +366,7 @@ rasdaemon_exe = executable(
     'rasdaemon',
     rasdaemon_sources,
     dependencies: dependencies,
-    link_with: [librasdaemon],
+    link_whole: [librasdaemon],
     c_args: c_flags,
     install: true,
     install_dir: get_option('sbindir'),

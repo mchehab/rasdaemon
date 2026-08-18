@@ -410,7 +410,7 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 			if (trace_seq_printf(s, "\n") <= 0)
 				break;
 		/* Convert header log data to the big-endian format because
-		 * the SQLite database seems uses the big-endian storage.
+		 * the SQL database seems uses the big-endian storage.
 		 */
 		ev.header_log[i] = htobe32(ev.header_log[i]);
 	}

@@ -580,8 +580,10 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	log(TERM, LOG_INFO, "Listening to events for cpus 0 to %d\n", n_cpus - 1);
 	if (pdata[0].ras->record_events) {
 #ifdef HAVE_DB
-		if (ras_mc_event_opendb(pdata[0].cpu, pdata[0].ras))
+		if (ras_mc_event_opendb(pdata[0].cpu, pdata[0].ras)) {
+			log(TERM, LOG_ERR, "Failed to open SQL database\n");
 			goto error;
+		}
 #endif
 #ifdef HAVE_NON_STANDARD
 		if (ras_ns_add_vendor_tables(pdata[0].ras))
@@ -1296,7 +1298,7 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 	/* Poll doesn't work on this kernel. Fallback to pthread way */
 	if (rc == LEGACY_KERNEL) {
 		if (pthread_mutex_init(&ras->db_lock, NULL) != 0) {
-			log(SYSLOG, LOG_INFO, "sqlite db lock init has failed\n");
+			log(SYSLOG, LOG_INFO, "SQL DB lock init has failed\n");
 			goto err;
 		}
 

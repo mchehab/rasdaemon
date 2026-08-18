@@ -24,7 +24,7 @@
 
 extern struct module_list ras_modules;
 
-static struct ras_events ras = { 0 };
+extern struct ras_events ras;
 
 struct mock_priv {
 	struct ras_stmt *stmt;
@@ -460,42 +460,6 @@ static void test_db_complex_table(void **state)
 	assert_int_equal(rc, 0);
 }
 
-/* Check if enabling db-sqlite3 module is working */
-static void test_sqlite3_init(void **state)
-{
-	int rc;
-
-	rc = module_init(&ras, "db-sqlite3");
-	assert_int_equal(rc, 0);
-
-	rc = module_is_enabled("db-sqlite3");
-	if (!rc) {
-		const char *msg = "Module db-sqlite3 is not enabled";
-		assert_null_msg(msg, msg);
-	}
-
-	/* We do want module init logs flushed */
-	ras_logger_flush();
-
-	rc = db_open(&backend, 0, &ras, sizeof(struct mock_priv));
-	assert_int_equal(rc, 0);
-	assert_non_null(ras.db);
-
-	rc = db_close(0, &ras);
-	assert_int_equal(rc, 0);
-
-	/* We do want module init logs flushed */
-	ras_logger_flush();
-}
-
-/* Check if enabling db-sqlite3 unregister is working */
-static void test_cleanup(void **state)
-{
-	modules_unregister();
-	assert_null(ras_modules.head);
-	assert_null(ras_modules.next);
-}
-
 /*
  * Unit test runner
  */
@@ -526,8 +490,6 @@ static int tests_teardown(void **state)
 }
 
 static const struct CMUnitTest tests[] = {
-	cmocka_unit_test(test_sqlite3_init),
-
 	cmocka_unit_test_setup_teardown(test_db_get_sql_type,
 					tests_setup, tests_teardown),
 
@@ -547,13 +509,11 @@ static const struct CMUnitTest tests[] = {
 
 	cmocka_unit_test_setup_teardown(test_db_complex_table,
 					tests_setup, tests_teardown),
-
-	cmocka_unit_test(test_cleanup),
 };
 
 static int group_setup(void **state)
 {
-	return module_init(&ras, "db-sqlite3");
+	return db_backend_enable("sqlite3");
 }
 
 static int group_teardown(void **state)

@@ -13,6 +13,8 @@
 
 #include "config.h"
 
+#include "core/modules.h"
+#include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "tests/unittest.h"
 
@@ -31,6 +33,8 @@ static const struct test_group groups[] = {
 	{ "modules", test_modules },
 };
 
+struct ras_events ras = { 0 };
+
 const char *argp_program_version = "rasdaemon unit tests 0.1.0";
 const char *argp_program_bug_address = "mchehab@kernel.org";
 
@@ -43,6 +47,7 @@ struct arguments {
 	uint32_t output_formats;
 	bool output_was_set;
 	bool list_groups;
+	bool no_mock;
 };
 
 static const struct argp_option options[] = {
@@ -50,6 +55,7 @@ static const struct argp_option options[] = {
 	{ "filter", 'f', "PATTERN", 0, "Run test names matching PATTERN; supports '*' and '?'", 0 },
 	{ "skip", 's', "PATTERN", 0, "Skip test names matching PATTERN; supports '*' and '?'", 0 },
 	{ "group", 'g', "NAME", 0, "Run only the named test group", 0 },
+	{ "no-mock", 'n', NULL, 0, "Don't mock logs", 0 },
 	{ "list-groups", 'l', NULL, 0, "List available test groups", 0 },
 	{ 0 }
 };
@@ -118,6 +124,10 @@ static error_t parse_option(int key, char *value, struct argp_state *state)
 
 		case 'l':
 			args->list_groups = true;
+			return 0;
+
+		case 'n':
+			args->no_mock = true;
 			return 0;
 
 		case ARGP_KEY_ARG:
@@ -243,21 +253,22 @@ int main(int argc, char **argv)
 		cmocka_set_message_output(arguments.output_formats);
 	}
 
-	if (arguments.test_filter != NULL) {
+	if (arguments.test_filter)
 		cmocka_set_test_filter(arguments.test_filter);
-	}
 
-	if (arguments.skip_filter != NULL) {
+	if (arguments.skip_filter)
 		cmocka_set_skip_filter(arguments.skip_filter);
-	}
 
 	/* Set logger to mock mode */
-	mock_output = true;
+	if (!arguments.no_mock)
+		mock_output = true;
 
 #ifdef CMOCKA_VERSION_2
 	cmocka_set_callbacks(&callbacks);
 #endif
 	stdout_is_vt = isatty(fileno(stdout));
+
+	modules_init(&ras);
 
 	for (index = 0; index < group_count; ++index) {
 		const struct test_group *group = &groups[index];

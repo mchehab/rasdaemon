@@ -28,9 +28,9 @@
 
 //#define DEBUG_SQL
 
-void *conn_parms db_sql_get_conn_parms(void)
+void *db_mysql_get_conn_parms(void)
 {
-	static struct db_postgresql_conn_params cp;
+	static struct db_mysql_conn_params cp;
 
 	cp.connect_timeout = env_or_int("RAS_MYSQL_CONNECT_TIMEOUT", 10);
 	cp.port = env_or_int("RAS_MYSQL_PORT", 5432);
@@ -594,6 +594,7 @@ const struct ras_module_entry db_mysql_module = {
 	.name = "db-mysql",
 	.init = mysql_module_init,
 	.level = DB_MODULE,
+	.postpone_init = true,
 };
 
 __attribute__((constructor)) void mysql_register(void)

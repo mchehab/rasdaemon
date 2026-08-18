@@ -6,13 +6,24 @@
 #ifndef RAS_DB_H
 #define RAS_DB_H
 
+#include "config.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-/*
- * BuildRequires: sqlite-devel
+#ifndef HAVE_DB
+
+int db_backend_enable(const char *name) { return 0; }
+
+#else
+
+/**
+ * db_backend_enable - select backend to use
+ * @name: name of the backend. NULL to allow selecting via env vars
+ * Returns: if the env var exists, return its content; otherwise returns @def.
  */
+int db_backend_enable(const char *name);
 
 /* #define DEBUG_SQL 1 */
 
@@ -272,5 +283,7 @@ int db_open(struct db_backend *backend, unsigned int cpu,
  * 0 on success or a negative errno value on failure.
  */
 int db_close(unsigned int cpu, struct ras_events *ras);
+
+#endif /* HAVE_DB */
 
 #endif /* RAS_DB_H */
