@@ -46,6 +46,7 @@ struct arguments {
 	int enable_ipmitool;
 	int foreground;
 	int offline;
+	char *cfg_file;
 };
 
 enum OFFLINE_ARG_KEYS {
@@ -71,6 +72,11 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'd':
 		args->enable_ras--;
 		break;
+
+	case 'c':
+		args->cfg_file = arg;
+		return 0;
+
 #ifdef HAVE_DB
 	case 'r':
 		args->record_events++;
@@ -136,21 +142,7 @@ int main(int argc, char *argv[])
 	struct arguments args;
 	int idx = -1;
 
-	ras_set_env(rasdaemon_conf);
-
-	choices_disable = getenv(DISABLE);
-
-	if (getenv(MC_CE_STAT_THRESHOLD))
-		mc_ce_stat_threshold = strtoull(getenv(MC_CE_STAT_THRESHOLD), NULL, 0);
-	if (mc_ce_stat_threshold)
-		log(TERM, LOG_INFO, "Threshold of memory Corrected Errors statistics is %lld\n", mc_ce_stat_threshold);
-
-#ifdef HAVE_POISON_PAGE_STAT
-	if (getenv(POISON_STAT_THRESHOLD))
-		poison_stat_threshold = strtoull(getenv(POISON_STAT_THRESHOLD), NULL, 0);
-	if (poison_stat_threshold)
-		log(TERM, LOG_INFO, "Threshold of poison page statistics is %lld kB\n", poison_stat_threshold);
-#endif
+	/* Handle arguments before anything else */
 
 #ifdef HAVE_MCE
 	const struct argp_option offline_options[] = {
@@ -172,24 +164,26 @@ int main(int argc, char *argv[])
 	};
 
 	struct argp_child offline_parser[] = {
-		{&offline_argp, 0, "Post-Processing Options:", 0},
+		{&offline_argp, 0, "MCE Post-Processing Options:", 1},
 		{0, 0, 0, 0},
 	};
 #endif
 
 	const struct argp_option options[] = {
-		{"enable",  'e', 0, 0, "enable RAS events and exit", 0},
-		{"disable", 'd', 0, 0, "disable RAS events and exit", 0},
+		{"enable",     'e', 0,       0, "enable RAS events and exit", 0},
+		{"disable",    'd', 0,       0, "disable RAS events and exit", 0},
+		{"config",     'c', "FNAME", 0, "config file with env vars", 0},
+		{"foreground", 'f', 0,       0, "run foreground, not daemonize", 0},
+
 #ifdef HAVE_DB
-		{"record",  'r', 0, 0, "record events at the SQL backend", 0},
+		{"record",     'r', 0,       0, "record events at the SQL backend", 0},
 #endif
-		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
-		{"ipmitool", 'i', 0, 0, "enable ipmitool logging", 0},
+		{"ipmitool",   'i', 0,       0, "enable ipmitool logging", 0},
 #endif
 #ifdef HAVE_MCE
 		{"post-processing", 'p', 0, 0,
-		"Post-processing MCE's with raw register values"},
+		"Post-processing MCE's with raw register values", 2},
 #endif
 
 		{ 0, 0, 0, 0, 0, 0 }
@@ -203,16 +197,33 @@ int main(int argc, char *argv[])
 		.children = offline_parser,
 #endif
 	};
+
 	memset(&args, 0, sizeof(args));
-
-	user_hz = sysconf(_SC_CLK_TCK);
-
 	argp_parse(&argp, argc, argv, 0,  &idx, &args);
-
 	if (idx < 0) {
 		argp_help(&argp, stderr, ARGP_HELP_STD_HELP, PROG_NAME);
 		return -1;
 	}
+
+	/* Now that arguments were parsed and it is not help, proceed */
+
+	user_hz = sysconf(_SC_CLK_TCK);
+
+	ras_set_env(rasdaemon_conf);
+
+	choices_disable = getenv(DISABLE);
+
+	if (getenv(MC_CE_STAT_THRESHOLD))
+		mc_ce_stat_threshold = strtoull(getenv(MC_CE_STAT_THRESHOLD), NULL, 0);
+	if (mc_ce_stat_threshold)
+		log(TERM, LOG_INFO, "Threshold of memory Corrected Errors statistics is %lld\n", mc_ce_stat_threshold);
+
+#ifdef HAVE_POISON_PAGE_STAT
+	if (getenv(POISON_STAT_THRESHOLD))
+		poison_stat_threshold = strtoull(getenv(POISON_STAT_THRESHOLD), NULL, 0);
+	if (poison_stat_threshold)
+		log(TERM, LOG_INFO, "Threshold of poison page statistics is %lld kB\n", poison_stat_threshold);
+#endif
 
 	if (args.enable_ras) {
 		int enable;
