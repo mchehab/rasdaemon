@@ -210,7 +210,7 @@ static const char * const err_bert_sub_type[] = {
 	"PMPRO Fatal",
 };
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 
 static char *table_list[] = {
 	"amp_payload0_event_tab",
@@ -357,7 +357,7 @@ static const char *oem_subtype_name(const struct amp_ras_type_info *info,
 	return "unknown";
 }
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 /*key pair definition for ampere specific error payload type 0*/
 static const struct db_fields amp_payload0_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
@@ -1011,7 +1011,7 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 {
 	int payload_type = PAYLOAD_TYPE(event->error[0]);
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	struct db_table_descriptor db_tab;
 	int id = 0;
 

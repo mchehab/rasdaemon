@@ -325,7 +325,7 @@ int ras_reri_event_handler(struct trace_seq *s,
 
 	trace_seq_puts(s, "\n");
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_reri_event(ras, &ev);
 #endif
 

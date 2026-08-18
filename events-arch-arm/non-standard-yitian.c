@@ -68,7 +68,7 @@ static const struct yitian_ras_type_info yitian_payload_error_type[] = {
 	}
 };
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 static const struct db_fields yitian_ddr_payload_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP},
@@ -188,7 +188,7 @@ void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	end = NULL;
 	trace_seq_printf(s, "%s\n", buf);
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	record_yitian_ddr_reg_dump_event(ev_decoder, &ev);
 #endif
 }
@@ -196,7 +196,7 @@ void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 static int add_yitian_common_table(struct ras_events *ras,
 				   struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &yitian_ddr_payload_section_tab) != 0) {

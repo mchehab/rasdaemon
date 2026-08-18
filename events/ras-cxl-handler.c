@@ -257,7 +257,7 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_cxl_poison_event(ras, &ev);
 #endif
 
@@ -418,7 +418,7 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_cxl_aer_ue_event(ras, &ev);
 #endif
 
@@ -474,7 +474,7 @@ int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_cxl_aer_ce_event(ras, &ev);
 #endif
 
@@ -572,7 +572,7 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 			return -1;
 	}
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_cxl_overflow_event(ras, &ev);
 #endif
 
@@ -786,7 +786,7 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_cxl_generic_event(ras, &ev);
 #endif
 
@@ -1031,7 +1031,7 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_cxl_general_media_event(ras, &ev);
 #endif
 
@@ -1268,7 +1268,7 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_cxl_dram_event(ras, &ev);
 #endif
 
@@ -1484,7 +1484,7 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 		}
 	}
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_cxl_memory_module_event(ras, &ev);
 #endif
 

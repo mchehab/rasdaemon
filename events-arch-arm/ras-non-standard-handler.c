@@ -57,7 +57,7 @@ int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 		return -1;
 
 	ns_ev_decoder->next = NULL;
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	ns_ev_decoder->stmt_dec_record = NULL;
 #endif
 	if (!ras_ns_ev_dec_list) {
@@ -78,7 +78,7 @@ int ras_ns_add_vendor_tables(struct ras_events *ras)
 	struct ras_ns_ev_decoder *ns_ev_decoder;
 	int error = 0;
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	if (!ras)
 		return -1;
 
@@ -124,7 +124,7 @@ static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p
 
 void ras_ns_finalize_vendor_tables(void)
 {
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	struct ras_ns_ev_decoder *ns_ev_decoder = ras_ns_ev_dec_list;
 
 	if (!ras_ns_ev_dec_list)
@@ -149,7 +149,7 @@ void ras_ns_finalize_vendor_tables(void)
 
 static void unregister_ns_ev_decoder(void)
 {
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	if (!ras_ns_ev_dec_list)
 		return;
 	ras_ns_ev_dec_list->ref_count = 1;
@@ -261,7 +261,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_non_standard_record(ras, &ev);
 #endif
 

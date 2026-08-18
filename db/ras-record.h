@@ -362,7 +362,7 @@ struct ras_record_priv {
 };
 
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras);
 int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras);
 

@@ -23,7 +23,7 @@ static const struct test_group groups[] = {
 #ifdef HAVE_POSTGRESQL
 	{ "postgresql", test_postgresql },
 #endif
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	{ "sqlite3", test_sqlite3 },
 #endif
 

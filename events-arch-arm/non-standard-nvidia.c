@@ -31,7 +31,7 @@ static void nvidia_format_timestamp(char *timestamp, size_t len)
 		snprintf(timestamp, len, "unknown");
 }
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 
 static int nvidia_add_vendor_table(struct ras_events *ras,
 				   struct ras_ns_ev_decoder *ev_decoder,
@@ -48,7 +48,7 @@ static int nvidia_add_vendor_table(struct ras_events *ras,
 	return rc;
 }
 
-#endif  /* HAVE_SQLITE3 */
+#endif  /* HAVE_DB */
 
 static const char * const nvidia_reg_names[] = {
 	[NVIDIA_FIELD_SIGNATURE]     = "Signature:",
@@ -505,7 +505,7 @@ static int nvidia_decode_vera_cper_sec(const void *buf, size_t len,
 	return 0;
 }
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 
 static const struct db_fields nvidia_ns_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
@@ -680,11 +680,11 @@ static int nvidia_vera_ns_decode(struct ras_events *ras,
 	return 0;
 }
 
-#endif  /* HAVE_SQLITE3 */
+#endif  /* HAVE_DB */
 
 struct ras_ns_ev_decoder nvidia_ns_ev_decoder = {
 	.sec_type = NVIDIA_GRACE_SEC_TYPE_UUID,
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	.add_table = nvidia_ns_add_table,
 	.decode = nvidia_ns_decode,
 #endif
@@ -692,7 +692,7 @@ struct ras_ns_ev_decoder nvidia_ns_ev_decoder = {
 
 static struct ras_ns_ev_decoder nvidia_vera_ns_ev_decoder = {
 	.sec_type = NVIDIA_VERA_SEC_TYPE_UUID,
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	.add_table = nvidia_vera_ns_add_table,
 	.decode = nvidia_vera_ns_decode,
 #endif

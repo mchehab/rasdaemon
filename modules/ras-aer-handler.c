@@ -297,7 +297,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 	trace_seq_puts(s, ev.error_type);
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_aer_event(ras, &ev);
 #endif
 

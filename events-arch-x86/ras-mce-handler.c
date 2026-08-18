@@ -629,7 +629,7 @@ int ras_mce_event_handler(struct trace_seq *s,
 
 	report_mce_event(ras, record, s, &e);
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	db_mce_record(ras, &e);
 #endif
 

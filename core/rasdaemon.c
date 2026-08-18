@@ -65,7 +65,7 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'd':
 		args->enable_ras--;
 		break;
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	case 'r':
 		args->record_events++;
 		break;
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 	const struct argp_option options[] = {
 		{"enable",  'e', 0, 0, "enable RAS events and exit", 0},
 		{"disable", 'd', 0, 0, "disable RAS events and exit", 0},
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 		{"record",  'r', 0, 0, "record events via sqlite3", 0},
 #endif
 		{"foreground", 'f', 0, 0, "run foreground, not daemonize"},

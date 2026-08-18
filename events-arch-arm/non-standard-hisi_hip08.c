@@ -476,7 +476,7 @@ static const char *pcie_local_sub_module_name(uint8_t id)
 	return "unknown";
 }
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 static const struct db_fields hip08_oem_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",          .type = DB_TYPE_TIMESTAMP},
@@ -653,7 +653,7 @@ static void decode_oem_type1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 static int add_hip08_oem_type1_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &hip08_oem_type1_event_tab) != 0) {
@@ -829,7 +829,7 @@ static void decode_oem_type2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 static int add_hip08_oem_type2_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &hip08_oem_type2_event_tab) != 0) {
@@ -983,7 +983,7 @@ static void decode_pcie_local_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 static int add_hip08_pcie_local_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &hip08_pcie_local_event_tab) != 0) {

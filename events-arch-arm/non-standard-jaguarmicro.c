@@ -20,7 +20,7 @@
 #define JM_REG_BUF_LEN	2048
 #define JM_SNPRINTF	mce_snprintf
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 			   enum db_field_type data_type,
 			   int id, int64_t data, const char *text);
@@ -575,7 +575,7 @@ static void decode_jm_common_sec_tail(struct ras_ns_ev_decoder *ev_decoder,
 	}
 }
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 			   enum db_field_type data_type,
@@ -1050,7 +1050,7 @@ static int decode_jm_oem_type6_error(struct ras_events *ras,
 
 static int add_jm_oem_type0_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &jm_payload0_event_tab) != 0) {

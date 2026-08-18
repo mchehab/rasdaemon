@@ -83,7 +83,7 @@ struct hisi_event {
 	char reg_msg[HISI_BUF_LEN];
 };
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 			enum db_field_type data_type,
 			       int id, int64_t data, const char *text)
@@ -141,7 +141,7 @@ static const struct db_fields hisi_common_section_fields[] = {
 	{ .name = "regs_dump",		.type = DB_TYPE_TEXT },
 };
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 static const struct db_table_descriptor hisi_common_section_tab = {
 	.name = "hisi_common_section_v2",
 	.fields = hisi_common_section_fields,
@@ -321,7 +321,7 @@ static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
 static int add_hisi_common_table(struct ras_events *ras,
 				 struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	if (ras->record_events &&
 	    !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,

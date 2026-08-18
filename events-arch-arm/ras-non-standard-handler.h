@@ -12,7 +12,7 @@
 #include "core/ras-events.h"
 #include "db/ras-record.h"
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 #include <sqlite3.h>
 #endif
 
@@ -23,7 +23,7 @@ struct ras_ns_ev_decoder {
 	int (*add_table)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder);
 	int (*decode)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder,
 		      struct trace_seq *s, struct ras_non_standard_event *event);
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 	struct ras_stmt *stmt_dec_record;
 #endif
 };

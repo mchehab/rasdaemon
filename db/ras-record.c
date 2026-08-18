@@ -19,7 +19,7 @@
 #include "db/ras-record.h"
 #include "events/ras-reri-handler.h"
 
-#ifdef HAVE_SQLITE3
+#ifdef HAVE_DB
 
 /*
  * Table and functions to handle ras:mc_event
