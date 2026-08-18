@@ -14,7 +14,7 @@
 
 #ifndef HAVE_DB
 
-int db_backend_enable(const char *name) { return 0; }
+static inline int db_backend_enable(const char *name) { return 0; }
 
 #else
 
