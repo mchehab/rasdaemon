@@ -17,12 +17,73 @@ jobs:
         sudo systemctl start mysql.service
         mysqladmin ping --host=127.0.0.1 --user=root --password=root
 
-    - name: Install packages
+    - name: Install PostgreSQL
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql postgresql-client
+
+        sudo systemctl start postgresql
+        for attempt in {1..30}; do
+          if pg_isready --host=127.0.0.1 --port=5432; then
+            exit 0
+          fi
+          sleep 1
+        done
+
+        sudo systemctl status postgresql --no-pager
+
+    - name: Setup PostgreSQL trust
+      run: |
+
+        HBA_FILE="$(sudo -u postgres psql --tuples-only --no-align \
+            --command='SHOW hba_file')"
+
+        sudo sed -i '1i local all rasdaemon trust' "$HBA_FILE"
+
+        echo "Postgres config file $HBA_FILE:"
+        sudo cat "$HBA_FILE"
+
+        sudo systemctl restart postgresql
+        for attempt in {1..30}; do
+          if pg_isready --host=127.0.0.1 --port=5432; then
+            exit 0
+          fi
+          sleep 1
+        done
+
+        sudo systemctl status postgresql --no-pager
+        exit 1
+
+    - name: Create MySQL database
+      env:
+        MYSQL_PWD: root
+      run: |
+        mysql --host=127.0.0.1 --user=root << EOF
+          CREATE USER 'rasdaemon'@'%' IDENTIFIED BY 'mypass';
+          CREATE DATABASE  rasdaemon_test;
+          GRANT ALL PRIVILEGES ON rasdaemon_test.* TO 'rasdaemon'@'%';
+          FLUSH PRIVILEGES;
+        EOF
+
+    - name: Create PostgreSQL database
+      run: |
+        sudo -u postgres psql --set ON_ERROR_STOP=1 << EOF
+          CREATE USER rasdaemon WITH PASSWORD 'mypass';
+          CREATE DATABASE rasdaemon_test OWNER rasdaemon;
+        EOF
+
+        PGPASSWORD='mypass' \
+          psql -h /var/run/postgresql -U rasdaemon \
+               -d rasdaemon_test --set ON_ERROR_STOP=1 << EOF2
+          CREATE SCHEMA rasdaemon AUTHORIZATION rasdaemon;
+        EOF2
+
+    - name: Install packages needed by Rasdaemon
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential meson ninja-build pkg-config \
                                 git cmake libsqlite3-dev sqlite3 \
-                                libcmocka-dev libmysqlclient-dev \
+                                libcmocka-dev libmysqlclient-dev libpq-dev \
                                 libtraceevent-dev libtraceevent1 libpci-dev
 
     - uses: actions/checkout@v7
@@ -32,17 +93,6 @@ jobs:
         meson setup build
         make
 
-    - name: Create database
-      env:
-        MYSQL_PWD: root
-      run: |
-        mysql --host=127.0.0.1 --user=root << EOF
-          CREATE DATABASE IF NOT EXISTS rasdaemon_test;
-          CREATE USER IF NOT EXISTS 'rasdaemon'@'%' IDENTIFIED BY 'mypass';
-          GRANT ALL PRIVILEGES ON rasdaemon_test.* TO 'rasdaemon'@'%';
-          FLUSH PRIVILEGES;
-        EOF
-
     - name: Run unittest
       env:
         RAS_MYSQL_HOST: ''
@@ -50,5 +100,12 @@ jobs:
         RAS_MYSQL_USER: rasdaemon
         RAS_MYSQL_PASSWORD: mypass
         RAS_MYSQL_DATABASE: rasdaemon_test
+
+        RAS_PG_HOST: ''
+        RAS_PG_PORT: 5432
+        RAS_PG_USER: rasdaemon
+        RAS_PG_PASSWORD: mypass
+        RAS_PG_SCHEMA: rasdaemon
+        RAS_PG_DATABASE: rasdaemon_test
       run: |
         build/unittest -o tap
