@@ -30,4 +30,6 @@
 #mesondefine HAVE_ERST
 #mesondefine HAVE_RERI
 
+#mesondefine RASDAEMON_ENV
+
 #endif

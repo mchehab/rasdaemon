@@ -27,6 +27,14 @@ unittest_sources = [
 ]
 
 #
+# Extra prefix directories
+#
+
+prefix  = get_option('prefix')
+libdir  = get_option('libdir')
+datadir = get_option('datadir')
+
+#
 # Global dependencies and install directory paths
 #
 
@@ -36,14 +44,16 @@ systemd_dep = dependency('systemd', required: false)
 if systemd_dep.found()
   systemd_unitdir = systemd_dep.get_variable(
     pkgconfig: 'systemdsystemunitdir',
-    default_value: join_paths(get_option('libdir'), 'systemd', 'system')
+    default_value: join_paths(libdir, 'systemd', 'system')
   )
 else
-  systemd_unitdir = join_paths(get_option('libdir'), 'systemd', 'system')
+  systemd_unitdir = join_paths(libdir, 'systemd', 'system')
 endif
 
-bash_compdir = get_option('datadir') / 'bash-completion' / 'completions'
-zsh_compdir = get_option('datadir') / 'zsh' / 'site-functions'
+systemd_unitdir = prefix + systemd_unitdir
+
+bash_compdir = prefix / datadir / 'bash-completion' / 'completions'
+zsh_compdir = prefix / datadir  / 'zsh' / 'site-functions'
 
 dependencies = [
     libtraceevent_dep,
@@ -56,6 +66,7 @@ lib_sources = [
     'core/bitfield.c',
     'core/modules.c',
     'core/ras-logger.c',
+    'core/ras-env.c',
     'core/ras-events.c',
     'core/ras-mc-handler.c',
     'core/trigger.c',
@@ -475,10 +486,10 @@ endforeach
 
 # Install files that don't require configuration
 
+rasdaemon_env = prefix / get_option('sysconfdir') / 'sysconfig' / 'rasdaemon'
 install_data('misc/rasdaemon.env',
     install_dir: get_option('sysconfdir') + '/sysconfig',
     rename: 'rasdaemon',
-    install_mode: 'rwxr-xr-x',
 )
 
 install_data('contrib/mc_event_trigger',
@@ -530,38 +541,42 @@ install_data('completions/ras-mc-ctl.zsh',
 # Auto-generated config.h file
 #
 
+conf_header = configuration_data({
+    # Keep in alphabetic order
+    'HAVE_ABRT_REPORT' : enable_abrt_report,
+    'HAVE_AER' : enable_aer,
+    'HAVE_AMP_NS_DECODE' : enable_amp_ns_decode,
+    'HAVE_ARM' : enable_arm,
+    'HAVE_DB' : enable_db,
+    'HAVE_CPU_FAULT_ISOLATION' : enable_cpu_fault_isolation,
+    'HAVE_CXL' : enable_cxl,
+    'HAVE_DEVLINK' : enable_devlink,
+    'HAVE_DISKERROR' : enable_diskerror,
+    'HAVE_ERST' : enable_erst,
+    'HAVE_EXTLOG' : enable_extlog,
+    'HAVE_HISI_NS_DECODE' : enable_hisi_ns_decode,
+    'HAVE_JAGUAR_NS_DECODE' : enable_jaguar_ns_decode,
+    'HAVE_MCE' : enable_mce,
+    'HAVE_MEMORY_CE_PFA' : enable_memory_ce_pfa,
+    'HAVE_MEMORY_FAILURE' : enable_memory_failure,
+    'HAVE_MEMORY_ROW_CE_PFA' : enable_memory_row_ce_pfa,
+    'HAVE_MYSQL' : enable_mysql,
+    'HAVE_NON_STANDARD' : enable_non_standard,
+    'HAVE_NVIDIA_NS_DECODE' : enable_nvidia_ns_decode,
+    'HAVE_OPENBMC_UNIFIED_SEL' : enable_openbmc_unified_sel,
+    'HAVE_POSTGRESQL' : enable_postgresql,
+    'HAVE_RERI' : enable_reri,
+    'HAVE_SIGNAL' : enable_signal,
+    'HAVE_SQLITE3' : enable_sqlite3,
+    'HAVE_YITIAN_NS_DECODE' : enable_yitian_ns_decode,
+})
+
+conf_header.set_quoted('RASDAEMON_ENV', rasdaemon_env)
+
 configure_file(
     input : 'config.h.in',
     output : 'config.h',
-    configuration : {
-        # Keep in alphabetic order
-        'HAVE_ABRT_REPORT' : enable_abrt_report,
-        'HAVE_AER' : enable_aer,
-        'HAVE_AMP_NS_DECODE' : enable_amp_ns_decode,
-        'HAVE_ARM' : enable_arm,
-        'HAVE_DB' : enable_db,
-        'HAVE_CPU_FAULT_ISOLATION' : enable_cpu_fault_isolation,
-        'HAVE_CXL' : enable_cxl,
-        'HAVE_DEVLINK' : enable_devlink,
-        'HAVE_DISKERROR' : enable_diskerror,
-        'HAVE_ERST' : enable_erst,
-        'HAVE_EXTLOG' : enable_extlog,
-        'HAVE_HISI_NS_DECODE' : enable_hisi_ns_decode,
-        'HAVE_JAGUAR_NS_DECODE' : enable_jaguar_ns_decode,
-        'HAVE_MCE' : enable_mce,
-        'HAVE_MEMORY_CE_PFA' : enable_memory_ce_pfa,
-        'HAVE_MEMORY_FAILURE' : enable_memory_failure,
-        'HAVE_MEMORY_ROW_CE_PFA' : enable_memory_row_ce_pfa,
-        'HAVE_MYSQL' : enable_mysql,
-        'HAVE_NON_STANDARD' : enable_non_standard,
-        'HAVE_NVIDIA_NS_DECODE' : enable_nvidia_ns_decode,
-        'HAVE_OPENBMC_UNIFIED_SEL' : enable_openbmc_unified_sel,
-        'HAVE_POSTGRESQL' : enable_postgresql,
-        'HAVE_RERI' : enable_reri,
-        'HAVE_SIGNAL' : enable_signal,
-        'HAVE_SQLITE3' : enable_sqlite3,
-        'HAVE_YITIAN_NS_DECODE' : enable_yitian_ns_decode,
-    }
+    configuration : conf_header,
 )
 
 #

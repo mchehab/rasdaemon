@@ -10,15 +10,18 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "events-arch-x86/ras-erst.h"
-
-#include "core/modules.h"
+#include "core/types.h"
+#include "core/ras-env.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "events/ras-poison-page-stat.h"
-#include "db/ras-record.h"
 #include "core/ras-mc-handler.h"
-#include "core/types.h"
+#include "core/modules.h"
+
+#include "db/ras-record.h"
+
+#include "events/ras-poison-page-stat.h"
+
+#include "events-arch-x86/ras-erst.h"
 
 /*
  * Arguments(argp) handling logic and main
@@ -30,6 +33,8 @@
 #define DISABLE "DISABLE"
 #define MC_CE_STAT_THRESHOLD "MC_CE_STAT_THRESHOLD"
 #define POISON_STAT_THRESHOLD "POISON_STAT_THRESHOLD"
+
+static const char *const rasdaemon_conf = RASDAEMON_ENV;
 
 const char *argp_program_version = PROG_NAME " " VERSION;
 const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.org>";
@@ -129,6 +134,8 @@ int main(int argc, char *argv[])
 	struct ras_events *ras;
 	struct arguments args;
 	int idx = -1;
+
+	ras_set_env(rasdaemon_conf);
 
 	choices_disable = getenv(DISABLE);
 
