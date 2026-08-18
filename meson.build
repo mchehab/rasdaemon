@@ -50,7 +50,9 @@ else
   systemd_unitdir = join_paths(libdir, 'systemd', 'system')
 endif
 
-systemd_unitdir = prefix + systemd_unitdir
+if not prefix.endswith('/usr')
+  systemd_unitdir = prefix + systemd_unitdir
+endif
 
 bash_compdir = prefix / datadir / 'bash-completion' / 'completions'
 zsh_compdir = prefix / datadir  / 'zsh' / 'site-functions'
