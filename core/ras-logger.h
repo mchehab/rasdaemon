@@ -31,6 +31,11 @@ extern bool mock_output;
 extern char *mock_log_buf ;
 extern size_t mock_log_len;
 
+extern const char *reset_color;
+
+const char *log_color(int color);
+
+
 /* TODO: global logging limit mask */
 
 #define log(where, level, fmt, args...) do {				\
@@ -47,8 +52,10 @@ extern size_t mock_log_len;
 		if ((where) & SYSLOG)					\
 			syslog(level, fmt, ##args);			\
 		if ((where) & TERM) {					\
+			fputs(log_color(level), stderr);		\
 			fprintf(stderr, "%s: ", binary_name);		\
 			fprintf(stderr, fmt, ##args);			\
+			fputs(reset_color, stderr);			\
 			fflush(stderr);					\
 		}							\
 	}								\
