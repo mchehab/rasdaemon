@@ -26,7 +26,7 @@ users.
 The project is not offered as a consumer-facing online service or
 managed platform.
 
-GOALS
+Goals
 =====
 
 Its initial goal is to replace the edac-tools that got bitrotted after
@@ -88,7 +88,7 @@ While this tool works since Kernel 3.5 (where HERM patches got added),
 in order to get the full benefit of this tool, Kernel 3.10 or upper is
 needed.
 
-COMPILING AND INSTALLING
+Compiling and Installing
 ========================
 
 sqlite3 and autoconf needs to be installed. On Fedora, this is done by
@@ -170,7 +170,7 @@ To install the rpm files, run, as root:
     # rpm -i $(ls SRPMS/rasdaemon-*.rpm|tail -1)
 ```
 
-RUNNING
+Running
 =======
 
 The daemon generally requires root permission, in order to read the
@@ -216,8 +216,219 @@ You may also start it via systemd:
 
 The rasdaemon will then output the messages to journald.
 
-TESTING
-=======
+How to Setup a Database
+=======================
+
+RAS Daemon supports multiple types of databases. Each require their own
+specific parameters. Only one database can be active. The database backend
+connection parameters is specifiec via environemnt vars, usually inside
+`/etc/sysconfig/rasdaemon/rasdaemon.env` file. It contains one field:
+
+- `RASDAEMON_DB_BACKEND` - backend to be used. Can be: `postgresql`,
+  `mysql` or `sqlite3`.
+
+The other parameters are database specific and are also located at the
+`rasdaemon.env` file.
+
+## SQLite3 (default)
+
+For SQLite3, no additional configuration is needed beyond the default
+settings. The database will be created automatically in the state
+directory (`/var/lib/rasdaemon` by default) with the
+filename `ras-mc_event.db`. No environment variables are required.
+
+The state directory location and the file name can be changed at compile-time.
+
+On Ubuntu/Debian, the packages required to build rasdaemon with sqlite3
+support are:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential meson ninja-build pkg-config \
+    git cmake libsqlite3-dev sqlite3 \
+    libtraceevent-dev libtraceevent1 libpci-dev
+```
+
+## PostgreSQL
+
+To use PostgreSQL, set the following environment variables
+(all optional with sensible defaults):
+
+- `RAS_PG_HOST` - Hostname or IP (default: `""` = local Unix socket)
+- `RAS_PG_PORT` - TCP port (default: `5432`)
+- `RAS_PG_USER` - Username (default: `rasdaemon`)
+- `RAS_PG_PASSWORD` - Password (default: empty)
+- `RAS_PG_SCHEMA` - Schema (default: `rasdaemon`)
+- `RAS_PG_DATABASE` - Database name (default: `rasdaemon_test`)
+
+Example:
+```bash
+RAS_PG_HOST="localhost"
+RAS_PG_PORT="5432"
+RAS_PG_USER="rasdaemon"
+RAS_PG_PASSWORD=""
+RAS_PG_DATABASE="rasdaemon"
+RAS_PG_SCHEMA="rasdaemon"
+```
+
+**Prerequisites**: Install `libpq-devel` or `libpq-dev` package and
+`postgresql` server.
+
+### Install and configure PostgreSQL
+
+On Debian/Ubuntu:
+
+```bash
+sudo apt-get install -y postgresql postgresql-client libpq-dev
+
+sudo systemctl start postgresql
+for attempt in {1..30}; do
+  if pg_isready --host=127.0.0.1 --port=5432; then
+    exit 0
+  fi
+  sleep 1
+done
+
+sudo systemctl status postgresql --no-pager
+```
+
+### Setup PostgreSQL trust authentication
+
+If you plan to run PostgreSQL locally starting it from a different user,
+you'll need to setup the the rasdaemon user as trusted.
+
+```bash
+HBA_FILE="$(sudo -u postgres psql --tuples-only --no-align --command='SHOW hba_file')"
+
+sudo sed -i '1i local all rasdaemon trust' "$HBA_FILE"
+
+echo "Postgres config file $HBA_FILE:"
+sudo cat "$HBA_FILE"
+
+sudo systemctl restart postgresql
+for attempt in {1..30}; do
+  if pg_isready --host=127.0.0.1 --port=5432; then
+    exit 0
+  fi
+  sleep 1
+done
+
+# Check if everything is OK
+sudo systemctl status postgresql --no-pager
+```
+
+### Create PostgreSQL database and schema
+
+Before starting rasdaemon, if they don't exist, you need to:
+- create the user;
+- create the database;
+- create the schema;
+- grant permissions.
+
+For a simple setup, you could do:
+
+```bash
+sudo -u postgres psql --set ON_ERROR_STOP=1 << EOF
+  CREATE USER rasdaemon WITH PASSWORD 'some_password';
+  CREATE DATABASE rasdaemon_test OWNER rasdaemon;
+EOF
+
+PGPASSWORD='some_password' \
+  psql -h /var/run/postgresql -U rasdaemon \
+       -d rasdaemon_test --set ON_ERROR_STOP=1 << EOF2
+  CREATE SCHEMA rasdaemon AUTHORIZATION rasdaemon;
+EOF2
+```
+
+## MySQL / MariaDB
+
+To use MySQL/MariaDB, set the following environment variables
+(all optional with sensible defaults):
+
+- `RAS_MYSQL_HOST` - Hostname or IP (default: `""` = local Unix socket)
+- `RAS_MYSQL_PORT` - TCP port (default: `3306`)
+- `RAS_MYSQL_USER` - Username (default: `rasdaemon`)
+- `RAS_MYSQL_PASSWORD` - Password (default: empty)
+- `RAS_MYSQL_DATABASE` - Database name (default: `rasdaemon_test`)
+
+Example:
+```bash
+RAS_MYSQL_HOST=""
+RAS_MYSQL_PORT="3306"
+RAS_MYSQL_USER="rasdaemon"
+RAS_MYSQL_PASSWORD=""
+RAS_MYSQL_DATABASE="rasdaemon_test"
+```
+
+**Prerequisites**: Install `libmysqlclient-devel` or `libmysqlclient-dev`).
+
+### Start MySQL and create the database
+
+For MySQL and MariaDB, you'll need to:
+- create the user;
+- create the database;
+- grant permissions.
+
+On a simple scenario where MySQL/MariaDB is at the same machine, you could
+do it with:
+
+```bash
+sudo systemctl start mysql.service
+mysqladmin ping --host=127.0.0.1 --user=root --password=root
+
+sudo -u root mysql --host=127.0.0.1 << EOF
+  CREATE USER 'rasdaemon'@'%' IDENTIFIED BY 'mypass';
+  CREATE DATABASE  rasdaemon_test;
+  GRANT ALL PRIVILEGES ON rasdaemon_test.* TO 'rasdaemon'@'%';
+  FLUSH PRIVILEGES;
+EOF
+```
+
+Unit Tests
+==========
+
+rasdaemon provides unit tests for each database backend. The tests follow
+the pattern shown in `tests/db*` [6, 9, 4], which use `module_init()` to
+initialize exactly one backend module.
+
+To enable unit tests, `libcmocka-devel` or `libcmocka-dev` package is
+required.
+
+**SQLite3 tests** (`test-sqlite3.c` [6]):
+```bash
+$ make
+$ ./build/unittest -g sqlite3
+```
+
+**PostgreSQL tests** (`test-postgresql.c` [4, 5]):
+```bash
+$ make
+$ ./build/unittest -g postgresql
+```
+
+**MySQL tests** (`test-mysql.c` [9]):
+```bash
+$ make
+$ ./build/unittest -g mysql
+```
+
+Error Injection Testing
+=======================
+
+Some scripts is provided under /contrib, in order to test the daemon EDAC
+handler you can use:
+
+- `contrib/edac-fake-inject` - Inject EDAC errors.
+  Requires a kernel compiled with `CONFIG_EDAC_DEBUG` and a
+  running EDAC driver.
+
+For other error sources, external tools are recommended:
+
+- **MCE error injection**: <https://git.kernel.org/pub/scm/utils/cpu/mce/mce-inject.git>
+- **APEI error injection**: <https://git.kernel.org/pub/scm/linux/kernel/git/gong.chen/mce-test.git/>
+- **AER error injection**: <https://git.kernel.org/pub/scm/linux/kernel/git/gong.chen/aer-inject.git/>
+
+
 
 A script is provided under /contrib, in order to test the daemon EDAC
 handler. While the daemon is running, just run:
@@ -226,21 +437,8 @@ handler. While the daemon is running, just run:
 # contrib/edac-fake-inject
 ```
 
-The script requires a Kernel compiled with CONFIG_EDAC_DEBUG and a running
-EDAC driver.
-
-MCE error handling can use the MCE inject:
-<https://git.kernel.org/pub/scm/utils/cpu/mce/mce-inject.git>
-
-For it to work, Kernel mce-inject module should be compiled and loaded.
-
-APEI error injection can use this tool:
-<https://git.kernel.org/pub/scm/linux/kernel/git/gong.chen/mce-test.git/>
-
-AER error injection can use this tool:
-<https://git.kernel.org/pub/scm/linux/kernel/git/gong.chen/aer-inject.git/>
-
-# SUBMITTING PATCHES
+Submitting Patches
+==================
 
 If you want to help improve this tool, be my guest! We try to follow
 the Kernel's CodingStyle and submission rules as a reference.
