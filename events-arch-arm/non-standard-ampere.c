@@ -210,12 +210,16 @@ static const char * const err_bert_sub_type[] = {
 	"PMPRO Fatal",
 };
 
+#ifdef HAVE_SQLITE3
+
 static char *table_list[] = {
 	"amp_payload0_event_tab",
 	"amp_payload1_event_tab",
 	"amp_payload2_event_tab",
 	"amp_payload3_event_tab",
 };
+
+#endif
 
 struct amp_ras_type_info {
 	int id;
@@ -642,11 +646,6 @@ static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 #else
-static void record_amp_data(struct ras_ns_ev_decoder *ev_decoder,
-			    enum db_field_type data_type,
-			    int id, int64_t data, const char *text)
-{
-}
 
 static void record_amp_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const char *type_str, const char *subtype_str,

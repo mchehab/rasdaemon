@@ -20,9 +20,15 @@
 #define JM_REG_BUF_LEN	2048
 #define JM_SNPRINTF	mce_snprintf
 
+#ifdef HAVE_SQLITE3
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 			   enum db_field_type data_type,
-				int id, int64_t data, const char *text);
+			   int id, int64_t data, const char *text);
+#else
+static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
+			   enum db_field_type data_type,
+			   int id, int64_t data, const char *text) {};
+#endif
 
 struct jm_event {
 	char error_msg[JM_BUF_LEN];
@@ -570,6 +576,10 @@ static void decode_jm_common_sec_tail(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 #ifdef HAVE_SQLITE3
+
+static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
+			   enum db_field_type data_type,
+			   int id, int64_t data, const char *text);
 
 /*key pair definition for jaguar micro specific error payload type 0*/
 static const struct db_fields jm_payload0_event_fields[] = {

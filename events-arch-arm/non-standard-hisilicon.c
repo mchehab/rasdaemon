@@ -112,7 +112,7 @@ int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 }
 #else
 void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
-			enum hisi_oem_data_type data_type,
+			enum db_field_type data_type,
 			int id, int64_t data, const char *text)
 { }
 
