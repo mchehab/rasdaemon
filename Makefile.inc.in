@@ -45,9 +45,10 @@ local-uninstall:
 	ninja -C build uninstall DESTDIR=$(DESTDIR) --prefix=$(PREFIX)
 
 distclean: clean
-	rm -f @PACKAGE@-@PACKAGE_VERSION@*.src.rpm \
-	      @PACKAGE@-@PACKAGE_VERSION@*.rpm \
-	      SRPMS/ @PACKAGE@-@PACKAGE_VERSION@*.tar.xz
+	rm -rf @PACKAGE@-@PACKAGE_VERSION@*.src.rpm \
+	       @PACKAGE@-@PACKAGE_VERSION@*.rpm \
+	       SRPMS/ @PACKAGE@-@PACKAGE_VERSION@*.tar.xz \
+	       build/
 
 upload: srpm dist
 	scp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm $(DIST_TARBALL) misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon
