@@ -7,7 +7,7 @@ on:
   push:
     # Sequence of patterns matched against refs/tags
     tags:
-      - 'v[0-9]+*'
+    - v[0-9]+*
 
 jobs:
   release:
@@ -16,36 +16,36 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Release changelog
-        run: |
-          .github/workflows/gen_release.pl body_file.tmp > version
-          echo "version=$(cat version)" >> $GITHUB_ENV
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body_path: body_file.tmp
-          draft: false
-          prerelease: true
-      - name: prepare
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential meson ninja-build sqlite3 libtraceevent-dev libtraceevent1
-      - name: Create Source Package for version ${{ env.version }}
-        run: |
-          meson setup build --reconfigure -Ddisable-all=false
-          make dist-bzip2
-      - name: upload
-        env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: mchehab/upload-release-asset@v1.0.3
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: rasdaemon-${{ env.version }}.tar.bz2
-          asset_name: rasdaemon-${{ env.version }}.tar.bz2
-          asset_content_type: application/bzip2
+    - uses: actions/checkout@v2
+    - name: Release changelog
+      run: |
+        .github/workflows/gen_release.pl body_file.tmp > version
+        echo "version=$(cat version)" >> $GITHUB_ENV
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body_path: body_file.tmp
+        draft: false
+        prerelease: true
+    - name: prepare
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential meson ninja-build sqlite3 libtraceevent-dev libtraceevent1
+    - name: Create Source Package for version ${{ env.version }}
+      run: |
+        meson setup build --reconfigure -Ddisable-all=false
+        make dist-bzip2
+    - name: upload
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: mchehab/upload-release-asset@v1.0.3
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: rasdaemon-${{ env.version }}.tar.bz2
+        asset_name: rasdaemon-${{ env.version }}.tar.bz2
+        asset_content_type: application/bzip2

@@ -16,19 +16,19 @@ jobs:
         arch: [x64_64, aarch64, ppc64le]
         config: [disable-all=false, disable-all=true]
     steps:
-      - uses: actions/checkout@v7
+    - uses: actions/checkout@v7
 
-      - name: prepare
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential meson ninja-build pkg-config \
-                                  git cmake libsqlite3-dev sqlite3 \
-                                  libtraceevent-dev libtraceevent1 libpci-dev
-      - name: build
-        run: |
-          meson setup build --reconfigure -D${{ matrix.config }}
-          make
-          sudo make install
+    - name: prepare
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential meson ninja-build pkg-config \
+                                git cmake libsqlite3-dev sqlite3 \
+                                libtraceevent-dev libtraceevent1 libpci-dev
+    - name: build
+      run: |
+        meson setup build --reconfigure -D${{ matrix.config }}
+        make
+        sudo make install
 
   Fedora:
     name: Fedora
@@ -37,21 +37,21 @@ jobs:
       image: fedora:rawhide
       options: --privileged
     steps:
-      - name: prepare
-        run: |
-          dnf install -y git mock rpmdevtools meson gcc make \
-                         libtraceevent-devel
+    - name: prepare
+      run: |
+        dnf install -y git mock rpmdevtools meson gcc make \
+                       libtraceevent-devel
 
-          ln -sf fedora-rawhide-x86_64.cfg /etc/mock/default.cfg
-          rpmdev-setuptree
+        ln -sf fedora-rawhide-x86_64.cfg /etc/mock/default.cfg
+        rpmdev-setuptree
 
-      - uses: actions/checkout@v7
+    - uses: actions/checkout@v7
 
-      - name: build
-        run: |
-          meson setup build -Ddisable-all=true
-          git config --global safe.directory "*"
-          make mock
+    - name: build
+      run: |
+        meson setup build -Ddisable-all=true
+        git config --global safe.directory "*"
+        make mock
 
   openEuler:
     name: OpenEuler LTS
@@ -63,32 +63,32 @@ jobs:
       image: openeuler/openeuler:24.03-lts-sp3
       options: --privileged
     steps:
-      - name: prepare
-        run: |
-          dnf install -y sudo meson ninja-build gettext-devel hwdata \
-                         make gcc libtraceevent-devel sqlite-devel sqlite \
-                         pciutils pciutils-devel findutils
+    - name: prepare
+      run: |
+        dnf install -y sudo meson ninja-build gettext-devel hwdata \
+                       make gcc libtraceevent-devel sqlite-devel sqlite \
+                       pciutils pciutils-devel findutils
 
-      - uses: actions/checkout@v7
+    - uses: actions/checkout@v7
 
-      - name: build
-        run: |
-          meson setup build --reconfigure -Ddisable-all=false
-          make
-          make install
+    - name: build
+      run: |
+        meson setup build --reconfigure -Ddisable-all=false
+        make
+        make install
 
   Check:
     name: Source code check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+    - uses: actions/checkout@v7
 
-      - name: checkpatch
-        run: |
-            ignore_regex=$(grep -Ev '^\s*#' .github/workflows/checkpatch_ignore.txt | tr '\n' '|')
-            ignore_regex=${ignore_regex%|}
+    - name: checkpatch
+      run: |
+        ignore_regex=$(grep -Ev '^\s*#' .github/workflows/checkpatch_ignore.txt | tr '\n' '|')
+        ignore_regex=${ignore_regex%|}
 
-            output=$(./scripts/checkpatch.pl --terse --show-types --no-summary \
-                     -f $(git ls-files | grep -E '\.[ch]$') | \
-                     grep -Ev "$ignore_regex" || true); echo $output; \
-            if [ -z "$output" ]; then exit 0; fi; exit 1
+        output=$(./scripts/checkpatch.pl --terse --show-types --no-summary \
+                 -f $(git ls-files | grep -E '\.[ch]$') | \
+                 grep -Ev "$ignore_regex" || true); echo $output; \
+        if [ -z "$output" ]; then exit 0; fi; exit 1
