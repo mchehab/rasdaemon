@@ -108,6 +108,8 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 
 		if (backend)
 			conn_parms = backend->conn_parms;
+		else if (entry->ops->get_conn_parms)
+			conn_parms = entry->ops->get_conn_parms();
 		else
 			conn_parms = NULL;
 

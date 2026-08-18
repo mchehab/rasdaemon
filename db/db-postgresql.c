@@ -39,6 +39,25 @@ struct pg_stmt_priv {
 	int *lengths;
 };
 
+static void *db_pg_get_conn_parms(void)
+{
+	static struct db_postgresql_conn_params cp;
+
+	cp.connect_timeout = env_or_int("RAS_PG_CONNECT_TIMEOUT", 10);
+	cp.port = env_or_int("RAS_PG_PORT", 5432);
+
+	cp.host = env_or("RAS_PG_HOST", NULL);
+	cp.user = env_or("RAS_PG_USER", "rasdaemon");
+	cp.password = env_or("RAS_PG_PASSWORD", "");
+	cp.schema = env_or("RAS_PG_SCHEMA", "rasdaemon");
+	cp.database = env_or("RAS_PG_DATABASE", "rasdaemon");
+	cp.sslmode = env_or("RAS_PG_SSL_MODE", NULL);
+
+	cp.use_ssl = env_or_bool("RAS_PG_USE_SSL", false);
+
+	return &cp;
+}
+
 static int db_pg_open(struct ras_db **__db, void *__conn_parms,
 			  unsigned int cpu)
 {
@@ -575,6 +594,7 @@ static int db_pg_finalize(unsigned int cpu,
 static const struct ras_db_backend_ops pg_backend_ops = {
 	.open			= db_pg_open,
 	.close			= db_pg_close,
+	.get_conn_parms		= db_pg_get_conn_parms,
 
 	.get_sql_type		= db_pg_get_sql_type,
 	.bind_type		= db_pg_bind_type,

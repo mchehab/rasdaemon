@@ -4,6 +4,7 @@
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +21,7 @@
 /**
  * Trim leading and trailing whitespace in-place.
  */
-static void ras_trim(char *s)
+static void ras_trim(char *s, bool remove_commas)
 {
 	char *start = s;
 	while (*start == ' ' || *start == '\t')
@@ -31,6 +32,13 @@ static void ras_trim(char *s)
 	char *end = s + strlen(s) - 1;
 	while (end > s && (*end == ' ' || *end == '\t'))
 		*end-- = '\0';
+
+	if (remove_commas) {
+		if (*start == '"' && end > start + 2 && *end =='"') {
+			start++;
+			*end-- = '\0';
+		}
+	}
 }
 
 /**
@@ -61,7 +69,7 @@ int ras_set_env(const char *fname)
 	}
 
 	while (fgets(line, sizeof(line), fp)) {
-		ras_trim(line);
+		ras_trim(line, false);
 
 		if (!*line || line[0] == '#' || line[0] == ';') {
 			ln++;
@@ -80,8 +88,8 @@ int ras_set_env(const char *fname)
 			continue;
 		}
 
-		ras_trim(key);
-		ras_trim(value);
+		ras_trim(key, false);
+		ras_trim(value, true);
 
 		/* Validate key is not empty after trimming */
 		if (!*key) {

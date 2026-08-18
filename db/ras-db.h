@@ -40,6 +40,56 @@ enum db_field_type {
 };
 
 /**
+ * env_or - ancillary routine to get an environment with a default value
+ * @name: name of the variable
+ * @def: default value
+ * Returns: if the env var exists, return its content; otherwise returns @def.
+ */
+static inline const char *env_or(const char *name, const char *def)
+{
+	const char *v = getenv(name);
+
+	return (v && v[0]) ? v : def;
+}
+
+/**
+ * env_or_bool - get a boolean from an environment variable
+ * @name: name of the variable
+ * @def: default value (0 or 1)
+ * Returns: false if env var is false, 0 or no; true otherwise.
+ */
+static inline int env_or_bool(const char *name, int def)
+{
+	const char *v = getenv(name);
+
+	if (!v || !v[0])
+		return def;
+
+	return (!strcmp(v, "0") ||
+		!strcmp(v, "false") ||
+		!strcmp(v, "no")) ? false : true;
+}
+
+/**
+ * env_or_int - get an integer from an environment variable
+ * @name: name of the variable
+ * @def: default value
+ * Returns: the parsed integer, or @def if parsing fails.
+ */
+static inline int env_or_int(const char *name, int def)
+{
+	const char *v = getenv(name);
+	int val;
+
+	if (!v || !v[0])
+		return def;
+
+	val = atoi(v);
+	return (val) ? val : def;
+}
+
+
+/**
  * struct db_fields - Definition of a single column in a table descriptor
  * @name:	Column name identifier
  * @type:	Data type enumeration for binding logic

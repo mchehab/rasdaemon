@@ -16,8 +16,6 @@
  * @password:	Password (default NULL / empty).
  * @schema:	Schema to be used (default "rasdaemon").
  * @database:	Database name (default "rasdaemon").
- * @socket_dir:	Unix socket directory for local connections
- *		(default "/var/run/postgresql").
  */
 struct db_postgresql_conn_params {
 	const char *host;
@@ -26,7 +24,6 @@ struct db_postgresql_conn_params {
 	const char *password;
 	const char *schema;
 	const char *database;
-	const char *socket_dir;
 
 	unsigned int connect_timeout;
 

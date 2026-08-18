@@ -6,6 +6,10 @@
 #include "db/ras-db.h"
 
 struct ras_db_backend_ops {
+	/* optional callbacks */
+	void *(*get_conn_parms)(void);
+
+	/* Mandatory callbacks */
 	int  (*open)(struct ras_db **db, void *conn_parms,
 		     unsigned int cpu);
 	int  (*close)(struct ras_db *db, unsigned int cpu);

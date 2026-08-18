@@ -40,13 +40,6 @@ struct mock_priv {
 	struct ras_stmt *stmt;
 };
 
-static const char *env_or(const char *name, const char *def)
-{
-	const char *v = getenv(name);
-
-	return (v && v[0]) ? v : def;
-}
-
 static struct db_postgresql_conn_params conn_parms = {
 	.host	  = NULL,
 	.port	  = 5432,

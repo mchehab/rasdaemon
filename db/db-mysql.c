@@ -28,6 +28,23 @@
 
 //#define DEBUG_SQL
 
+void *conn_parms db_sql_get_conn_parms(void)
+{
+	static struct db_postgresql_conn_params cp;
+
+	cp.connect_timeout = env_or_int("RAS_MYSQL_CONNECT_TIMEOUT", 10);
+	cp.port = env_or_int("RAS_MYSQL_PORT", 5432);
+
+	cp.host = env_or("RAS_MYSQL_HOST", NULL);
+	cp.user = env_or("RAS_MYSQL_USER", "rasdaemon");
+	cp.password = env_or("RAS_MYSQL_PASSWORD", "");
+	cp.database = env_or("RAS_MYSQL_DATABASE", "rasdaemon");
+	cp.socket = env_or("RAS_MYSQL_SOCKET", NULL);
+
+	cp.use_ssl = env_or_bool("RAS_MYSQL_USE_SSL", false);
+
+	return &cp;
+}
 
 static MYSQL *to_db(struct ras_db *__db)
 {
@@ -538,6 +555,7 @@ static int db_mysql_finalize(unsigned int cpu,
 static const struct ras_db_backend_ops mysql_backend_ops = {
 	.open			= db_mysql_open,
 	.close			= db_mysql_close,
+	.get_conn_parms		= db_mysql_get_conn_parms,
 
 	.get_sql_type		= db_mysql_get_sql_type,
 	.bind_type		= db_mysql_bind_type,
