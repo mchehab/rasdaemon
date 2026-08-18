@@ -581,11 +581,8 @@ static int mysql_module_init(const char *name, struct ras_events *ras,
 	int ret;
 
 	ret = db_backend_register(&mysql_backend_entry);
-	if (ret != 0) {
+	if (ret != 0)
 		log(TERM, LOG_ERR, "Failed to init MySQL backend: %d\n", ret);
-	} else {
-		log(TERM, LOG_INFO, "MySQL DB backend initialized.\n");
-	}
 
 	return ret;
 }
@@ -602,11 +599,7 @@ __attribute__((constructor)) void mysql_register(void)
 	int ret;
 
 	ret = module_register(&db_mysql_module);
-	if (ret != 0) {
+	if (ret != 0)
 		log(TERM, LOG_ERR, "Failed to register MySQL module: %d\n",
 		    ret);
-	} else {
-		log(TERM, LOG_INFO,
-		    "MySQL backend registered successfully.\n");
-	}
 }

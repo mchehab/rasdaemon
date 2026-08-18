@@ -156,7 +156,7 @@ static void handle_erst_mce(void)
 
 	dir = opendir(ERST_PATH);
 	if (!dir) {
-		log(ALL, LOG_INFO, "Failed to open directory\n");
+		log(ALL, LOG_INFO, "Failed to open %s directory\n", ERST_PATH);
 		return;
 	}
 

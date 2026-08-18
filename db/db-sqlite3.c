@@ -430,11 +430,8 @@ static int sqlite3_init(const char *name, struct ras_events *ras, void **priv)
 	int ret;
 
 	ret = db_backend_register(&sqlite3_backend_entry);
-	if (ret != 0) {
+	if (ret != 0)
 		log(TERM, LOG_ERR, "Failed to init SQLite3 backend: %d\n", ret);
-	} else {
-		log(TERM, LOG_INFO, "SQLite3 DB backend initialized.\n");
-	}
 
 	return ret;
 }
@@ -459,9 +456,6 @@ __attribute__((constructor)) void sqlite3_register(void)
 	int ret;
 
 	ret = module_register(&db_sqlite3_module);
-	if (ret != 0) {
+	if (ret != 0)
 		log(TERM, LOG_ERR, "Failed to register SQLite3 module: %d", ret);
-	} else {
-		log(TERM, LOG_INFO, "SQLite3 backend registered successfully.\n");
-	}
 }

@@ -619,12 +619,9 @@ static int pg_init(const char *name, struct ras_events *ras, void **priv)
 	int ret;
 
 	ret = db_backend_register(&pg_backend_entry);
-	if (ret != 0) {
+	if (ret != 0)
 		log(TERM, LOG_ERR,
 			"Failed to init PostgreSQL backend: %d\n", ret);
-	} else {
-		log(TERM, LOG_INFO, "PostgreSQL DB backend initialized.\n");
-	}
 
 	return ret;
 }
@@ -641,11 +638,7 @@ __attribute__((constructor)) void pg_register(void)
 	int ret;
 
 	ret = module_register(&db_postgresql_module);
-	if (ret != 0) {
+	if (ret != 0)
 		log(TERM, LOG_ERR,
 		    "Failed to register PostgreSQL module: %d\n", ret);
-	} else {
-		log(TERM, LOG_INFO,
-		    "PostgreSQL backend registered successfully.\n");
-	}
 }

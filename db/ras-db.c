@@ -153,8 +153,6 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 	else
 		backend_name = selected_backend;
 
-	log(TERM, LOG_INFO, "Searching for %s backend.\n", backend_name);
-
 	for (entry = entry->next; entry; entry = entry->next) {
 		if (strcmp(backend_name, entry->name)) {
 			continue;

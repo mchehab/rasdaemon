@@ -82,9 +82,6 @@ int module_init(struct ras_events *ras, const char *name)
 					"module %s init failed\n",
 					entry->e->name);
 			} else {
-				log(ALL, LOG_INFO,
-					"module %s enabled\n",
-					entry->e->name);
 				entry->is_enabled = true;
 
 				return false;
@@ -123,11 +120,6 @@ void modules_init(struct ras_events *ras)
 					log(ALL, LOG_ERR,
 					    "module %s init failed\n",
 					    entry->e->name);
-				} else {
-					log(ALL, LOG_INFO,
-					    "module %s enabled\n",
-					    entry->e->name);
-					entry->is_enabled = true;
 				}
 			}
 		}
