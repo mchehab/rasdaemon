@@ -331,7 +331,7 @@ static int db_mysql_create_table(struct ras_db *__db,
 		field = &db_tab->fields[i];
 		type = db_mysql_get_sql_type(field->type, field->is_pk);
 
-		p += snprintf(p, end - p, "%s %s", field->name, type);
+		p += snprintf(p, end - p, "`%s` %s", field->name, type);
 
 		if (i < (int)db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
@@ -396,12 +396,12 @@ static int db_mysql_alter_table(struct ras_db *__db,
 				field->type, field->is_pk);
 
 			snprintf(sql, sizeof(sql),
-				 "ALTER TABLE %s ADD COLUMN %s %s",
+				 "ALTER TABLE %s ADD COLUMN `%s` %s",
 				 db_tab->name, field->name, type);
 
 			if (mysql_query(db, sql)) {
 				log(TERM, LOG_ERR,
-					"ALTER TABLE %s ADD %s: %s\n",
+					"ALTER TABLE %s ADD `%s`: %s\n",
 					db_tab->name, field->name,
 					mysql_error(db));
 				rc = -1;
@@ -434,7 +434,7 @@ static int db_mysql_prepare_insert_stmt(struct ras_db *__db,
 
 	for (i = 0; i < db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
-		p += snprintf(p, end - p, "%s", field->name);
+		p += snprintf(p, end - p, "`%s`", field->name);
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
