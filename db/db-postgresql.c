@@ -331,7 +331,7 @@ static int db_pg_create_table(struct ras_db *__db,
 		field = &db_tab->fields[i];
 		type = db_pg_get_sql_type(field->type, field->is_pk);
 
-		p += snprintf(p, end - p, "%s %s", field->name, type);
+		p += snprintf(p, end - p, "\"%s\" %s", field->name, type);
 
 		if (i < (int)db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
@@ -344,7 +344,7 @@ static int db_pg_create_table(struct ras_db *__db,
 	for (i = 0; i < (int)db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
 		if (field->is_pk && field->type == DB_TYPE_SERIAL) {
-			p += snprintf(p, end - p, ", PRIMARY KEY (%s)",
+			p += snprintf(p, end - p, ", PRIMARY KEY (\"%s\")",
 				      field->name);
 			break;
 		}
@@ -399,7 +399,7 @@ static int db_pg_alter_table(struct ras_db *__db,
 				field->type, field->is_pk);
 
 			snprintf(sql, sizeof(sql),
-				 "ALTER TABLE %s.%s ADD COLUMN %s %s",
+				 "ALTER TABLE %s.%s ADD COLUMN \"%s\" %s",
 				 conn_priv->schema, db_tab->name,
 				 field->name, type);
 
@@ -408,7 +408,7 @@ static int db_pg_alter_table(struct ras_db *__db,
 
 				if (PQresultStatus(r2) != PGRES_COMMAND_OK) {
 					log(TERM, LOG_ERR,
-					    "ALTER TABLE %s ADD %s: %s\n",
+					    "ALTER TABLE %s ADD \"%s\": %s\n",
 					    db_tab->name, field->name,
 					    PQresultErrorMessage(r2));
 					rc = -1;
@@ -427,6 +427,7 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 				     const struct db_table_descriptor *db_tab)
 {
 	struct pg_conn_priv *conn_priv = (void *)__db;
+	const char *schema = conn_priv->schema;
 	PGconn *conn = conn_priv->conn;
 	char sql[2048], *p = sql, *end = sql + sizeof(sql) - 1;
 	char stmt_name[128];
@@ -446,10 +447,10 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	snprintf(stmt_name, sizeof(stmt_name), "ins_%s", db_tab->name);
 
 	p = sql;
-	p += snprintf(p, end - p, "INSERT INTO %s (", db_tab->name);
+	p += snprintf(p, end - p, "INSERT INTO %s.%s (", schema, db_tab->name);
 	for (i = 0; i < db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
-		p += snprintf(p, end - p, "%s", field->name);
+		p += snprintf(p, end - p, "\"%s\"", field->name);
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
@@ -487,7 +488,11 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 
 	if (status != PGRES_COMMAND_OK) {
 		log(TERM, LOG_ERR,
-			"PQprepare(%s) failed\n", sql);
+		    "PQprepare failed for: %s\nStatus: %s, result: %sconnection: %s\n",
+		    sql,
+		    PQresStatus(PQresultStatus(res)),
+		    PQresultErrorMessage(res),
+		    PQerrorMessage(conn));
 		return -1;
 	}
 
