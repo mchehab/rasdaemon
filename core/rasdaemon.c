@@ -209,7 +209,10 @@ int main(int argc, char *argv[])
 
 	user_hz = sysconf(_SC_CLK_TCK);
 
-	ras_set_env(rasdaemon_conf);
+	if (args.cfg_file)
+		ras_set_env(args.cfg_file);
+	else
+		ras_set_env(rasdaemon_conf);
 
 	choices_disable = getenv(DISABLE);
 
