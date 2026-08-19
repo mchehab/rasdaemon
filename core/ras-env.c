@@ -24,21 +24,23 @@
 static void ras_trim(char *s, bool remove_commas)
 {
 	char *start = s;
-	while (*start == ' ' || *start == '\t')
-		start++;
-	if (start != s)
-		memmove(s, start, strlen(start) + 1);
-
 	char *end = s + strlen(s) - 1;
+
 	while (end > s && (*end == ' ' || *end == '\t'))
 		*end-- = '\0';
 
+	while (*start == ' ' || *start == '\t')
+		start++;
+
 	if (remove_commas) {
-		if (*start == '"' && end > start + 2 && *end =='"') {
-			start++;
-			*end-- = '\0';
+		if (strlen(s) >= 2 && *start == '"' && s[strlen(s) - 1] == '"') {
+			s[strlen(s) - 1] = '\0';
+			start++;       /* skip leading quote   */
 		}
 	}
+
+	if (start != s)
+		memmove(s, start, strlen(start) + 1);
 }
 
 /**
