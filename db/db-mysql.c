@@ -74,9 +74,17 @@ static int db_mysql_open(struct ras_db **__db, void *__conn_parms,
 		return -ENOMEM;
 	}
 
-	if (cp->use_ssl)
-		mysql_options(raw, MYSQL_OPT_SSL_MODE,
-			      (void *)SSL_MODE_REQUIRED);
+	if (cp->use_ssl) {
+#ifdef MARIADB_BASE_VERSION
+		my_bool enforce_tls = 1;
+
+		mysql_options(raw, MYSQL_OPT_SSL_ENFORCE, &enforce_tls);
+#else
+		unsigned int ssl_mode = SSL_MODE_REQUIRED;
+
+		mysql_options(raw, MYSQL_OPT_SSL_MODE, &ssl_mode);
+#endif
+	}
 
 	if (cp->connect_timeout)
 		mysql_options(raw, MYSQL_OPT_CONNECT_TIMEOUT,

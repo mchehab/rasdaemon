@@ -136,7 +136,7 @@ if not get_option('disable-all')
     #
     # Features that require dependencies
     #
-    mysql_dep = dependency('mysqlclient', required: false)
+    mysql_dep = dependency('mysqlclient', 'libmariadb', 'mariadb', required: false)
 
     if mysql_dep.found() and not get_option('mysql').disabled()
         enable_db = true
