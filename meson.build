@@ -136,14 +136,20 @@ if not get_option('disable-all')
     #
     # Features that require dependencies
     #
-    mysql_dep = dependency('mysqlclient', 'libmariadb', 'mariadb', required: false)
+    mysql_dep = dependency('mysqlclient', 'mariadb', 'libmariadb', required: false)
 
     if mysql_dep.found() and not get_option('mysql').disabled()
-        enable_db = true
-        enable_mysql = true
-        dependencies += mysql_dep
-        lib_sources += 'db/db-mysql.c'
-        unittest_sources += 'tests/test-mysql.c'
+        if cc.has_header('mysql/mysql.h')
+            enable_db = true
+            enable_mysql = true
+            dependencies += mysql_dep
+            lib_sources += 'db/db-mysql.c'
+            unittest_sources += 'tests/test-mysql.c'
+        else
+            name = mysql_dep.name()
+            ver = mysql_dep.version()
+            message(name + ' version ' + ver + ': mysql.h not found!')
+        endif
     else
         message('MySQL client devel not found: disabling MySQL support')
     endif
