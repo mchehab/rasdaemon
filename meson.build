@@ -34,6 +34,10 @@ prefix  = get_option('prefix')
 libdir  = get_option('libdir')
 datadir = get_option('datadir')
 
+py = import('python').find_installation('python3')
+
+pydir = py.get_install_dir(pure: true)
+
 #
 # Global dependencies and install directory paths
 #
@@ -451,6 +455,9 @@ install_map = {
     'misc/rasdaemon.service.in' : systemd_unitdir,
     'misc/ras-mc-ctl.service.in' : systemd_unitdir,
 
+    # Python config file
+    'util/ras_config.py.in': pydir,
+
     # Other files
     'misc/rasdaemon.syslog-ng.in' : get_option('sysconfdir') + '/syslog-ng/conf.d',
     'misc/rasdaemon.rsyslog.in' : get_option('sysconfdir') + '/rsyslog.d',
@@ -487,12 +494,18 @@ foreach in_file, install_dir : install_map
         install_data(configured,
             install_dir: install_dir,
             rename: install_rename,
-            install_mode: 'rwxr-xr-x',
         )
     endif
 endforeach
 
 # Install files that don't require configuration
+
+py.install_sources([
+    'util/__init__.py',
+    'util/ras_db.py',
+    'util/ras_dimm.py',
+    'util/ras_env.py',
+])
 
 rasdaemon_env = prefix / get_option('sysconfdir') / 'sysconfig' / 'rasdaemon'
 install_data('misc/rasdaemon.env',
