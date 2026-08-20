@@ -44,7 +44,7 @@ static struct db_postgresql_conn_params conn_parms = {
 	.host	  = NULL,
 	.port	  = 5432,
 	.user	  = "rasdaemon",
-	.password  = "",
+	.password  = "mypass",
 	.database  = "rasdaemon_test",
 	.use_ssl   = false,
 	.sslmode   = NULL,
@@ -399,17 +399,17 @@ static int group_setup(void **state)
 {
 	const char *port;
 
-	conn_parms.host = env_or("RAS_PG_HOST", "");
+	conn_parms.host = env_or("RAS_PG_HOST", conn_parms.host);
 	if (!conn_parms.host || !conn_parms.host[0])
 		conn_parms.host = NULL;
 
-	conn_parms.user = env_or("RAS_PG_USER", "rasdaemon");
-	conn_parms.password = env_or("RAS_PG_PASSWORD", "");
-	conn_parms.database = env_or("RAS_PG_DATABASE", "rasdaemon_test");
+	conn_parms.user = env_or("RAS_PG_USER", conn_parms.user);
+	conn_parms.password = env_or("RAS_PG_PASSWORD", conn_parms.password);
+	conn_parms.database = env_or("RAS_PG_DATABASE", conn_parms.database);
 
 	port = getenv("RAS_PG_PORT");
 	if (port)
-		conn_parms.port = (unsigned short)atoi(port);
+		conn_parms.port = atoi(port);
 
 	return db_backend_enable("postgresql");
 }

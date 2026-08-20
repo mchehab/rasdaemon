@@ -44,7 +44,7 @@ static struct db_mysql_conn_params conn_parms = {
 	.host	  = NULL,
 	.port	  = 3306,
 	.user	  = "rasdaemon",
-	.password  = "",
+	.password  = "mypass",
 	.database  = "rasdaemon_test",
 	.socket	= NULL,
 	.use_ssl   = false,
@@ -386,17 +386,17 @@ static int group_setup(void **state)
 	const char *port;
 
 	/* read connection params from environment */
-	conn_parms.host = env_or("RAS_MYSQL_HOST", "");
+	conn_parms.host = env_or("RAS_MYSQL_HOST", conn_parms.host);
 	if (!conn_parms.host || !conn_parms.host[0])
 		conn_parms.host = NULL;
 
-	conn_parms.user = env_or("RAS_MYSQL_USER", "rasdaemon");
-	conn_parms.password = env_or("RAS_MYSQL_PASSWORD", "");
-	conn_parms.database = env_or("RAS_MYSQL_DATABASE", "rasdaemon_test");
+	conn_parms.user = env_or("RAS_MYSQL_USER", conn_parms.user);
+	conn_parms.password = env_or("RAS_MYSQL_PASSWORD", conn_parms.password);
+	conn_parms.database = env_or("RAS_MYSQL_DATABASE", conn_parms.database);
 
 	port = getenv("RAS_MYSQL_PORT");
 	if (port)
-		conn_parms.port = (unsigned short)atoi(port);
+		conn_parms.port = atoi(port);
 
 	return db_backend_enable("mysql");
 }
