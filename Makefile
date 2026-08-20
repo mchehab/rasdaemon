@@ -7,8 +7,11 @@ default: all
 -include build/Makefile.inc
 
 build/build.ninja:
-	@mkdir build/
-	meson setup build --reconfigure
+	@if test -d build/; then \
+		meson setup build --reconfigure; \
+	else \
+		meson setup build; \
+	fi
 
 all: build/build.ninja
 	@ninja -C build
