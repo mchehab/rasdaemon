@@ -42,6 +42,27 @@
 
 #define TOOL_NAME "rasdaemon"
 
+/* Compatibility with libtraceevent versions that predate the host aliases. */
+#ifndef KBUFFER_LSIZE_SAME_AS_HOST
+#  if __SIZEOF_LONG__ == 8
+#    define KBUFFER_LSIZE_SAME_AS_HOST KBUFFER_LSIZE_8
+#  elif __SIZEOF_LONG__ == 4
+#    define KBUFFER_LSIZE_SAME_AS_HOST KBUFFER_LSIZE_4
+#  else
+#    error "Unsupported long size"
+#  endif
+#endif
+
+#ifndef KBUFFER_ENDIAN_SAME_AS_HOST
+#  if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#    define KBUFFER_ENDIAN_SAME_AS_HOST KBUFFER_ENDIAN_LITTLE
+#  elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#    define KBUFFER_ENDIAN_SAME_AS_HOST KBUFFER_ENDIAN_BIG
+#  else
+#    error "Unsupported byte order"
+#  endif
+#endif
+
 /*
  * Polling time, if read() doesn't block. Currently, trace_pipe_raw never
  * blocks on read(). So, we need to sleep for a while, to avoid spending
