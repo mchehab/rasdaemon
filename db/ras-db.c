@@ -5,6 +5,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "config.h"
 
@@ -17,6 +18,10 @@
 const char *selected_backend = NULL;
 struct ras_db_backend_entry ras_db_backends = { 0 };
 const struct ras_db_backend_ops *ras_db_ops = NULL;
+
+const char *rasdaemon_hostname = "";
+
+static bool add_hostname = false;
 
 int db_backend_register(struct ras_db_backend_entry *entry)
 {
@@ -110,6 +115,29 @@ int db_backend_enable(const char *name)
 	return 0;
 }
 
+static void db_get_rasdaemon_hostname(void)
+{
+	const char *env_hostname;
+	char hostname[256];
+
+	/* Hostname already set */
+	if (*rasdaemon_hostname)
+		return;
+
+	env_hostname = getenv("RASDAEMON_HOSTNAME");
+	if (env_hostname != NULL && env_hostname[0] != '\0') {
+		rasdaemon_hostname = env_hostname;
+		return;
+	}
+
+	if (gethostname(hostname, sizeof(hostname)) != 0) {
+		log(TERM, LOG_ERR, "Failed to get hostname\n");
+		return;
+	}
+
+	rasdaemon_hostname = strdup(hostname);
+}
+
 /*
  * Callback wrappers.
  *
@@ -165,6 +193,12 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		else
 			conn_parms = NULL;
 
+		if (entry->allow_remote) {
+			add_hostname = true;
+			db_get_rasdaemon_hostname();
+		} else {
+			add_hostname = false;
+		}
 
 		rc = entry->ops->open(&ras->db, conn_parms, cpu);
 		if (!rc) {
@@ -236,8 +270,12 @@ int db_bind(const struct db_table_descriptor *db_tab,
 	}
 
 	for (i = 0; i < db_tab->num_fields; i++) {
-		if (fields[i].type == DB_TYPE_SERIAL)
+		if (fields[i].type == DB_TYPE_SERIAL) {
+			/* Skip hostname */
+			if (i == 0)
+				i++;
 			continue;
+		}
 
 		if (field_pos == pos - 1)
 			break;

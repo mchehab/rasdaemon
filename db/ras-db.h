@@ -18,6 +18,8 @@ static inline int db_backend_enable(const char *name) { return 0; }
 
 #else
 
+extern const char *rasdaemon_hostname;
+
 /**
  * db_backend_enable - select backend to use
  * @name: name of the backend. NULL to allow selecting via env vars
@@ -98,7 +100,6 @@ static inline int env_or_int(const char *name, int def)
 	val = atoi(v);
 	return (val) ? val : def;
 }
-
 
 /**
  * struct db_fields - Definition of a single column in a table descriptor

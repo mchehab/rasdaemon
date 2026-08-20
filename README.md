@@ -226,6 +226,8 @@ connection parameters is specifiec via environemnt vars, usually inside
 
 - `RASDAEMON_DB_BACKEND` - backend to be used. Can be: `postgresql`,
   `mysql` or `sqlite3`.
+- `RASDAEMON_HOSTNAME` - hostname to be stored inside remote databases
+   (MySQL/MariaDB or PostgreSQL). Not used for SQLite.
 
 The other parameters are database specific and are also located at the
 `rasdaemon.env` file.
@@ -342,7 +344,7 @@ EOF2
 
 ## MySQL / MariaDB
 
-To use MySQL/MariaDB, set the following environment variables
+To use MySQL or MariaDB, set the following environment variables
 (all optional with sensible defaults):
 
 - `RAS_MYSQL_HOST` - Hostname or IP (default: `""` = local Unix socket)

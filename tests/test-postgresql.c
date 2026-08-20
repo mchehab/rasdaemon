@@ -98,7 +98,7 @@ static int pg_check_values(void **state,
 {
 	struct pg_conn_priv *conn_priv = (void *)__db;
 	PGconn *db = conn_priv->conn;
-	int i, ncol, nrow = 0;
+	int i, ncol, pos, nrow = 0;
 	unsigned char *str;
 	size_t decoded_len;
 	PGresult *res;
@@ -118,9 +118,10 @@ static int pg_check_values(void **state,
 	nrow = PQntuples(res);
 
 	for (int r = 0; r < nrow; r++) {
+		pos = 0;
 		for (i = 0; i < len && i < ncol; i++) {
 			const char *cell = PQgetvalue(res, r, i);
-			const struct db_values *ev = &values[i];
+			const struct db_values *ev = &values[pos++];
 			bool isnull = (PQgetisnull(res, r, i) != 0);
 
 			switch (ev->type) {
@@ -160,6 +161,12 @@ static int pg_check_values(void **state,
 					}
 				}
 				break;
+			}
+
+			/* Check hostname */
+			if (!i) {
+				cell = PQgetvalue(res, r, ++i);
+				assert_string_equal(cell, rasdaemon_hostname);
 			}
 		}
 		assert_int_equal(i, len);

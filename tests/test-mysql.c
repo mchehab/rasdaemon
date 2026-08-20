@@ -104,7 +104,7 @@ static int mysql_check_values(void **state,
 	char query[1024];
 	MYSQL_RES *res;
 	MYSQL_ROW row;
-	int i, ncol, nrow = 0;
+	int i, pos, ncol, nrow = 0;
 
 	snprintf(query, sizeof(query), "SELECT * FROM %s", db_tab->name);
 
@@ -124,9 +124,10 @@ static int mysql_check_values(void **state,
 
 	while ((row = mysql_fetch_row(res))) {
 		nrow++;
+		pos = 0;
 		for (i = 0; i < len && i < ncol; i++) {
 			const char *cell = row[i];
-			const struct db_values *ev = &values[i];
+			const struct db_values *ev = &values[pos++];
 			long long val;
 
 			switch (ev->type) {
@@ -150,6 +151,12 @@ static int mysql_check_values(void **state,
 					assert_string_equal(cell, ev->string);
 				}
 				break;
+			}
+
+			/* Check hostname */
+			if (!i) {
+				cell = row[++i];
+				assert_string_equal(cell, rasdaemon_hostname);
 			}
 		}
 		assert_int_equal(i, len);

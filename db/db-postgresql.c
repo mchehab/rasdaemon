@@ -333,6 +333,10 @@ static int db_pg_create_table(struct ras_db *__db,
 
 		p += snprintf(p, end - p, "\"%s\" %s", field->name, type);
 
+		/* Add hostname */
+		if (!i)
+			p += snprintf(p, end - p, ", \"hostname\" TEXT");
+
 		if (i < (int)db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
@@ -450,7 +454,14 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	p += snprintf(p, end - p, "INSERT INTO %s.%s (", schema, db_tab->name);
 	for (i = 0; i < db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
+
 		p += snprintf(p, end - p, "\"%s\"", field->name);
+
+		/* Add hostname */
+		if (!i)
+			p += snprintf(p, end - p, ", \"hostname\"");
+
+
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
@@ -463,6 +474,10 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 			p += snprintf(p, end - p, "DEFAULT");
 		else
 			p += snprintf(p, end - p, "$%u", idx++);
+
+		/* Add hostname */
+		if (!i)
+			p += snprintf(p, end - p, ", '%s'", rasdaemon_hostname);
 
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");

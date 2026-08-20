@@ -315,7 +315,6 @@ static int db_mysql_exec_sql(struct ras_db *__db, const char *sql)
 	return 0;
 }
 
-
 static int db_mysql_create_table(struct ras_db *__db,
 				 const struct db_table_descriptor *db_tab)
 {
@@ -332,6 +331,10 @@ static int db_mysql_create_table(struct ras_db *__db,
 		type = db_mysql_get_sql_type(field->type, field->is_pk);
 
 		p += snprintf(p, end - p, "`%s` %s", field->name, type);
+
+		/* Add hostname */
+		if (!i)
+			p += snprintf(p, end - p, ", `hostname` TEXT");
 
 		if (i < (int)db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
@@ -435,6 +438,11 @@ static int db_mysql_prepare_insert_stmt(struct ras_db *__db,
 	for (i = 0; i < db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
 		p += snprintf(p, end - p, "`%s`", field->name);
+
+		/* Add hostname */
+		if (!i)
+			p += snprintf(p, end - p, ", `hostname`");
+
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
@@ -449,6 +457,11 @@ static int db_mysql_prepare_insert_stmt(struct ras_db *__db,
 			n_params++;
 			p += snprintf(p, end - p, "?");
 		}
+
+		/* Add hostname */
+		if (!i)
+			p += snprintf(p, end - p, ", '%s'", rasdaemon_hostname);
+
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
