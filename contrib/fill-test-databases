@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0
+
+"""Create and populate representative rasdaemon test database tables."""
+
+import argparse
+import datetime
+import os
+import re
+import sys
+
+from sqlalchemy import (BigInteger, Column, DateTime, Integer, LargeBinary,
+                        MetaData, String, Table, Text, create_engine, func,
+                        inspect, select)
+from sqlalchemy.engine import URL
+
+
+class TestDatabaseFiller:
+    """Create representative rasdaemon tables and populate test records."""
+
+    BACKENDS = ("sqlite3", "mysql", "postgresql")
+    ROWS_PER_TABLE = 50
+    TABLES = (
+        "amp_payload0_event",
+        "cxl_general_media_event",
+        "cxl_dram_event",
+        "cxl_memory_module_event",
+        "mc_event",
+        "aer_event",
+        "mce_record",
+    )
+
+    def __init__(self, backends):
+        self.backends = backends or self.BACKENDS
+        self.root_dir = os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__)
+        ))
+        self.descriptor_sources = (
+            os.path.join(self.root_dir, "db", "ras-record.c"),
+            os.path.join(
+                self.root_dir, "events-arch-arm", "non-standard-ampere.c"
+            ),
+        )
+
+    def read_settings(self, backend):
+        """Read one contrib environment file, honoring existing variables."""
+
+        path = os.path.join(
+            self.root_dir, "contrib", f"rasdaemon-{backend}.env"
+        )
+        settings = {}
+        with open(path, encoding="utf-8") as config:
+            for line in config:
+                line = line.strip()
+                if not line or line.startswith(("#", ";")):
+                    continue
+                key, value = line.split("=", 1)
+                settings[key.strip()] = value.strip().strip('"')
+
+        return {
+            key: os.environ[key] if key in os.environ else value
+            for key, value in settings.items()
+        }
+
+    @staticmethod
+    def sqlite3_database_url(settings):
+        """Build a SQLAlchemy URL for SQLite3."""
+
+        database = os.path.abspath(settings["RAS_SQLITE3_DATABASE"])
+        os.makedirs(os.path.dirname(database) or ".", mode=0o700,
+                    exist_ok=True)
+        return URL.create("sqlite", database=database)
+
+    @staticmethod
+    def mysql_database_url(settings):
+        """Build a SQLAlchemy URL for MySQL or MariaDB."""
+
+        socket = settings.get("RAS_MYSQL_SOCKET", "")
+        query = {"unix_socket": socket} if socket else {}
+        if settings.get("RAS_MYSQL_USE_SSL", "false").lower() in (
+                "1", "true", "yes", "on"):
+            query["ssl"] = "true"
+        return URL.create(
+            "mysql+mysqldb",
+            username=settings.get("RAS_MYSQL_USER", "rasdaemon"),
+            password=settings.get("RAS_MYSQL_PASSWORD", ""),
+            host=(None if socket
+                  else settings.get("RAS_MYSQL_HOST", "localhost")),
+            port=int(settings.get("RAS_MYSQL_PORT", 3306)),
+            database=settings.get("RAS_MYSQL_DATABASE", "rasdaemon_test"),
+            query=query,
+        )
+
+    @staticmethod
+    def postgresql_database_url(settings):
+        """Build a SQLAlchemy URL for PostgreSQL."""
+
+        query = {
+            "connect_timeout": settings.get("RAS_PG_CONNECT_TIMEOUT", "10")
+        }
+        ssl_mode = settings.get("RAS_PG_SSL_MODE", "false")
+        if ssl_mode != "false":
+            query["sslmode"] = ssl_mode
+        return URL.create(
+            "postgresql+psycopg2",
+            username=settings.get("RAS_PG_USER", "rasdaemon"),
+            password=settings.get("RAS_PG_PASSWORD", ""),
+            host=settings.get("RAS_PG_HOST", "localhost"),
+            port=int(settings.get("RAS_PG_PORT", 5432)),
+            database=settings.get("RAS_PG_DATABASE", "rasdaemon_test"),
+            query=query,
+        )
+
+    @classmethod
+    def database_url(cls, backend, settings):
+        """Build a SQLAlchemy URL from one backend's settings."""
+
+        builders = {
+            "sqlite3": cls.sqlite3_database_url,
+            "mysql": cls.mysql_database_url,
+            "postgresql": cls.postgresql_database_url,
+        }
+        return builders[backend](settings)
+
+    def descriptors(self):
+        """Extract selected database descriptors from their C definitions."""
+
+        found = {}
+        for path in self.descriptor_sources:
+            with open(path, encoding="utf-8") as source_file:
+                source = source_file.read()
+            field_arrays = dict(re.findall(
+                r"static const struct db_fields\s+(\w+)\[\]\s*=\s*"
+                r"\{(.*?)\n\};", source, re.DOTALL
+            ))
+            for body in re.findall(
+                    r"(?:static\s+)?const struct db_table_descriptor\s+\w+\s*="
+                    r"\s*\{(.*?)\n\};", source, re.DOTALL):
+                name = re.search(r'\.name\s*=\s*"([^"]+)"', body)
+                fields = re.search(r"\.fields\s*=\s*(\w+)", body)
+                if not name or name.group(1) not in self.TABLES or not fields:
+                    continue
+                field_body = field_arrays.get(fields.group(1))
+                if field_body is None:
+                    continue
+                found[name.group(1)] = re.findall(
+                    r'\.name\s*=\s*"([^"]+)".*?'
+                    r'\.type\s*=\s*(DB_TYPE_\w+)',
+                    field_body, re.DOTALL,
+                )
+
+        missing = set(self.TABLES) - set(found)
+        if missing:
+            raise RuntimeError(
+                f"C table descriptors not found: {', '.join(sorted(missing))}"
+            )
+        return found
+
+    def define_tables(self, backend, schema, definitions):
+        """Create SQLAlchemy table objects matching rasdaemon descriptors."""
+
+        metadata = MetaData(schema=schema)
+        type_map = {
+            "DB_TYPE_INT32": Integer,
+            "DB_TYPE_INT64": BigInteger,
+            "DB_TYPE_TIMESTAMP": DateTime(timezone=True).with_variant(
+                Text, "sqlite"
+            ),
+            "DB_TYPE_TEXT": Text,
+            "DB_TYPE_BLOB": LargeBinary,
+        }
+        for name in self.TABLES:
+            columns = []
+            for field_name, field_type in definitions[name]:
+                if field_type == "DB_TYPE_SERIAL":
+                    columns.append(Column(
+                        field_name,
+                        BigInteger().with_variant(Integer, "sqlite"),
+                        primary_key=True,
+                        autoincrement=True,
+                    ))
+                else:
+                    columns.append(Column(field_name, type_map[field_type]))
+            if backend != "sqlite3":
+                hostname_type = Text().with_variant(String(255), "mysql")
+                columns.insert(1, Column("hostname", hostname_type))
+            Table(name, metadata, *columns)
+        return metadata
+
+    def existing_counts(self, engine, schema):
+        """Return row counts for fixture tables which already exist."""
+
+        inspector = inspect(engine)
+        existing = set(inspector.get_table_names(schema=schema))
+        counts = {}
+        metadata = MetaData(schema=schema)
+        with engine.connect() as connection:
+            for name in self.TABLES:
+                if name not in existing:
+                    counts[name] = 0
+                    continue
+                table = Table(name, metadata, autoload_with=engine)
+                counts[name] = connection.execute(
+                    select(func.count()).select_from(table)
+                ).scalar_one()
+        return counts
+
+    def confirm_append(self, backend, counts):
+        """Ask before appending to a backend containing fixture records."""
+
+        populated = {name: count for name, count in counts.items() if count}
+        if not populated:
+            return True
+
+        print(f"Warning: {backend} already contains fixture records:",
+              file=sys.stderr)
+        for name, count in populated.items():
+            print(f"  {name}: {count}", file=sys.stderr)
+        try:
+            answer = input(
+                f"Append {self.ROWS_PER_TABLE} rows to every {backend} "
+                "fixture table? [y/N] "
+            )
+        except EOFError:
+            return False
+        return answer.strip().lower() in ("y", "yes")
+
+    def record_value(self, backend, table, column, row):
+        """Generate one deterministic value suitable for a fixture column."""
+
+        if column.name == "hostname":
+            half = self.ROWS_PER_TABLE // 2
+            return "local-host" if row < half else "remote-host"
+        if column.name == "timestamp":
+            timestamp = (datetime.datetime(2026, 1, 1)
+                         + datetime.timedelta(hours=row))
+            if backend == "sqlite3":
+                return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            if backend == "postgresql":
+                return timestamp.replace(tzinfo=datetime.timezone.utc)
+            return timestamp
+        if isinstance(column.type, LargeBinary):
+            return bytes((row % 256, 0x52, 0x41, 0x53))
+        if isinstance(column.type, (Text, String)):
+            return f"{table.name}-{column.name}-{row:02d}"
+        return row + 1
+
+    def populate(self, backend, definitions):
+        """Create and populate the selected tables for one backend."""
+
+        settings = self.read_settings(backend)
+        schema = settings.get("RAS_PG_SCHEMA", "rasdaemon") \
+            if backend == "postgresql" else None
+        engine = create_engine(self.database_url(backend, settings))
+        try:
+            counts = self.existing_counts(engine, schema)
+            if not self.confirm_append(backend, counts):
+                print(f"Skipping {backend}.")
+                return
+
+            metadata = self.define_tables(backend, schema, definitions)
+            metadata.create_all(engine)
+            with engine.begin() as connection:
+                for table in metadata.tables.values():
+                    records = []
+                    for row in range(self.ROWS_PER_TABLE):
+                        records.append({
+                            column.name: self.record_value(
+                                backend, table, column, row
+                            )
+                            for column in table.columns
+                            if not column.primary_key
+                        })
+                    connection.execute(table.insert(), records)
+                    print(f"{backend}: added {len(records)} rows "
+                          f"to {table.name}")
+        finally:
+            engine.dispose()
+
+    def run(self):
+        """Populate each requested database and report individual failures."""
+
+        definitions = self.descriptors()
+        failed = False
+        for backend in self.backends:
+            try:
+                self.populate(backend, definitions)
+            except Exception as error:  # Keep processing independent DBs.
+                failed = True
+                print(f"{backend}: {error}", file=sys.stderr)
+        return 1 if failed else 0
+
+
+def parse_args():
+    """Parse command line arguments."""
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--database-backend", "-d", nargs="+",
+        choices=TestDatabaseFiller.BACKENDS,
+        help="database backend(s) to fill; defaults to all three",
+    )
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    sys.exit(TestDatabaseFiller(args.database_backend).run())
