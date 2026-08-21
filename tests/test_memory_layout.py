@@ -51,6 +51,40 @@ class MemoryLayoutTest(unittest.TestCase):
             data["dimm_sizes"], {(0, 0, 0): 1024, (0, 1, 0): 2048}
         )
 
+    def test_parse_four_memory_controller_layout(self):
+        # Captured from a Huawei 2288X V5.  Each of its four controllers has
+        # three populated channels, with the second slot left empty.
+        for mc in range(4):
+            if mc:
+                os.makedirs(os.path.join(self.sysfs, f"mc{mc}", "csrow0"))
+            self._write(f"mc{mc}/max_location", "channel 2 slot 1\n")
+            self._write(f"mc{mc}/csrow0/size_mb", "98304\n")
+            for channel, dimm in enumerate((0, 2, 4)):
+                directory = os.path.join(self.sysfs, f"mc{mc}", f"dimm{dimm}")
+                if mc or dimm not in (0, 1):
+                    os.mkdir(directory)
+                self._write(
+                    f"mc{mc}/dimm{dimm}/dimm_location",
+                    f"channel {channel} slot 0\n",
+                )
+                self._write(f"mc{mc}/dimm{dimm}/size", "32768\n")
+
+        # Remove the synthetic DIMM used by setUp but absent from the capture.
+        os.remove(os.path.join(self.sysfs, "mc0", "dimm1", "dimm_location"))
+        os.remove(os.path.join(self.sysfs, "mc0", "dimm1", "size"))
+        os.rmdir(os.path.join(self.sysfs, "mc0", "dimm1"))
+
+        data = MemoryLayout(self.sysfs).parse()
+
+        expected_sizes = {
+            (mc, channel, 0): 32768
+            for mc in range(4)
+            for channel in range(3)
+        }
+        self.assertEqual(data["layers"], ["mc", "channel", "slot"])
+        self.assertEqual(data["num_positions"], [4, 3, 2])
+        self.assertEqual(data["dimm_sizes"], expected_sizes)
+
     def test_size_mb_may_be_directly_below_memory_controller(self):
         os.remove(os.path.join(self.sysfs, "mc0", "csrow0", "size_mb"))
         self._write("mc0/size_mb", "3072\n")

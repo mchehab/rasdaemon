@@ -8,6 +8,8 @@ import pathlib
 import sys
 import tempfile
 import unittest
+
+from textwrap import dedent
 from unittest import mock
 
 
@@ -23,17 +25,84 @@ class RasMemoryDimmTest(unittest.TestCase):
         self.dimm = RasMemoryDimm("ras-mc-ctl", parser.add_subparsers())
 
     def test_parse_board_dmidecode_prefers_baseboard(self):
-        output = """System Information
-\tManufacturer: System vendor
-\tProduct Name: System model
+        output = dedent("""\
+            System Information
+            \tManufacturer: System vendor
+            \tProduct Name: System model
 
-Base Board Information
-\tManufacturer: Board vendor
-\tProduct Name: Board model
-"""
+            Base Board Information
+            \tManufacturer: Board vendor
+            \tProduct Name: Board model
+            """)
         self.assertEqual(
             self.dimm._parse_board_dmidecode(output),
             ("Board vendor", "Board model"),
+        )
+
+    def test_parse_board_dmidecode_asus_b650m(self):
+        output = dedent("""\
+            Handle 0x0001, DMI type 1, 27 bytes
+            System Information
+                    Manufacturer: ASUS
+                    Product Name: System Product Name
+                    Version: System Version
+                    Serial Number: System Serial Number
+                    UUID: 1ea2757b-548a-d464-acaf-08bfb8753f32
+                    Wake-up Type: Power Switch
+                    SKU Number: SKU
+                    Family: To be filled by O.E.M.
+
+            Handle 0x0002, DMI type 2, 15 bytes
+            Base Board Information
+                    Manufacturer: ASUSTeK COMPUTER INC.
+                    Product Name: TUF GAMING B650M-E WIFI
+                    Version: Rev 1.xx
+                    Serial Number: 230419116700014
+                    Asset Tag: Default string
+                    Features:
+                            Board is a hosting board
+                            Board is replaceable
+                    Location In Chassis: Default string
+                    Chassis Handle: 0x0003
+                    Type: Motherboard
+                    Contained Object Handles: 0
+            """)
+        self.assertEqual(
+            self.dimm._parse_board_dmidecode(output),
+            ("ASUSTeK COMPUTER INC.", "TUF GAMING B650M-E WIFI"),
+        )
+
+    def test_parse_board_dmidecode_huawei_2288x_v5(self):
+        output = dedent("""\
+            # dmidecode 3.5
+            Getting SMBIOS data from sysfs.
+            SMBIOS 3.0.0 present.
+
+            Handle 0x0001, DMI type 1, 27 bytes
+            System Information
+            \tManufacturer: Huawei
+            \tProduct Name: 2288X V5
+            \tVersion: Purley
+            \tSerial Number: 2102313BYX10M3000250
+
+            Handle 0x0002, DMI type 2, 15 bytes
+            Base Board Information
+            \tManufacturer: Huawei
+            \tProduct Name: BC11SPSFB0
+            \tVersion: V100R005
+            \tSerial Number: 028HTR10M3000178
+            \tAsset Tag: Huawei
+            \tFeatures:
+            \t\tBoard is a hosting board
+            \t\tBoard is replaceable
+            \tLocation In Chassis: Type2 - Board Chassis Location
+            \tChassis Handle: 0x0003
+            \tType: Motherboard
+            \tContained Object Handles: 0
+            """)
+        self.assertEqual(
+            self.dimm._parse_board_dmidecode(output),
+            ("Huawei", "BC11SPSFB0"),
         )
 
     @mock.patch("ras_dimm.which", return_value="/usr/sbin/dmidecode")
@@ -88,14 +157,15 @@ Base Board Information
                              "A1")
 
     def test_guess_labels_parses_locator_and_bank_locator(self):
-        output = """Memory Device
-\tLocator: DIMM_A1
-\tBank Locator: BANK 0
+        output = dedent("""\
+            Memory Device
+            \tLocator: DIMM_A1
+            \tBank Locator: BANK 0
 
-Memory Device
-\tLocator: DIMM_B1
-\tBank Locator: BANK 1
-"""
+            Memory Device
+            \tLocator: DIMM_B1
+            \tBank Locator: BANK 1
+            """)
         with mock.patch.object(self.dimm, "_run_dmidecode", return_value=output):
             printed = io.StringIO()
             with contextlib.redirect_stdout(printed):
