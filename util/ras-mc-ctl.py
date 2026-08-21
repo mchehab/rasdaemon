@@ -26,7 +26,7 @@ if sys.version_info < (3, 10):
     sys.exit(1)
 
 
-from ras_env import RasDaemonEnv, RasdaemonConfig
+from ras_env import RasdaemonConfig
 from ras_dimm import RasMemoryDimm
 
 
@@ -51,13 +51,14 @@ def main() -> None:
 
     RasMemoryDimm(PROG, subparsers)
 
-    # As database will require external libraries, use lazy import
-#    try:
-#        from ras_db import RasDatabase
+    # Database support is optional, so keep the rest of the utility available
+    # when SQLAlchemy or a database-specific driver is not installed.
+    try:
+        from ras_db import RasDatabaseCommand
 
-#        RasDatabase(subparsers)
-#    except ImportError as e:
-#        print(f"Warning: disabling database commands: {repr(e)}")
+        RasDatabaseCommand(PROG, subparsers, cfg)
+    except ImportError as error:
+        logger.debug("Disabling database command: %s", error)
 
     args = parser.parse_args()
 
