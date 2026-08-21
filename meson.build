@@ -16,8 +16,7 @@ fs = import('fs')
 
 c_flags = [
     '-D_GNU_SOURCE',
-    '-D RASSTATEDIR="' + get_option('statedir') + '"',
-    '-DRAS_DB_FNAME="' + get_option('db-fname') + '"',
+    '-DSQLITE3_DATABASE="' + get_option('sqlite3-database') + '"',
     '-DVERSION="' + meson.project_version() + '"',
 ]
 
@@ -467,8 +466,7 @@ conf_data = {
     'META_DATE' : run_command('date', '+%d %B %Y', check: true).stdout().strip(),
     'META_ALIAS' : meson.project_name(),
 
-    'RASSTATEDIR' : get_option('statedir'),
-    'RAS_DB_FNAME' : get_option('db-fname'),
+    'SQLITE3_DATABASE' : get_option('sqlite3-database'),
 
     'WITH_AER_TRUE' : enable_aer ? '' : '#',
     'WITH_ARM_TRUE' : enable_arm ? '' : '#',
@@ -676,8 +674,7 @@ summary(
 
 summary(
     {
-        'State directory': get_option('statedir'),
-        'SQLite3 database': get_option('db-fname'),
+        'SQLite3 database': get_option('sqlite3-database'),
     },
     section : 'User defined options',
 )

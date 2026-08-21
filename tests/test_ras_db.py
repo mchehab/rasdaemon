@@ -85,8 +85,9 @@ class RasDatabaseTests:
 
         self.temporary_directory = tempfile.TemporaryDirectory()
         return {
-            "ras_state_dir": self.temporary_directory.name,
-            "ras_sqlite3_database": "events.db",
+            "sqlite3_database": os.path.join(
+                self.temporary_directory.name, "events.db"
+            ),
         }
 
     def setUp(self):
@@ -256,6 +257,14 @@ class RasDatabaseTests:
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")
 class SqliteRasDatabaseTest(RasDatabaseTests, unittest.TestCase):
     backend = "sqlite3"
+
+    def test_database_url_uses_complete_path(self):
+        path = os.path.join(self.temporary_directory.name, "complete-path.db")
+        url = RasDatabase._database_url(
+            "sqlite3", {"sqlite3_database": path}
+        )
+
+        self.assertEqual(url.database, path)
 
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")

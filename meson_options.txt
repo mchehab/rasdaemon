@@ -15,12 +15,9 @@ option('disable-all', type : 'boolean', value: false,
 # Main options
 #
 
-option('statedir', type: 'string', value: '/var/lib/rasdaemon',
-       description: 'State directory for rasdaemon (default: /var/lib/rasdaemon)',
-)
-
-option('db-fname', type: 'string', value: 'ras-mc_event.db',
-       description: 'RAS events database (default: ras-mc_event.db)',
+option('sqlite3-database', type: 'string',
+       value: '/var/lib/rasdaemon/ras-mc_event.db',
+       description: 'SQLite3 database path (default: /var/lib/rasdaemon/ras-mc_event.db)',
 )
 
 #

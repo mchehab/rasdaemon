@@ -66,10 +66,7 @@ class RasDatabase:
             config.db_backend,
             engine=engine,
             hostname=config.hostname,
-            ras_state_dir=cls._get(sqlite, "ras_state_dir", ""),
-            ras_sqlite3_database=cls._get(
-                sqlite, "ras_sqlite3_database", "ras-mc_event.db"
-            ),
+            sqlite3_database=cls._get(sqlite, "database", "ras-mc_event.db"),
             mysql_conn_parms=config.mysql_conn_parms,
             postgresql_conn_parms=config.pg_conn_parms,
         )
@@ -77,10 +74,7 @@ class RasDatabase:
     @classmethod
     def _database_url(cls, backend: str, kwargs: Mapping[str, Any]) -> URL:
         if backend == "sqlite3":
-            path = os.path.join(
-                kwargs.get("ras_state_dir", ""),
-                kwargs.get("ras_sqlite3_database", "ras-mc_event.db"),
-            )
+            path = kwargs.get("sqlite3_database", "ras-mc_event.db")
             return URL.create("sqlite", database=os.path.abspath(path))
 
         key = "mysql_conn_parms" if backend == "mysql" else "postgresql_conn_parms"

@@ -4,8 +4,7 @@
  */
 
 struct db_sqlite3_conn_params {
-	const char *fname;
-	const char *dir;
+	const char *database;
 	int extra_flags;
 };
 

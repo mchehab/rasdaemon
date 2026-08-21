@@ -25,14 +25,56 @@
 /* Store the DB name on a static var to be used later on logs */
 static char *full_fname = NULL;
 
+static void *db_sqlite3_get_conn_parms(void)
+{
+	static struct db_sqlite3_conn_params cp;
+
+	cp.database = env_or("RAS_SQLITE3_DATABASE", SQLITE3_DATABASE);
+
+	return &cp;
+}
+
+static int db_sqlite3_create_db_dir(const char *database)
+{
+	char *dir, *p;
+	struct stat st = {0};
+	int rc = 0;
+
+	dir = strdup(database);
+	if (!dir)
+		return -1;
+
+	p = strrchr(dir, '/');
+	if (!p) {
+		free(dir);
+		return 0;
+	}
+
+	*p = '\0';
+
+	if (stat(dir, &st) == -1) {
+		if (errno != ENOENT || mkdir(dir, 0700) == -1) {
+			log(TERM, LOG_ERR,
+			    "Failed to create SQLite3 database directory %s: %s\n",
+			    dir, strerror(errno));
+			rc = -1;
+		}
+	} else if (!S_ISDIR(st.st_mode)) {
+		log(TERM, LOG_ERR,
+		    "SQLite3 database parent %s is not a directory\n", dir);
+		rc = -1;
+	}
+
+	free(dir);
+	return rc;
+}
+
 static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 			   unsigned int cpu)
 {
 	struct db_sqlite3_conn_params *conn_parms = __conn_parms;
-	const char *fname = RAS_DB_FNAME;
-	const char *dir = RASSTATEDIR;
+	const char *database = SQLITE3_DATABASE;
 	sqlite3 **db = (void *)__db;
-	struct stat st = {0};
 	int flags, rc;
 
 	flags = SQLITE_OPEN_FULLMUTEX |
@@ -43,33 +85,22 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 	 * Allow overriding default values with private parameters
 	 */
 	if (conn_parms) {
-		if (conn_parms->fname)
-			fname = conn_parms->fname;
-		if (conn_parms->dir)
-			dir = conn_parms->dir;
+		if (conn_parms->database)
+			database = conn_parms->database;
 		if (conn_parms->extra_flags)
 			flags |= conn_parms->extra_flags;
 	}
 
-	if (asprintf(&full_fname, "%s/%s", dir, fname) < 0) {
+	free(full_fname);
+	full_fname = strdup(database);
+	if (!full_fname) {
 		log(TERM, LOG_ERR,
-		    "Failed to create sqlite3 filename. Memory full?");
+		    "Failed to allocate SQLite3 database filename\n");
 		return -1;
 	}
 
-	if (stat(dir, &st) == -1) {
-		if (errno != ENOENT) {
-			log(TERM, LOG_ERR,
-			    "Failed to read state directory %s", dir);
-			return -1;
-		}
-
-		if (mkdir(dir, 0700) == -1) {
-			log(TERM, LOG_ERR,
-			    "Failed to create state directory %s", dir);
-			return -1;
-		}
-	}
+	if (db_sqlite3_create_db_dir(full_fname) < 0)
+		return -1;
 
 	rc = sqlite3_initialize();
 	if (rc != SQLITE_OK) {
@@ -405,6 +436,7 @@ static int db_sqlite3_finalize(unsigned int cpu,
  */
 
 static const struct ras_db_backend_ops sqlite3_backend_ops = {
+	.get_conn_parms         = db_sqlite3_get_conn_parms,
 	.open                   = db_sqlite3_open,
 	.close                  = db_sqlite3_close,
 

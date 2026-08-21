@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 /* for sqlite3 flags */
 #include <sqlite3.h>
@@ -14,6 +15,7 @@
 #include "config.h"
 
 #include "core/ras-events.h"
+#include "core/ras-env.h"
 #include "core/ras-logger.h"
 #include "core/modules.h"
 
@@ -31,8 +33,7 @@ struct mock_priv {
 };
 
 static struct db_sqlite3_conn_params conn_parms = {
-	.dir = "/tmp",
-	.fname = "sqlite3_mock.db",
+	.database = "/tmp/sqlite3_mock.db",
 	.extra_flags = SQLITE_OPEN_MEMORY,
 };
 
@@ -489,7 +490,50 @@ static int tests_teardown(void **state)
 	return rc;
 }
 
+static void test_database_environment(void **state)
+{
+	char config_path[128], path[128];
+	const char *current;
+	char *saved = NULL;
+	FILE *fp;
+	int rc;
+
+	(void)state;
+	current = getenv("RAS_SQLITE3_DATABASE");
+	if (current)
+		saved = strdup(current);
+
+	snprintf(path, sizeof(path), "/tmp/rasdaemon-sqlite-env-%ld.db",
+		 (long)getpid());
+	snprintf(config_path, sizeof(config_path),
+		 "/tmp/rasdaemon-sqlite-env-%ld.conf", (long)getpid());
+	unlink(path);
+	unsetenv("RAS_SQLITE3_DATABASE");
+	fp = fopen(config_path, "w");
+	assert_non_null(fp);
+	assert_true(fprintf(fp, "RAS_SQLITE3_DATABASE=\"%s\"\n", path) > 0);
+	assert_int_equal(fclose(fp), 0);
+	assert_int_equal(ras_set_env(config_path), 0);
+	unlink(config_path);
+
+	rc = db_open(NULL, 0, &ras, sizeof(struct mock_priv));
+	assert_int_equal(rc, 0);
+	assert_non_null(ras.db);
+	assert_int_equal(db_close(0, &ras), 0);
+	assert_int_equal(access(path, F_OK), 0);
+
+	unlink(path);
+	if (saved) {
+		assert_int_equal(setenv("RAS_SQLITE3_DATABASE", saved, 1), 0);
+		free(saved);
+	} else {
+		assert_int_equal(unsetenv("RAS_SQLITE3_DATABASE"), 0);
+	}
+}
+
 static const struct CMUnitTest tests[] = {
+	cmocka_unit_test(test_database_environment),
+
 	cmocka_unit_test_setup_teardown(test_database_tables,
 					tests_setup, tests_teardown),
 
