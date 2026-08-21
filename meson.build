@@ -492,7 +492,7 @@ install_map = {
 
     # Man pages
     'man/rasdaemon.1.in' : get_option('mandir') + '/man1',
-    'man/ras-mc-ctl.8.in' : get_option('mandir') + '/man1',
+    'man/ras-mc-ctl.8.in' : get_option('mandir') + '/man8',
 
     # Systemd service files
     'misc/rasdaemon.service.in' : systemd_unitdir,

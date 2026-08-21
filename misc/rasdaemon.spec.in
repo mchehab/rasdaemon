@@ -14,14 +14,16 @@ BuildRequires:		make
 BuildRequires:		gcc
 BuildRequires:		meson >= 0.60
 BuildRequires:		ninja-build
-BuildRequires:		perl-generators
 BuildRequires:		sqlite-devel
 BuildRequires:		systemd
 BuildRequires:		libtraceevent-devel
 BuildRequires:		pciutils-devel
 Provides:		bundled(kernel-event-lib)
 Requires:		hwdata
-Requires:		perl-DBD-SQLite
+Requires:		python3
+Requires:		python3-sqlalchemy
+Recommends:		python3-mysqlclient
+Recommends:		python3-psycopg2
 Requires:		libtraceevent
 %ifarch %{ix86} x86_64 riscv64
 Requires:		pciutils

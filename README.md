@@ -91,73 +91,81 @@ needed.
 Compiling and Installing
 ========================
 
-sqlite3 and autoconf needs to be installed. On Fedora, this is done by
-installing the following packages:
+Meson, a C compiler, the trace-event library, and the Python dependencies
+need to be installed. On Fedora, this is done by installing the following
+packages:
 
 ```
-    make
     gcc
-    autoconf
-    automake
-    libtool
+    meson
+    ninja-build
     libtraceevent-devel
-    tar
-    sqlite-devel	(if sqlite3 will be used)
-    perl-DBD-SQLite	(if sqlite3 will be used)
+    pciutils-devel
+    python3
+    python3-sqlalchemy
+    sqlite-devel                (if SQLite3 will be used)
+    mariadb-connector-c-devel   (if MariaDB will be used)
+    mysql-community-devel       (if Oracle MySQL will be used; from the MySQL repository)
+    libpq-devel                 (if PostgreSQL will be used)
+    python3-mysqlclient         (to query either MariaDB or MySQL with ras-mc-ctl)
+    python3-psycopg2            (to query PostgreSQL with ras-mc-ctl)
 ```
 
 To install them on Fedora, run:
 ```
-    $ dnf install -y make gcc autoconf automake libtool tar perl-dbd-sqlite \
-      libtraceevent-devel
-```
-Or, if sqlite3 database will be used to store data:
-
-```
-    $ dnf install -y make gcc autoconf automake libtool tar sqlite-devel \
-      libtraceevent-devel
+    $ dnf install -y gcc meson ninja-build libtraceevent-devel \
+      pciutils-devel python3 python3-sqlalchemy sqlite-devel
 ```
 
-There are currently 3 features that are enabled optionally, via
-./configure parameters:
+All features are enabled by default when their dependencies are available.
+Features can be explicitly enabled or disabled with Meson options. For
+example:
 
 ```
-    --enable-sqlite3      enable storing data at SQL lite database (currently
-			  experimental)
-    --enable-aer            enable PCIe AER events (currently experimental)
-    --enable-mce            enable MCE events (currently experimental)
+    -Dsqlite3=enabled    enable storage in an SQLite3 database
+    -Daer=enabled        enable PCIe AER events
+    -Dmce=enabled        enable MCE events
 ```
 
 In order to compile it, run:
 ```
-    $ autoreconf -vfi
-    $ ./configure [parameters]
+    $ meson setup build [options]
+    $ meson compile -C build
+```
+
+The top-level Makefile is a convenience wrapper around Meson and Ninja. For a
+build using the default options, simply running the following also works:
+
+```
     $ make
 ```
 
 So, for example, to enable everything but sqlite3:
 
 ```
-    $ autoreconf -vfi && ./configure --enable-aer --enable-mce && make
+    $ meson setup build -Dsqlite3=disabled
+    $ meson compile -C build
 ```
 
 After compiling, run, as root:
 ```
-    $ make install
+    $ meson install -C build
 ```
+
+When using the Makefile wrapper, `make install` performs the equivalent
+installation.
 
 RPM-based compilation
 =====================
 
 If the distribution is rpm-based, an alternative method would be to do:
 ```
-    $ autoreconf -vfi && ./configure
+    $ meson setup build
 ```
 
 The above procedure will generate a file at misc/rasdaemon.spec.
 
-You may edit it, in order to add/remove the --enable-\[option\]
-parameters.
+You may edit it to change the Meson feature options.
 
 To generate the rpm files, do:
 
@@ -221,25 +229,25 @@ How to Setup a Database
 
 RAS Daemon supports multiple types of databases. Each require their own
 specific parameters. Only one database can be active. The database backend
-connection parameters is specifiec via environemnt vars, usually inside
-`/etc/sysconfig/rasdaemon/rasdaemon.env` file. It contains one field:
+connection parameters are specified via environment variables, usually in
+the `/etc/sysconfig/rasdaemon` file. It contains these common fields:
 
 - `RASDAEMON_DB_BACKEND` - backend to be used. Can be: `postgresql`,
   `mysql` or `sqlite3`.
 - `RASDAEMON_HOSTNAME` - hostname to be stored inside remote databases
    (MySQL/MariaDB or PostgreSQL). Not used for SQLite.
 
-The other parameters are database specific and are also located at the
-`rasdaemon.env` file.
+The other parameters are database specific and are also located in that file.
 
 ## SQLite3 (default)
 
-For SQLite3, no additional configuration is needed beyond the default
-settings. The database will be created automatically in the state
-directory (`/var/lib/rasdaemon` by default) with the
-filename `ras-mc_event.db`. No environment variables are required.
+For SQLite3, `RAS_SQLITE3_DATABASE` specifies the full database path. It
+defaults to `/var/lib/rasdaemon/ras-mc_event.db`, and rasdaemon creates the
+parent directory when needed. The compiled default can be changed with:
 
-The state directory location and the file name can be changed at compile-time.
+```
+    $ meson setup build -Dsqlite3-database=/path/to/ras-mc_event.db
+```
 
 On Ubuntu/Debian, the packages required to build rasdaemon with sqlite3
 support are:
@@ -362,20 +370,41 @@ RAS_MYSQL_PASSWORD=""
 RAS_MYSQL_DATABASE="rasdaemon_test"
 ```
 
-**Prerequisites**: Install `libmysqlclient-devel` or `libmysqlclient-dev`).
+The C client development package depends on the server implementation and
+distribution:
 
-### Start MySQL and create the database
+- Fedora/RHEL with MariaDB: `mariadb-connector-c-devel`
+- Fedora/RHEL with Oracle MySQL packages: `mysql-community-devel`
+- Debian/Ubuntu with MariaDB: `libmariadb-dev`; some releases also require
+  `libmariadb-dev-compat` for the MySQL-compatible development headers
+- Debian/Ubuntu with MySQL: `default-libmysqlclient-dev`
+
+Only one C client development package is needed. Meson accepts the
+`mysqlclient`, `mariadb`, or `libmariadb` pkg-config interface. The Python
+database tool additionally requires the `mysqlclient` Python module, packaged
+as `python3-mysqlclient` on Fedora/RHEL and `python3-mysqldb` on Debian/Ubuntu.
+
+### Start MySQL or MariaDB and create the database
 
 For MySQL and MariaDB, you'll need to:
 - create the user;
 - create the database;
 - grant permissions.
 
-On a simple scenario where MySQL/MariaDB is at the same machine, you could
-do it with:
+The service name is normally `mysqld.service` for Oracle MySQL packages and
+`mariadb.service` for MariaDB. On Debian/Ubuntu, the MySQL service may instead
+be named `mysql.service`. Start the service matching the installed server, for
+example:
 
 ```bash
-sudo systemctl start mysql.service
+sudo systemctl start mariadb.service
+# Or: sudo systemctl start mysqld.service
+# Or: sudo systemctl start mysql.service
+```
+
+For a simple local setup, the SQL is the same for both implementations:
+
+```bash
 mysqladmin ping --host=127.0.0.1 --user=root --password=root
 
 sudo -u root mysql --host=127.0.0.1 << EOF

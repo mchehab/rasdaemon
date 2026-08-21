@@ -1,144 +1,111 @@
-.\"****************************************************************************
-.\" $Id$
-.\"****************************************************************************
-.\"SPDX-License-Identifier: GPL-2.0-or-later"
-.\"
-.\"Copyright (c) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-.\"This tool is a modification of the edac-ctl, written as part of the
-.\"edac-utils:
-.\" Copyright (C) 2006-2007 The Regents of the University of California.
-.\" Produced at Lawrence Livermore National Laboratory.
-.\" Written by Mark Grondona <mgrondona@llnl.gov>
-.\" UCRL-CODE-230739.
-.\"
-.\" This is free software; you can redistribute it and/or modify it
-.\" under the terms of the GNU General Public License as published by
-.\" the Free Software Foundation; either version 2 of the License, or
-.\" (at your option) any later version.
-.\"
-.\" This is distributed in the hope that it will be useful, but WITHOUT
-.\" ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-.\" FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-.\" for more details.
-.\"
-.\" You should have received a copy of the GNU General Public License along
-.\" with this program; if not, write to the Free Software Foundation, Inc.,
-.\" 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
-.\"****************************************************************************
-
+." SPDX-License-Identifier: GPL-2.0-or-later
 .TH RAS-MC-CTL 8 "@META_DATE@" "@META_ALIAS@" "RAS memory controller admin utility"
-
 .SH NAME
-ras-mc-ctl \- RAS memory controller admin utility
-
+ras-mc-ctl \- inspect EDAC DIMM information and recorded RAS events
 .SH SYNOPSIS
 .B ras-mc-ctl
-[\fIOPTION\fR]...
-
+[\fIGLOBAL OPTIONS\fR] \fBdimm\fR [\fIOPTIONS\fR]
+.br
+.B ras-mc-ctl
+[\fIGLOBAL OPTIONS\fR] \fBdatabase\fR [\fIOPTIONS\fR]
 .SH DESCRIPTION
-
-The \fBras-mc-ctl\fR program is a \fBperl\fR(1) script which performs
-some useful RAS administration tasks on EDAC (Error Detection and Correction)
-drivers.
-
-.SH OPTIONS
+.B ras-mc-ctl
+is a Python 3 administration utility for EDAC DIMM information and the
+RAS events recorded by
+.BR rasdaemon (1).
+The command
+.B mem
+is an alias for
+.BR dimm ;
+.B db
+is an alias for
+.BR database .
+.SH GLOBAL OPTIONS
 .TP
-.BI "--help"
-Display a brief usage message.
+.BR \-h ", " \-\-help
+Show command help and exit.
 .TP
-.BI "--mainboard"
-Print mainboard vendor and model for this hardware, if available.
-The method used by \fBras-mc-ctl\fR to obtain the mainboard vendor
-and model information for the current system is described below
-in the \fIMAINBOARD CONFIGURATION\fR section.
+.BR \-V ", " \-\-version
+Show the program version and exit.
 .TP
-.BI "--status"
-Print the status of EDAC drivers (loaded or unloaded).
+.BR \-v ", " \-\-verbose
+Enable verbose output.
 .TP
-.BI "--quiet"
-Be less verbose when executing an operation.
+.BR \-c " " \fIFILE\fR ", " \-\-config " " \fIFILE\fR
+Read database settings from an alternate environment file.
+.SH DIMM COMMAND
 .TP
-.BI "--register-labels"
-Register motherboard DIMM labels into EDAC driver sysfs files.
-This option uses the detected mainboard manufacturer and model
-number in combination with a "labels database" found in any
-of the files under @sysconfdir@/ras/dimm_labels.d/* or in the labels.db file
-at @sysconfdir@/ras/dimm_labels.db. An entry for the current hardware must
-exist in the labels database for this option to do anything.
+.BR \-m ", " \-\-mainboard
+Print the detected mainboard vendor and model.
 .TP
-.BI "--print-labels"
-Display the configured labels for the current hardware, as
-well as the current labels registered with EDAC.
+.BR \-D ", " \-\-dmidecode
+Use dmidecode to obtain DIMM information.
 .TP
-.BI "--guess-labels"
-Print DMI labels, when bank locator is available in the DMI table.
-It helps to fill the labels database at @sysconfdir@/ras/dimm_labels.d/.
+.BR \-V " " \fIVALUE\fR ", " \-\-vendor " " \fIVALUE\fR
+Override the detected mainboard vendor.
 .TP
-.BI "--labeldb="DB
-Specify an alternate location for the labels database.
+.BR \-M " " \fIVALUE\fR ", " \-\-model " " \fIVALUE\fR
+Override the detected mainboard model.
 .TP
-.BI "--delay="time
-Specify a delay of \fBtime\fR seconds before registering DIMM labels.
-Only meaninful if used together with --register-labels.
+.BR \-s ", " \-\-status
+Print the status of the EDAC drivers.
 .TP
-.BI "--layout"
-Prints the memory layout as detected by the EDAC driver. Useful to check
-if the EDAC driver is properly detecting the memory controller architecture.
+.BR \-p ", " \-\-print-labels
+Print configured and registered DIMM labels.
 .TP
-.BI "--summary"
-Presents a summary of the logged errors.
+.BR \-g ", " \-\-guess-labels
+Print DIMM labels found in DMI data when bank locators are available.
 .TP
-.BI "--errors"
-Shows the errors stored at the error database.
+.BR \-r ", " \-\-register-labels
+Register labels from the DIMM label database in EDAC sysfs files.
 .TP
-.BI "--error-count"
-Shows the corrected and uncorrected error counts using sysfs.
+.BR \-d " " \fISECONDS\fR ", " \-\-delay " " \fISECONDS\fR
+Wait before registering DIMM labels.
 .TP
-.BI "--vendor-errors-summary="platform-id
-Pressents a summary of the vendor-specific logged errors.
+.BR \-L " " \fIFILE\fR ", " \-\-labeldb " " \fIFILE\fR
+Use an alternate DIMM label database.
 .TP
-.BI "--vendor-errors="platform-id
-Shows the vendor-specific errors stored in the error database.
+.BR \-l ", " \-\-layout
+Print the memory layout detected by EDAC.
+.SH DATABASE COMMAND
+The database backend and its connection parameters are read from the
+configuration file. Missing indexes are created before records are displayed.
 .TP
-.BI "--vendor-platforms"
-Shows the supported platforms with platform-ids for the vendor-specific errors.
-
-.SH MAINBOARD CONFIGURATION
-.PP
-The \fBras-mc-ctl\fR script uses the following method to determine the
-current system's mainboard vendor and model information:
-
-.IP "1." 4
-If the config file @sysconfdir@/edac/mainboard exists, then it is
-parsed by \fBras-mc-ctl\fR. The mainboard config file has the following
-simple syntax:
-.nf
-
-       vendor = <mainboard vendor string>
-       model =  <mainboard model string>
-       script = <script to gather mainboard information>
-
-.fi
-Where anything after a '#' character on a line is considered a comment.
-If the keyword \fBscript\fR is specified, then that script or
-executable is run by \fBras-mc-ctl\fR to gather the mainboard vendor
-and model information. The script should write the resulting information
-on stdout in the same format as the mainboard config file.
-
-.IP "2."
-If no mainboard config file exists, then \fBras-mc-ctl\fR will attempt
-to read DMI information from the sysfs files
-.nf
-
-     /sys/class/dmi/id/board_vendor
-     /sys/class/dmi/id/board_name
-
-.fi
-
-.IP "3."
-If the sysfs files above do not exist, then \fBras-mc-ctl\fR will fall
-back to parsing output of the \fBdmidecode\fR(8) utility. Use of this
-utility will most often require that \fBras-mc-ctl\fR be run as root.
-
+.B \-\-indexes-only
+Create missing database indexes without displaying records.
+.TP
+.BI \-\-since " YYYY-MM-DD"
+Only display records on or after this date.
+.TP
+.BI \-\-until " YYYY-MM-DD"
+Only display records on or before this date.
+.TP
+.BI \-\-hostname " HOSTNAME"
+Only display records stored for this hostname.
+.SH MAINBOARD DETECTION
+Explicit
+.B \-\-vendor
+and
+.B \-\-model
+values take precedence. Otherwise,
+.B ras-mc-ctl
+reads
+.I /sys/class/dmi/id/board_vendor
+and
+.IR /sys/class/dmi/id/board_name .
+If those files are unavailable, it falls back to
+.BR dmidecode (8),
+which normally requires root privileges.
+.SH FILES
+.TP
+.I @sysconfdir@/sysconfig/rasdaemon
+Default database configuration.
+.TP
+.I @sysconfdir@/ras/dimm_labels.db
+Default DIMM label database.
+.TP
+.I @sysconfdir@/ras/dimm_labels.d
+Additional DIMM label databases.
 .SH SEE ALSO
-\fBrasdaemon\fR(1)
+.BR rasdaemon (1),
+.BR dmidecode (8)

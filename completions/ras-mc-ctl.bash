@@ -1,77 +1,47 @@
 #!/bin/bash
 
-_ras_mc_ctl() {
-    local cur prev opts
+_ras_mc_ctl()
+{
+    local cur prev command word
+    local global_opts="dimm mem database db -h --help -V --version -v --verbose -c --config"
+    local dimm_opts="-h --help -m --mainboard -D --dmidecode -V --vendor -M --model -s --status -p --print-labels -g --guess-labels -r --register-labels -d --delay -L --labeldb -l --layout"
+    local database_opts="-h --help --indexes-only --since --until --hostname"
+
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    opts="--quiet --mainboard --status --print-labels --guess-labels --register-labels 
-          --delay --labeldb --layout --summary --errors --error-count --since 
-          --vendor-errors-summary --vendor-errors --vendor-platforms --help"
-
-    case "${prev}" in
-        --delay)
-            COMPREPLY=($(compgen -W "1 5 10 30 60" -- ${cur}))
-            return 0
+    case "$prev" in
+        -c|--config|-L|--labeldb)
+            COMPREPLY=($(compgen -f -- "$cur"))
+            return
             ;;
-        --labeldb)
-            COMPREPLY=($(compgen -f -- ${cur}))
-            return 0
-            ;;
-        --since)
-            local today=$(date +%Y-%m-%d)
-            local yesterday=$(date -d "1 day ago" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d 2>/dev/null || echo "")
-            local week_ago=$(date -d "1 week ago" +%Y-%m-%d 2>/dev/null || date -v-1w +%Y-%m-%d 2>/dev/null || echo "")
-            local month_ago=$(date -d "1 month ago" +%Y-%m-%d 2>/dev/null || date -v-1m +%Y-%m-%d 2>/dev/null || echo "")
-            
-            local dates="$today"
-            [[ -n "$yesterday" ]] && dates="$dates $yesterday"
-            [[ -n "$week_ago" ]] && dates="$dates $week_ago"
-            [[ -n "$month_ago" ]] && dates="$dates $month_ago"
-            
-            COMPREPLY=($(compgen -W "$dates" -- ${cur}))
-            return 0
-            ;;
-        --vendor-errors-summary|--vendor-errors)
-            COMPREPLY=()
-            return 0
+        -d|--delay)
+            COMPREPLY=($(compgen -W "1 5 10 30 60" -- "$cur"))
+            return
             ;;
     esac
 
-    if [[ ${cur} == --*=* ]]; then
-        local option=${cur%%=*}
-        local value=${cur#*=}
-        
-        case "${option}" in
-            --delay)
-                local suggestions="1 5 10 30 60"
-                COMPREPLY=($(compgen -W "$suggestions" -P "${option}=" -- ${value}))
-                return 0
-                ;;
-            --labeldb)
-                COMPREPLY=($(compgen -f -P "${option}=" -- ${value}))
-                return 0
-                ;;
-            --since)
-                local today=$(date +%Y-%m-%d)
-                local yesterday=$(date -d "1 day ago" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d 2>/dev/null || echo "")
-                local week_ago=$(date -d "1 week ago" +%Y-%m-%d 2>/dev/null || date -v-1w +%Y-%m-%d 2>/dev/null || echo "")
-                local month_ago=$(date -d "1 month ago" +%Y-%m-%d 2>/dev/null || date -v-1m +%Y-%m-%d 2>/dev/null || echo "")
-                
-                local dates="$today"
-                [[ -n "$yesterday" ]] && dates="$dates $yesterday"
-                [[ -n "$week_ago" ]] && dates="$dates $week_ago"
-                [[ -n "$month_ago" ]] && dates="$dates $month_ago"
-                
-                COMPREPLY=($(compgen -W "$dates" -P "${option}=" -- ${value}))
-                return 0
+    for word in "${COMP_WORDS[@]:1:COMP_CWORD-1}"; do
+        case "$word" in
+            dimm|mem|database|db)
+                command="$word"
+                break
                 ;;
         esac
-    fi
+    done
 
-    COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
-    return 0
+    case "$command" in
+        dimm|mem)
+            COMPREPLY=($(compgen -W "$dimm_opts" -- "$cur"))
+            ;;
+        database|db)
+            COMPREPLY=($(compgen -W "$database_opts" -- "$cur"))
+            ;;
+        *)
+            COMPREPLY=($(compgen -W "$global_opts" -- "$cur"))
+            ;;
+    esac
 }
 
 complete -F _ras_mc_ctl ras-mc-ctl
