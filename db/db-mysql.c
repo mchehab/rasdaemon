@@ -334,7 +334,7 @@ static int db_mysql_create_table(struct ras_db *__db,
 
 		/* Add hostname */
 		if (!i)
-			p += snprintf(p, end - p, ", `hostname` TEXT");
+			p += snprintf(p, end - p, ", `hostname` VARCHAR(255)");
 
 		if (i < (int)db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
