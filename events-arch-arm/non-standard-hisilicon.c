@@ -388,3 +388,14 @@ static void __attribute__((constructor)) hisi_ns_init(void)
 	for (i = 0; i < ARRAY_SIZE(hisi_section_ns_ev_decoder); i++)
 		register_ns_ev_decoder(&hisi_section_ns_ev_decoder[i]);
 }
+
+#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+struct db_table_descriptor_list hisilicon_table_descriptors(void)
+{
+	static const struct db_table_descriptor * const tables[] = {
+		&hisi_common_section_tab,
+	};
+
+	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
+}
+#endif

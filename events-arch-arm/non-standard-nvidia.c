@@ -703,3 +703,14 @@ static void __attribute__((constructor)) nvidia_init(void)
 	register_ns_ev_decoder(&nvidia_ns_ev_decoder);
 	register_ns_ev_decoder(&nvidia_vera_ns_ev_decoder);
 }
+
+#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+struct db_table_descriptor_list nvidia_table_descriptors(void)
+{
+	static const struct db_table_descriptor * const tables[] = {
+		&nvidia_ns_table, &nvidia_vera_ns_table,
+	};
+
+	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
+}
+#endif

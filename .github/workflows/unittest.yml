@@ -80,6 +80,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential meson ninja-build pkg-config \
                                   git cmake libsqlite3-dev sqlite3 \
+                                  python3-sqlalchemy python3-mysqldb \
+                                  python3-psycopg2 \
                                   libcmocka-dev libmysqlclient-dev libpq-dev \
                                   libtraceevent-dev libtraceevent1 libpci-dev
       - uses: actions/checkout@v7
@@ -102,6 +104,9 @@ jobs:
           RAS_PG_DATABASE: rasdaemon_test
         run: |
           build/unittest -o tap
+      - name: Run Python unittests
+        run: |
+          python3 tests/run.py
 
   MariaDBUnittest:
     name: MariaDB Unit Test
@@ -130,6 +135,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential meson ninja-build pkg-config \
                                   git cmake libsqlite3-dev sqlite3 \
+                                  python3-sqlalchemy python3-mysqldb \
                                   libcmocka-dev libmariadb-dev-compat \
                                   libtraceevent-dev libtraceevent1 libpci-dev
       - uses: actions/checkout@v7
@@ -146,3 +152,6 @@ jobs:
           RAS_MYSQL_DATABASE: rasdaemon_test
         run: |-
           build/unittest -o tap -g mysql
+      - name: Run Python unittests
+        run: |-
+          python3 -m unittest -v tests.test_ras_db.MysqlRasDatabaseTest

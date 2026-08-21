@@ -5,10 +5,11 @@
  * Unit tests for the PostgreSQL backend.
  *
  * Environment variables (all optional, with sensible defaults):
- *   RAS_PG_HOST		(default: ""  = local socket)
+ *   RAS_PG_HOST		(default: "127.0.0.1")
  *   RAS_PG_PORT		(default: 5432)
  *   RAS_PG_USER		(default: "rasdaemon")
- *   RAS_PG_PASSWORD	(default: "")
+ *   RAS_PG_PASSWORD	(default: "mypass")
+ *   RAS_PG_SCHEMA	(default: "rasdaemon")
  *   RAS_PG_DATABASE	(default: "rasdaemon_test")
  */
 
@@ -41,10 +42,11 @@ struct mock_priv {
 };
 
 static struct db_postgresql_conn_params conn_parms = {
-	.host	  = NULL,
+	.host	  = "127.0.0.1",
 	.port	  = 5432,
 	.user	  = "rasdaemon",
 	.password  = "mypass",
+	.schema    = "rasdaemon",
 	.database  = "rasdaemon_test",
 	.use_ssl   = false,
 	.sslmode   = NULL,
@@ -390,6 +392,9 @@ static int tests_teardown(void **state)
 }
 
 static const struct CMUnitTest tests[] = {
+	cmocka_unit_test_setup_teardown(test_database_tables,
+					tests_setup, tests_teardown),
+
 	cmocka_unit_test_setup_teardown(test_db_get_sql_type,
 					tests_setup, tests_teardown),
 	cmocka_unit_test_setup_teardown(test_db_create_table,
@@ -412,6 +417,7 @@ static int group_setup(void **state)
 
 	conn_parms.user = env_or("RAS_PG_USER", conn_parms.user);
 	conn_parms.password = env_or("RAS_PG_PASSWORD", conn_parms.password);
+	conn_parms.schema = env_or("RAS_PG_SCHEMA", conn_parms.schema);
 	conn_parms.database = env_or("RAS_PG_DATABASE", conn_parms.database);
 
 	port = getenv("RAS_PG_PORT");

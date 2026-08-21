@@ -1399,4 +1399,58 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 	return db_close(cpu, ras);
 }
 
+#ifdef HAVE_UNITTEST
+struct db_table_descriptor_list ras_record_table_descriptors(void)
+{
+	static const struct db_table_descriptor * const tables[] = {
+		&mc_event_tab,
+#ifdef HAVE_AER
+		&aer_event_tab,
+#endif
+#ifdef HAVE_NON_STANDARD
+		&non_standard_event_tab,
+#endif
+#ifdef HAVE_ARM
+		&arm_event_tab,
+#endif
+#ifdef HAVE_EXTLOG
+		&extlog_event_tab,
+#endif
+#ifdef HAVE_MCE
+		&mce_record_tab,
+#endif
+#ifdef HAVE_DEVLINK
+		&devlink_event_tab,
+#endif
+#ifdef HAVE_DISKERROR
+		&diskerror_event_tab,
+#endif
+#ifdef HAVE_MEMORY_FAILURE
+		&mf_event_tab,
+#endif
+#ifdef HAVE_CXL
+		&cxl_poison_event_tab,
+		&cxl_aer_ue_event_tab,
+		&cxl_aer_ce_event_tab,
+		&cxl_overflow_event_tab,
+		&cxl_generic_event_tab,
+		&cxl_general_media_event_tab,
+		&cxl_dram_event_tab,
+		&cxl_memory_module_event_tab,
+#endif
+#ifdef HAVE_SIGNAL
+		&signal_event_tab,
+#endif
+#ifdef HAVE_RERI
+		&reri_event_tab,
+#endif
+	};
+
+	return (struct db_table_descriptor_list) {
+		.tables = tables,
+		.num_tables = ARRAY_SIZE(tables),
+	};
+}
+#endif
+
 #endif

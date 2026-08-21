@@ -125,6 +125,21 @@ struct db_table_descriptor {
 	size_t				num_fields;
 };
 
+#ifdef HAVE_UNITTEST
+struct db_table_descriptor_list {
+	const struct db_table_descriptor * const *tables;
+	size_t num_tables;
+};
+
+struct db_table_descriptor_list ras_record_table_descriptors(void);
+struct db_table_descriptor_list ampere_table_descriptors(void);
+struct db_table_descriptor_list hip08_table_descriptors(void);
+struct db_table_descriptor_list hisilicon_table_descriptors(void);
+struct db_table_descriptor_list jaguarmicro_table_descriptors(void);
+struct db_table_descriptor_list nvidia_table_descriptors(void);
+struct db_table_descriptor_list yitian_table_descriptors(void);
+#endif
+
 /**
  * struct db_backend - Specify what DB backend will be used
  * @backend:	Name of backend driver

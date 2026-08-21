@@ -26,5 +26,6 @@ int test_modules(void);
 int test_mysql(void);
 int test_postgresql(void);
 int test_sqlite3(void);
+void test_database_tables(void **state);
 
 #endif

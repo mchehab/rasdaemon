@@ -1110,3 +1110,13 @@ static void __attribute__((constructor)) jm_init(void)
 		register_ns_ev_decoder(&jm_ns_oem_type_decoder[i]);
 }
 
+#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+struct db_table_descriptor_list jaguarmicro_table_descriptors(void)
+{
+	static const struct db_table_descriptor * const tables[] = {
+		&jm_payload0_event_tab,
+	};
+
+	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
+}
+#endif

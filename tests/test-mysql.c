@@ -376,6 +376,9 @@ static int tests_teardown(void **state)
 }
 
 static const struct CMUnitTest tests[] = {
+	cmocka_unit_test_setup_teardown(test_database_tables,
+					tests_setup, tests_teardown),
+
 	cmocka_unit_test_setup_teardown(test_db_get_sql_type,
 					tests_setup, tests_teardown),
 	cmocka_unit_test_setup_teardown(test_db_create_table,

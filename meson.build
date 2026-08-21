@@ -351,6 +351,7 @@ if enable_db
         'db/ras-db.c',
         'db/ras-record.c',
     ]
+    unittest_sources += 'tests/test-databases.c'
 endif
 
 #
@@ -358,6 +359,22 @@ endif
 #
 
 rasdaemon_sources = ['core/rasdaemon.c']
+
+# The production descriptors remain private.  Test-only accessors are built
+# into the static library only when the C unit-test runner is available.
+have_unittest = false
+if not get_option('disable-all')
+    cmocka_dep = dependency('cmocka', version: '>= 2.0', required: false)
+    if cmocka_dep.found()
+        c_flags += '-DCMOCKA_VERSION_2'
+    else
+        cmocka_dep = dependency('cmocka', required: false)
+    endif
+    if cmocka_dep.found()
+        have_unittest = true
+        c_flags += '-DHAVE_UNITTEST'
+    endif
+endif
 
 #
 # Static library
@@ -388,22 +405,13 @@ rasdaemon_exe = executable(
 # Unit tests
 #
 
-if not get_option('disable-all')
-    cmocka_dep = dependency('cmocka', version: '>= 2.0', required: false)
-    if cmocka_dep.found()
-        c_flags += '-DCMOCKA_VERSION_2'
-    else
-        cmocka_dep = dependency('cmocka', required: false)
-    endif
-
-    if cmocka_dep.found()
-        unittest_exe = executable(
-            'unittest', unittest_sources,
-            dependencies: dependencies + cmocka_dep,
-            link_whole: [librasdaemon],
-            c_args: ['-g'] + c_flags,
-        )
-    endif
+if have_unittest
+    unittest_exe = executable(
+        'unittest', unittest_sources,
+        dependencies: dependencies + cmocka_dep,
+        link_whole: [librasdaemon],
+        c_args: ['-g'] + c_flags,
+    )
 endif
 
 #
