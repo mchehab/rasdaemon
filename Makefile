@@ -4,7 +4,15 @@
 
 default: all
 
+PYTHON ?= python3
+
 -include build/Makefile.inc
+
+.PHONY: python-test
+
+python-test:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m unittest discover \
+		-s tests -p 'test_*.py' -v
 
 build/build.ninja:
 	@if test -d build/; then \

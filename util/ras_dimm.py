@@ -17,12 +17,16 @@ import subprocess
 from typing import Optional, List
 from shutil import which
 
+from mem_layout import MemoryLayout
 
 """
 DIMM commands
 """
 
 logger = logging.getLogger(__name__)
+
+
+
 
 class RasMemoryDimm:
     def __init__(self, prog, subparsers):
@@ -309,8 +313,6 @@ class RasMemoryDimm:
 
     def display_memory_layout(self):
         """Display the memory layout."""
-        from ras_memory import RasMemory as RasMem
 
-        sysfs_dir = "/sys/devices/system/edac/mc"
-        layout = RasMem.display_memory_layout(sysfs_dir)
-        print(layout)
+        layout = MemoryLayout()
+        layout.display()

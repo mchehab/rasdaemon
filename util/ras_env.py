@@ -15,7 +15,7 @@ import os
 import sys
 
 from dataclasses import dataclass, field
-from typing import Optional, Dict
+from typing import Optional
 
 from ras_config import RasMesonConfig, Sqlite3ConnParms
 

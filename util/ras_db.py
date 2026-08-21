@@ -10,7 +10,7 @@ supporting SQLite, MySQL/MariaDB, and PostgreSQL backends.
 import os
 import sys
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, Any
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +153,7 @@ class RasDatabase:
             return None
 
     def create_index_if_not_exists(
-        self, table_name: str, index_name: str, columns: List[str]
+        self, table_name: str, index_name: str, columns: list[str]
     ) -> bool:
         """
         Create an index if it doesn't exist.
@@ -161,7 +161,7 @@ class RasDatabase:
         Args:
             table_name: Table name.
             index_name: Index name.
-            columns: List of column names for the index.
+            columns: list of column names for the index.
 
         Returns:
             True if index was created, False otherwise.
