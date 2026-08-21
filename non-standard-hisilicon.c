@@ -228,6 +228,13 @@ static const char * const module_name[] = {
 	"CFGBUS",
 	"MPU",
 	"CRG",
+	"ACG3",
+	"DCIP",
+	"UMAU",
+	"UPA",
+	"AXI_MSTR_OOO",
+	"RBIST",
+	"LC300",
 };
 
 static const char * const get_soc_desc(uint8_t soc_id)
