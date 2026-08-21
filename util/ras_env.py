@@ -95,27 +95,27 @@ class RasDaemonEnv:
 # NOTE: keep it in sync with misc/rasdaemon.env
 
 
-@dataclass
 class PostgresqlConnParms:
-    host: str = os.environ.get("RAS_PG_HOST", "localhost")
-    port: str = os.environ.get("RAS_PG_PORT", "5432")
-    user: str = os.environ.get("RAS_PG_USER", "rasdaemon")
-    password: str = os.environ.get("RAS_PG_PASSWORD", "")
-    database: str = os.environ.get("RAS_PG_DATABASE", "rasdaemon")
-    schema: str = os.environ.get("RAS_PG_SCHEMA", "rasdaemon")
-    ssl_mode: str = os.environ.get("RAS_PG_SSL_MODE", "false")
-    connect_timeout: str = os.environ.get("RAS_PG_CONNECT_TIMEOUT", "10")
+    def __init__(self):
+        self.host = os.environ.get("RAS_PG_HOST", "localhost")
+        self.port = os.environ.get("RAS_PG_PORT", "5432")
+        self.user = os.environ.get("RAS_PG_USER", "rasdaemon")
+        self.password = os.environ.get("RAS_PG_PASSWORD", "")
+        self.database = os.environ.get("RAS_PG_DATABASE", "rasdaemon")
+        self.schema = os.environ.get("RAS_PG_SCHEMA", "rasdaemon")
+        self.ssl_mode = os.environ.get("RAS_PG_SSL_MODE", "false")
+        self.connect_timeout = os.environ.get("RAS_PG_CONNECT_TIMEOUT", "10")
 
 
-@dataclass
 class MysqlConnParms:
-    host: str = os.environ.get("RAS_MYSQL_HOST", "")
-    port: str = os.environ.get("RAS_MYSQL_PORT", "3306")
-    user: str = os.environ.get("RAS_MYSQL_USER", "rasdaemon")
-    password: str = os.environ.get("RAS_MYSQL_PASSWORD", "")
-    database: str = os.environ.get("RAS_MYSQL_DATABASE", "rasdaemon")
-    socket: str = os.environ.get("RAS_MYSQL_SOCKET", "")
-    use_ssl: str = os.environ.get("RAS_MYSQL_USE_SSL", "false")
+    def __init__(self):
+        self.host = os.environ.get("RAS_MYSQL_HOST", "")
+        self.port = os.environ.get("RAS_MYSQL_PORT", "3306")
+        self.user = os.environ.get("RAS_MYSQL_USER", "rasdaemon")
+        self.password = os.environ.get("RAS_MYSQL_PASSWORD", "")
+        self.database = os.environ.get("RAS_MYSQL_DATABASE", "rasdaemon")
+        self.socket = os.environ.get("RAS_MYSQL_SOCKET", "")
+        self.use_ssl = os.environ.get("RAS_MYSQL_USE_SSL", "false")
 
 
 @dataclass
@@ -123,11 +123,11 @@ class RasdaemonConfig:
     """Rasdaemon configuration variables."""
 
     # Database backend
-    db_backend: str = os.environ.get("RASDAEMON_DB_BACKEND", "sqlite3")
+    db_backend: str = "sqlite3"
 
-    # Hostname for MySQL/MariaDB or PostgreSQL databases
-    # NOTE: I'm keeping it just to be in sync, but probably won't be used
-    hostname: str = os.environ.get("RASDAEMON_HOSTNAME", "")
+    # RASDAEMON_HOSTNAME is used while recording remote database events. The
+    # reporting tool reads hostnames from those records, so it is intentionally
+    # not part of this configuration object.
 
     # Per-database connection parameters
     pg_conn_parms: PostgresqlConnParms = field(default_factory=PostgresqlConnParms)
@@ -165,3 +165,6 @@ class RasdaemonConfig:
 
     # ERST
     erst_delete: int = int(os.environ.get("ERST_DELETE", "1"))
+
+    def __post_init__(self):
+        self.db_backend = os.environ.get("RASDAEMON_DB_BACKEND", "sqlite3")

@@ -65,7 +65,6 @@ class RasDatabase:
         return cls(
             config.db_backend,
             engine=engine,
-            hostname=config.hostname,
             sqlite3_database=cls._get(sqlite, "database", "ras-mc_event.db"),
             mysql_conn_parms=config.mysql_conn_parms,
             postgresql_conn_parms=config.pg_conn_parms,
