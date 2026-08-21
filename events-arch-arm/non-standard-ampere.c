@@ -422,7 +422,7 @@ static const struct db_fields amp_payload2_event_fields[] = {
 	{ .name = "ue_addr",		.type = DB_TYPE_INT32 },
 	{ .name = "reserved1",		.type = DB_TYPE_INT32 },
 	{ .name = "reserved2",		.type = DB_TYPE_INT64 },
-	{ .name = "reserved2",		.type = DB_TYPE_INT64 },
+	{ .name = "reserved3",		.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor amp_payload2_event_tab = {
@@ -1079,3 +1079,15 @@ static void __attribute__((constructor)) amp_init(void)
 {
 	register_ns_ev_decoder(amp_ns_oem_decoder);
 }
+
+#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+struct db_table_descriptor_list ampere_table_descriptors(void)
+{
+	static const struct db_table_descriptor * const tables[] = {
+		&amp_payload0_event_tab, &amp_payload1_event_tab,
+		&amp_payload2_event_tab, &amp_payload3_event_tab,
+	};
+
+	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
+}
+#endif
