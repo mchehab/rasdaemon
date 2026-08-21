@@ -9,6 +9,7 @@
  */
 
 #include <errno.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,11 +34,25 @@ struct pg_stmt_priv {
 	char	*stmt_name;
 	unsigned int n_params;
 
-	bool is_blob;
-
 	char **values;
 	int *lengths;
+	bool *is_blob;
+	bool has_hostname;
 };
+
+static bool valid_identifier(const char *name)
+{
+	const unsigned char *p = (const unsigned char *)name;
+
+	if (!p || strlen(name) > 63 || (!isalpha(*p) && *p != '_'))
+		return false;
+
+	for (p++; *p; p++)
+		if (!isalnum(*p) && *p != '_')
+			return false;
+
+	return true;
+}
 
 static void *db_pg_get_conn_parms(void)
 {
@@ -61,9 +76,12 @@ static void *db_pg_get_conn_parms(void)
 static int db_pg_open(struct ras_db **__db, void *__conn_parms,
 			  unsigned int cpu)
 {
-	char conninfo[1024], *p, *end = conninfo + sizeof(conninfo);
 	struct db_postgresql_conn_params *cp = __conn_parms;
 	struct pg_conn_priv *conn_priv;
+	const char *keywords[9] = { 0 };
+	const char *values[9] = { 0 };
+	char port[16], timeout[16];
+	unsigned int idx = 0;
 	const char *schema;
 	PGconn *conn;
 
@@ -74,46 +92,65 @@ static int db_pg_open(struct ras_db **__db, void *__conn_parms,
 		return -1;
 	}
 
-	/* Build the libpq connection string */
 	if (cp) {
-		p = conninfo;
-
 		if (cp->host && *cp->host) {
-			p += snprintf(p, end - p, "host=%s ", cp->host);
-			if (cp->port)
-				p += snprintf(p, end - p, "port=%hu ", cp->port);
+			keywords[idx] = "host";
+			values[idx++] = cp->host;
+			if (cp->port) {
+				snprintf(port, sizeof(port), "%hu", cp->port);
+				keywords[idx] = "port";
+				values[idx++] = port;
+			}
 		}
 
 		if (!cp->user || !*cp->user)
 			cp->user = "rasdaemon";
 
-		p += snprintf(p, end - p, "user=%s ", cp->user);
+		keywords[idx] = "user";
+		values[idx++] = cp->user;
 
-		if (cp->password && *cp->password)
-			p += snprintf(p, end - p, "password=%s ", cp->password);
+		if (cp->password && *cp->password) {
+			keywords[idx] = "password";
+			values[idx++] = cp->password;
+		}
 
 		if (cp->schema && *cp->schema)
 			schema = cp->schema;
 		else
 			schema = "rasdaemon";
 
-		if (cp->database && *cp->database)
-			p += snprintf(p, end - p, "dbname=%s ", cp->database);
-
-		if (cp->use_ssl) {
-			if (cp->sslmode && *cp->sslmode)
-				p += snprintf(p, end - p, "sslmode=%s ", cp->sslmode);
-			else
-				p += snprintf(p,  end - p, "sslmode=require ");
+		if (cp->database && *cp->database) {
+			keywords[idx] = "dbname";
+			values[idx++] = cp->database;
 		}
 
-		if (cp->connect_timeout)
-			p += snprintf(p, end - p, "connect_timeout=%u ",
-					cp->connect_timeout);
-	}
-	*p = '\0';
+		if (cp->use_ssl) {
+			keywords[idx] = "sslmode";
+			values[idx++] = cp->sslmode && *cp->sslmode ?
+				cp->sslmode : "require";
+		}
 
-	conn = PQconnectdb(conninfo);
+		if (cp->connect_timeout) {
+			snprintf(timeout, sizeof(timeout), "%u", cp->connect_timeout);
+			keywords[idx] = "connect_timeout";
+			values[idx++] = timeout;
+		}
+	} else {
+		schema = "rasdaemon";
+	}
+
+	if (!valid_identifier(schema)) {
+		log(TERM, LOG_ERR, "Invalid PostgreSQL schema name: %s\n", schema);
+		free(conn_priv);
+		return -1;
+	}
+
+	conn = PQconnectdbParams(keywords, values, 0);
+	if (!conn) {
+		log(TERM, LOG_ERR, "Failed to allocate PostgreSQL connection\n");
+		free(conn_priv);
+		return -ENOMEM;
+	}
 
 	if (PQstatus(conn) != CONNECTION_OK) {
 		log(TERM, LOG_ERR,
@@ -154,6 +191,7 @@ static int db_pg_close(struct ras_db *__db, unsigned int cpu)
 			rc = -1;
 		}
 	}
+	free(conn_priv);
 
 	return rc;
 }
@@ -208,13 +246,15 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 		return -1;
 	}
 
-	priv->is_blob = false;
-
 	/* Just in case, to avoid memory leaks */
 	if (priv->values[idx]) {
-		free(priv->values[idx]);
+		if (priv->is_blob[idx])
+			PQfreemem(priv->values[idx]);
+		else
+			free(priv->values[idx]);
 		priv->values[idx] = NULL;
 	}
+	priv->is_blob[idx] = false;
 
 	switch (type) {
 	case DB_TYPE_SERIAL:
@@ -270,7 +310,7 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 			return -1;
 		}
 
-		priv->is_blob = true;
+		priv->is_blob[idx] = true;
 		priv->values[idx] = buf;
 		priv->lengths[idx] = encoded_len;
 		return 0;
@@ -304,6 +344,10 @@ static int db_pg_exec_sql(struct ras_db *__db, const char *sql)
 #endif
 
 	res = PQexec(conn, sql);
+	if (!res) {
+		log(TERM, LOG_ERR, "Failed to allocate PostgreSQL result\n");
+		return -ENOMEM;
+	}
 	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
 		log(TERM, LOG_ERR, "Failed to exec '%s': %s\n",
 		    sql, PQresultErrorMessage(res));
@@ -371,12 +415,18 @@ static int db_pg_alter_table(struct ras_db *__db,
 	const struct db_fields *field;
 	int i, nf, found, rc = 0;
 
-	snprintf(sql, sizeof(sql),
-		 "SELECT column_name FROM information_schema.columns "
-		 "WHERE table_name = '%s.%s'",
-		 conn_priv->schema, db_tab->name);
+	{
+		const char *params[] = { conn_priv->schema, db_tab->name };
 
-	res = PQexec(conn, sql);
+		res = PQexecParams(conn,
+			"SELECT column_name FROM information_schema.columns "
+			"WHERE table_schema = $1 AND table_name = $2",
+			2, NULL, params, NULL, NULL, 0);
+	}
+	if (!res) {
+		log(TERM, LOG_ERR, "Failed to allocate PostgreSQL result\n");
+		return -ENOMEM;
+	}
 	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
 		log(TERM, LOG_ERR,
 			"Failed to query columns of %s: %s\n",
@@ -410,14 +460,19 @@ static int db_pg_alter_table(struct ras_db *__db,
 			{
 				PGresult *r2 = PQexec(conn, sql);
 
-				if (PQresultStatus(r2) != PGRES_COMMAND_OK) {
+				if (!r2) {
+					log(TERM, LOG_ERR,
+					    "Failed to allocate PostgreSQL result\n");
+					rc = -ENOMEM;
+				} else if (PQresultStatus(r2) != PGRES_COMMAND_OK) {
 					log(TERM, LOG_ERR,
 					    "ALTER TABLE %s ADD \"%s\": %s\n",
 					    db_tab->name, field->name,
 					    PQresultErrorMessage(r2));
 					rc = -1;
 				}
-				PQclear(r2);
+				if (r2)
+					PQclear(r2);
 			}
 		}
 	}
@@ -457,14 +512,10 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 
 		p += snprintf(p, end - p, "\"%s\"", field->name);
 
-		/* Add hostname */
-		if (!i)
-			p += snprintf(p, end - p, ", \"hostname\"");
-
-
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
+	p += snprintf(p, end - p, ", \"hostname\"");
 	p += snprintf(p, end - p, ") VALUES (");
 
 	idx = 1;
@@ -475,15 +526,11 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 		else
 			p += snprintf(p, end - p, "$%u", idx++);
 
-		/* Add hostname */
-		if (!i)
-			p += snprintf(p, end - p, ", '%s'", rasdaemon_hostname);
-
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
-
-	p += snprintf(p, end - p, ")");
+	p += snprintf(p, end - p, ", $%u)", idx++);
+	n_parms++;
 	*end = '\0';
 
 #ifdef DEBUG_SQL
@@ -499,17 +546,17 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	}
 
 	status = PQresultStatus(res);
-	PQclear(res);
-
 	if (status != PGRES_COMMAND_OK) {
 		log(TERM, LOG_ERR,
 		    "PQprepare failed for: %s\nStatus: %s, result: %sconnection: %s\n",
 		    sql,
-		    PQresStatus(PQresultStatus(res)),
+		    PQresStatus(status),
 		    PQresultErrorMessage(res),
 		    PQerrorMessage(conn));
+		PQclear(res);
 		return -1;
 	}
+	PQclear(res);
 
 	priv = calloc(1, sizeof(*priv));
 	if (!priv) {
@@ -519,22 +566,43 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	}
 
 	priv->values = calloc(n_parms, sizeof(char *));
-	if (!priv) {
+	if (!priv->values) {
 		log(TERM, LOG_ERR,
 			"No memory for PostgreSQL stmt priv\n");
+		free(priv);
 		return -ENOMEM;
 	}
 
-	priv->lengths = calloc(n_parms, sizeof(int *));
-	if (!priv) {
+	priv->lengths = calloc(n_parms, sizeof(*priv->lengths));
+	if (!priv->lengths) {
 		log(TERM, LOG_ERR,
 			"No memory for PostgreSQL stmt priv\n");
+		free(priv->values);
+		free(priv);
+		return -ENOMEM;
+	}
+
+	priv->is_blob = calloc(n_parms, sizeof(*priv->is_blob));
+	if (!priv->is_blob) {
+		log(TERM, LOG_ERR,
+			"No memory for PostgreSQL stmt priv\n");
+		free(priv->lengths);
+		free(priv->values);
+		free(priv);
 		return -ENOMEM;
 	}
 
 	priv->conn = conn;
 	priv->stmt_name = strdup(stmt_name);
+	if (!priv->stmt_name) {
+		free(priv->is_blob);
+		free(priv->lengths);
+		free(priv->values);
+		free(priv);
+		return -ENOMEM;
+	}
 	priv->n_params = n_parms;
+	priv->has_hostname = true;
 
 	*__stmt = (void *)priv;
 
@@ -547,7 +615,7 @@ static void db_pg_free_stmt(struct pg_stmt_priv *priv)
 {
 	for (int i = 0; i < priv->n_params; i++) {
 		if (priv->values[i]) {
-			if (priv->is_blob)
+			if (priv->is_blob[i])
 				PQfreemem(priv->values[i]);
 			else
 				free(priv->values[i]);
@@ -565,6 +633,13 @@ static int db_pg_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 	PGresult *res;
 	int rc = 0;
 
+	if (priv->has_hostname &&
+	    db_pg_bind_type(__stmt, DB_TYPE_TEXT, priv->n_params,
+				    (uint64_t)rasdaemon_hostname, -1)) {
+		db_pg_free_stmt(priv);
+		return -1;
+	}
+
 	res = PQexecPrepared(conn, priv->stmt_name, priv->n_params,
 			     (const char * const*)priv->values,
 			     priv->lengths, NULL, 0);
@@ -573,6 +648,7 @@ static int db_pg_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 		log(TERM, LOG_ERR,
 			"PQexecPrepared (%s) failed: %s\n",
 			tab_name, PQerrorMessage(conn));
+		db_pg_free_stmt(priv);
 		return -1;
 	}
 
@@ -602,6 +678,7 @@ static int db_pg_finalize(unsigned int cpu,
 	free(priv->stmt_name);
 	free(priv->values);
 	free(priv->lengths);
+	free(priv->is_blob);
 	free(priv);
 
 	return 0;

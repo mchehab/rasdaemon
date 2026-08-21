@@ -317,6 +317,8 @@ static void test_init_cleanup(void **state)
 	modules_unregister();
 	assert_null(ras_modules.head);
 	assert_null(ras_modules.next);
+	free(ras.name);
+	ras.name = NULL;
 }
 
 /*

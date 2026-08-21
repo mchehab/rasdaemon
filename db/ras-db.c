@@ -25,21 +25,23 @@ static bool add_hostname = false;
 
 int db_backend_register(struct ras_db_backend_entry *entry)
 {
-	const struct ras_db_backend_ops *ops = entry->ops;
-	const char *name = entry->name;
+	const struct ras_db_backend_ops *ops;
+	const char *name;
 	struct ras_db_backend_entry **head = &ras_db_backends.next;
 	struct ras_db_backend_entry *new, *cur, *prev = NULL;
+
+	if (!entry) {
+		log(TERM, LOG_ERR, "Backend entry is missing!\n");
+		return -EINVAL;
+	}
+	ops = entry->ops;
+	name = entry->name;
 
 	if (!ops || !ops->get_sql_type || !ops->bind_type ||
 	    !ops->eval_stmt || !ops->create_table || !ops->alter_table ||
 	    !ops->prepare_stmt || !ops->finalize || !ops->open ||
 	    !ops->close || !ops->db_exec_sql) {
 		log(TERM, LOG_ERR, "Incomplete ops for backend %s\n", name);
-		return -EINVAL;
-	}
-
-	if (!entry) {
-		log(TERM, LOG_ERR, "Backend entry is missing!\n");
 		return -EINVAL;
 	}
 
@@ -223,6 +225,8 @@ int db_close(unsigned int cpu, struct ras_events *ras)
 
 	if (!ras_db_ops)
 		return 0;
+	if (ras->db_ref_count <= 0)
+		return -EINVAL;
 
 	ras->db_ref_count--;
 

@@ -77,6 +77,8 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 	sqlite3 **db = (void *)__db;
 	int flags, rc;
 
+	*db = NULL;
+
 	flags = SQLITE_OPEN_FULLMUTEX |
 		SQLITE_OPEN_READWRITE |
 		SQLITE_OPEN_CREATE;
@@ -99,14 +101,24 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 		return -1;
 	}
 
-	if (db_sqlite3_create_db_dir(full_fname) < 0)
+	if (db_sqlite3_create_db_dir(full_fname) < 0) {
+		free(full_fname);
+		full_fname = NULL;
 		return -1;
+	}
 
 	rc = sqlite3_initialize();
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "cpu %u: Failed to initialize sqlite: %s (error %d)\n",
 		    cpu, sqlite3_errstr(rc), rc);
+		if (*db) {
+			sqlite3_close_v2(*db);
+			*db = NULL;
+		}
+		sqlite3_shutdown();
+		free(full_fname);
+		full_fname = NULL;
 		return -1;
 	}
 
@@ -120,6 +132,13 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 		log(TERM, LOG_ERR,
 		    "cpu %u: Failed to connect to %s: %s (error %d)\n",
 		    cpu, full_fname, sqlite3_errstr(rc), rc);
+		if (*db) {
+			sqlite3_close_v2(*db);
+			*db = NULL;
+		}
+		sqlite3_shutdown();
+		free(full_fname);
+		full_fname = NULL;
 		return -1;
 	}
 
@@ -142,6 +161,9 @@ static int db_sqlite3_close(struct ras_db *__db, unsigned int cpu)
 		log(TERM, LOG_ERR,
 		    "cpu %u: Failed to shutdown sqlite: %s (error %d)\n", cpu,
 		    sqlite3_errstr(rc), rc);
+
+	free(full_fname);
+	full_fname = NULL;
 
 	return rc;
 }
@@ -276,15 +298,17 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 				  const struct db_table_descriptor *db_tab)
 {
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
-	sqlite3_stmt **stmt = (void *)__stmt;
+	sqlite3_stmt *schema_stmt = NULL;
 	const struct db_fields *field;
 	sqlite3 *db = (void *)__db;
 	const char *type;
 	int col_count;
 	int i, j, rc, found;
 
+	(void)__stmt;
+
 	snprintf(p, end - p, "SELECT * FROM %s", db_tab->name);
-	rc = sqlite3_prepare_v2(db, sql, -1, stmt, NULL);
+	rc = sqlite3_prepare_v2(db, sql, -1, &schema_stmt, NULL);
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to query fields from the table %s on %s: : %s (error %d)\n",
@@ -292,13 +316,13 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 		return rc;
 	}
 
-	col_count = sqlite3_column_count(*stmt);
+	col_count = sqlite3_column_count(schema_stmt);
 	for (i = 0; i < db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
 		found = 0;
 		for (j = 0; j < col_count; j++) {
 			if (!strcmp(field->name,
-				    sqlite3_column_name(*stmt, j))) {
+				    sqlite3_column_name(schema_stmt, j))) {
 				found = 1;
 				break;
 			}
@@ -322,6 +346,9 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 			*p = '\0';
 		}
 	}
+
+	if (sqlite3_finalize(schema_stmt) != SQLITE_OK && rc == SQLITE_OK)
+		rc = SQLITE_ERROR;
 
 	return rc;
 }

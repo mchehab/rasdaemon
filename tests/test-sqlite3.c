@@ -338,6 +338,7 @@ static void test_db_bind(void **state)
 
 	rc = db_eval_stmt(stmt, db_tab.name);
 	assert_int_equal(rc, 0);
+	assert_int_equal(db_finalize(stmt), 0);
 
 	rc = sqlite3_check_values(state, ras.db, &stmt, &db_tab,
 				  vals, ARRAY_SIZE(vals));
@@ -455,6 +456,7 @@ static void test_db_complex_table(void **state)
 
 	rc = db_eval_stmt(stmt, db_tab.name);
 	assert_int_equal(rc, 0);
+	assert_int_equal(db_finalize(stmt), 0);
 
 	rc = sqlite3_check_values(state, ras.db, &stmt, &db_tab,
 				  vals, ARRAY_SIZE(vals));

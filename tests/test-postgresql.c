@@ -75,7 +75,7 @@ static char *datetime_to_iso(const char *cell)
 
 	end = strptime(cell, "%Y-%m-%d %H:%M:%S", &tm);
 	if (!end )
-		return "";
+		return NULL;
 
 	tm.tm_isdst = 0;
 
@@ -123,6 +123,7 @@ static int pg_check_values(void **state,
 		pos = 0;
 		for (i = 0; i < len && i < ncol; i++) {
 			const char *cell = PQgetvalue(res, r, i);
+			char *converted = NULL;
 			const struct db_values *ev = &values[pos++];
 			bool isnull = (PQgetisnull(res, r, i) != 0);
 
@@ -138,7 +139,8 @@ static int pg_check_values(void **state,
 				}
 				break;
 			case DB_TYPE_TIMESTAMP:
-				cell = datetime_to_iso(cell);
+				converted = datetime_to_iso(cell);
+				cell = converted;
 				/* fail-through */
 			case DB_TYPE_TEXT:
 			case DB_TYPE_BLOB:
@@ -157,6 +159,7 @@ static int pg_check_values(void **state,
 
 						assert_string_equal(buf,
 								    ev->string);
+						PQfreemem(str);
 
 					} else {
 						assert_string_equal(cell, ev->string);
@@ -164,6 +167,7 @@ static int pg_check_values(void **state,
 				}
 				break;
 			}
+			free(converted);
 
 			/* Check hostname */
 			if (!i) {

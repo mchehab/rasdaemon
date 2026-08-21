@@ -72,7 +72,7 @@ static char *datetime_to_iso(const char * cell)
 
 	end = strptime(cell, "%Y-%m-%d %H:%M:%S", &tm);
 	if (!end )
-		return "";
+		return NULL;
 
 	/*
 	 * MySQL DATETIME has no timezone.
@@ -127,6 +127,7 @@ static int mysql_check_values(void **state,
 		pos = 0;
 		for (i = 0; i < len && i < ncol; i++) {
 			const char *cell = row[i];
+			char *converted = NULL;
 			const struct db_values *ev = &values[pos++];
 			long long val;
 
@@ -139,7 +140,8 @@ static int mysql_check_values(void **state,
 				assert_int_equal(val, (long long)ev->value);
 				break;
 			case DB_TYPE_TIMESTAMP:
-				cell = datetime_to_iso(cell);
+				converted = datetime_to_iso(cell);
+				cell = converted;
 				/* fall though */
 			case DB_TYPE_TEXT:
 			case DB_TYPE_BLOB:
@@ -152,6 +154,7 @@ static int mysql_check_values(void **state,
 				}
 				break;
 			}
+			free(converted);
 
 			/* Check hostname */
 			if (!i) {

@@ -33,7 +33,7 @@ void *db_mysql_get_conn_parms(void)
 	static struct db_mysql_conn_params cp;
 
 	cp.connect_timeout = env_or_int("RAS_MYSQL_CONNECT_TIMEOUT", 10);
-	cp.port = env_or_int("RAS_MYSQL_PORT", 5432);
+	cp.port = env_or_int("RAS_MYSQL_PORT", 3306);
 
 	cp.host = env_or("RAS_MYSQL_HOST", NULL);
 	cp.user = env_or("RAS_MYSQL_USER", "rasdaemon");
@@ -56,6 +56,7 @@ struct mysql_stmt_priv {
 	MYSQL_STMT	*stmt;
 	unsigned int	n_params;
 	MYSQL_BIND	*binds;
+	bool		has_hostname;
 };
 
 // TODO: assert that allocs won't return errors
@@ -197,7 +198,15 @@ static int db_mysql_bind_type(struct ras_stmt *__stmt,
 {
 	struct mysql_stmt_priv *priv = (struct mysql_stmt_priv *)__stmt;
 	unsigned int idx = (unsigned int)pos - 1;
-	MYSQL_BIND *mb = &priv->binds[idx];
+	MYSQL_BIND *mb;
+
+	if (idx >= priv->n_params) {
+		log(TERM, LOG_ERR,
+		    "mysql_bind_type: pos %d out of range (n=%u)\n",
+		    pos, priv->n_params);
+		return -1;
+	}
+	mb = &priv->binds[idx];
 
 	memset(mb, 0, sizeof(*mb));
 
@@ -256,7 +265,7 @@ static int db_mysql_bind_type(struct ras_stmt *__stmt,
 
 	if (!value) {
 		mb->is_null = malloc(sizeof(bool));
-		if (!mb->buffer) {
+		if (!mb->is_null) {
 			log(TERM, LOG_ERR,
 			    "Failed to allocate memory for NULL\n");
 			return -1;
@@ -371,7 +380,7 @@ static int db_mysql_alter_table(struct ras_db *__db,
 
 	snprintf(sql, sizeof(sql),
 		 "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
-		 "WHERE TABLE_NAME = '%s'",
+		 "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s'",
 		 db_tab->name);
 
 	res = mysql_query(db, sql) == 0 ? mysql_store_result(db) : NULL;
@@ -439,14 +448,10 @@ static int db_mysql_prepare_insert_stmt(struct ras_db *__db,
 		field = &db_tab->fields[i];
 		p += snprintf(p, end - p, "`%s`", field->name);
 
-		/* Add hostname */
-		if (!i)
-			p += snprintf(p, end - p, ", `hostname`");
-
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
-
+	p += snprintf(p, end - p, ", `hostname`");
 	p += snprintf(p, end - p, ") VALUES (");
 
 	for (i = 0; i < db_tab->num_fields; i++) {
@@ -458,14 +463,11 @@ static int db_mysql_prepare_insert_stmt(struct ras_db *__db,
 			p += snprintf(p, end - p, "?");
 		}
 
-		/* Add hostname */
-		if (!i)
-			p += snprintf(p, end - p, ", '%s'", rasdaemon_hostname);
-
 		if (i < db_tab->num_fields - 1)
 			p += snprintf(p, end - p, ", ");
 	}
-	p += snprintf(p, end - p, ")");
+	p += snprintf(p, end - p, ", ?)");
+	n_params++;
 	*end = '\0';
 
 #ifdef DEBUG_SQL
@@ -499,6 +501,13 @@ static int db_mysql_prepare_insert_stmt(struct ras_db *__db,
 	priv->stmt = ms;
 	priv->n_params = n_params;
 	priv->binds = calloc(n_params, sizeof(MYSQL_BIND));
+	if (!priv->binds) {
+		log(TERM, LOG_ERR, "No memory for MySQL statement binds\n");
+		mysql_stmt_close(ms);
+		free(priv);
+		return -ENOMEM;
+	}
+	priv->has_hostname = true;
 
 	*__stmt = (void *)priv;
 
@@ -525,6 +534,13 @@ static int db_mysql_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 	struct mysql_stmt_priv *priv = (struct mysql_stmt_priv *)__stmt;
 	MYSQL_STMT *ms = priv->stmt;
 	int rc1, rc2;
+
+	if (priv->has_hostname &&
+	    db_mysql_bind_type(__stmt, DB_TYPE_TEXT, priv->n_params,
+			       (uint64_t)rasdaemon_hostname, -1)) {
+		db_mysql_free_stmt(priv);
+		return -1;
+	}
 
 	rc1 = mysql_stmt_bind_param(ms, priv->binds);
 
@@ -564,6 +580,7 @@ static int db_mysql_finalize(unsigned int cpu,
 	db_mysql_free_stmt(priv);
 
 	mysql_stmt_close(priv->stmt);
+	free(priv->binds);
 	free(priv);
 
 	return 0;

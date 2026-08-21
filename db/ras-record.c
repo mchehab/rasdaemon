@@ -1322,15 +1322,14 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 {
 	struct ras_record_priv *priv = ras->db_priv;
 	struct ras_db *db;
+	int rc = 0;
 
 	printf("Calling %s()\n", __func__);
 
-	if (ras->db_ref_count > 0)
-		ras->db_ref_count--;
-	else
+	if (ras->db_ref_count <= 0)
 		return -1;
-	if (ras->db_ref_count > 0)
-		return 0;
+	if (ras->db_ref_count > 1)
+		return db_close(cpu, ras);
 
 	if (!priv)
 		return -1;
@@ -1340,63 +1339,66 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 		return -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_mc_event, "mc_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_aer_event, "aer_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_extlog_record, "extlog_record"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_mce_record, "mce_record"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_non_standard_record, "non_standard_record"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_arm_record, "arm_record"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_devlink_event, "devlink_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_diskerror_event, "diskerror_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_mf_event, "mf_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_cxl_poison_event, "cxl_poison_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_cxl_aer_ue_event, "cxl_aer_ue_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_cxl_aer_ce_event, "cxl_aer_ce_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_cxl_overflow_event, "cxl_overflow_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_cxl_generic_event, "cxl_generic_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_cxl_general_media_event, "cxl_general_media_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_cxl_dram_event, "cxl_dram_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_cxl_memory_module_event, "cxl_memory_module_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_signal_event, "signal_event"))
-		return -1;
+		rc = -1;
 
 	if (db_cpu_finalize(cpu, priv->stmt_reri_event, "reri_event"))
-		return -1;
+		rc = -1;
 
-	return db_close(cpu, ras);
+	if (db_close(cpu, ras))
+		rc = -1;
+
+	return rc;
 }
 
 #ifdef HAVE_UNITTEST
