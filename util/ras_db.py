@@ -13,11 +13,17 @@ import socket
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
-from sqlalchemy import Index, MetaData, Table, create_engine, inspect, select
+from sqlalchemy import Index, MetaData, Table, create_engine, event, inspect, select
 from sqlalchemy.engine import Engine, URL
 
 
 SUPPORTED_BACKENDS = ("sqlite3", "mysql", "postgresql")
+
+
+def _decode_sqlite_text(value: bytes) -> str:
+    """Decode SQLite TEXT while preserving malformed bytes visibly."""
+
+    return value.decode("utf-8", errors="backslashreplace")
 
 
 @dataclass(frozen=True)
@@ -43,6 +49,10 @@ class RasDatabase:
         self.schema = None
         if engine is None:
             engine = create_engine(self._database_url(db_backend, kwargs))
+        if db_backend == "sqlite3":
+            @event.listens_for(engine, "connect")
+            def set_text_factory(dbapi_connection: Any, _connection: Any) -> None:
+                dbapi_connection.text_factory = _decode_sqlite_text
         self.engine = engine
         if db_backend == "postgresql":
             params = kwargs.get("postgresql_conn_parms", {})

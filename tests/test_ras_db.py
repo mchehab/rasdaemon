@@ -257,6 +257,29 @@ class RasDatabaseTests:
 class SqliteRasDatabaseTest(RasDatabaseTests, unittest.TestCase):
     backend = "sqlite3"
 
+    def test_malformed_utf8_text_is_displayable(self):
+        table = sqlalchemy.Table(
+            "malformed_utf8_event", self.metadata,
+            sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+            sqlalchemy.Column("timestamp", sqlalchemy.Text),
+            sqlalchemy.Column("err_info", sqlalchemy.Text),
+        )
+        table.create(self.engine)
+        with self.engine.begin() as connection:
+            connection.exec_driver_sql(
+                f'INSERT INTO "{table.name}" '
+                "(id, timestamp, err_info) VALUES "
+                "(1, '2026-03-01 10:00:00', CAST(X'80' AS TEXT))"
+            )
+
+        groups = self.database.records()
+        event = next(
+            item for item in groups["local-host"]
+            if item.table == table.name and item.values["id"] == 1
+        )
+        self.assertEqual(event.values["err_info"], r"\x80")
+        self.assertIn(r"err_info=\x80", self.database.format_records(groups))
+
     def test_database_url_uses_complete_path(self):
         path = os.path.join(self.temporary_directory.name, "complete-path.db")
         url = RasDatabase._database_url(
