@@ -241,8 +241,7 @@ class RasDatabaseTests:
     def test_database_command_options_depend_on_backend(self):
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
-        config = argparse.Namespace(db_backend=self.backend)
-        RasDatabaseCommand("ras-mc-ctl", subparsers, config)
+        RasDatabaseCommand("ras-mc-ctl", subparsers)
         command = ["database", "--since", "2026-03-01",
                    "--until", "2026-03-02"]
         if self.backend != "sqlite3":
