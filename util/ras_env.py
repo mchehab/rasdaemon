@@ -17,7 +17,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Optional
 
-from ras_config import RasMesonConfig, Sqlite3ConnParms
+from ras_config import Sqlite3ConnParms
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 class RasDaemonEnv:
     MAX_LINE_LEN = 1024
 
+    @staticmethod
     def ras_set_env(fname: str) -> int:
         """
         Parse a configuration file and set environment variables.
@@ -120,8 +121,6 @@ class MysqlConnParms:
 @dataclass
 class RasdaemonConfig:
     """Rasdaemon configuration variables."""
-
-    rasdaemon: RasMesonConfig = field(default_factory=RasMesonConfig)
 
     # Database backend
     db_backend: str = os.environ.get("RASDAEMON_DB_BACKEND", "sqlite3")

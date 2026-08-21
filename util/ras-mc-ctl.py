@@ -26,23 +26,27 @@ if sys.version_info < (3, 10):
     sys.exit(1)
 
 
-from ras_env import RasdaemonConfig
+from ras_env import RasDaemonEnv, RasdaemonConfig
 from ras_dimm import RasMemoryDimm
+from ras_config import RasMesonConfig
 
 
 def main() -> None:
     """Parse command line arguments."""
 
-    cfg = RasdaemonConfig()
+    meson_cfg = RasMesonConfig()
 
     parser = argparse.ArgumentParser(description=__doc__,
                                      usage="%(prog)s <command> [options]")
 
     parser.add_argument('--version', "-V", action='version',
-                        version=f"%(prog)s {cfg.rasdaemon.version}")
+                        version=f"%(prog)s {meson_cfg.version}")
 
     parser.add_argument("--verbose", "-v",
                         action='count', default=0, help="verbosity level")
+
+    parser.add_argument("--config", "-c", default=meson_cfg.env_file,
+                        help="Use a different config file (default: %(default)s)")
 
     subparsers = parser.add_subparsers(help="Available commands")
 
@@ -56,11 +60,17 @@ def main() -> None:
     try:
         from ras_db import RasDatabaseCommand
 
-        RasDatabaseCommand(PROG, subparsers, cfg)
+        cfg = RasdaemonConfig()
+
+        RasDatabaseCommand(PROG, subparsers)
     except ImportError as error:
         logger.debug("Disabling database command: %s", error)
 
     args = parser.parse_args()
+
+    RasDaemonEnv().ras_set_env(args.config)
+
+    env_cfg = RasdaemonConfig()
 
     if args.verbose:
         level=logging.DEBUG
@@ -70,7 +80,7 @@ def main() -> None:
     logging.basicConfig(level=level, format='[%(levelname)s] %(message)s')
 
     if "func" in args:
-        args.func(args)
+        args.func(env_cfg, args)
     else:
         print("Error: no command specified\n", file=sys.stderr)
 

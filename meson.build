@@ -415,6 +415,33 @@ if have_unittest
 endif
 
 #
+# Install files that don't require configuration
+#
+
+py.install_sources([
+    'util/__init__.py',
+    'util/ras_db.py',
+    'util/ras_dimm.py',
+    'util/ras_env.py',
+])
+
+rasdaemon_env = prefix / get_option('sysconfdir') / 'sysconfig' / 'rasdaemon'
+install_data('misc/rasdaemon.env',
+    install_dir: get_option('sysconfdir') + '/sysconfig',
+    rename: 'rasdaemon',
+)
+
+install_data('contrib/mc_event_trigger',
+    install_dir: get_option('sysconfdir') + '/ras/triggers',
+    install_mode: 'rwxr-xr-x',
+)
+
+install_data('contrib/mem_fail_trigger',
+    install_dir: get_option('sysconfdir') + '/ras/triggers',
+    install_mode: 'rwxr-xr-x',
+)
+
+#
 # Extra install files
 #
 
@@ -445,6 +472,8 @@ conf_data = {
     'WITH_MEMORY_FAILURE_TRUE' : enable_memory_failure ? '' : '#',
     'WITH_NVIDIA_NS_DECODE_TRUE' : enable_nvidia_ns_decode ? '' : '#',
     'WITH_SIGNAL_TRUE' : enable_signal ? '' : '#',
+
+    'RASDAEMON_ENV': rasdaemon_env,
 }
 
 # Files requiring variable substitution and their install destinations.
@@ -505,31 +534,6 @@ foreach in_file, install_dir : install_map
         )
     endif
 endforeach
-
-# Install files that don't require configuration
-
-py.install_sources([
-    'util/__init__.py',
-    'util/ras_db.py',
-    'util/ras_dimm.py',
-    'util/ras_env.py',
-])
-
-rasdaemon_env = prefix / get_option('sysconfdir') / 'sysconfig' / 'rasdaemon'
-install_data('misc/rasdaemon.env',
-    install_dir: get_option('sysconfdir') + '/sysconfig',
-    rename: 'rasdaemon',
-)
-
-install_data('contrib/mc_event_trigger',
-    install_dir: get_option('sysconfdir') + '/ras/triggers',
-    install_mode: 'rwxr-xr-x',
-)
-
-install_data('contrib/mem_fail_trigger',
-    install_dir: get_option('sysconfdir') + '/ras/triggers',
-    install_mode: 'rwxr-xr-x',
-)
 
 # DIMM labels
 

@@ -13,6 +13,7 @@ import subprocess
 import sys
 import time
 from shutil import which
+from typing import Any
 
 from mem_layout import MemoryLayout
 
@@ -38,7 +39,8 @@ class RasMemoryDimm:
         self.label_dir = self.DEFAULT_LABEL_DIR
         self.delay = 0
 
-        parser = subparsers.add_parser("dimm", description=__doc__)
+        parser = subparsers.add_parser("dimm", aliases=["mem"],
+                                       help="Get memory configuration and set banks database")
         parser.add_argument("--mainboard", "-m", action="store_true",
                             help="Print mainboard vendor and model for this hardware.")
         parser.add_argument("--dmidecode", "-D", action="store_true",
@@ -63,7 +65,7 @@ class RasMemoryDimm:
                             help="Display the memory layout.")
         parser.set_defaults(func=self.run)
 
-    def run(self, args):
+    def run(self, config:Any, args: Any) -> None:
         self.delay = args.delay
         if args.labeldb:
             self.label_db = args.labeldb

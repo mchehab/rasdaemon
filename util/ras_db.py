@@ -237,9 +237,8 @@ class RasDatabase:
 class RasDatabaseCommand:
     """Register and implement the ras-mc-ctl database command."""
 
-    def __init__(self, prog: str, subparsers: Any, config: Any) -> None:
+    def __init__(self, prog: str, subparsers: Any) -> None:
         self.prog = prog
-        self.config = config
         parser = subparsers.add_parser(
             "database", aliases=["db"],
             help="Display records from the configured rasdaemon database.",
@@ -256,17 +255,15 @@ class RasDatabaseCommand:
             "--until", metavar="YYYY-MM-DD",
             help="Only display records at or before this date.",
         )
-        if config.db_backend != "sqlite3":
-            parser.add_argument(
-                "--hostname",
-                help="Only display records stored for this hostname.",
-            )
-        else:
-            parser.set_defaults(hostname=None)
+        parser.add_argument(
+            "--hostname",
+            help="Only display records stored for this hostname (ignored with sqlite3).",
+        )
+
         parser.set_defaults(func=self.run)
 
-    def run(self, args: Any) -> None:
-        database = RasDatabase.from_config(self.config)
+    def run(self, config:Any, args: Any) -> None:
+        database = RasDatabase.from_config(config)
         try:
             created = database.create_missing_indexes()
             for name in created:
