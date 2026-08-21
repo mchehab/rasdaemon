@@ -271,9 +271,6 @@ int db_bind(const struct db_table_descriptor *db_tab,
 
 	for (i = 0; i < db_tab->num_fields; i++) {
 		if (fields[i].type == DB_TYPE_SERIAL) {
-			/* Skip hostname */
-			if (i == 0)
-				i++;
 			continue;
 		}
 
@@ -366,4 +363,3 @@ int db_cpu_finalize(unsigned int cpu, struct ras_stmt *stmt, const char *name)
 
 		return ras_db_ops->finalize(cpu, stmt, name);
 }
-
