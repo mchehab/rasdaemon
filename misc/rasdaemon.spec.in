@@ -60,6 +60,8 @@ an utility for reporting current error counts from the EDAC sysfs files.
 %doc AUTHORS ChangeLog COPYING README.md TODO
 %{_sbindir}/%{name}
 %{_sbindir}/ras-mc-ctl
+%{python3_sitelib}/*.py
+%{python3_sitelib}/__pycache__/*.pyc
 %{_mandir}/*/*
 %{_unitdir}/*.service
 %{_sysconfdir}/ras/*/*
