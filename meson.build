@@ -53,8 +53,12 @@ else
   systemd_unitdir = join_paths(libdir, 'systemd', 'system')
 endif
 
-if not prefix.endswith('/usr')
-  systemd_unitdir = prefix + systemd_unitdir
+if prefix != '/usr'
+  if systemd_unitdir.startswith('/')
+    systemd_unitdir = prefix + systemd_unitdir
+  else
+    systemd_unitdir = join_paths(prefix, systemd_unitdir)
+  endif
 endif
 
 bash_compdir = prefix / datadir / 'bash-completion' / 'completions'
@@ -426,9 +430,15 @@ py.install_sources([
     'util/ras_env.py',
 ])
 
-install_data('util/ras-mc-ctl.py',
+ras_mc_ctl_conf = configuration_data()
+ras_mc_ctl_conf.set('PYTHON_DIR', pydir)
+
+configure_file(
+    input: 'util/ras-mc-ctl.py',
+    output: 'ras-mc-ctl',
+    configuration: ras_mc_ctl_conf,
+    install: true,
     install_dir: get_option('sbindir'),
-    rename: 'ras-mc-ctl',
     install_mode: 'rwxr-xr-x',
 )
 
