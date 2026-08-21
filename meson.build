@@ -420,10 +420,18 @@ endif
 
 py.install_sources([
     'util/__init__.py',
+    'util/display_table.py',
+    'util/mem_layout.py',
     'util/ras_db.py',
     'util/ras_dimm.py',
     'util/ras_env.py',
 ])
+
+install_data('util/ras-mc-ctl.py',
+    install_dir: get_option('sbindir'),
+    rename: 'ras-mc-ctl',
+    install_mode: 'rwxr-xr-x',
+)
 
 rasdaemon_env = prefix / get_option('sysconfdir') / 'sysconfig' / 'rasdaemon'
 install_data('misc/rasdaemon.env',
@@ -499,8 +507,6 @@ install_map = {
     'misc/rasdaemon.syslog-ng.in' : get_option('sysconfdir') + '/syslog-ng/conf.d',
     'misc/rasdaemon.rsyslog.in' : get_option('sysconfdir') + '/rsyslog.d',
     'misc/rasdaemon.logrotate.in' : get_option('sysconfdir') + '/logrotate.d',
-
-    'util/ras-mc-ctl.in' : get_option('sbindir'),
 }
 
 # File renaming install rules
