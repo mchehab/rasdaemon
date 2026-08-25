@@ -117,6 +117,7 @@ class MysqlConnParms:
         self.database = os.environ.get("RAS_MYSQL_DATABASE", "rasdaemon")
         self.socket = os.environ.get("RAS_MYSQL_SOCKET", "")
         self.use_ssl = os.environ.get("RAS_MYSQL_USE_SSL", "false")
+        self.connect_timeout = os.environ.get("RAS_MYSQL_CONNECT_TIMEOUT", "10")
 
 
 @dataclass

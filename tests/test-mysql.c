@@ -10,6 +10,9 @@
  *   RAS_MYSQL_USER       (default: "rasdaemon")
  *   RAS_MYSQL_PASSWORD   (default: "")
  *   RAS_MYSQL_DATABASE   (default: "rasdaemon_test")
+ *   RAS_MYSQL_SOCKET     (default: client default)
+ *   RAS_MYSQL_USE_SSL    (default: false)
+ *   RAS_MYSQL_CONNECT_TIMEOUT (default: 10 seconds)
  *
  */
 
@@ -455,6 +458,10 @@ static int group_setup(void **state)
 	conn_parms.user = env_or("RAS_MYSQL_USER", conn_parms.user);
 	conn_parms.password = env_or("RAS_MYSQL_PASSWORD", conn_parms.password);
 	conn_parms.database = env_or("RAS_MYSQL_DATABASE", conn_parms.database);
+	conn_parms.socket = env_or("RAS_MYSQL_SOCKET", conn_parms.socket);
+	conn_parms.use_ssl = env_or_bool("RAS_MYSQL_USE_SSL", conn_parms.use_ssl);
+	conn_parms.connect_timeout = env_or_int("RAS_MYSQL_CONNECT_TIMEOUT",
+						  conn_parms.connect_timeout);
 
 	port = getenv("RAS_MYSQL_PORT");
 	if (port)

@@ -96,6 +96,9 @@ jobs:
           RAS_MYSQL_USER: rasdaemon
           RAS_MYSQL_PASSWORD: mypass
           RAS_MYSQL_DATABASE: rasdaemon_test
+          RAS_MYSQL_SOCKET: ''
+          RAS_MYSQL_USE_SSL: 'false'
+          RAS_MYSQL_CONNECT_TIMEOUT: '10'
           RAS_PG_HOST: ''
           RAS_PG_PORT: 5432
           RAS_PG_USER: rasdaemon
@@ -106,6 +109,14 @@ jobs:
           build/unittest -o tap
       - name: Run Python unittests
         env:
+          RAS_MYSQL_HOST: ''
+          RAS_MYSQL_PORT: '3306'
+          RAS_MYSQL_USER: rasdaemon
+          RAS_MYSQL_PASSWORD: mypass
+          RAS_MYSQL_DATABASE: rasdaemon_test
+          RAS_MYSQL_SOCKET: ''
+          RAS_MYSQL_USE_SSL: 'false'
+          RAS_MYSQL_CONNECT_TIMEOUT: '10'
           RAS_PG_HOST: ''
           RAS_PG_PORT: 5432
           RAS_PG_USER: rasdaemon
@@ -157,8 +168,20 @@ jobs:
           RAS_MYSQL_USER: rasdaemon
           RAS_MYSQL_PASSWORD: mypass
           RAS_MYSQL_DATABASE: rasdaemon_test
+          RAS_MYSQL_SOCKET: ''
+          RAS_MYSQL_USE_SSL: 'false'
+          RAS_MYSQL_CONNECT_TIMEOUT: '10'
         run: |-
           build/unittest -o tap -g mysql
       - name: Run Python unittests
+        env:
+          RAS_MYSQL_HOST: ''
+          RAS_MYSQL_PORT: '3306'
+          RAS_MYSQL_USER: rasdaemon
+          RAS_MYSQL_PASSWORD: mypass
+          RAS_MYSQL_DATABASE: rasdaemon_test
+          RAS_MYSQL_SOCKET: ''
+          RAS_MYSQL_USE_SSL: 'false'
+          RAS_MYSQL_CONNECT_TIMEOUT: '10'
         run: |-
           python3 -m unittest -v tests.test_ras_db.MysqlRasDatabaseTest

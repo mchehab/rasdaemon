@@ -50,7 +50,16 @@ class RasDatabase:
         self.hostname = hostname or socket.gethostname()
         self.schema = None
         if engine is None:
-            engine = create_engine(self._database_url(db_backend, kwargs))
+            connect_args = self._database_connect_args(db_backend, kwargs)
+            engine = create_engine(
+                self._database_url(db_backend, kwargs),
+                connect_args=connect_args,
+            )
+            if db_backend == "mysql" and "ssl" in connect_args:
+                @event.listens_for(engine, "connect")
+                def require_mysql_tls(dbapi_connection: Any,
+                                      _connection: Any) -> None:
+                    self._require_mysql_tls(dbapi_connection)
         if db_backend == "sqlite3":
             @event.listens_for(engine, "connect")
             def set_text_factory(dbapi_connection: Any, _connection: Any) -> None:
@@ -91,18 +100,19 @@ class RasDatabase:
         key = "mysql_conn_parms" if backend == "mysql" else "postgresql_conn_parms"
         params = kwargs.get(key, {})
         if backend == "mysql":
-            query = {}
+            query = {
+                "connect_timeout": str(
+                    cls._get(params, "connect_timeout", 10)
+                ),
+            }
             unix_socket = cls._get(params, "socket", "")
             if unix_socket:
                 query["unix_socket"] = unix_socket
-            if str(cls._get(params, "use_ssl", "false")).lower() in (
-                    "1", "true", "yes", "on"):
-                query["ssl"] = "true"
             return URL.create(
                 "mysql+mysqldb",
                 username=cls._get(params, "user", "rasdaemon"),
                 password=cls._get(params, "password", ""),
-                host=None if unix_socket else cls._get(params, "host", "localhost"),
+                host=None if unix_socket else cls._get(params, "host", "") or None,
                 port=int(cls._get(params, "port", 3306)),
                 database=cls._get(params, "database", "rasdaemon"),
                 query=query,
@@ -124,6 +134,37 @@ class RasDatabase:
             database=cls._get(params, "database", "rasdaemon"),
             query=query,
         )
+
+    @classmethod
+    def _database_connect_args(cls, backend: str,
+                               kwargs: Mapping[str, Any]) -> dict[str, Any]:
+        """Return DBAPI connection arguments not representable in a URL."""
+
+        if backend != "mysql":
+            return {}
+
+        params = kwargs.get("mysql_conn_parms", {})
+        if str(cls._get(params, "use_ssl", "false")).lower() not in (
+                "1", "true", "yes", "on"):
+            return {}
+
+        # mysqlclient accepts SSL parameters only as a mapping.  The connect
+        # listener above rejects a connection that did not actually negotiate
+        # TLS, matching the daemon's required-TLS policy.
+        return {"ssl": {}}
+
+    @staticmethod
+    def _require_mysql_tls(dbapi_connection: Any) -> None:
+        """Reject a MySQL connection that did not negotiate TLS."""
+
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SHOW STATUS LIKE 'Ssl_cipher'")
+            row = cursor.fetchone()
+        finally:
+            cursor.close()
+        if not row or not row[1]:
+            raise RuntimeError("MySQL TLS was required but is not in use")
 
     def discover_tables(self) -> dict[str, Table]:
         """Reflect all tables containing a timestamp column."""

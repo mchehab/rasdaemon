@@ -73,6 +73,10 @@ class RasDatabaseTests:
                     "RAS_MYSQL_DATABASE", "rasdaemon_test"
                 ),
                 "socket": os.environ.get("RAS_MYSQL_SOCKET", ""),
+                "use_ssl": os.environ.get("RAS_MYSQL_USE_SSL", "false"),
+                "connect_timeout": os.environ.get(
+                    "RAS_MYSQL_CONNECT_TIMEOUT", "10"
+                ),
             }}
         if self.backend == "postgresql":
             return {"postgresql_conn_parms": {
@@ -402,6 +406,46 @@ class PostgresqlUrlContractTest(unittest.TestCase):
             },
         })
         self.assertEqual(url.query["sslmode"], "require")
+
+
+@unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")
+class MysqlUrlContractTest(unittest.TestCase):
+    def test_defaults_match_the_daemon(self):
+        url = RasDatabase._database_url("mysql", {
+            "mysql_conn_parms": {},
+        })
+
+        self.assertIsNone(url.host)
+        self.assertEqual(url.database, "rasdaemon")
+        self.assertEqual(url.query["connect_timeout"], "10")
+
+    def test_timeout_and_tls_configuration(self):
+        settings = {"mysql_conn_parms": {
+            "connect_timeout": "7",
+            "use_ssl": "true",
+        }}
+        url = RasDatabase._database_url("mysql", settings)
+
+        self.assertEqual(url.query["connect_timeout"], "7")
+        self.assertEqual(
+            RasDatabase._database_connect_args("mysql", settings),
+            {"ssl": {}},
+        )
+
+    def test_tls_verification_rejects_an_unencrypted_connection(self):
+        cursor = mock.Mock()
+        connection = mock.Mock()
+        connection.cursor.return_value = cursor
+
+        cursor.fetchone.return_value = ("Ssl_cipher", "TLS_AES_256_GCM_SHA384")
+        RasDatabase._require_mysql_tls(connection)
+        cursor.close.assert_called_once()
+
+        cursor.reset_mock()
+        cursor.fetchone.return_value = ("Ssl_cipher", "")
+        with self.assertRaisesRegex(RuntimeError, "TLS was required"):
+            RasDatabase._require_mysql_tls(connection)
+        cursor.close.assert_called_once()
 
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")

@@ -363,7 +363,10 @@ To use MySQL or MariaDB, set the following environment variables
 - `RAS_MYSQL_PORT` - TCP port (default: `3306`)
 - `RAS_MYSQL_USER` - Username (default: `rasdaemon`)
 - `RAS_MYSQL_PASSWORD` - Password (default: empty)
-- `RAS_MYSQL_DATABASE` - Database name (default: `rasdaemon_test`)
+- `RAS_MYSQL_DATABASE` - Database name (default: `rasdaemon`)
+- `RAS_MYSQL_SOCKET` - Optional Unix socket path for local connections
+- `RAS_MYSQL_USE_SSL` - Require TLS (`true` or `false`, default: `false`)
+- `RAS_MYSQL_CONNECT_TIMEOUT` - Connection timeout in seconds (default: `10`)
 
 Example:
 ```bash
@@ -371,7 +374,10 @@ RAS_MYSQL_HOST=""
 RAS_MYSQL_PORT="3306"
 RAS_MYSQL_USER="rasdaemon"
 RAS_MYSQL_PASSWORD=""
-RAS_MYSQL_DATABASE="rasdaemon_test"
+RAS_MYSQL_DATABASE="rasdaemon"
+RAS_MYSQL_SOCKET=""
+RAS_MYSQL_USE_SSL="false"
+RAS_MYSQL_CONNECT_TIMEOUT="10"
 ```
 
 The C client development package depends on the server implementation and

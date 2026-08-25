@@ -41,7 +41,10 @@ class RasdaemonConfigTest(unittest.TestCase):
     def test_contrib_database_configs(self):
         cases = {
             "sqlite3": (("database", "/tmp/rasdaemon-test/rasdaemon-test.db"),),
-            "mysql": (("database", "rasdaemon_test"),),
+            "mysql": (
+                ("database", "rasdaemon_test"),
+                ("connect_timeout", "10"),
+            ),
             "postgresql": (
                 ("database", "rasdaemon_test"),
                 ("schema", "rasdaemon"),
