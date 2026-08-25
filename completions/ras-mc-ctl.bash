@@ -5,7 +5,7 @@ _ras_mc_ctl()
     local cur prev command word
     local global_opts="dimm mem database db -h --help -V --version -v --verbose -c --config"
     local dimm_opts="-h --help -m --mainboard -D --dmidecode -V --vendor -M --model -s --status -p --print-labels -g --guess-labels -r --register-labels -d --delay -L --labeldb -l --layout"
-    local database_opts="-h --help --indexes-only --since --until --hostname"
+    local database_opts="-h --help --errors --summary --list-tables --indexes-only --since --until --hostname --table --except"
 
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"

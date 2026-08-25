@@ -6,18 +6,21 @@ from __future__ import annotations
 
 import collections
 import datetime
+import fnmatch
 import hashlib
+import logging
 import os
 import re
 import socket
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
-from sqlalchemy import Index, MetaData, Table, create_engine, event, inspect, select
+from sqlalchemy import Index, MetaData, Table, create_engine, event, func, inspect, select
 from sqlalchemy.engine import Engine, URL
 
 
 SUPPORTED_BACKENDS = ("sqlite3", "mysql", "postgresql")
+logger = logging.getLogger(__name__)
 
 
 def _decode_sqlite_text(value: bytes) -> str:
@@ -136,6 +139,40 @@ class RasDatabase:
         self.tables = discovered
         return dict(discovered)
 
+    def select_tables(self, include: Iterable[str] | None = None,
+                      exclude: Iterable[str] | None = None
+                      ) -> dict[str, Table]:
+        """Select discovered tables using exact names or shell-style globs."""
+
+        tables = self.tables or self.discover_tables()
+        includes = list(include or ())
+        excludes = list(exclude or ())
+        selected: set[str] = set()
+
+        if not includes:
+            selected.update(tables)
+        for pattern in includes:
+            matches = {
+                name for name in tables if fnmatch.fnmatchcase(name, pattern)
+            }
+            if not matches:
+                if not any(character in pattern for character in "*?["):
+                    raise ValueError(f"unknown event table: {pattern}")
+                logger.debug("Table pattern matched no event tables: %s", pattern)
+            selected.update(matches)
+
+        for pattern in excludes:
+            matches = {
+                name for name in tables if fnmatch.fnmatchcase(name, pattern)
+            }
+            if not matches:
+                if not any(character in pattern for character in "*?["):
+                    raise ValueError(f"unknown event table: {pattern}")
+                logger.debug("Table exclusion matched no event tables: %s", pattern)
+            selected.difference_update(matches)
+
+        return {name: tables[name] for name in sorted(selected)}
+
     @staticmethod
     def _index_name(table: str, column: str, maximum: int) -> str:
         raw = re.sub(r"[^A-Za-z0-9_]", "_", f"idx_{table}_{column}")
@@ -144,14 +181,17 @@ class RasDatabase:
         digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:8]
         return f"{raw[:maximum - len(digest) - 1]}_{digest}"
 
-    def create_missing_indexes(self) -> list[str]:
+    def create_missing_indexes(self, tables: Mapping[str, Table] | None = None
+                               ) -> list[str]:
         """Create useful missing indexes and return their names.
 
         Timestamp indexes apply to every backend.  Hostname indexes only apply
         to remote databases, whose schemas carry records from several hosts.
         """
 
-        tables = self.tables or self.discover_tables()
+        tables = tables if tables is not None else (
+            self.tables or self.discover_tables()
+        )
         inspector = inspect(self.engine)
         maximum = self.engine.dialect.max_identifier_length or 63
         created = []
@@ -182,10 +222,14 @@ class RasDatabase:
         return (0, str(value))
 
     def records(self, since: str | None = None, until: str | None = None,
-                hostname: str | None = None) -> dict[str, list[DatabaseEvent]]:
+                hostname: str | None = None,
+                tables: Mapping[str, Table] | None = None
+                ) -> dict[str, list[DatabaseEvent]]:
         """Return records grouped by hostname and ordered by timestamp."""
 
-        tables = self.tables or self.discover_tables()
+        tables = tables if tables is not None else (
+            self.tables or self.discover_tables()
+        )
         grouped: dict[str, list[DatabaseEvent]] = collections.defaultdict(list)
         with self.engine.connect() as connection:
             for table_name, table in tables.items():
@@ -214,6 +258,49 @@ class RasDatabase:
             ))
         return dict(sorted(grouped.items()))
 
+    def summary(self, since: str | None = None, until: str | None = None,
+                hostname: str | None = None,
+                tables: Mapping[str, Table] | None = None
+                ) -> dict[str, dict[str, int]]:
+        """Return event counts grouped by hostname and table."""
+
+        tables = tables if tables is not None else (
+            self.tables or self.discover_tables()
+        )
+        grouped: dict[str, dict[str, int]] = collections.defaultdict(dict)
+        with self.engine.connect() as connection:
+            for table_name, table in tables.items():
+                if (hostname and self.db_backend != "sqlite3"
+                        and "hostname" not in table.c):
+                    continue
+                host_column = (table.c.hostname if "hostname" in table.c
+                               else None)
+                statement = select(func.count())
+                if host_column is not None:
+                    statement = statement.add_columns(host_column).group_by(
+                        host_column
+                    )
+                if since:
+                    statement = statement.where(table.c.timestamp >= since)
+                if until:
+                    statement = statement.where(table.c.timestamp <= until)
+                if hostname and self.db_backend != "sqlite3":
+                    statement = statement.where(host_column == hostname)
+
+                for row in connection.execute(statement):
+                    count = int(row[0])
+                    if not count:
+                        continue
+                    event_hostname = ((row[1] or self.hostname)
+                                      if host_column is not None
+                                      else self.hostname)
+                    grouped[str(event_hostname)][table_name] = count
+
+        return {
+            host: dict(sorted(counts.items()))
+            for host, counts in sorted(grouped.items())
+        }
+
     @staticmethod
     def format_records(groups: Mapping[str, Iterable[DatabaseEvent]]) -> str:
         """Format discovered records without relying on fixed table schemas."""
@@ -231,6 +318,17 @@ class RasDatabase:
                 )
         return "\n".join(output) + ("\n" if output else "")
 
+    @staticmethod
+    def format_summary(groups: Mapping[str, Mapping[str, int]]) -> str:
+        """Format event counts grouped by hostname and table."""
+
+        output = []
+        for hostname, counts in groups.items():
+            output.append(f"Hostname: {hostname}")
+            for table, count in counts.items():
+                output.append(f"  {table}: {count} event(s)")
+        return "\n".join(output) + ("\n" if output else "")
+
     def close(self) -> None:
         """Release the engine's connection pool."""
 
@@ -246,7 +344,21 @@ class RasDatabaseCommand:
             "database", aliases=["db"],
             help="Display records from the configured rasdaemon database.",
         )
-        parser.add_argument(
+        self.parser = parser
+        output = parser.add_mutually_exclusive_group()
+        output.add_argument(
+            "--errors", action="store_true",
+            help="Display detailed error records (the default).",
+        )
+        output.add_argument(
+            "--summary", action="store_true",
+            help="Display event counts grouped by hostname and table.",
+        )
+        output.add_argument(
+            "--list-tables", action="store_true",
+            help="List discovered event tables and exit.",
+        )
+        output.add_argument(
             "--indexes-only", action="store_true",
             help="Create missing indexes without reading event records.",
         )
@@ -262,19 +374,43 @@ class RasDatabaseCommand:
             "--hostname",
             help="Only display records stored for this hostname (ignored with sqlite3).",
         )
+        parser.add_argument(
+            "--table", action="append", default=[], metavar="PATTERN",
+            help="Include an exact table name or shell-style pattern (repeatable).",
+        )
+        parser.add_argument(
+            "--except", dest="exclude_table", action="append", default=[],
+            metavar="PATTERN",
+            help="Exclude an exact table name or shell-style pattern (repeatable).",
+        )
 
         parser.set_defaults(func=self.run)
 
-    def run(self, config:Any, args: Any) -> None:
+    def run(self, config: Any, args: Any) -> None:
         database = RasDatabase.from_config(config)
         try:
-            created = database.create_missing_indexes()
+            try:
+                tables = database.select_tables(args.table, args.exclude_table)
+            except ValueError as error:
+                self.parser.error(str(error))
+            if args.list_tables:
+                for name in tables:
+                    print(name)
+                return
+            created = database.create_missing_indexes(tables)
             for name in created:
                 print(f"Created index {name}")
             if args.indexes_only:
                 return
-            print(database.format_records(database.records(
-                since=args.since, until=args.until, hostname=args.hostname
-            )), end="")
+            if args.summary:
+                print(database.format_summary(database.summary(
+                    since=args.since, until=args.until,
+                    hostname=args.hostname, tables=tables
+                )), end="")
+            else:
+                print(database.format_records(database.records(
+                    since=args.since, until=args.until,
+                    hostname=args.hostname, tables=tables
+                )), end="")
         finally:
             database.close()

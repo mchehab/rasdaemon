@@ -199,6 +199,40 @@ class RasDatabaseTests:
                 {tuple(index["column_names"]) for index in indexes}, expected
             )
 
+    def test_table_filters(self):
+        table_names = sorted(self.descriptors)
+        exact = table_names[0]
+
+        self.assertEqual(list(self.database.select_tables([exact])), [exact])
+        event_tables = self.database.select_tables(["*_event"])
+        self.assertTrue(event_tables)
+        self.assertTrue(all(name.endswith("_event") for name in event_tables))
+        filtered = self.database.select_tables(["*"], ["cxl_*"])
+        self.assertTrue(filtered)
+        self.assertTrue(all(not name.startswith("cxl_") for name in filtered))
+
+        with self.assertRaisesRegex(ValueError, "unknown event table"):
+            self.database.select_tables(["missing_event_table"])
+        self.assertEqual(self.database.select_tables(["missing_*"]), {})
+
+    def test_selected_indexes(self):
+        selected_name = sorted(self.descriptors)[0]
+        selected = self.database.select_tables([selected_name])
+        created = self.database.create_missing_indexes(selected)
+        columns_per_table = 1 if self.backend == "sqlite3" else 2
+
+        self.assertEqual(len(created), columns_per_table)
+        inspector = sqlalchemy.inspect(self.engine)
+        self.assertTrue(inspector.get_indexes(
+            selected_name, schema=self.database.schema
+        ))
+        other_name = next(
+            name for name in sorted(self.descriptors) if name != selected_name
+        )
+        self.assertEqual(inspector.get_indexes(
+            other_name, schema=self.database.schema
+        ), [])
+
     def test_groups_all_tables_by_hostname_and_orders_by_timestamp(self):
         groups = self.database.records()
 
@@ -238,19 +272,45 @@ class RasDatabaseTests:
                 len(groups["remote-a"]), 5 * len(self.descriptors)
             )
 
+    def test_table_summary(self):
+        selected_name = sorted(self.descriptors)[0]
+        selected = self.database.select_tables([selected_name])
+        groups = self.database.summary(
+            since="2026-03-03 10:00:00", until="2026-03-05 10:00:00",
+            tables=selected,
+        )
+
+        self.assertEqual(list(groups), ["local-host"])
+        self.assertEqual(groups["local-host"], {selected_name: 3})
+        formatted = self.database.format_summary(groups)
+        self.assertIn(f"{selected_name}: 3 event(s)", formatted)
+
     def test_database_command_options_depend_on_backend(self):
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
         RasDatabaseCommand("ras-mc-ctl", subparsers)
         command = ["database", "--since", "2026-03-01",
-                   "--until", "2026-03-02"]
+                   "--until", "2026-03-02", "--summary",
+                   "--table", "cxl_*", "--except", "*_dram_*"]
         if self.backend != "sqlite3":
             command.extend(["--hostname", "remote-a"])
         args = parser.parse_args(command)
         self.assertEqual(args.since, "2026-03-01")
         self.assertEqual(args.until, "2026-03-02")
+        self.assertTrue(args.summary)
+        self.assertEqual(args.table, ["cxl_*"])
+        self.assertEqual(args.exclude_table, ["*_dram_*"])
         expected_hostname = None if self.backend == "sqlite3" else "remote-a"
         self.assertEqual(args.hostname, expected_hostname)
+
+        errors = parser.parse_args([
+            "database", "--errors", "--table", "mc_event"
+        ])
+        self.assertTrue(errors.errors)
+        self.assertEqual(errors.table, ["mc_event"])
+        self.assertTrue(parser.parse_args([
+            "database", "--list-tables"
+        ]).list_tables)
 
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")

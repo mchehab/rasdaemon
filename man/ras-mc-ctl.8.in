@@ -71,6 +71,16 @@ Print the memory layout detected by EDAC.
 The database backend and its connection parameters are read from the
 configuration file. Missing indexes are created before records are displayed.
 .TP
+.B \-\-errors
+Display detailed error records. This is the default output mode and is provided
+for compatibility with the former Perl utility.
+.TP
+.B \-\-summary
+Display event counts grouped by hostname and event table.
+.TP
+.B \-\-list-tables
+List the discovered event tables selected by the table filters and exit.
+.TP
 .B \-\-indexes-only
 Create missing database indexes without displaying records.
 .TP
@@ -82,6 +92,15 @@ Only display records on or before this date.
 .TP
 .BI \-\-hostname " HOSTNAME"
 Only display records stored for this hostname.
+.TP
+.BI \-\-table " PATTERN"
+Only process tables matching an exact name or shell-style pattern. This option
+may be repeated; matching tables from all patterns are included.
+.TP
+.BI \-\-except " PATTERN"
+Exclude tables matching an exact name or shell-style pattern. This option may
+be repeated and is applied after
+.BR \-\-table .
 .SH MAINBOARD DETECTION
 Explicit
 .B \-\-vendor

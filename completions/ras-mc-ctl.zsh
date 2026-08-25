@@ -41,10 +41,15 @@ _ras-mc-ctl()
                 database|db)
                     _arguments \
                         '(-h --help)'{-h,--help}'[show command help]' \
-                        '--indexes-only[only create missing indexes]' \
+                        '(--summary --list-tables --indexes-only)--errors[display detailed error records]' \
+                        '(--errors --list-tables --indexes-only)--summary[display event counts by hostname and table]' \
+                        '(--errors --summary --indexes-only)--list-tables[list discovered event tables]' \
+                        '(--errors --summary --list-tables)--indexes-only[only create missing indexes]' \
                         '--since=[include records on or after this date]:date (YYYY-MM-DD):' \
                         '--until=[include records on or before this date]:date (YYYY-MM-DD):' \
-                        '--hostname=[only include records for this hostname]:hostname:'
+                        '--hostname=[only include records for this hostname]:hostname:' \
+                        '*--table=[include an exact table or shell-style pattern]:table pattern:' \
+                        '*--except=[exclude an exact table or shell-style pattern]:table pattern:'
                     ;;
             esac
             ;;
