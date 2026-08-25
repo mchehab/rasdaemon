@@ -1054,7 +1054,7 @@ static const struct db_table_descriptor signal_event_tab = {
 
 int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
 {
-	int rc, pos = 0;
+	int rc, pos = 1;
 	struct ras_record_priv *priv = ras->db_priv;
 
 	if (!priv || !priv->stmt_signal_event)

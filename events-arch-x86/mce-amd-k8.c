@@ -115,7 +115,7 @@ static const char * const highbits[32] = {
 	[0] = "err cpu0",
 };
 
-#define IGNORE_HIGHBITS		((1 << 31) || (1 << 28) || (1 << 26))
+#define IGNORE_HIGHBITS		((1U << 31) | (1U << 28) | (1U << 26))
 
 static void decode_k8_generic_errcode(struct mce_event *e)
 {

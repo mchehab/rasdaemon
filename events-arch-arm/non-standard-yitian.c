@@ -5,6 +5,7 @@
  */
 
 #include <stdbool.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,28 @@
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "modules/ras-report.h"
 #include "core/types.h"
+
+static bool append_text(char **cursor, char *end, const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+	size_t remaining;
+
+	if (*cursor >= end)
+		return false;
+	remaining = end - *cursor;
+	va_start(ap, fmt);
+	n = vsnprintf(*cursor, remaining, fmt, ap);
+	va_end(ap);
+	if (n < 0)
+		return false;
+	if ((size_t)n >= remaining) {
+		*cursor = end - 1;
+		return false;
+	}
+	*cursor += n;
+	return true;
+}
 
 static const char * const yitian_ddr_payload_err_reg_name[] = {
 	"Error Type:",
@@ -142,8 +165,8 @@ void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	const struct yitian_payload_header *header = &err->header;
 	uint32_t *pstart;
 	time_t now;
-	struct tm *tm;
-	struct ras_yitian_ddr_payload_event ev;
+	struct tm tm;
+	struct ras_yitian_ddr_payload_event ev = { 0 };
 
 	const char *type_str = oem_type_name(yitian_payload_error_type,
 					    header->type);
@@ -152,26 +175,26 @@ void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					header->type, header->subtype);
 
 	now = time(NULL);
-	tm = localtime(&now);
-	if (tm)
+	if (localtime_r(&now, &tm))
 		strftime(ev.timestamp, sizeof(ev.timestamp),
-			 "%Y-%m-%d %H:%M:%S %z", tm);
+			 "%Y-%m-%d %H:%M:%S %z", &tm);
 	//display error type
-	p += snprintf(p, end - p, " %s", yitian_ddr_payload_err_reg_name[i++]);
-	p += snprintf(p, end - p, " %s,", type_str);
+	append_text(&p, end, " %s", yitian_ddr_payload_err_reg_name[i++]);
+	append_text(&p, end, " %s,", type_str);
 
 	//display error subtype
-	p += snprintf(p, end - p, " %s", yitian_ddr_payload_err_reg_name[i++]);
-	p += snprintf(p, end - p, " %s,", subtype_str);
+	append_text(&p, end, " %s", yitian_ddr_payload_err_reg_name[i++]);
+	append_text(&p, end, " %s,", subtype_str);
 
 	//display error instance
-	p += snprintf(p, end - p, " %s", yitian_ddr_payload_err_reg_name[i++]);
-	p += snprintf(p, end - p, " 0x%x,", header->instance);
+	append_text(&p, end, " %s", yitian_ddr_payload_err_reg_name[i++]);
+	append_text(&p, end, " 0x%x,", header->instance);
 
 	//display reg dump
 	for (pstart = (uint32_t *)&err->ecccfg0; (void *)pstart < (void *)(err + 1); pstart += 1) {
-		p += snprintf(p, end - p, " %s", yitian_ddr_payload_err_reg_name[i++]);
-		p += snprintf(p, end - p, " 0x%x ", *pstart);
+		if (!append_text(&p, end, " %s", yitian_ddr_payload_err_reg_name[i++]) ||
+		    !append_text(&p, end, " 0x%x ", *pstart))
+			break;
 	}
 
 	if (p > buf && p < end) {
@@ -179,8 +202,7 @@ void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		*p = '\0';
 	}
 
-	ev.reg_msg = malloc(p - buf + 1);
-	memcpy(ev.reg_msg, buf, p - buf + 1);
+	ev.reg_msg = buf;
 	ev.address = 0;
 
 	i = 0;
@@ -215,9 +237,17 @@ static int decode_yitian710_ns_error(struct ras_events *ras,
 				     struct trace_seq *s,
 				     struct ras_non_standard_event *event)
 {
+	if (event->length < (int)sizeof(struct yitian_payload_header)) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return -1;
+	}
 	int payload_type = event->error[0];
 
 	if (payload_type == YITIAN_RAS_TYPE_DDR) {
+		if (event->length < (int)sizeof(struct yitian_ddr_payload_type_sec)) {
+			trace_seq_printf(s, "%s: truncated DDR payload\n", __func__);
+			return -1;
+		}
 		const struct yitian_ddr_payload_type_sec *err =
 			(struct yitian_ddr_payload_type_sec *)event->error;
 		decode_yitian_ddr_payload_err_regs(ev_decoder, s, err, ras);

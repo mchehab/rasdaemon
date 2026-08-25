@@ -552,6 +552,10 @@ int ras_arm_event_handler(struct trace_seq *s,
 				return -1;
 			legacy_patch = true;
 		}
+		if (ev.pei_len < 0 || ev.pei_len > len) {
+			log(TERM, LOG_WARNING, "Ignoring truncated ARM PEI payload\n");
+			return -1;
+		}
 		display_raw_data(s, ev.pei_error, ev.pei_len);
 
 		parse_arm_processor_err_info(s, &ev);
@@ -568,6 +572,10 @@ int ras_arm_event_handler(struct trace_seq *s,
 			ev.ctx_error = tep_get_field_raw(s, event, "buf1", record, &len, 1);
 		if (!ev.ctx_error)
 			return -1;
+		if (ev.ctx_len < 0 || ev.ctx_len > len) {
+			log(TERM, LOG_WARNING, "Ignoring truncated ARM context payload\n");
+			return -1;
+		}
 		display_raw_data(s, ev.ctx_error, ev.ctx_len);
 
 		if (tep_get_field_val(s, event, "oem_len", record, &val, 1) < 0)
@@ -582,6 +590,10 @@ int ras_arm_event_handler(struct trace_seq *s,
 			ev.vsei_error = tep_get_field_raw(s, event, "buf2", record, &len, 1);
 		if (!ev.vsei_error)
 			return -1;
+		if (ev.oem_len < 0 || ev.oem_len > len) {
+			log(TERM, LOG_WARNING, "Ignoring truncated ARM vendor payload\n");
+			return -1;
+		}
 
 #ifdef HAVE_AMP_NS_DECODE
 		//decode ampere specific error

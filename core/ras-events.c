@@ -703,7 +703,7 @@ error:
 	sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 	for (i = 0; i < (n_cpus + 1); i++) {
-		if (fds[i].fd > 0)
+		if (fds[i].fd >= 0)
 			close(fds[i].fd);
 	}
 
@@ -736,7 +736,18 @@ static int read_ras_event(int fd,
 			kbuffer_load_subbuffer(kbuf, page);
 
 			while ((data = kbuffer_read_event(kbuf, &time_stamp))) {
+				int oldstate;
+
+				/*
+				 * Legacy kernels use one reader per CPU.  Event handlers
+				 * share database connections and prepared statements, so a
+				 * complete callback must be atomic with respect to its peers.
+				 */
+				pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
+				pthread_mutex_lock(&pdata->ras->db_lock);
 				parse_ras_data(pdata, kbuf, data, time_stamp);
+				pthread_mutex_unlock(&pdata->ras->db_lock);
+				pthread_setcancelstate(oldstate, NULL);
 
 				/* increment to read next event */
 				kbuffer_next_event(kbuf, NULL);
@@ -747,25 +758,57 @@ static int read_ras_event(int fd,
 	} while (1);
 }
 
-static void *handle_ras_events_cpu(void *priv)
-{
-	int fd;
+struct reader_cleanup {
+	struct pthread_data *pdata;
 	struct kbuffer *kbuf;
 	void *page;
+	int fd;
+	bool db_opened;
+};
+
+static void cleanup_ras_events_cpu(void *arg)
+{
+	struct reader_cleanup *cleanup = arg;
+	int oldstate;
+
+	/* Cleanup itself must not be interrupted while owning the mutex. */
+	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
+	if (cleanup->db_opened) {
+		pthread_mutex_lock(&cleanup->pdata->ras->db_lock);
+#ifdef HAVE_NON_STANDARD
+		ras_ns_finalize_vendor_tables();
+#endif
+		ras_mc_event_closedb(cleanup->pdata->cpu, cleanup->pdata->ras);
+		pthread_mutex_unlock(&cleanup->pdata->ras->db_lock);
+	}
+	if (cleanup->fd >= 0)
+		close(cleanup->fd);
+	if (cleanup->kbuf)
+		kbuffer_free(cleanup->kbuf);
+	free(cleanup->page);
+	pthread_setcancelstate(oldstate, NULL);
+}
+
+static void *handle_ras_events_cpu(void *priv)
+{
 	char pipe_raw[PATH_MAX];
 	struct pthread_data *pdata = priv;
+	struct reader_cleanup cleanup = {
+		.pdata = pdata,
+		.fd = -1,
+	};
 
-	page = malloc(pdata->ras->page_size);
-	if (!page) {
+	pthread_cleanup_push(cleanup_ras_events_cpu, &cleanup);
+	cleanup.page = malloc(pdata->ras->page_size);
+	if (!cleanup.page) {
 		log(TERM, LOG_ERR, "Can't allocate page\n");
-		return NULL;
+		goto out;
 	}
 
-	kbuf = kbuffer_alloc(KBUFFER_LSIZE_SAME_AS_HOST, KBUFFER_ENDIAN_SAME_AS_HOST);
-	if (!kbuf) {
+	cleanup.kbuf = kbuffer_alloc(KBUFFER_LSIZE_SAME_AS_HOST, KBUFFER_ENDIAN_SAME_AS_HOST);
+	if (!cleanup.kbuf) {
 		log(TERM, LOG_ERR, "Can't allocate kbuf");
-		free(page);
-		return NULL;
+		goto out;
 	}
 
 	/* FIXME: use select to open for all CPUs */
@@ -773,49 +816,39 @@ static void *handle_ras_events_cpu(void *priv)
 		 "per_cpu/cpu%d/trace_pipe_raw",
 		 pdata->cpu);
 
-	fd = open_trace(pdata->ras, pipe_raw, O_RDONLY);
-	if (fd < 0) {
+	cleanup.fd = open_trace(pdata->ras, pipe_raw, O_RDONLY);
+	if (cleanup.fd < 0) {
 		log(TERM, LOG_ERR, "Can't open trace_pipe_raw\n");
-		kbuffer_free(kbuf);
-		free(page);
-		return NULL;
+		goto out;
 	}
 
 	log(TERM, LOG_INFO, "Listening to events on cpu %d\n", pdata->cpu);
 	if (pdata->ras->record_events) {
+		int oldstate;
+
+		pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
 		pthread_mutex_lock(&pdata->ras->db_lock);
 #ifdef HAVE_DB
 		if (ras_mc_event_opendb(pdata->cpu, pdata->ras)) {
 			pthread_mutex_unlock(&pdata->ras->db_lock);
+			pthread_setcancelstate(oldstate, NULL);
 			log(TERM, LOG_ERR, "Can't open database\n");
-			close(fd);
-			kbuffer_free(kbuf);
-			free(page);
-			return 0;
+			goto out;
 		}
+		cleanup.db_opened = true;
 #endif
 #ifdef HAVE_NON_STANDARD
 		if (ras_ns_add_vendor_tables(pdata->ras))
 			log(TERM, LOG_ERR, "Can't add vendor table\n");
 #endif
 		pthread_mutex_unlock(&pdata->ras->db_lock);
+		pthread_setcancelstate(oldstate, NULL);
 	}
 
-	read_ras_event(fd, pdata, kbuf, page);
+	read_ras_event(cleanup.fd, pdata, cleanup.kbuf, cleanup.page);
 
-	if (pdata->ras->record_events) {
-		pthread_mutex_lock(&pdata->ras->db_lock);
-#ifdef HAVE_NON_STANDARD
-		ras_ns_finalize_vendor_tables();
-#endif
-		ras_mc_event_closedb(pdata->cpu, pdata->ras);
-		pthread_mutex_unlock(&pdata->ras->db_lock);
-	}
-
-	close(fd);
-	kbuffer_free(kbuf);
-	free(page);
-
+out:
+	pthread_cleanup_pop(1);
 	return NULL;
 }
 
@@ -942,15 +975,24 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 
 	do {
 		if (size > 0) {
-			page = realloc(page, page_size + size);
-			if (!page) {
+			char *new_page;
+
+			if ((size_t)size > SIZE_MAX - page_size) {
+				free(page);
+				close(fd);
+				return -EOVERFLOW;
+			}
+			new_page = realloc(page, page_size + (size_t)size);
+			if (!new_page) {
 				rc = -errno;
 				log(TERM, LOG_ERR,
 				    "Can't reallocate page to read %s:%s format\n",
 				    group, event);
+				free(page);
 				close(fd);
 				return rc;
 			}
+			page = new_page;
 		}
 		rc = read(fd, page + size, page_size);
 		if (rc < 0) {
@@ -1038,6 +1080,7 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 #ifdef HAVE_DEVLINK
 	char *filter_str = NULL;
 #endif
+	ras->daemon_active_fd = -1;
 #ifdef HAVE_SIGNAL
 	char signal_filter[64];
 #endif
@@ -1140,7 +1183,10 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 			       ras_extlog_mem_event_handler, NULL, EXTLOG_EVENT);
 	if (!rc) {
 		/* tell kernel we are listening, so don't printk to console */
-		(void)open("/sys/kernel/debug/ras/daemon_active", 0);
+		ras->daemon_active_fd =
+			open("/sys/kernel/debug/ras/daemon_active", O_RDONLY);
+		if (ras->daemon_active_fd < 0)
+			log(TERM, LOG_WARNING, "Can't mark extlog daemon active\n");
 		num_events++;
 	} else if (rc != EVENT_DISABLED)
 		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
@@ -1333,9 +1379,12 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 				log(SYSLOG, LOG_INFO,
 				    "Failed to create thread for cpu %d. Aborting.\n",
 				i);
-				while (--i)
-					pthread_cancel(data[i].thread);
+				int started = i;
 
+				while (i-- > 0)
+					pthread_cancel(data[i].thread);
+				for (i = 0; i < started; i++)
+					pthread_join(data[i].thread, NULL);
 				pthread_mutex_destroy(&ras->db_lock);
 				goto err;
 			}
@@ -1357,6 +1406,8 @@ err:
 		tep_free(pevent);
 
 	if (ras) {
+		if (ras->daemon_active_fd >= 0)
+			close(ras->daemon_active_fd);
 		for (i = 0; i < NR_EVENTS; i++) {
 			if (ras->filters[i])
 				tep_filter_free(ras->filters[i]);
@@ -1369,6 +1420,9 @@ err:
 
 #ifdef HAVE_MEMORY_ROW_CE_PFA
 	row_record_infos_free();
+#endif
+#ifdef HAVE_MEMORY_CE_PFA
+	page_record_infos_free();
 #endif
 	return rc;
 }

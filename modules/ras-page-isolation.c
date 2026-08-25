@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +23,9 @@
 #define PARSED_ENV_LEN 50
 #define ROW_ID_MAX_LEN 200
 #define SAME_PAGE_IN_ROW 200
+#define MAX_PAGE_RECORDS 65536
+#define MAX_ROW_RECORDS 65536
+#define MAX_ROW_PAGE_RECORDS 262144
 
 static const struct config threshold_units[] = {
 	{ "m",	1000 },
@@ -90,6 +94,9 @@ static const char * const page_state[] = {
 static enum otype offline = OFFLINE_SOFT;
 static enum otype row_offline_action = OFFLINE_OFF;
 static struct rb_root page_records;
+static size_t page_record_count;
+static size_t row_record_count;
+static size_t row_page_record_count;
 LIST_HEAD(row_listhead, row_record) row_head;
 
 static void page_offline_init(void)
@@ -360,8 +367,12 @@ static void page_offline(struct page_record *pr)
 
 static void page_record(struct page_record *pr, unsigned int count, time_t time)
 {
-	unsigned long period = time - pr->start;
+	unsigned long period;
 	unsigned long tolerate;
+
+	if (time < pr->start)
+		pr->start = time;
+	period = time - pr->start;
 
 	if (period >= cycle.val) {
 		/*
@@ -391,7 +402,42 @@ static void page_record(struct page_record *pr, unsigned int count, time_t time)
 	}
 }
 
-static struct page_record *page_lookup_insert(unsigned long long addr)
+static void page_records_expire(time_t now)
+{
+	struct rb_node *node = rb_first(&page_records);
+	time_t retention = cycle.val > (unsigned long)(LONG_MAX / 2) ?
+		LONG_MAX : (time_t)(cycle.val * 2);
+
+	while (node) {
+		struct rb_node *next = rb_next(node);
+		struct page_record *pr = rb_entry(node, struct page_record, entry);
+
+		if (now >= pr->start && now - pr->start > retention) {
+			rb_erase(node, &page_records);
+			free(pr);
+			page_record_count--;
+		}
+		node = next;
+	}
+}
+
+void page_record_infos_free(void)
+{
+	struct rb_node *node = rb_first(&page_records);
+
+	while (node) {
+		struct rb_node *next = rb_next(node);
+		struct page_record *pr = rb_entry(node, struct page_record, entry);
+
+		rb_erase(node, &page_records);
+		free(pr);
+		node = next;
+	}
+	page_record_count = 0;
+}
+
+static struct page_record *page_lookup_insert(unsigned long long addr,
+					       time_t now)
 {
 	struct rb_node **entry = &page_records.rb_node;
 	struct rb_node *parent = NULL;
@@ -407,6 +453,11 @@ static struct page_record *page_lookup_insert(unsigned long long addr)
 		else
 			entry = &(*entry)->rb_right;
 	}
+	page_records_expire(now);
+	if (page_record_count >= MAX_PAGE_RECORDS) {
+		log(TERM, LOG_WARNING, "Page CE accounting limit reached\n");
+		return NULL;
+	}
 
 	find = calloc(1, sizeof(struct page_record));
 	if (!find) {
@@ -417,6 +468,7 @@ static struct page_record *page_lookup_insert(unsigned long long addr)
 	find->addr = addr;
 	rb_link_node(&find->entry, parent, entry);
 	rb_insert_color(&find->entry, &page_records);
+	page_record_count++;
 
 	return find;
 }
@@ -428,7 +480,7 @@ void ras_record_page_error(unsigned long long addr, unsigned int count, time_t t
 	if (offline == OFFLINE_OFF)
 		return;
 
-	pr = page_lookup_insert(addr & PAGE_MASK);
+	pr = page_lookup_insert(addr & PAGE_MASK, time);
 	if (pr) {
 		if (!pr->start)
 			pr->start = time;
@@ -727,18 +779,20 @@ static void row_record(struct row_record *rr, time_t time)
 	if (!rr)
 		return;
 
-	if (time - rr->start > row_cycle.val) {
+	if (time >= rr->start && time - rr->start > (time_t)row_cycle.val) {
 		struct page_addr *page_info = NULL, *tmp_page_info = NULL;
 
 		page_info = LIST_FIRST(&rr->page_head);
 		while (page_info) {
 			// delete exceeds row_cycle.val
-			if (time - page_info->start <= row_cycle.val)
+			if (time < page_info->start ||
+			    time - page_info->start <= (time_t)row_cycle.val)
 				break;
 			tmp_page_info = LIST_NEXT(page_info, entry);
 			rr->count -= page_info->count;
 			LIST_REMOVE(page_info, entry);
 			free(page_info);
+			row_page_record_count--;
 			page_info = tmp_page_info;
 		}
 		rr->start = page_info ? page_info->start : time;
@@ -755,6 +809,34 @@ static void row_record(struct row_record *rr, time_t time)
 	}
 }
 
+static void row_records_expire(time_t now)
+{
+	struct row_record *rr = LIST_FIRST(&row_head);
+
+	while (rr) {
+		struct row_record *next_rr = LIST_NEXT(rr, entry);
+		struct page_addr *page = LIST_FIRST(&rr->page_head);
+
+		while (page) {
+			struct page_addr *next_page = LIST_NEXT(page, entry);
+
+			if (now >= page->start && now - page->start > (time_t)row_cycle.val) {
+				rr->count -= page->count;
+				LIST_REMOVE(page, entry);
+				free(page);
+				row_page_record_count--;
+			}
+			page = next_page;
+		}
+		if (LIST_EMPTY(&rr->page_head)) {
+			LIST_REMOVE(rr, entry);
+			free(rr);
+			row_record_count--;
+		}
+		rr = next_rr;
+	}
+}
+
 static struct row_record *row_lookup_insert(struct row_record *r,
 					    unsigned int count,
 					    unsigned long long addr,
@@ -766,6 +848,7 @@ static struct row_record *row_lookup_insert(struct row_record *r,
 
 	if (!r)
 		return NULL;
+	row_records_expire(time);
 	// look same row record
 	LIST_FOREACH(rr, &row_head, entry) {
 		if (row_record_is_same_row(rr, r)) {
@@ -777,6 +860,10 @@ static struct row_record *row_lookup_insert(struct row_record *r,
 
 	// new row
 	if (!found) {
+		if (row_record_count >= MAX_ROW_RECORDS) {
+			log(TERM, LOG_WARNING, "Row CE accounting limit reached\n");
+			return NULL;
+		}
 		new_row_record = calloc(1, sizeof(struct row_record));
 		if (!new_row_record) {
 			log(TERM, LOG_ERR, "No memory for new row record\n");
@@ -787,18 +874,34 @@ static struct row_record *row_lookup_insert(struct row_record *r,
 		new_row_record->type = r->type;
 
 		LIST_INSERT_HEAD(&row_head, new_row_record, entry);
+		row_record_count++;
 		row_record_copy(new_row_record, r);
 	}
 
 	// new page
+	if (row_page_record_count >= MAX_ROW_PAGE_RECORDS) {
+		log(TERM, LOG_WARNING, "Row CE page accounting limit reached\n");
+		if (!found) {
+			LIST_REMOVE(new_row_record, entry);
+			free(new_row_record);
+			row_record_count--;
+		}
+		return NULL;
+	}
 	new_page_addr = calloc(1, sizeof(struct page_addr));
 	if (!new_page_addr) {
 		log(TERM, LOG_ERR, "No memory for new page addr\n");
+		if (!found) {
+			LIST_REMOVE(new_row_record, entry);
+			free(new_row_record);
+			row_record_count--;
+		}
 		return NULL;
 	}
 	new_page_addr->addr = addr & PAGE_MASK;
 	new_page_addr->start = time;
 	new_page_addr->count = count;
+	row_page_record_count++;
 
 	struct page_addr *record = NULL;
 	int not_empty = 0;
@@ -849,13 +952,16 @@ void row_record_infos_free(void)
 			tmp_page_addr = LIST_NEXT(page_addr, entry);
 			LIST_REMOVE(page_addr, entry);
 			free(page_addr);
+			row_page_record_count--;
 			page_addr = tmp_page_addr;
 		}
 		tmp_row_record = LIST_NEXT(row_record, entry);
 		LIST_REMOVE(row_record, entry);
 		free(row_record);
+		row_record_count--;
 		row_record = tmp_row_record;
 	}
+	row_page_record_count = 0;
 }
 
 /* memory row CE threshold policy ends */

@@ -759,7 +759,7 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 				  struct tep_record *record,
 				  struct tep_event *event, void *context)
 {
-	int len, i;
+	int raw_len, i;
 	struct ras_events *ras = context;
 	struct ras_cxl_generic_event ev;
 	const uint8_t *buf;
@@ -769,9 +769,14 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 	if (handle_ras_cxl_common_hdr(s, record, event, context, &ev.hdr) < 0)
 		return -1;
 
-	ev.data = tep_get_field_raw(s, event, "data", record, &len, 1);
+	ev.data = tep_get_field_raw(s, event, "data", record, &raw_len, 1);
 	if (!ev.data)
 		return -1;
+	if (raw_len < CXL_EVENT_RECORD_DATA_LENGTH) {
+		log(TERM, LOG_WARNING,
+		    "Ignoring truncated CXL generic data (%d bytes)\n", raw_len);
+		return -1;
+	}
 	i = 0;
 	buf = ev.data;
 	if (trace_seq_printf(s, "\ndata:\n  %08x: ", i) <= 0)

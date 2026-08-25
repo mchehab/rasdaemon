@@ -162,7 +162,7 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 				   struct tep_record *record,
 				   struct tep_event *event, void *context)
 {
-	int len, i, line_count, decoded = 0;
+	int len, raw_len, i, line_count, decoded = 0;
 	unsigned long long val;
 	struct ras_events *ras = context;
 	time_t now;
@@ -231,9 +231,15 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	ev.length = val;
 	trace_seq_printf(s, " length: %d", ev.length);
 
-	ev.error = tep_get_field_raw(s, event, "buf", record, &len, 1);
+	ev.error = tep_get_field_raw(s, event, "buf", record, &raw_len, 1);
 	if (!ev.error)
 		return -1;
+	if (ev.length < 0 || ev.length > raw_len) {
+		log(TERM, LOG_WARNING,
+		    "Ignoring non-standard event with invalid length %d (raw %d)\n",
+		    ev.length, raw_len);
+		return -1;
+	}
 
 	if (!find_ns_ev_decoder(ev.sec_type, &ns_ev_decoder)) {
 		if (ns_ev_decoder->decode) {

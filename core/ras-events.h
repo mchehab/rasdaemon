@@ -67,6 +67,7 @@ struct ras_events {
 
 	/* For ABRT socket*/
 	int			socketfd;
+	int			daemon_active_fd;
 
 	struct tep_event_filter	*filters[NR_EVENTS];
 };
