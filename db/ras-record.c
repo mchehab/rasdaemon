@@ -1150,6 +1150,15 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 
 	priv = ras->db_priv;
 
+	rc = db_create_table(ras->db, &mc_event_tab);
+	if (rc)
+		return -1;
+
+	rc = db_prepare_insert_stmt(ras->db, &priv->stmt_mc_event,
+				    &mc_event_tab);
+	if (rc)
+		return -1;
+
 #ifdef HAVE_AER
 	rc = db_create_table(ras->db, &aer_event_tab);
 	if (!rc) {

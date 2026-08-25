@@ -21,6 +21,7 @@
 
 #include "db/ras-db.h"
 #include "db/db-sqlite3.h"
+#include "db/ras-record.h"
 
 #include "tests/unittest.h"
 
@@ -553,8 +554,70 @@ static void test_database_environment(void **state)
 	}
 }
 
+static void test_mc_event_recording(void **state)
+{
+	const char *database = "/tmp/rasdaemon-mc-event-test.db";
+	const char *current;
+	char *saved = NULL;
+	struct ras_record_priv *priv;
+	struct ras_mc_event event = {
+		.timestamp = "2026-08-25 12:00:00 +0000",
+		.error_count = 1,
+		.error_type = "Corrected",
+		.msg = "unit test",
+		.label = "DIMM0",
+		.mc_index = 0,
+		.top_layer = 0,
+		.middle_layer = 1,
+		.lower_layer = 2,
+		.address = 0x1234,
+		.grain = 64,
+		.syndrome = 0,
+		.driver_detail = "test",
+	};
+	sqlite3 *db;
+	sqlite3_stmt *stmt = NULL;
+	int rc;
+
+	(void)state;
+	current = getenv("RAS_SQLITE3_DATABASE");
+	if (current)
+		saved = strdup(current);
+
+	assert_int_equal(setenv("RAS_SQLITE3_DATABASE", database, 1), 0);
+	unlink(database);
+
+	rc = ras_mc_event_opendb(0, &ras);
+	assert_int_equal(rc, 0);
+	priv = ras.db_priv;
+	assert_non_null(priv);
+	assert_non_null(priv->stmt_mc_event);
+
+	rc = db_mc_event(&ras, &event);
+	assert_int_equal(rc, 0);
+
+	db = (sqlite3 *)ras.db;
+	assert_int_equal(sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM mc_event",
+					 -1, &stmt, NULL), SQLITE_OK);
+	assert_int_equal(sqlite3_step(stmt), SQLITE_ROW);
+	assert_int_equal(sqlite3_column_int(stmt, 0), 1);
+	assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
+
+	rc = ras_mc_event_closedb(0, &ras);
+	assert_int_equal(rc, 0);
+
+	unlink(database);
+	if (saved) {
+		assert_int_equal(setenv("RAS_SQLITE3_DATABASE", saved, 1), 0);
+		free(saved);
+	} else {
+		assert_int_equal(unsetenv("RAS_SQLITE3_DATABASE"), 0);
+	}
+}
+
 static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_database_environment),
+	cmocka_unit_test(test_mc_event_recording),
 
 	cmocka_unit_test_setup_teardown(test_database_tables,
 					tests_setup, tests_teardown),
