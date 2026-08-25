@@ -109,14 +109,17 @@ class RasDatabase:
             )
 
         query = {"connect_timeout": str(cls._get(params, "connect_timeout", 10))}
-        ssl_mode = cls._get(params, "ssl_mode", "false")
-        if ssl_mode and ssl_mode != "false":
-            query["sslmode"] = str(ssl_mode)
+        ssl_mode = str(cls._get(params, "ssl_mode", "") or "")
+        if ssl_mode and ssl_mode.lower() != "false":
+            query["sslmode"] = ssl_mode
+        elif str(cls._get(params, "use_ssl", "false")).lower() in (
+                "1", "true", "yes", "on"):
+            query["sslmode"] = "require"
         return URL.create(
             "postgresql+psycopg2",
             username=cls._get(params, "user", "rasdaemon"),
             password=cls._get(params, "password", ""),
-            host=cls._get(params, "host", "localhost"),
+            host=cls._get(params, "host", "") or None,
             port=int(cls._get(params, "port", 5432)),
             database=cls._get(params, "database", "rasdaemon"),
             query=query,

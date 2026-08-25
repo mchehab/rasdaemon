@@ -29,14 +29,26 @@ from ras_env import RasDaemonEnv, RasdaemonConfig  # noqa: E402
 
 
 class RasdaemonConfigTest(unittest.TestCase):
+    def test_postgresql_defaults_use_a_unix_socket(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            params = RasdaemonConfig().pg_conn_parms
+
+        self.assertEqual(params.host, "")
+        self.assertEqual(params.database, "rasdaemon")
+        self.assertEqual(params.ssl_mode, "false")
+        self.assertEqual(params.use_ssl, "false")
+
     def test_contrib_database_configs(self):
         cases = {
-            "sqlite3": ("database", "/tmp/rasdaemon-test/rasdaemon-test.db"),
-            "mysql": ("database", "rasdaemon_test"),
-            "postgresql": ("database", "rasdaemon_test"),
+            "sqlite3": (("database", "/tmp/rasdaemon-test/rasdaemon-test.db"),),
+            "mysql": (("database", "rasdaemon_test"),),
+            "postgresql": (
+                ("database", "rasdaemon_test"),
+                ("schema", "rasdaemon"),
+            ),
         }
 
-        for backend, (attribute, expected) in cases.items():
+        for backend, expected_values in cases.items():
             with self.subTest(backend=backend), mock.patch.dict(
                 os.environ, {}, clear=True
             ):
@@ -51,7 +63,8 @@ class RasdaemonConfigTest(unittest.TestCase):
                     if backend == "postgresql"
                     else getattr(config, f"{backend}_conn_parms")
                 )
-                self.assertEqual(getattr(params, attribute), expected)
+                for attribute, expected in expected_values:
+                    self.assertEqual(getattr(params, attribute), expected)
 
 
 if __name__ == "__main__":

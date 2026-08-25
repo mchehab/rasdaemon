@@ -76,10 +76,10 @@ class RasDatabaseTests:
             }}
         if self.backend == "postgresql":
             return {"postgresql_conn_parms": {
-                "host": os.environ.get("RAS_PG_HOST", "127.0.0.1"),
+                "host": os.environ.get("RAS_PG_HOST", ""),
                 "port": os.environ.get("RAS_PG_PORT", "5432"),
                 "user": os.environ.get("RAS_PG_USER", "rasdaemon"),
-                "password": os.environ.get("RAS_PG_PASSWORD", "mypass"),
+                "password": os.environ.get("RAS_PG_PASSWORD", ""),
                 "database": os.environ.get("RAS_PG_DATABASE", "rasdaemon_test"),
                 "schema": os.environ.get("RAS_PG_SCHEMA", "rasdaemon"),
             }}
@@ -373,6 +373,35 @@ class SqliteRasDatabaseTest(RasDatabaseTests, unittest.TestCase):
         )
 
         self.assertEqual(url.database, path)
+
+
+@unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")
+class PostgresqlUrlContractTest(unittest.TestCase):
+    def test_defaults_to_unix_socket(self):
+        url = RasDatabase._database_url("postgresql", {
+            "postgresql_conn_parms": {},
+        })
+
+        self.assertIsNone(url.host)
+        self.assertEqual(url.database, "rasdaemon")
+        self.assertNotIn("sslmode", url.query)
+
+    def test_ssl_mode_matches_daemon_contract(self):
+        url = RasDatabase._database_url("postgresql", {
+            "postgresql_conn_parms": {
+                "ssl_mode": "verify-full",
+                "use_ssl": "false",
+            },
+        })
+        self.assertEqual(url.query["sslmode"], "verify-full")
+
+        url = RasDatabase._database_url("postgresql", {
+            "postgresql_conn_parms": {
+                "ssl_mode": "false",
+                "use_ssl": "true",
+            },
+        })
+        self.assertEqual(url.query["sslmode"], "require")
 
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")

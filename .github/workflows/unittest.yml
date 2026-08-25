@@ -105,6 +105,13 @@ jobs:
         run: |
           build/unittest -o tap
       - name: Run Python unittests
+        env:
+          RAS_PG_HOST: ''
+          RAS_PG_PORT: 5432
+          RAS_PG_USER: rasdaemon
+          RAS_PG_PASSWORD: mypass
+          RAS_PG_SCHEMA: rasdaemon
+          RAS_PG_DATABASE: rasdaemon_test
         run: |
           python3 tests/run.py
 

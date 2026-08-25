@@ -5,10 +5,10 @@
  * Unit tests for the PostgreSQL backend.
  *
  * Environment variables (all optional, with sensible defaults):
- *   RAS_PG_HOST		(default: "127.0.0.1")
+ *   RAS_PG_HOST		(default: local Unix socket)
  *   RAS_PG_PORT		(default: 5432)
  *   RAS_PG_USER		(default: "rasdaemon")
- *   RAS_PG_PASSWORD	(default: "mypass")
+ *   RAS_PG_PASSWORD	(default: empty)
  *   RAS_PG_SCHEMA	(default: "rasdaemon")
  *   RAS_PG_DATABASE	(default: "rasdaemon_test")
  */
@@ -42,10 +42,10 @@ struct mock_priv {
 };
 
 static struct db_postgresql_conn_params conn_parms = {
-	.host	  = "127.0.0.1",
+	.host	  = NULL,
 	.port	  = 5432,
 	.user	  = "rasdaemon",
-	.password  = "mypass",
+	.password  = "",
 	.schema    = "rasdaemon",
 	.database  = "rasdaemon_test",
 	.use_ssl   = false,
@@ -475,6 +475,8 @@ static int group_setup(void **state)
 	conn_parms.password = env_or("RAS_PG_PASSWORD", conn_parms.password);
 	conn_parms.schema = env_or("RAS_PG_SCHEMA", conn_parms.schema);
 	conn_parms.database = env_or("RAS_PG_DATABASE", conn_parms.database);
+	conn_parms.sslmode = env_or("RAS_PG_SSL_MODE", conn_parms.sslmode);
+	conn_parms.use_ssl = env_or_bool("RAS_PG_USE_SSL", conn_parms.use_ssl);
 
 	port = getenv("RAS_PG_PORT");
 	if (port)

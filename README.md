@@ -269,16 +269,20 @@ To use PostgreSQL, set the following environment variables
 - `RAS_PG_USER` - Username (default: `rasdaemon`)
 - `RAS_PG_PASSWORD` - Password (default: empty)
 - `RAS_PG_SCHEMA` - Schema (default: `rasdaemon`)
-- `RAS_PG_DATABASE` - Database name (default: `rasdaemon_test`)
+- `RAS_PG_DATABASE` - Database name (default: `rasdaemon`)
+- `RAS_PG_SSL_MODE` - Optional libpq SSL mode (default: `prefer`)
+- `RAS_PG_CONNECT_TIMEOUT` - Connection timeout in seconds (default: `10`)
 
 Example:
 ```bash
-RAS_PG_HOST="localhost"
+RAS_PG_HOST=""
 RAS_PG_PORT="5432"
 RAS_PG_USER="rasdaemon"
 RAS_PG_PASSWORD=""
 RAS_PG_DATABASE="rasdaemon"
 RAS_PG_SCHEMA="rasdaemon"
+RAS_PG_SSL_MODE="prefer"
+RAS_PG_CONNECT_TIMEOUT="10"
 ```
 
 **Prerequisites**: Install `libpq-devel` or `libpq-dev` package and
@@ -340,12 +344,12 @@ For a simple setup, you could do:
 ```bash
 sudo -u postgres psql --set ON_ERROR_STOP=1 << EOF
   CREATE USER rasdaemon WITH PASSWORD 'some_password';
-  CREATE DATABASE rasdaemon_test OWNER rasdaemon;
+  CREATE DATABASE rasdaemon OWNER rasdaemon;
 EOF
 
 PGPASSWORD='some_password' \
   psql -h /var/run/postgresql -U rasdaemon \
-       -d rasdaemon_test --set ON_ERROR_STOP=1 << EOF2
+       -d rasdaemon --set ON_ERROR_STOP=1 << EOF2
   CREATE SCHEMA rasdaemon AUTHORIZATION rasdaemon;
 EOF2
 ```

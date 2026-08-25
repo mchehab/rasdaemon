@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 
 #include <libpq-fe.h>
@@ -124,10 +125,13 @@ static int db_pg_open(struct ras_db **__db, void *__conn_parms,
 			values[idx++] = cp->database;
 		}
 
-		if (cp->use_ssl) {
+		if (cp->sslmode && *cp->sslmode &&
+		    strcasecmp(cp->sslmode, "false")) {
 			keywords[idx] = "sslmode";
-			values[idx++] = cp->sslmode && *cp->sslmode ?
-				cp->sslmode : "require";
+			values[idx++] = cp->sslmode;
+		} else if (cp->use_ssl) {
+			keywords[idx] = "sslmode";
+			values[idx++] = "require";
 		}
 
 		if (cp->connect_timeout) {

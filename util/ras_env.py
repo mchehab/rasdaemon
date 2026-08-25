@@ -97,13 +97,14 @@ class RasDaemonEnv:
 
 class PostgresqlConnParms:
     def __init__(self):
-        self.host = os.environ.get("RAS_PG_HOST", "localhost")
+        self.host = os.environ.get("RAS_PG_HOST", "")
         self.port = os.environ.get("RAS_PG_PORT", "5432")
         self.user = os.environ.get("RAS_PG_USER", "rasdaemon")
         self.password = os.environ.get("RAS_PG_PASSWORD", "")
         self.database = os.environ.get("RAS_PG_DATABASE", "rasdaemon")
         self.schema = os.environ.get("RAS_PG_SCHEMA", "rasdaemon")
         self.ssl_mode = os.environ.get("RAS_PG_SSL_MODE", "false")
+        self.use_ssl = os.environ.get("RAS_PG_USE_SSL", "false")
         self.connect_timeout = os.environ.get("RAS_PG_CONNECT_TIMEOUT", "10")
 
 

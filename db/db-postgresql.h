@@ -10,7 +10,7 @@
 
 /**
  * struct db_postgresql_conn_params - PostgreSQL connection parameters
- * @host:	Hostname or IP. NULL or "localhost" for local Unix socket.
+ * @host:	Hostname or IP. NULL or empty for a local Unix socket.
  * @port:	TCP port (default 5432). Ignored for local socket.
  * @user:	Username (default "rasdaemon").
  * @password:	Password (default NULL / empty).
