@@ -66,9 +66,9 @@ class RasMemoryDimm:
                             help="Load label database from file DB.")
         parser.add_argument("--layout", "-l", action="store_true",
                             help="Display the memory layout.")
-        parser.add_argument("--error-count", action="store_true",
+        parser.add_argument("--error-count", "-e", action="store_true",
                             help="Display corrected and uncorrected DIMM error counts.")
-        parser.add_argument("--per-rank", action="store_true",
+        parser.add_argument("--per-rank", "-P", action="store_true",
                             help="With --error-count, show every rank separately.")
         self.parser = parser
         parser.set_defaults(func=self.run)

@@ -417,15 +417,15 @@ class RasDatabaseCommand:
         self.parser = parser
         output = parser.add_mutually_exclusive_group()
         output.add_argument(
-            "--errors", action="store_true",
+            "--errors", "-e", action="store_true",
             help="Display detailed error records (the default).",
         )
         output.add_argument(
-            "--summary", action="store_true",
+            "--summary", "-S", action="store_true",
             help="Display event counts grouped by hostname and table.",
         )
         output.add_argument(
-            "--count", action="store_true",
+            "--count", "-C", action="store_true",
             help="Count matching events, optionally grouped by --group-by.",
         )
         output.add_argument(
@@ -433,77 +433,79 @@ class RasDatabaseCommand:
             help="Count matching errors in each non-empty event table.",
         )
         output.add_argument(
-            "--list-tables", action="store_true",
+            "--list-tables", "-L", action="store_true",
             help="List discovered event tables and exit.",
         )
         output.add_argument(
-            "--describe", action="store_true",
+            "--describe", "-D", action="store_true",
             help="Describe fields and types for selected event tables and exit.",
         )
         output.add_argument(
-            "--create-index", action="store_true",
+            "--create-index", "-I", action="store_true",
             help="Create missing indexes for the selected event tables and exit.",
         )
         parser.add_argument(
-            "--since", metavar="YYYY-MM-DD",
+            "--since", "-s", metavar="YYYY-MM-DD",
             help="Only display records at or after this date.",
         )
         parser.add_argument(
-            "--until", type=datetime.date.fromisoformat, metavar="YYYY-MM-DD",
+            "--until", "-u", type=datetime.date.fromisoformat,
+            metavar="YYYY-MM-DD",
             help="Only display records at or before this date.",
         )
         parser.add_argument(
-            "--hostname", metavar="HOSTNAME",
+            "--hostname", "-H", metavar="HOSTNAME",
             help="Only display records for this hostname (ignored with SQLite).",
         )
         parser.add_argument(
-            "--where", action="append", default=[], metavar="FIELD[OP]VALUE",
+            "--where", "-w", action="append", default=[],
+            metavar="FIELD[OP]VALUE",
             help="Require a field comparison; may be repeated.",
         )
         parser.add_argument(
-            "--select", dest="select_fields", action="append", default=[],
+            "--select", "-x", dest="select_fields", action="append", default=[],
             metavar="FIELD", help="Display only this field in detailed output.",
         )
         parser.add_argument(
-            "--group-by", action="append", default=[], metavar="FIELD",
+            "--group-by", "-g", action="append", default=[], metavar="FIELD",
             help="Group --count output by this field; may be repeated.",
         )
         parser.add_argument(
-            "--order-by", action="append", default=[],
+            "--order-by", "-o", action="append", default=[],
             metavar="FIELD[:asc|desc]",
             help="Order detailed output or --count groups; may be repeated.",
         )
         severity = parser.add_mutually_exclusive_group()
         severity.add_argument(
-            "--corrected", dest="severity", action="store_const",
+            "--corrected", "-c", dest="severity", action="store_const",
             const="corrected", help="Select corrected errors.",
         )
         severity.add_argument(
-            "--uncorrected", dest="severity", action="store_const",
+            "--uncorrected", "-U", dest="severity", action="store_const",
             const="uncorrected", help="Select uncorrected errors.",
         )
         severity.add_argument(
-            "--deferred", dest="severity", action="store_const",
+            "--deferred", "-d", dest="severity", action="store_const",
             const="deferred", help="Select deferred errors.",
         )
         severity.add_argument(
-            "--fatal", dest="severity", action="store_const",
+            "--fatal", "-f", dest="severity", action="store_const",
             const="fatal", help="Select fatal errors.",
         )
         severity.add_argument(
-            "--info", dest="severity", action="store_const",
+            "--info", "-i", dest="severity", action="store_const",
             const="info", help="Select informational errors.",
         )
         severity.add_argument(
-            "--recoverable", dest="severity", action="store_const",
+            "--recoverable", "-r", dest="severity", action="store_const",
             const="recoverable", help="Select recoverable errors.",
         )
         parser.add_argument(
-            "--table", action="append", default=[], metavar="PATTERN",
+            "--table", "-t", action="append", default=[], metavar="PATTERN",
             help="Include an exact table or shell-style pattern (repeatable).",
         )
         parser.add_argument(
-            "--except", dest="exclude_table", action="append", default=[],
+            "--except", "-X", dest="exclude_table", action="append", default=[],
             metavar="PATTERN",
             help="Exclude an exact table or shell-style pattern (repeatable).",
         )

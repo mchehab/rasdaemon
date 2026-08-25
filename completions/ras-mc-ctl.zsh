@@ -37,35 +37,35 @@ _ras-mc-ctl()
                         '(-d --delay)'{-d,--delay}'[delay label registration]:seconds:(1 5 10 30 60)' \
                         '(-L --labeldb)'{-L,--labeldb}'[use an alternate label database]:label database:_files' \
                         '(-l --layout)'{-l,--layout}'[print the EDAC memory layout]' \
-                        '--error-count[display corrected and uncorrected DIMM error counts]' \
-                        '(--error-count)--per-rank[show each rank separately]'
+                        '{-e,--error-count}[display corrected and uncorrected DIMM error counts]' \
+                        '(-e --error-count){-P,--per-rank}[show each rank separately]'
                     ;;
                 database|db)
                     _arguments \
                         '(-h --help)'{-h,--help}'[show command help]' \
                         '(-v --verbose)'{-v,--verbose}'[describe tables selected for this query]' \
-                        '(--summary --count -E --errors-per-table --list-tables --describe --create-index)--errors[display detailed error records]' \
-                        '(--errors --count -E --errors-per-table --list-tables --describe --create-index)--summary[display event counts by hostname and table]' \
-                        '(--errors --summary -E --errors-per-table --list-tables --describe --create-index)--count[count matching events]' \
-                        '(--errors --summary --count --list-tables --describe --create-index)'{-E,--errors-per-table}'[count matching errors in each non-empty event table]' \
-                        '(--errors --summary --count -E --errors-per-table --describe --create-index)--list-tables[list discovered event tables]' \
-                        '(--errors --summary --count -E --errors-per-table --list-tables --create-index)--describe[describe selected event table fields]' \
-                        '(--errors --summary --count -E --errors-per-table --list-tables --describe)--create-index[create missing indexes and exit]' \
-                        '--since=[include records on or after this date]:date (YYYY-MM-DD):' \
-                        '--until=[include records on or before this date]:date (YYYY-MM-DD):' \
-                        '--hostname=[only include records for this hostname]:hostname:' \
-                        '*--where=[require a field comparison]:filter:' \
-                        '*--select=[display one field in detailed output]:field:' \
-                        '*--group-by=[group count output by a field]:field:' \
-                        '*--order-by=[order results]:field:' \
-                        '(--uncorrected --deferred --fatal --info --recoverable)--corrected[select corrected errors]' \
-                        '(--corrected --deferred --fatal --info --recoverable)--uncorrected[select uncorrected errors]' \
-                        '(--corrected --uncorrected --fatal --info --recoverable)--deferred[select deferred errors]' \
-                        '(--corrected --uncorrected --deferred --info --recoverable)--fatal[select fatal errors]' \
-                        '(--corrected --uncorrected --deferred --fatal --recoverable)--info[select informational errors]' \
-                        '(--corrected --uncorrected --deferred --fatal --info)--recoverable[select recoverable errors]' \
-                        '*--table=[include an exact table or shell-style pattern]:table pattern:' \
-                        '*--except=[exclude an exact table or shell-style pattern]:table pattern:'
+                        '(-S --summary -C --count -E --errors-per-table -L --list-tables -D --describe -I --create-index)'{-e,--errors}'[display detailed error records]' \
+                        '(-e --errors -C --count -E --errors-per-table -L --list-tables -D --describe -I --create-index)'{-S,--summary}'[display event counts by hostname and table]' \
+                        '(-e --errors -S --summary -E --errors-per-table -L --list-tables -D --describe -I --create-index)'{-C,--count}'[count matching events]' \
+                        '(-e --errors -S --summary -C --count -L --list-tables -D --describe -I --create-index)'{-E,--errors-per-table}'[count matching errors in each non-empty event table]' \
+                        '(-e --errors -S --summary -C --count -E --errors-per-table -D --describe -I --create-index)'{-L,--list-tables}'[list discovered event tables]' \
+                        '(-e --errors -S --summary -C --count -E --errors-per-table -L --list-tables -I --create-index)'{-D,--describe}'[describe selected event table fields]' \
+                        '(-e --errors -S --summary -C --count -E --errors-per-table -L --list-tables -D --describe)'{-I,--create-index}'[create missing indexes and exit]' \
+                        '{-s,--since}=[include records on or after this date]:date (YYYY-MM-DD):' \
+                        '{-u,--until}=[include records on or before this date]:date (YYYY-MM-DD):' \
+                        '{-H,--hostname}=[only include records for this hostname]:hostname:' \
+                        '*'{-w,--where}'=[require a field comparison]:filter:' \
+                        '*'{-x,--select}'=[display one field in detailed output]:field:' \
+                        '*'{-g,--group-by}'=[group count output by a field]:field:' \
+                        '*'{-o,--order-by}'=[order results]:field:' \
+                        '(-U --uncorrected -d --deferred -f --fatal -i --info -r --recoverable)'{-c,--corrected}'[select corrected errors]' \
+                        '(-c --corrected -d --deferred -f --fatal -i --info -r --recoverable)'{-U,--uncorrected}'[select uncorrected errors]' \
+                        '(-c --corrected -U --uncorrected -f --fatal -i --info -r --recoverable)'{-d,--deferred}'[select deferred errors]' \
+                        '(-c --corrected -U --uncorrected -d --deferred -i --info -r --recoverable)'{-f,--fatal}'[select fatal errors]' \
+                        '(-c --corrected -U --uncorrected -d --deferred -f --fatal -r --recoverable)'{-i,--info}'[select informational errors]' \
+                        '(-c --corrected -U --uncorrected -d --deferred -f --fatal -i --info)'{-r,--recoverable}'[select recoverable errors]' \
+                        '*'{-t,--table}'=[include an exact table or shell-style pattern]:table pattern:' \
+                        '*'{-X,--except}'=[exclude an exact table or shell-style pattern]:table pattern:'
                     ;;
             esac
             ;;
