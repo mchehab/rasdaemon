@@ -43,13 +43,26 @@ _ras-mc-ctl()
                 database|db)
                     _arguments \
                         '(-h --help)'{-h,--help}'[show command help]' \
-                        '(--summary --list-tables --create-index)--errors[display detailed error records]' \
-                        '(--errors --list-tables --create-index)--summary[display event counts by hostname and table]' \
-                        '(--errors --summary --create-index)--list-tables[list discovered event tables]' \
-                        '(--errors --summary --list-tables)--create-index[create missing indexes and exit]' \
+                        '(-v --verbose)'{-v,--verbose}'[describe tables selected for this query]' \
+                        '(--summary --count --list-tables --describe --create-index)--errors[display detailed error records]' \
+                        '(--errors --count --list-tables --describe --create-index)--summary[display event counts by hostname and table]' \
+                        '(--errors --summary --list-tables --describe --create-index)--count[count matching events]' \
+                        '(--errors --summary --count --describe --create-index)--list-tables[list discovered event tables]' \
+                        '(--errors --summary --count --list-tables --create-index)--describe[describe selected event table fields]' \
+                        '(--errors --summary --count --list-tables --describe)--create-index[create missing indexes and exit]' \
                         '--since=[include records on or after this date]:date (YYYY-MM-DD):' \
                         '--until=[include records on or before this date]:date (YYYY-MM-DD):' \
                         '--hostname=[only include records for this hostname]:hostname:' \
+                        '*--where=[require a field comparison]:filter:' \
+                        '*--select=[display one field in detailed output]:field:' \
+                        '*--group-by=[group count output by a field]:field:' \
+                        '*--order-by=[order results]:field:' \
+                        '(--uncorrected --deferred --fatal --info --recoverable)--corrected[select corrected errors]' \
+                        '(--corrected --deferred --fatal --info --recoverable)--uncorrected[select uncorrected errors]' \
+                        '(--corrected --uncorrected --fatal --info --recoverable)--deferred[select deferred errors]' \
+                        '(--corrected --uncorrected --deferred --info --recoverable)--fatal[select fatal errors]' \
+                        '(--corrected --uncorrected --deferred --fatal --recoverable)--info[select informational errors]' \
+                        '(--corrected --uncorrected --deferred --fatal --info)--recoverable[select recoverable errors]' \
                         '*--table=[include an exact table or shell-style pattern]:table pattern:' \
                         '*--except=[exclude an exact table or shell-style pattern]:table pattern:'
                     ;;

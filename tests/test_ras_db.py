@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0
 
 import argparse
+import contextlib
 import datetime
+import io
 import os
 import pathlib
 import re
@@ -21,6 +23,8 @@ sys.path.insert(0, str(UTIL_DIR))
 
 if sqlalchemy is not None:
     from ras_db import RasDatabase, RasDatabaseCommand  # noqa: E402
+    from ras_filter import (DatabaseFilter, DatabaseOrder,
+                            RasDatabaseQuery)  # noqa: E402
 
 
 class RasDatabaseTests:
@@ -173,6 +177,28 @@ class RasDatabaseTests:
                                     2026, 3, row + 1, 10, 0,
                                     tzinfo=datetime.timezone.utc,
                                 )
+                        elif (table.name == "mc_event"
+                              and column.name == "err_type"):
+                            value = ("Corrected" if row < 5
+                                     else "Uncorrected")
+                        elif (table.name == "aer_event"
+                              and column.name == "err_type"):
+                            value = (
+                                "Corrected", "Uncorrected (Non-Fatal)",
+                                "Uncorrected (Fatal)", "Corrected", "Corrected",
+                            )[row % 5]
+                        elif (table.name == "non_standard_event"
+                              and column.name == "severity"):
+                            value = (
+                                "Corrected", "Recoverable", "Fatal",
+                                "Informational", "Corrected",
+                            )[row % 5]
+                        elif (table.name == "extlog_event"
+                              and column.name == "severity"):
+                            value = (2, 1, 0, 3, 2)[row % 5]
+                        elif (table.name == "reri_event"
+                              and column.name == "severity"):
+                            value = (1, 3, 2, 0, 1)[row % 5]
                         elif isinstance(column.type, sqlalchemy.LargeBinary):
                             value = bytes((row, 0x52, 0x41, 0x53))
                         elif isinstance(column.type, sqlalchemy.Text):
@@ -290,10 +316,77 @@ class RasDatabaseTests:
         formatted = self.database.format_summary(groups)
         self.assertIn(f"{selected_name}: 3 event(s)", formatted)
 
+    def test_dynamic_filter_uses_only_tables_with_the_field(self):
+        target = "mc_event-label-0"
+        groups = self.database.records(
+            filters=RasDatabaseQuery.parse_filters([f"label={target}"]),
+            select_fields=("label",),
+        )
+
+        self.assertEqual(list(groups), ["local-host"])
+        self.assertEqual(len(groups["local-host"]), 1)
+        event = groups["local-host"][0]
+        self.assertEqual(event.table, "mc_event")
+        self.assertEqual(event.values["label"], target)
+        self.assertEqual(
+            self.database.format_records(groups, ("label",)),
+            f"Hostname: local-host\n  {event.timestamp} mc_event: label={target}\n",
+        )
+
+    def test_count_and_group_by_filters(self):
+        selected = self.database.select_tables(["mc_event"])
+        counts = self.database.counts(
+            tables=selected, severity="corrected",
+        )
+        self.assertEqual(len(counts), 1)
+        self.assertEqual(counts[0].count, 5)
+        self.assertEqual(self.database.format_counts(counts), "Count: 5\n")
+
+        counts = self.database.counts(
+            tables=selected, severity="corrected", group_by=("label",),
+            order_by=(DatabaseOrder("count", descending=True),
+                      DatabaseOrder("label")),
+        )
+        self.assertEqual(len(counts), 5)
+        self.assertTrue(all(count.count == 1 for count in counts))
+        self.assertEqual(
+            [count.values["label"] for count in counts],
+            [f"mc_event-label-{row}" for row in range(5)],
+        )
+
+    def test_severity_shortcuts_cover_aer_and_ghes_tables(self):
+        expectations = {
+            "aer_event": {"corrected": 6, "uncorrected": 4, "fatal": 2},
+            "non_standard_event": {"corrected": 4, "recoverable": 2,
+                                   "fatal": 2, "info": 2},
+            "extlog_event": {"corrected": 4, "recoverable": 2,
+                             "fatal": 2, "info": 2},
+            "reri_event": {"corrected": 4, "recoverable": 2,
+                           "fatal": 2, "info": 2},
+        }
+        for table_name, severities in expectations.items():
+            selected = self.database.select_tables([table_name])
+            for severity, expected in severities.items():
+                count = self.database.counts(
+                    tables=selected, severity=severity,
+                )
+                self.assertEqual(count[0].count, expected, (table_name, severity))
+
+    def test_detailed_ordering_uses_runtime_field(self):
+        selected = self.database.select_tables(["mc_event"])
+        groups = self.database.records(
+            tables=selected, severity="corrected",
+            select_fields=("label", "err_type"),
+            order_by=(DatabaseOrder("label", descending=True),),
+        )
+
+        labels = [event.values["label"] for event in groups["local-host"]]
+        self.assertEqual(labels, sorted(labels, reverse=True))
+
     def test_database_command_options_depend_on_backend(self):
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
-        RasDatabaseCommand("ras-mc-ctl", subparsers)
+        database_command = RasDatabaseCommand("ras-mc-ctl", subparsers)
         command = ["database", "--since", "2026-03-01",
                    "--until", "2026-03-02", "--summary",
                    "--table", "cxl_*", "--except", "*_dram_*"]
@@ -320,6 +413,34 @@ class RasDatabaseTests:
             "database", "--create-index"
         ]).create_index)
 
+        count = parser.parse_args([
+            "database", "--count", "--corrected", "--where", "label=DIMM0",
+            "--group-by", "label", "--order-by", "count:desc", "--verbose",
+        ])
+        self.assertTrue(count.count)
+        self.assertEqual(count.severity, "corrected")
+        self.assertEqual(count.where, ["label=DIMM0"])
+        self.assertEqual(count.group_by, ["label"])
+        self.assertEqual(count.order_by, ["count:desc"])
+        self.assertEqual(count.verbose, 1)
+        self.assertIn("Count corrected EDAC events",
+                      database_command.parser.format_help())
+
+    def test_filter_parser_rejects_raw_sql(self):
+        with self.assertRaisesRegex(ValueError, "invalid filter"):
+            RasDatabaseQuery.parse_filters(["label; DROP TABLE mc_event"])
+
+    def test_verbose_query_planning_explains_excluded_tables(self):
+        with self.assertLogs("ras_db", "DEBUG") as logs:
+            self.database.counts(
+                filters=RasDatabaseQuery.parse_filters(["label=mc_event-label-0"])
+            )
+
+        self.assertTrue(any("Using event table mc_event" in item
+                            for item in logs.output))
+        self.assertTrue(any("Skipping event table aer_event" in item
+                            for item in logs.output))
+
     def test_database_command_extends_until_to_next_midnight(self):
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
@@ -336,7 +457,8 @@ class RasDatabaseTests:
 
         database.records.assert_called_once_with(
             since=None, until="2026-03-06 00:00:00",
-            hostname=None, tables={}
+            hostname=None, tables={}, filters=(), severity=None,
+            select_fields=(), order_by=(),
         )
 
     def test_database_command_creates_indexes_only_on_request(self):
@@ -360,6 +482,30 @@ class RasDatabaseTests:
             ]))
             database.create_missing_indexes.assert_called_once_with({})
             database.close.assert_called_once()
+
+    def test_database_count_command_passes_query_options(self):
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        command = RasDatabaseCommand("ras-mc-ctl", subparsers)
+        database = mock.Mock()
+        database.select_tables.return_value = {}
+        database.counts.return_value = []
+        database.format_counts.return_value = "Count: 0\n"
+
+        with mock.patch.object(RasDatabase, "from_config", return_value=database):
+            with contextlib.redirect_stdout(io.StringIO()):
+                command.run(None, parser.parse_args([
+                    "database", "--count", "--corrected", "--where", "label=A1",
+                    "--group-by", "label", "--order-by", "count:desc",
+                ]))
+
+        database.counts.assert_called_once_with(
+            since=None, until=None, hostname=None, tables={},
+            filters=(DatabaseFilter("label", "=", "A1"),),
+            severity="corrected", group_by=("label",),
+            order_by=(DatabaseOrder("count", descending=True),),
+        )
+        database.format_counts.assert_called_once_with([], ("label",))
 
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import argparse
 import collections
 import datetime
 import fnmatch
@@ -12,11 +13,14 @@ import logging
 import os
 import re
 import socket
-from dataclasses import dataclass
+import textwrap
 from typing import Any, Iterable, Mapping
 
-from sqlalchemy import Index, MetaData, Table, create_engine, event, func, inspect, select
+from sqlalchemy import Index, MetaData, Table, create_engine, event, inspect
 from sqlalchemy.engine import Engine, URL
+
+from ras_filter import (DatabaseCount, DatabaseEvent, DatabaseFilter,
+                        DatabaseOrder, RasDatabaseQuery)
 
 SUPPORTED_BACKENDS = ("sqlite3", "mysql", "postgresql")
 logger = logging.getLogger(__name__)
@@ -26,16 +30,6 @@ def _decode_sqlite_text(value: bytes) -> str:
     """Decode SQLite TEXT while preserving malformed bytes visibly."""
 
     return value.decode("utf-8", errors="backslashreplace")
-
-
-@dataclass(frozen=True)
-class DatabaseEvent:
-    """One record read from a reflected rasdaemon event table."""
-
-    table: str
-    hostname: str
-    timestamp: Any
-    values: Mapping[str, Any]
 
 
 class RasDatabase:
@@ -256,88 +250,68 @@ class RasDatabase:
                 created.append(index_name)
         return created
 
-    @staticmethod
-    def _sort_timestamp(value: Any) -> tuple[int, Any]:
-        if value is None:
-            return (1, "")
-        if isinstance(value, (datetime.date, datetime.datetime)):
-            return (0, value.isoformat())
-        return (0, str(value))
+    def _query(self, tables: Mapping[str, Table]) -> RasDatabaseQuery:
+        """Create a dynamic query for the selected reflected tables."""
+
+        return RasDatabaseQuery(self.db_backend, self.hostname, tables, logger)
 
     def records(self, since: str | None = None, until: str | None = None,
                 hostname: str | None = None,
-                tables: Mapping[str, Table] | None = None
+                tables: Mapping[str, Table] | None = None,
+                filters: Iterable[DatabaseFilter] = (),
+                severity: str | None = None,
+                select_fields: Iterable[str] = (),
+                order_by: Iterable[DatabaseOrder] = (),
                 ) -> dict[str, list[DatabaseEvent]]:
-        """Return records grouped by hostname and ordered by timestamp."""
+        """Return records grouped by hostname and ordered by the query."""
 
         tables = tables if tables is not None else (
             self.tables or self.discover_tables()
         )
-        grouped: dict[str, list[DatabaseEvent]] = collections.defaultdict(list)
         with self.engine.connect() as connection:
-            for table_name, table in tables.items():
-                if (hostname and self.db_backend != "sqlite3"
-                        and "hostname" not in table.c):
-                    continue
-                statement = select(table)
-                if since:
-                    statement = statement.where(table.c.timestamp >= since)
-                if until:
-                    statement = statement.where(table.c.timestamp <= until)
-                if hostname and self.db_backend != "sqlite3":
-                    statement = statement.where(table.c.hostname == hostname)
-                for row in connection.execute(statement).mappings():
-                    values = dict(row)
-                    event_hostname = values.get("hostname") or self.hostname
-                    grouped[str(event_hostname)].append(DatabaseEvent(
-                        table_name, str(event_hostname), values.get("timestamp"),
-                        values
-                    ))
+            return self._query(tables).records(
+                connection, since=since, until=until, hostname=hostname,
+                filters=filters, severity=severity, select_fields=select_fields,
+                order_by=order_by,
+            )
 
-        for events in grouped.values():
-            events.sort(key=lambda event: (
-                self._sort_timestamp(event.timestamp), event.table,
-                str(event.values.get("id", "")),
-            ))
-        return dict(sorted(grouped.items()))
+    def counts(self, since: str | None = None, until: str | None = None,
+               hostname: str | None = None,
+               tables: Mapping[str, Table] | None = None,
+               filters: Iterable[DatabaseFilter] = (),
+               severity: str | None = None,
+               group_by: Iterable[str] = (),
+               order_by: Iterable[DatabaseOrder] = ()
+               ) -> list[DatabaseCount]:
+        """Count matching events, optionally grouped by runtime fields."""
+
+        tables = tables if tables is not None else (
+            self.tables or self.discover_tables()
+        )
+        with self.engine.connect() as connection:
+            return self._query(tables).counts(
+                connection, since=since, until=until, hostname=hostname,
+                filters=filters, severity=severity, group_by=group_by,
+                order_by=order_by,
+            )
 
     def summary(self, since: str | None = None, until: str | None = None,
                 hostname: str | None = None,
-                tables: Mapping[str, Table] | None = None
+                tables: Mapping[str, Table] | None = None,
+                filters: Iterable[DatabaseFilter] = (),
+                severity: str | None = None,
                 ) -> dict[str, dict[str, int]]:
         """Return event counts grouped by hostname and table."""
 
-        tables = tables if tables is not None else (
-            self.tables or self.discover_tables()
-        )
         grouped: dict[str, dict[str, int]] = collections.defaultdict(dict)
-        with self.engine.connect() as connection:
-            for table_name, table in tables.items():
-                if (hostname and self.db_backend != "sqlite3"
-                        and "hostname" not in table.c):
-                    continue
-                host_column = (table.c.hostname if "hostname" in table.c
-                               else None)
-                statement = select(func.count())
-                if host_column is not None:
-                    statement = statement.add_columns(host_column).group_by(
-                        host_column
-                    )
-                if since:
-                    statement = statement.where(table.c.timestamp >= since)
-                if until:
-                    statement = statement.where(table.c.timestamp <= until)
-                if hostname and self.db_backend != "sqlite3":
-                    statement = statement.where(host_column == hostname)
-
-                for row in connection.execute(statement):
-                    count = int(row[0])
-                    if not count:
-                        continue
-                    event_hostname = ((row[1] or self.hostname)
-                                      if host_column is not None
-                                      else self.hostname)
-                    grouped[str(event_hostname)][table_name] = count
+        for result in self.counts(
+                since=since, until=until, hostname=hostname, tables=tables,
+                filters=filters, severity=severity,
+                group_by=("hostname", "table")):
+            if result.count:
+                grouped[str(result.values["hostname"])][
+                    str(result.values["table"])
+                ] = result.count
 
         return {
             host: dict(sorted(counts.items()))
@@ -345,20 +319,47 @@ class RasDatabase:
         }
 
     @staticmethod
-    def format_records(groups: Mapping[str, Iterable[DatabaseEvent]]) -> str:
+    def format_records(groups: Mapping[str, Iterable[DatabaseEvent]],
+                       select_fields: Iterable[str] = ()) -> str:
         """Format discovered records without relying on fixed table schemas."""
 
+        select_fields = tuple(select_fields)
         output = []
         for hostname, events in groups.items():
             output.append(f"Hostname: {hostname}")
             for event in events:
-                fields = (
-                    f"{key}={value}" for key, value in event.values.items()
-                    if key not in ("hostname", "timestamp")
-                )
+                if select_fields:
+                    fields = (
+                        f"{field}={RasDatabaseQuery.event_value(event, field)}"
+                        for field in select_fields
+                        if field not in ("hostname", "timestamp", "table")
+                    )
+                else:
+                    fields = (
+                        f"{key}={value}" for key, value in event.values.items()
+                        if key not in ("hostname", "timestamp")
+                    )
                 output.append(
                     f"  {event.timestamp} {event.table}: {', '.join(fields)}"
                 )
+        return "\n".join(output) + ("\n" if output else "")
+
+    @staticmethod
+    def format_counts(counts: Iterable[DatabaseCount],
+                      group_by: Iterable[str] = ()) -> str:
+        """Format a total or grouped event counts."""
+
+        counts = list(counts)
+        group_by = tuple(group_by)
+        if not group_by:
+            count = counts[0].count if counts else 0
+            return f"Count: {count}\n"
+        output = []
+        for item in counts:
+            fields = ", ".join(
+                f"{field}={item.values[field]}" for field in group_by
+            )
+            output.append(f"{fields}: {item.count} event(s)")
         return "\n".join(output) + ("\n" if output else "")
 
     @staticmethod
@@ -391,6 +392,24 @@ class RasDatabaseCommand:
                 "shell-style patterns."
             ),
             help="Display records from the configured rasdaemon database.",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=textwrap.dedent("""\
+                Examples:
+                  # Count corrected EDAC events.
+                  ras-mc-ctl database --count --table mc_event --corrected
+
+                  # Show the newest PCIe AER events first.
+                  ras-mc-ctl database --errors --table aer_event \\
+                      --order-by timestamp:desc
+
+                  # Count corrected EDAC events by DIMM label.
+                  ras-mc-ctl database --count --table mc_event --corrected \\
+                      --group-by label --order-by count:desc
+
+                  # Summarize HiSilicon OEM records by severity.
+                  ras-mc-ctl database --count --table 'hip08_*' \\
+                      --group-by err_severity --order-by count:desc
+            """),
         )
         self.parser = parser
         output = parser.add_mutually_exclusive_group()
@@ -403,8 +422,16 @@ class RasDatabaseCommand:
             help="Display event counts grouped by hostname and table.",
         )
         output.add_argument(
+            "--count", action="store_true",
+            help="Count matching events, optionally grouped by --group-by.",
+        )
+        output.add_argument(
             "--list-tables", action="store_true",
             help="List discovered event tables and exit.",
+        )
+        output.add_argument(
+            "--describe", action="store_true",
+            help="Describe fields and types for selected event tables and exit.",
         )
         output.add_argument(
             "--create-index", action="store_true",
@@ -423,6 +450,48 @@ class RasDatabaseCommand:
             help="Only display records for this hostname (ignored with SQLite).",
         )
         parser.add_argument(
+            "--where", action="append", default=[], metavar="FIELD[OP]VALUE",
+            help="Require a field comparison; may be repeated.",
+        )
+        parser.add_argument(
+            "--select", dest="select_fields", action="append", default=[],
+            metavar="FIELD", help="Display only this field in detailed output.",
+        )
+        parser.add_argument(
+            "--group-by", action="append", default=[], metavar="FIELD",
+            help="Group --count output by this field; may be repeated.",
+        )
+        parser.add_argument(
+            "--order-by", action="append", default=[],
+            metavar="FIELD[:asc|desc]",
+            help="Order detailed output or --count groups; may be repeated.",
+        )
+        severity = parser.add_mutually_exclusive_group()
+        severity.add_argument(
+            "--corrected", dest="severity", action="store_const",
+            const="corrected", help="Select corrected errors.",
+        )
+        severity.add_argument(
+            "--uncorrected", dest="severity", action="store_const",
+            const="uncorrected", help="Select uncorrected errors.",
+        )
+        severity.add_argument(
+            "--deferred", dest="severity", action="store_const",
+            const="deferred", help="Select deferred errors.",
+        )
+        severity.add_argument(
+            "--fatal", dest="severity", action="store_const",
+            const="fatal", help="Select fatal errors.",
+        )
+        severity.add_argument(
+            "--info", dest="severity", action="store_const",
+            const="info", help="Select informational errors.",
+        )
+        severity.add_argument(
+            "--recoverable", dest="severity", action="store_const",
+            const="recoverable", help="Select recoverable errors.",
+        )
+        parser.add_argument(
             "--table", action="append", default=[], metavar="PATTERN",
             help="Include an exact table or shell-style pattern (repeatable).",
         )
@@ -430,6 +499,10 @@ class RasDatabaseCommand:
             "--except", dest="exclude_table", action="append", default=[],
             metavar="PATTERN",
             help="Exclude an exact table or shell-style pattern (repeatable).",
+        )
+        parser.add_argument(
+            "--verbose", "-v", action="count", default=argparse.SUPPRESS,
+            help="Describe tables selected for this query.",
         )
         parser.set_defaults(func=self.run)
 
@@ -443,11 +516,32 @@ class RasDatabaseCommand:
         try:
             try:
                 tables = database.select_tables(args.table, args.exclude_table)
+                filters = RasDatabaseQuery.parse_filters(args.where)
+                ordering = RasDatabaseQuery.parse_ordering(args.order_by)
+                select_fields = tuple(
+                    RasDatabaseQuery.validate_field(field)
+                    for field in args.select_fields
+                )
+                group_by = tuple(
+                    RasDatabaseQuery.validate_field(field) for field in args.group_by
+                )
             except ValueError as error:
                 self.parser.error(str(error))
+            if args.group_by and not args.count:
+                self.parser.error("--group-by requires --count")
+            if args.select_fields and (args.count or args.summary):
+                self.parser.error("--select is only available with detailed errors")
+            if args.summary and (args.group_by or args.order_by):
+                self.parser.error("--summary has a fixed hostname/table grouping")
             if args.list_tables:
                 for name in tables:
                     print(name)
+                return
+            if args.describe:
+                for name, table in tables.items():
+                    print(f"{name}:")
+                    for column in table.columns:
+                        print(f"  {column.name}: {column.type}")
                 return
             if args.create_index:
                 created = database.create_missing_indexes(tables)
@@ -457,12 +551,21 @@ class RasDatabaseCommand:
             if args.summary:
                 print(database.format_summary(database.summary(
                     since=args.since, until=until,
-                    hostname=args.hostname, tables=tables
+                    hostname=args.hostname, tables=tables, filters=filters,
+                    severity=args.severity,
                 )), end="")
+            elif args.count:
+                print(database.format_counts(database.counts(
+                    since=args.since, until=until, hostname=args.hostname,
+                    tables=tables, filters=filters, severity=args.severity,
+                    group_by=group_by, order_by=ordering,
+                ), group_by), end="")
             else:
                 print(database.format_records(database.records(
                     since=args.since, until=until,
-                    hostname=args.hostname, tables=tables
-                )), end="")
+                    hostname=args.hostname, tables=tables, filters=filters,
+                    severity=args.severity, select_fields=select_fields,
+                    order_by=ordering,
+                ), select_fields), end="")
         finally:
             database.close()
