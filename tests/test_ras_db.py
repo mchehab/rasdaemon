@@ -301,7 +301,7 @@ class RasDatabaseTests:
             command.extend(["--hostname", "remote-a"])
         args = parser.parse_args(command)
         self.assertEqual(args.since, "2026-03-01")
-        self.assertEqual(args.until, "2026-03-02")
+        self.assertEqual(args.until, datetime.date(2026, 3, 2))
         self.assertTrue(args.summary)
         self.assertEqual(args.table, ["cxl_*"])
         self.assertEqual(args.exclude_table, ["*_dram_*"])
@@ -319,6 +319,25 @@ class RasDatabaseTests:
         self.assertTrue(parser.parse_args([
             "database", "--create-index"
         ]).create_index)
+
+    def test_database_command_extends_until_to_next_midnight(self):
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        command = RasDatabaseCommand("ras-mc-ctl", subparsers)
+        database = mock.Mock()
+        database.select_tables.return_value = {}
+        database.records.return_value = {}
+        database.format_records.return_value = ""
+
+        with mock.patch.object(RasDatabase, "from_config", return_value=database):
+            command.run(None, parser.parse_args([
+                "database", "--until", "2026-03-05"
+            ]))
+
+        database.records.assert_called_once_with(
+            since=None, until="2026-03-06 00:00:00",
+            hostname=None, tables={}
+        )
 
     def test_database_command_creates_indexes_only_on_request(self):
         parser = argparse.ArgumentParser()

@@ -415,7 +415,7 @@ class RasDatabaseCommand:
             help="Only display records at or after this date.",
         )
         parser.add_argument(
-            "--until", metavar="YYYY-MM-DD",
+            "--until", type=datetime.date.fromisoformat, metavar="YYYY-MM-DD",
             help="Only display records at or before this date.",
         )
         parser.add_argument(
@@ -435,6 +435,11 @@ class RasDatabaseCommand:
 
     def run(self, config: Any, args: Any) -> None:
         database = RasDatabase.from_config(config)
+        until = None
+        if args.until:
+            until = "{} 00:00:00".format(
+                args.until + datetime.timedelta(days=1)
+            )
         try:
             try:
                 tables = database.select_tables(args.table, args.exclude_table)
@@ -451,12 +456,12 @@ class RasDatabaseCommand:
                 return
             if args.summary:
                 print(database.format_summary(database.summary(
-                    since=args.since, until=args.until,
+                    since=args.since, until=until,
                     hostname=args.hostname, tables=tables
                 )), end="")
             else:
                 print(database.format_records(database.records(
-                    since=args.since, until=args.until,
+                    since=args.since, until=until,
                     hostname=args.hostname, tables=tables
                 )), end="")
         finally:
