@@ -395,6 +395,9 @@ class RasDatabaseCommand:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog=textwrap.dedent("""\
                 Examples:
+                  # List tables which currently contain errors.
+                  ras-mc-ctl database -E
+
                   # Count corrected EDAC events.
                   ras-mc-ctl database --count --table mc_event --corrected
 
@@ -424,6 +427,10 @@ class RasDatabaseCommand:
         output.add_argument(
             "--count", action="store_true",
             help="Count matching events, optionally grouped by --group-by.",
+        )
+        output.add_argument(
+            "--errors-per-table", "-E", action="store_true",
+            help="Count matching errors in each non-empty event table.",
         )
         output.add_argument(
             "--list-tables", action="store_true",
@@ -527,9 +534,12 @@ class RasDatabaseCommand:
                 )
             except ValueError as error:
                 self.parser.error(str(error))
+            if args.errors_per_table and args.group_by:
+                self.parser.error("--errors-per-table has a fixed table grouping")
             if args.group_by and not args.count:
                 self.parser.error("--group-by requires --count")
-            if args.select_fields and (args.count or args.summary):
+            if args.select_fields and (
+                    args.count or args.summary or args.errors_per_table):
                 self.parser.error("--select is only available with detailed errors")
             if args.summary and (args.group_by or args.order_by):
                 self.parser.error("--summary has a fixed hostname/table grouping")
@@ -555,6 +565,13 @@ class RasDatabaseCommand:
                     severity=args.severity,
                 )), end="")
             elif args.count:
+                print(database.format_counts(database.counts(
+                    since=args.since, until=until, hostname=args.hostname,
+                    tables=tables, filters=filters, severity=args.severity,
+                    group_by=group_by, order_by=ordering,
+                ), group_by), end="")
+            elif args.errors_per_table:
+                group_by = ("table",)
                 print(database.format_counts(database.counts(
                     since=args.since, until=until, hostname=args.hostname,
                     tables=tables, filters=filters, severity=args.severity,

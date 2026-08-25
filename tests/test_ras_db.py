@@ -354,6 +354,16 @@ class RasDatabaseTests:
             [f"mc_event-label-{row}" for row in range(5)],
         )
 
+    def test_count_by_table_only_reports_non_empty_tables(self):
+        counts = self.database.counts(
+            filters=RasDatabaseQuery.parse_filters(["label=mc_event-label-0"]),
+            group_by=("table",),
+        )
+
+        self.assertEqual(len(counts), 1)
+        self.assertEqual(counts[0].values, {"table": "mc_event"})
+        self.assertEqual(counts[0].count, 1)
+
     def test_severity_shortcuts_cover_aer_and_ghes_tables(self):
         expectations = {
             "aer_event": {"corrected": 6, "uncorrected": 4, "fatal": 2},
@@ -412,6 +422,9 @@ class RasDatabaseTests:
         self.assertTrue(parser.parse_args([
             "database", "--create-index"
         ]).create_index)
+        self.assertTrue(parser.parse_args([
+            "database", "-E"
+        ]).errors_per_table)
 
         count = parser.parse_args([
             "database", "--count", "--corrected", "--where", "label=DIMM0",
@@ -506,6 +519,30 @@ class RasDatabaseTests:
             order_by=(DatabaseOrder("count", descending=True),),
         )
         database.format_counts.assert_called_once_with([], ("label",))
+
+    def test_database_errors_per_table_uses_table_count_grouping(self):
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        command = RasDatabaseCommand("ras-mc-ctl", subparsers)
+        database = mock.Mock()
+        database.select_tables.return_value = {}
+        database.counts.return_value = []
+        database.format_counts.return_value = ""
+
+        with mock.patch.object(RasDatabase, "from_config", return_value=database):
+            with contextlib.redirect_stdout(io.StringIO()):
+                command.run(None, parser.parse_args([
+                    "database", "-E", "--corrected", "--where", "label=A1",
+                    "--order-by", "count:desc",
+                ]))
+
+        database.counts.assert_called_once_with(
+            since=None, until=None, hostname=None, tables={},
+            filters=(DatabaseFilter("label", "=", "A1"),),
+            severity="corrected", group_by=("table",),
+            order_by=(DatabaseOrder("count", descending=True),),
+        )
+        database.format_counts.assert_called_once_with([], ("table",))
 
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")

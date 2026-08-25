@@ -44,12 +44,13 @@ _ras-mc-ctl()
                     _arguments \
                         '(-h --help)'{-h,--help}'[show command help]' \
                         '(-v --verbose)'{-v,--verbose}'[describe tables selected for this query]' \
-                        '(--summary --count --list-tables --describe --create-index)--errors[display detailed error records]' \
-                        '(--errors --count --list-tables --describe --create-index)--summary[display event counts by hostname and table]' \
-                        '(--errors --summary --list-tables --describe --create-index)--count[count matching events]' \
-                        '(--errors --summary --count --describe --create-index)--list-tables[list discovered event tables]' \
-                        '(--errors --summary --count --list-tables --create-index)--describe[describe selected event table fields]' \
-                        '(--errors --summary --count --list-tables --describe)--create-index[create missing indexes and exit]' \
+                        '(--summary --count -E --errors-per-table --list-tables --describe --create-index)--errors[display detailed error records]' \
+                        '(--errors --count -E --errors-per-table --list-tables --describe --create-index)--summary[display event counts by hostname and table]' \
+                        '(--errors --summary -E --errors-per-table --list-tables --describe --create-index)--count[count matching events]' \
+                        '(--errors --summary --count --list-tables --describe --create-index)'{-E,--errors-per-table}'[count matching errors in each non-empty event table]' \
+                        '(--errors --summary --count -E --errors-per-table --describe --create-index)--list-tables[list discovered event tables]' \
+                        '(--errors --summary --count -E --errors-per-table --list-tables --create-index)--describe[describe selected event table fields]' \
+                        '(--errors --summary --count -E --errors-per-table --list-tables --describe)--create-index[create missing indexes and exit]' \
                         '--since=[include records on or after this date]:date (YYYY-MM-DD):' \
                         '--until=[include records on or before this date]:date (YYYY-MM-DD):' \
                         '--hostname=[only include records for this hostname]:hostname:' \
