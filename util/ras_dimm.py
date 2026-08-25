@@ -66,12 +66,19 @@ class RasMemoryDimm:
                             help="Load label database from file DB.")
         parser.add_argument("--layout", "-l", action="store_true",
                             help="Display the memory layout.")
+        parser.add_argument("--error-count", action="store_true",
+                            help="Display corrected and uncorrected DIMM error counts.")
+        parser.add_argument("--per-rank", action="store_true",
+                            help="With --error-count, show every rank separately.")
+        self.parser = parser
         parser.set_defaults(func=self.run)
 
     def run(self, config:Any, args: Any) -> None:
         self.delay = args.delay
         if args.labeldb:
             self.label_db = args.labeldb
+        if args.per_rank and not args.error_count:
+            self.parser.error("Only use --per-rank with --error-count")
 
         needs_board = (args.mainboard or args.dmidecode or args.print_labels or
                        args.register_labels)
@@ -91,6 +98,9 @@ class RasMemoryDimm:
             actions += 1
         if args.layout:
             self.display_memory_layout()
+            actions += 1
+        if args.error_count:
+            self.display_error_count(args.per_rank)
             actions += 1
         if args.status:
             self.print_status()
@@ -381,3 +391,46 @@ class RasMemoryDimm:
 
     def display_memory_layout(self):
         MemoryLayout(self.SYSFS_DIR).display()
+
+    def display_error_count(self, per_rank=False):
+        """Display EDAC corrected and uncorrected error counters from sysfs."""
+
+        nodes = self._parse_dimm_nodes()
+        if not nodes:
+            logger.error("No DIMMs found in /sys or new sysfs EDAC interface not found.")
+            return False
+
+        rows = []
+        for position, node in sorted(nodes.items()):
+            directory = os.path.dirname(node["path"])
+            label = self._read_text(node["path"]) or "unknown"
+            ce_count = self._read_text(os.path.join(directory, "dimm_ce_count"))
+            ue_count = self._read_text(os.path.join(directory, "dimm_ue_count"))
+            try:
+                ce_count = int(ce_count)
+                ue_count = int(ue_count)
+            except (TypeError, ValueError):
+                logger.error("Missing or invalid EDAC error counters for %s", label)
+                return False
+            rows.append((label, node["location"], ce_count, ue_count))
+
+        if per_rank:
+            labels = [f"{label} ({location})" for label, location, _, _ in rows]
+            width = max(len(label) for label in labels)
+            print(f"{'Label':{width}}\tCE\tUE")
+            for label, (_, _, ce_count, ue_count) in zip(labels, rows):
+                print(f"{label:{width}}\t{ce_count}\t{ue_count}")
+            return True
+
+        counts = {}
+        for label, _, ce_count, ue_count in rows:
+            total = counts.setdefault(label, [0, 0])
+            total[0] += ce_count
+            total[1] += ue_count
+
+        width = max(len(label) for label in counts)
+        print(f"{'Label':{width}}\tCE\tUE")
+        for label in sorted(counts):
+            ce_count, ue_count = counts[label]
+            print(f"{label:{width}}\t{ce_count}\t{ue_count}")
+        return True

@@ -22,6 +22,7 @@ from ras_dimm import RasMemoryDimm  # noqa: E402
 class RasMemoryDimmTest(unittest.TestCase):
     def setUp(self):
         parser = argparse.ArgumentParser()
+        self.parser = parser
         self.dimm = RasMemoryDimm("ras-mc-ctl", parser.add_subparsers())
 
     def test_parse_board_dmidecode_prefers_baseboard(self):
@@ -175,6 +176,69 @@ class RasMemoryDimmTest(unittest.TestCase):
             ["memory stick 'DIMM_A1' is located at 'BANK 0'",
              "memory stick 'DIMM_B1' is located at 'BANK 1'"],
         )
+
+    @staticmethod
+    def _add_counter_dimm(root, controller, dimm, location, label, ce, ue):
+        directory = root / f"mc{controller}" / f"dimm{dimm}"
+        directory.mkdir(parents=True)
+        (directory / "dimm_location").write_text(
+            f"{location}\n", encoding="utf-8"
+        )
+        (directory / "dimm_label").write_text(f"{label}\n", encoding="utf-8")
+        (directory / "dimm_ce_count").write_text(f"{ce}\n", encoding="utf-8")
+        (directory / "dimm_ue_count").write_text(f"{ue}\n", encoding="utf-8")
+
+    def test_error_count_consolidates_same_label(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            self._add_counter_dimm(root, 0, 0, "channel 0 slot 0", "A1", 2, 3)
+            self._add_counter_dimm(root, 0, 1, "channel 1 slot 0", "A1", 5, 7)
+            self._add_counter_dimm(root, 1, 0, "channel 0 slot 0", "B1", 11, 13)
+            self.dimm.SYSFS_DIR = os.fspath(root)
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertTrue(self.dimm.display_error_count())
+
+        self.assertEqual(
+            output.getvalue(),
+            "Label\tCE\tUE\nA1\t7\t10\nB1\t11\t13\n",
+        )
+
+    def test_error_count_per_rank_keeps_locations_separate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            self._add_counter_dimm(root, 0, 0, "channel 0 slot 0", "A1", 2, 3)
+            self._add_counter_dimm(root, 0, 1, "channel 1 slot 0", "A1", 5, 7)
+            self.dimm.SYSFS_DIR = os.fspath(root)
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertTrue(self.dimm.display_error_count(per_rank=True))
+
+        self.assertEqual(
+            output.getvalue(),
+            "Label".ljust(21) + "\tCE\tUE\n"
+            "A1 (channel 0 slot 0)\t2\t3\n"
+            "A1 (channel 1 slot 0)\t5\t7\n",
+        )
+
+    def test_error_count_command_options(self):
+        args = self.parser.parse_args([
+            "dimm", "--error-count", "--per-rank"
+        ])
+        self.assertTrue(args.error_count)
+        self.assertTrue(args.per_rank)
+
+        with mock.patch.object(self.dimm, "display_error_count") as display:
+            self.dimm.run(None, args)
+        display.assert_called_once_with(True)
+
+    def test_per_rank_requires_error_count(self):
+        args = self.parser.parse_args(["dimm", "--per-rank"])
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                self.dimm.run(None, args)
 
 
 if __name__ == "__main__":

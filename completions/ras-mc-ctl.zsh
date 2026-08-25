@@ -36,7 +36,9 @@ _ras-mc-ctl()
                         '(-r --register-labels)'{-r,--register-labels}'[register DIMM labels]' \
                         '(-d --delay)'{-d,--delay}'[delay label registration]:seconds:(1 5 10 30 60)' \
                         '(-L --labeldb)'{-L,--labeldb}'[use an alternate label database]:label database:_files' \
-                        '(-l --layout)'{-l,--layout}'[print the EDAC memory layout]'
+                        '(-l --layout)'{-l,--layout}'[print the EDAC memory layout]' \
+                        '--error-count[display corrected and uncorrected DIMM error counts]' \
+                        '(--error-count)--per-rank[show each rank separately]'
                     ;;
                 database|db)
                     _arguments \
