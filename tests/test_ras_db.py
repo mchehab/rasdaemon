@@ -8,6 +8,7 @@ import re
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 try:
     import sqlalchemy
@@ -311,6 +312,31 @@ class RasDatabaseTests:
         self.assertTrue(parser.parse_args([
             "database", "--list-tables"
         ]).list_tables)
+        self.assertTrue(parser.parse_args([
+            "database", "--create-index"
+        ]).create_index)
+
+    def test_database_command_creates_indexes_only_on_request(self):
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        command = RasDatabaseCommand("ras-mc-ctl", subparsers)
+        database = mock.Mock()
+        database.select_tables.return_value = {}
+        database.summary.return_value = {}
+        database.format_summary.return_value = ""
+        database.create_missing_indexes.return_value = ["idx_mc_event_timestamp"]
+
+        with mock.patch.object(RasDatabase, "from_config", return_value=database):
+            command.run(None, parser.parse_args(["database", "--summary"]))
+            database.create_missing_indexes.assert_not_called()
+            database.close.assert_called_once()
+
+            database.reset_mock()
+            command.run(None, parser.parse_args([
+                "database", "--create-index"
+            ]))
+            database.create_missing_indexes.assert_called_once_with({})
+            database.close.assert_called_once()
 
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")

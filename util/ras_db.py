@@ -363,8 +363,8 @@ class RasDatabaseCommand:
             help="List discovered event tables and exit.",
         )
         output.add_argument(
-            "--indexes-only", action="store_true",
-            help="Create missing indexes without reading event records.",
+            "--create-index", action="store_true",
+            help="Create missing indexes for the selected event tables and exit.",
         )
         parser.add_argument(
             "--since", metavar="YYYY-MM-DD",
@@ -400,10 +400,10 @@ class RasDatabaseCommand:
                 for name in tables:
                     print(name)
                 return
-            created = database.create_missing_indexes(tables)
-            for name in created:
-                print(f"Created index {name}")
-            if args.indexes_only:
+            if args.create_index:
+                created = database.create_missing_indexes(tables)
+                for name in created:
+                    print(f"Created index {name}")
                 return
             if args.summary:
                 print(database.format_summary(database.summary(
