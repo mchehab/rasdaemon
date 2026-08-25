@@ -9,7 +9,11 @@ DIST_TARBALL = build/meson-dist/@PACKAGE@-@PACKAGE_VERSION@.tar.xz
 SPEC_FILE   = build/rasdaemon.spec
 
 test: all
-	build/unittest
+	@if test -x build/unittest; then \
+		build/unittest; \
+	else \
+		echo "C unit tests not built (cmocka unavailable or tests disabled)"; \
+	fi
 
 dist:
 	meson dist -C build
@@ -52,4 +56,3 @@ distclean: clean
 
 upload: srpm dist
 	scp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm $(DIST_TARBALL) misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon
-
