@@ -106,11 +106,13 @@ static inline int env_or_int(const char *name, int def)
  * @name:	Column name identifier
  * @type:	Data type enumeration for binding logic
  * @is_pk:	True if this field is the primary key (affects SQL generation)
+ * @create_index: True if an index should be created for this field
  */
 struct db_fields {
 	const char		*name;
 	enum db_field_type	type;
 	bool			is_pk;
+	bool			create_index;
 };
 
 /**

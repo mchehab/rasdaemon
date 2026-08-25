@@ -27,7 +27,7 @@
 
 static const struct db_fields mc_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP},
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "err_count",		.type = DB_TYPE_INT32 },
 	{ .name = "err_type",		.type = DB_TYPE_TEXT },
 	{ .name = "err_msg",		.type = DB_TYPE_TEXT },
@@ -85,7 +85,7 @@ int db_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
 #ifdef HAVE_AER
 static const struct db_fields aer_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "dev_name",		.type = DB_TYPE_TEXT },
 	{ .name = "err_type",		.type = DB_TYPE_TEXT },
 	{ .name = "err_msg",		.type = DB_TYPE_TEXT },
@@ -126,7 +126,7 @@ int db_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
 #ifdef HAVE_NON_STANDARD
 static const struct db_fields non_standard_event_fields[] = {
 		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 		{ .name = "sec_type",		.type = DB_TYPE_BLOB },
 		{ .name = "fru_id",		.type = DB_TYPE_BLOB },
 		{ .name = "fru_text",		.type = DB_TYPE_TEXT },
@@ -171,7 +171,7 @@ int db_non_standard_record(struct ras_events *ras, struct ras_non_standard_event
 #ifdef HAVE_ARM
 static const struct db_fields arm_event_fields[] = {
 		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 		{ .name = "error_count",	.type = DB_TYPE_INT32 },
 		{ .name = "affinity",		.type = DB_TYPE_INT32 },
 		{ .name = "mpidr",		.type = DB_TYPE_INT64 },
@@ -228,7 +228,7 @@ int db_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
 #ifdef HAVE_EXTLOG
 static const struct db_fields extlog_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "etype",		.type = DB_TYPE_INT32 },
 	{ .name = "error_count",	.type = DB_TYPE_INT32 },
 	{ .name = "severity",		.type = DB_TYPE_INT32 },
@@ -277,7 +277,7 @@ int db_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev)
 #ifdef HAVE_MCE
 static const struct db_fields mce_record_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 
 	/* MCE registers */
 	{ .name = "mcgcap",		.type = DB_TYPE_INT32 },
@@ -365,7 +365,7 @@ int db_mce_record(struct ras_events *ras, struct mce_event *ev)
 #ifdef HAVE_DEVLINK
 static const struct db_fields devlink_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "bus_name",		.type = DB_TYPE_TEXT },
 	{ .name = "dev_name",		.type = DB_TYPE_TEXT },
 	{ .name = "driver_name",	.type = DB_TYPE_TEXT },
@@ -410,7 +410,7 @@ int db_devlink_event(struct ras_events *ras, struct devlink_event *ev)
 #ifdef HAVE_DISKERROR
 static const struct db_fields diskerror_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "dev",		.type = DB_TYPE_TEXT },
 	{ .name = "sector",		.type = DB_TYPE_INT64 },
 	{ .name = "nr_sector",		.type = DB_TYPE_INT32 },
@@ -457,7 +457,7 @@ int db_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
 #ifdef HAVE_MEMORY_FAILURE
 static const struct db_fields mf_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "pfn",		.type = DB_TYPE_TEXT },
 	{ .name = "page_type",		.type = DB_TYPE_TEXT },
 	{ .name = "action_result",	.type = DB_TYPE_TEXT },
@@ -497,7 +497,7 @@ int db_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
  */
 static const struct db_fields cxl_poison_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "memdev",		.type = DB_TYPE_TEXT },
 	{ .name = "host",		.type = DB_TYPE_TEXT },
 	{ .name = "serial",		.type = DB_TYPE_INT64 },
@@ -555,7 +555,7 @@ int db_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
  */
 static const struct db_fields cxl_aer_ue_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "memdev",		.type = DB_TYPE_TEXT },
 	{ .name = "host",		.type = DB_TYPE_TEXT },
 	{ .name = "serial",		.type = DB_TYPE_INT64 },
@@ -599,7 +599,7 @@ int db_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev)
  */
 static const struct db_fields cxl_aer_ce_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "memdev",		.type = DB_TYPE_TEXT },
 	{ .name = "host",		.type = DB_TYPE_TEXT },
 	{ .name = "serial",		.type = DB_TYPE_INT64 },
@@ -639,7 +639,7 @@ int db_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
  */
 static const struct db_fields cxl_overflow_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "memdev",		.type = DB_TYPE_TEXT },
 	{ .name = "host",		.type = DB_TYPE_TEXT },
 	{ .name = "serial",		.type = DB_TYPE_INT64 },
@@ -713,7 +713,7 @@ static int db_cxl_common_hdr(const struct db_table_descriptor *db_tab,
  */
 static const struct db_fields cxl_generic_event_fields[] = {
 	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "memdev",			.type = DB_TYPE_TEXT },
 	{ .name = "host",			.type = DB_TYPE_TEXT },
 	{ .name = "serial",			.type = DB_TYPE_INT64 },
@@ -767,7 +767,7 @@ int db_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *e
  */
 static const struct db_fields cxl_general_media_event_fields[] = {
 	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "memdev",			.type = DB_TYPE_TEXT },
 	{ .name = "host",			.type = DB_TYPE_TEXT },
 	{ .name = "serial",			.type = DB_TYPE_INT64 },
@@ -856,7 +856,7 @@ int db_cxl_general_media_event(struct ras_events *ras,
  */
 static const struct db_fields cxl_dram_event_fields[] = {
 	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "memdev",			.type = DB_TYPE_TEXT },
 	{ .name = "host",			.type = DB_TYPE_TEXT },
 	{ .name = "serial",			.type = DB_TYPE_INT64 },
@@ -957,7 +957,7 @@ int db_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
  */
 static const struct db_fields cxl_memory_module_event_fields[] = {
 	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "memdev",			.type = DB_TYPE_TEXT },
 	{ .name = "host",			.type = DB_TYPE_TEXT },
 	{ .name = "serial",			.type = DB_TYPE_INT64 },
@@ -1036,7 +1036,7 @@ int db_cxl_memory_module_event(struct ras_events *ras,
 #ifdef HAVE_SIGNAL
 static const struct db_fields signal_event_fields[] = {
 	{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "sig",	.type = DB_TYPE_INT32 },
 	{ .name = "errorno",	.type = DB_TYPE_INT32 },
 	{ .name = "code",	.type = DB_TYPE_INT32 },
@@ -1085,7 +1085,7 @@ int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
 #ifdef HAVE_RERI
 static const struct db_fields reri_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
-	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 	{ .name = "err_src_id",		.type = DB_TYPE_INT32 },
 	{ .name = "source_type",	.type = DB_TYPE_INT32 },
 	{ .name = "severity",		.type = DB_TYPE_INT32 },

@@ -274,7 +274,7 @@ static int db_sqlite3_create_table(struct ras_db *__db,
 	char sql[1024], *p = sql, *end = sql + sizeof(sql);
 	const struct db_fields *field;
 	const char *type;
-	int i;
+	int i, rc;
 
 	p += snprintf(p, end - p, "CREATE TABLE IF NOT EXISTS %s (",
 		      db_tab->name);
@@ -290,7 +290,24 @@ static int db_sqlite3_create_table(struct ras_db *__db,
 	}
 	p += snprintf(p, end - p, ")");
 
-	return db_sqlite3_exec_sql(__db, sql);
+	rc = db_sqlite3_exec_sql(__db, sql);
+	if (rc != SQLITE_OK)
+		return rc;
+
+	for (i = 0; i < db_tab->num_fields; i++) {
+		field = &db_tab->fields[i];
+		if (!field->create_index)
+			continue;
+
+		snprintf(sql, sizeof(sql),
+			 "CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s)",
+			 db_tab->name, field->name, db_tab->name, field->name);
+		rc = db_sqlite3_exec_sql(__db, sql);
+		if (rc != SQLITE_OK)
+			return rc;
+	}
+
+	return SQLITE_OK;
 }
 
 static int db_sqlite3_alter_table(struct ras_db *__db,
@@ -339,8 +356,17 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 				      "%s %s", field->name, type);
 
 			ret = db_sqlite3_exec_sql(__db, sql);
-			if (ret)
+			if (ret) {
 				rc = ret;
+			} else if (field->create_index) {
+				snprintf(sql, sizeof(sql),
+					 "CREATE INDEX %s_%s_idx ON %s (%s)",
+					 db_tab->name, field->name,
+					 db_tab->name, field->name);
+				ret = db_sqlite3_exec_sql(__db, sql);
+				if (ret)
+					rc = ret;
+			}
 
 			p = sql;
 			*p = '\0';

@@ -183,6 +183,26 @@ static int pg_check_values(void **state,
 	return 0;
 }
 
+static void pg_assert_index(const char *table, const char *field)
+{
+	struct pg_conn_priv *conn_priv = (void *)ras.db;
+	const char *params[] = { conn_priv->schema, table, field };
+	PGresult *res;
+
+	res = PQexecParams(conn_priv->conn,
+		"SELECT 1 FROM pg_class t "
+		"JOIN pg_namespace n ON n.oid = t.relnamespace "
+		"JOIN pg_index i ON i.indrelid = t.oid "
+		"JOIN pg_attribute a ON a.attrelid = t.oid "
+		"AND a.attnum = ANY(i.indkey) "
+		"WHERE n.nspname = $1 AND t.relname = $2 AND a.attname = $3",
+		3, NULL, params, NULL, NULL, 0);
+	assert_non_null(res);
+	assert_int_equal(PQresultStatus(res), PGRES_TUPLES_OK);
+	assert_true(PQntuples(res) > 0);
+	PQclear(res);
+}
+
 static void test_db_get_sql_type(void **state)
 {
 	const char *type_str;
@@ -215,7 +235,7 @@ static void test_db_create_table(void **state)
 
 	static const struct db_fields fields[] = {
 		{ .name = "id",   .type = DB_TYPE_SERIAL, .is_pk = true },
-		{ .name = "val",  .type = DB_TYPE_INT32,  .is_pk = false },
+		{ .name = "val",  .type = DB_TYPE_INT32,  .create_index = true },
 	};
 
 	static const struct db_table_descriptor db_tab = {
@@ -226,6 +246,36 @@ static void test_db_create_table(void **state)
 
 	rc = db_create_table(ras.db, &db_tab);
 	assert_int_equal(rc, 0);
+	pg_assert_index(db_tab.name, "hostname");
+	pg_assert_index(db_tab.name, "val");
+}
+
+static void test_db_alter_table(void **state)
+{
+	struct ras_stmt *stmt = NULL;
+	int rc;
+	static const struct db_fields old_fields[] = {
+		{ .name = "id", .type = DB_TYPE_SERIAL, .is_pk = true },
+	};
+	static const struct db_fields new_fields[] = {
+		{ .name = "id", .type = DB_TYPE_SERIAL, .is_pk = true },
+		{ .name = "timestamp", .type = DB_TYPE_TIMESTAMP,
+		  .create_index = true },
+	};
+	static const struct db_table_descriptor old_tab = {
+		.name = "test_tbl", .fields = old_fields,
+		.num_fields = ARRAY_SIZE(old_fields),
+	};
+	static const struct db_table_descriptor new_tab = {
+		.name = "test_tbl", .fields = new_fields,
+		.num_fields = ARRAY_SIZE(new_fields),
+	};
+
+	rc = db_create_table(ras.db, &old_tab);
+	assert_int_equal(rc, 0);
+	rc = db_alter_table(ras.db, &stmt, &new_tab);
+	assert_int_equal(rc, 0);
+	pg_assert_index(new_tab.name, "timestamp");
 }
 
 static void test_db_bind_type(void **state)
@@ -321,7 +371,7 @@ static void test_db_complex_table(void **state)
 	char buf[64];
 
 	static const struct db_fields fields[] = {
-		{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP },
+		{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP, .create_index = true },
 		{ .name = "id",		.type = DB_TYPE_SERIAL,   .is_pk = true },
 		{ .name = "sec_type",	.type = DB_TYPE_BLOB      },
 		{ .name = "severity",	.type = DB_TYPE_TEXT      },
@@ -402,6 +452,8 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test_setup_teardown(test_db_get_sql_type,
 					tests_setup, tests_teardown),
 	cmocka_unit_test_setup_teardown(test_db_create_table,
+					tests_setup, tests_teardown),
+	cmocka_unit_test_setup_teardown(test_db_alter_table,
 					tests_setup, tests_teardown),
 	cmocka_unit_test_setup_teardown(test_db_bind_type,
 					tests_setup, tests_teardown),

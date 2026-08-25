@@ -52,6 +52,22 @@ struct db_values {
 	char			*string;
 };
 
+static void sqlite3_assert_index(const char *table, const char *field)
+{
+	sqlite3 *db = (void *)ras.db;
+	sqlite3_stmt *stmt = NULL;
+	char sql[256];
+
+	snprintf(sql, sizeof(sql), "PRAGMA index_info('%s_%s_idx')",
+		 table, field);
+	assert_int_equal(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL),
+			 SQLITE_OK);
+	assert_int_equal(sqlite3_step(stmt), SQLITE_ROW);
+	assert_string_equal((const char *)sqlite3_column_text(stmt, 2), field);
+	assert_int_equal(sqlite3_step(stmt), SQLITE_DONE);
+	assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
+}
+
 static void sqlite3_compare_value(void **state,
 				  int pos,
 				  const struct db_values *expected,
@@ -352,7 +368,7 @@ static void test_db_create_table(void **state)
 
 	static const struct db_fields fields[] = {
 		{ .name = "id",   .type = DB_TYPE_SERIAL, .is_pk = true },
-		{ .name = "val",  .type = DB_TYPE_INT32,  .is_pk = false },
+		{ .name = "val",  .type = DB_TYPE_INT32,  .create_index = true },
 	};
 
 	static const struct db_table_descriptor db_tab = {
@@ -365,6 +381,7 @@ static void test_db_create_table(void **state)
 
 	rc = db_create_table(ras.db, &db_tab);
 	assert_int_equal(rc, 0);
+	sqlite3_assert_index(db_tab.name, "val");
 }
 
 /* Test changing a table definition */
@@ -388,6 +405,8 @@ static void test_db_alter_table(void **state)
 	static const struct db_fields fields[] = {
 		{ .name = "id",   .type = DB_TYPE_SERIAL, .is_pk = true },
 		{ .name = "val",  .type = DB_TYPE_INT64,  .is_pk = false },
+		{ .name = "timestamp", .type = DB_TYPE_TIMESTAMP,
+		  .create_index = true },
 	};
 
 	static const struct db_table_descriptor db_tab = {
@@ -401,6 +420,7 @@ static void test_db_alter_table(void **state)
 
 	rc = db_alter_table(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
+	sqlite3_assert_index(db_tab.name, "timestamp");
 }
 
 static void test_db_complex_table(void **state)
@@ -410,7 +430,7 @@ static void test_db_complex_table(void **state)
 	int rc, pos = 1;
 
 	static const struct db_fields fields[] = {
-		{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP },
+		{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP, .create_index = true },
 		{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
 		{ .name = "sec_type",	.type = DB_TYPE_BLOB },
 		{ .name = "severity",	.type = DB_TYPE_TEXT },

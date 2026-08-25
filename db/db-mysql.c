@@ -349,6 +349,15 @@ static int db_mysql_create_table(struct ras_db *__db,
 			p += snprintf(p, end - p, ", ");
 	}
 
+	p += snprintf(p, end - p, ", INDEX `%s_hostname_idx` (`hostname`)",
+		      db_tab->name);
+	for (i = 0; i < (int)db_tab->num_fields; i++) {
+		field = &db_tab->fields[i];
+		if (field->create_index)
+			p += snprintf(p, end - p, ", INDEX `%s_%s_idx` (`%s`)",
+				      db_tab->name, field->name, field->name);
+	}
+
 	/* MySQL requires an explicit PRIMARY KEY clause if SERIAL was used */
 	for (i = 0; i < (int)db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
@@ -417,6 +426,18 @@ static int db_mysql_alter_table(struct ras_db *__db,
 					db_tab->name, field->name,
 					mysql_error(db));
 				rc = -1;
+			} else if (field->create_index) {
+				snprintf(sql, sizeof(sql),
+					 "CREATE INDEX `%s_%s_idx` ON %s (`%s`)",
+					 db_tab->name, field->name,
+					 db_tab->name, field->name);
+				if (mysql_query(db, sql)) {
+					log(TERM, LOG_ERR,
+					    "CREATE INDEX on %s.`%s`: %s\n",
+					    db_tab->name, field->name,
+					    mysql_error(db));
+					rc = -1;
+				}
 			}
 		}
 	}

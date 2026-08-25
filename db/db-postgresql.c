@@ -401,7 +401,31 @@ static int db_pg_create_table(struct ras_db *__db,
 	p += snprintf(p, end - p, ")");
 	*end = '\0';
 
-	return db_pg_exec_sql(__db, sql);
+	i = db_pg_exec_sql(__db, sql);
+	if (i)
+		return i;
+
+	snprintf(sql, sizeof(sql),
+		 "CREATE INDEX IF NOT EXISTS \"%s_hostname_idx\" "
+		 "ON %s.%s (\"hostname\")", db_tab->name,
+		 conn_priv->schema, db_tab->name);
+	i = db_pg_exec_sql(__db, sql);
+	if (i)
+		return i;
+
+	for (i = 0; i < (int)db_tab->num_fields; i++) {
+		field = &db_tab->fields[i];
+		if (!field->create_index)
+			continue;
+		snprintf(sql, sizeof(sql),
+			 "CREATE INDEX IF NOT EXISTS \"%s_%s_idx\" "
+			 "ON %s.%s (\"%s\")", db_tab->name, field->name,
+			 conn_priv->schema, db_tab->name, field->name);
+		if (db_pg_exec_sql(__db, sql))
+			return -1;
+	}
+
+	return 0;
 }
 
 static int db_pg_alter_table(struct ras_db *__db,
@@ -473,6 +497,16 @@ static int db_pg_alter_table(struct ras_db *__db,
 				}
 				if (r2)
 					PQclear(r2);
+			}
+
+			if (!rc && field->create_index) {
+				snprintf(sql, sizeof(sql),
+					 "CREATE INDEX \"%s_%s_idx\" "
+					 "ON %s.%s (\"%s\")", db_tab->name,
+					 field->name, conn_priv->schema,
+					 db_tab->name, field->name);
+				if (db_pg_exec_sql(__db, sql))
+					rc = -1;
 			}
 		}
 	}
