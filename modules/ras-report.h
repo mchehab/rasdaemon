@@ -25,6 +25,10 @@
 
 #ifdef HAVE_ABRT_REPORT
 
+#ifdef HAVE_UNITTEST
+int ras_report_test_format(int type, void *event, char *output, size_t size);
+#endif
+
 int ras_report_mc_event(struct ras_events *ras,
 			struct ras_mc_event *ev);
 int ras_report_aer_event(struct ras_events *ras,

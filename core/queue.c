@@ -86,6 +86,8 @@ int pop(struct link_queue *queue)
 	queue->head = queue->head->next;
 	free(tmp);
 	(queue->size)--;
+	if (!queue->head)
+		queue->tail = NULL;
 
 	return 0;
 }

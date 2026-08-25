@@ -25,11 +25,27 @@ unsigned int bitfield_msg(char *buf, size_t len, const char * const *bitarray,
 	buf[0] = '\0';
 
 	for (i = 0; i < array_len; i++) {
+		const char *name;
+		size_t needed;
+
 		if (status & ignore_bits)
 			continue;
 		if (i + bit_offset < 64 && status & (1ULL << (i + bit_offset))) {
 			int n;
 			size_t used;
+			char bit_name[sizeof("BIT63")];
+
+			if (!bitarray[i]) {
+				snprintf(bit_name, sizeof(bit_name), "BIT%d",
+					 i + bit_offset);
+				name = bit_name;
+			} else {
+				name = bitarray[i];
+			}
+
+			needed = strlen(name) + (p != buf ? 2 : 0);
+			if (needed >= len)
+				break;
 
 			if (p != buf) {
 				n = snprintf(p, len, ", ");
@@ -38,10 +54,7 @@ unsigned int bitfield_msg(char *buf, size_t len, const char * const *bitarray,
 				len -= n;
 				p += n;
 			}
-			if (!bitarray[i])
-				n = snprintf(p, len, "BIT%d", i + bit_offset);
-			else
-				n = snprintf(p, len, "%s", bitarray[i]);
+			n = snprintf(p, len, "%s", name);
 			if (n < 0 || (size_t)n >= len)
 				break;
 			used = n;

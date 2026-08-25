@@ -9,9 +9,14 @@
 
 #define ERST_DELETE	"ERST_DELETE"
 
+struct mce_event;
+
 #ifdef HAVE_MCE
 void handle_erst_mce(void);
 #endif
 
 void handle_erst(void);
+#ifdef HAVE_UNITTEST
+int ras_erst_test_read(const char *path, struct mce_event *event);
+#endif
 #endif

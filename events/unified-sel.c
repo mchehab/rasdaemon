@@ -77,7 +77,7 @@ static int verify_id_log_sel(uint64_t status,
 	 * errors.
 	 */
 	for (i = 0; i < 32; i++) {
-		if ((status & (1 << i)) && idarray[i]) {
+		if ((status & (1ULL << i)) && idarray[i]) {
 			snprintf(openbmc_ipmi_add_sel,
 				 sizeof(openbmc_ipmi_add_sel),
 				 "ipmitool raw 0x0a 0x44 0x00 0x00 0xFB 0x20 0x00 0x00 0x00 0x00 0x01 0x00 0x%02x 0x%02x 0x01 0x00 0xff %s",

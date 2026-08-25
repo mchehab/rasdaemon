@@ -241,19 +241,38 @@ static int get_tracing_dir(struct ras_events *ras)
 	return 0;
 }
 
-static bool is_disabled_event(char *group, char *event)
+static bool is_disabled_event(const char *group, const char *event)
 {
 	char ras_event_name[MAX_PATH + 1];
+	const char *choice;
+	size_t name_len;
 
 	snprintf(ras_event_name, sizeof(ras_event_name), "%s:%s",
 		 group, event);
 
-	if (choices_disable && strlen(choices_disable) != 0 &&
-	    strstr(choices_disable, ras_event_name)) {
-		return true;
+	name_len = strlen(ras_event_name);
+	choice = choices_disable;
+	while (choice && *choice) {
+		const char *end;
+
+		choice += strspn(choice, ", \t");
+		if (!*choice)
+			break;
+		end = choice + strcspn(choice, ", \t");
+		if ((size_t)(end - choice) == name_len &&
+		    !strncmp(choice, ras_event_name, name_len))
+			return true;
+		choice = end;
 	}
 	return false;
 }
+
+#ifdef HAVE_UNITTEST
+bool ras_events_test_is_disabled(const char *group, const char *event)
+{
+	return is_disabled_event(group, event);
+}
+#endif
 
 /*
  * Tracing enable/disable code

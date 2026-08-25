@@ -201,6 +201,28 @@ static const char *get_error_type_category(uint8_t ec)
 	}
 }
 
+#ifdef HAVE_UNITTEST
+const char *ras_reri_test_error_code(uint8_t value)
+{
+	return get_error_code_str(value);
+}
+
+const char *ras_reri_test_transaction(uint8_t value)
+{
+	return get_transaction_type_str(value);
+}
+
+const char *ras_reri_test_address_type(uint8_t value)
+{
+	return get_ait_str(value);
+}
+
+const char *ras_reri_test_category(uint8_t value)
+{
+	return get_error_type_category(value);
+}
+#endif
+
 int ras_reri_event_handler(struct trace_seq *s,
 			   struct tep_record *record,
 			   struct tep_event *event,
@@ -330,10 +352,17 @@ int ras_reri_event_handler(struct trace_seq *s,
 #endif
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
-	if (ev.source_type == RERI_SOURCE_TYPE_CPU &&
-	    (ev.severity == RERI_SEV_FATAL || ev.severity == RERI_SEV_RECOVERABLE) &&
-	    hart_id_valid)
-		ras_record_cpu_error(NULL, ev.hart_id);
+	if (ev.source_type == RERI_SOURCE_TYPE_CPU && hart_id_valid &&
+	    (ev.severity == RERI_SEV_FATAL ||
+	     ev.severity == RERI_SEV_RECOVERABLE)) {
+		struct error_info error = {
+			.nums = 1,
+			.time = now,
+			.err_type = UCE,
+		};
+
+		ras_record_cpu_error(&error, ev.hart_id);
+	}
 #endif
 
 #ifdef HAVE_ABRT_REPORT

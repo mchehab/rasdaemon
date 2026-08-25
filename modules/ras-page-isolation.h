@@ -124,4 +124,11 @@ void ras_record_row_error(const char *detail, unsigned int count, time_t time,
 void row_record_infos_free(void);
 void page_record_infos_free(void);
 
+#ifdef HAVE_UNITTEST
+int ras_page_isolation_test_parse_row(const char *detail,
+				      struct row_record *record);
+int ras_page_isolation_test_parse_value(const char *text, bool row,
+					unsigned long *value);
+#endif
+
 #endif

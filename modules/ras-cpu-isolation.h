@@ -7,6 +7,7 @@
 #ifndef __RAS_CPU_ISOLATION_H
 #define __RAS_CPU_ISOLATION_H
 
+#include <stdbool.h>
 #include "core/queue.h"
 
 #define MAX_BUF_LEN 1024
@@ -57,5 +58,10 @@ struct error_info {
 void ras_cpu_isolation_init(unsigned int cpus);
 void ras_record_cpu_error(struct error_info *err_info, int cpu);
 void cpu_infos_free(void);
+
+#ifdef HAVE_UNITTEST
+int ras_cpu_isolation_test_parse(const char *text, bool use_cycle_units,
+				 unsigned long *value);
+#endif
 
 #endif

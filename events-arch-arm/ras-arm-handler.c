@@ -85,7 +85,8 @@ void display_raw_data(struct trace_seq *s,
 
 	trace_seq_printf(s, "  %08x: ", i);
 	while (datalen >= 4) {
-		print_le_hex(s, buf, i);
+		trace_seq_printf(s, "%02x%02x%02x%02x",
+				 buf[i + 3], buf[i + 2], buf[i + 1], buf[i]);
 		i += 4;
 		datalen -= 4;
 		if (++line_count == 4) {
@@ -168,17 +169,30 @@ static const char * const arm_bus_err_addr_space_strs[] = {
 	"Device Memory Access",
 };
 
-static int decode_err_data_bits(char *buf, unsigned long data,
-				const char **data_str, size_t str_size)
+static int decode_err_data_bits(char *buf, size_t buf_size,
+				unsigned long data, const char **data_str,
+				size_t str_size)
 {
 	int bit;
+	size_t used;
 
-	if (!buf || !data_str || !str_size)
+	if (!buf || !buf_size || !data_str || !str_size)
+		return -1;
+	used = strnlen(buf, buf_size);
+	if (used == buf_size)
 		return -1;
 
-	for (bit = 0; bit < str_size; bit++)
-		if (data & BIT(bit))
-			mce_snprintf(buf, " %s", ((char *)data_str[bit]));
+	for (bit = 0; bit < str_size; bit++) {
+		int written;
+
+		if (!(data & BIT(bit)) || !data_str[bit])
+			continue;
+		written = snprintf(buf + used, buf_size - used, " %s",
+				   data_str[bit]);
+		if (written < 0 || (size_t)written >= buf_size - used)
+			break;
+		used += written;
+	}
 	return 0;
 }
 
@@ -336,7 +350,8 @@ static int parse_arm_processor_err_info(struct trace_seq *s, struct ras_arm_even
 
 	trace_seq_printf(s, "\nARM processor error info:\n");
 	for (i = 0; i < num_pei; ++i) {
-		decode_err_data_bits(ev->error_types, err_info->type,
+		decode_err_data_bits(ev->error_types, sizeof(ev->error_types),
+				     err_info->type,
 				     (const char **)arm_proc_error_type_strs,
 				     ARRAY_SIZE(arm_proc_error_type_strs));
 		trace_seq_printf(s, " error_types:%s", ev->error_types);
@@ -346,7 +361,8 @@ static int parse_arm_processor_err_info(struct trace_seq *s, struct ras_arm_even
 			trace_seq_printf(s, " error_count:%d", ev->error_count);
 		}
 		if (err_info->validation_bits & ARM_INFO_VALID_FLAGS) {
-			decode_err_data_bits(ev->error_flags, err_info->flags,
+			decode_err_data_bits(ev->error_flags, sizeof(ev->error_flags),
+					     err_info->flags,
 					     (const char **)arm_proc_error_flags_strs,
 					     ARRAY_SIZE(arm_proc_error_flags_strs));
 			trace_seq_printf(s, " error_flags:%s", ev->error_flags);
@@ -373,6 +389,14 @@ static int parse_arm_processor_err_info(struct trace_seq *s, struct ras_arm_even
 
 	return 0;
 }
+
+#ifdef HAVE_UNITTEST
+int ras_arm_test_parse_processor(struct trace_seq *s,
+				 struct ras_arm_event *event)
+{
+	return parse_arm_processor_err_info(s, event);
+}
+#endif
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
 static int is_core_failure(struct ras_arm_err_info *err_info)
@@ -425,6 +449,13 @@ static int count_errors(struct ras_arm_event *ev, int sev)
 	log(TERM, LOG_INFO, "%d error in cpu core caught\n", num);
 	return num;
 }
+
+#ifdef HAVE_UNITTEST
+int ras_arm_test_count_errors(struct ras_arm_event *event, int severity)
+{
+	return count_errors(event, severity);
+}
+#endif
 
 static int ras_handle_cpu_error(struct trace_seq *s,
 				struct tep_record *record,

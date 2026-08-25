@@ -19,8 +19,76 @@
 #include "tests/unittest.h"
 
 static const struct test_group groups[] = {
+	{ "core", test_core },
+	{ "mc", test_mc },
+#ifdef HAVE_ABRT_REPORT
+	{ "report", test_report },
+#endif
+#ifdef HAVE_AER
+	{ "aer", test_aer },
+#endif
+#ifdef HAVE_AMP_NS_DECODE
+	{ "amp-ns", test_amp_ns },
+#endif
+#ifdef HAVE_ARM
+	{ "arm", test_arm },
+#endif
+#ifdef HAVE_CPU_FAULT_ISOLATION
+	{ "cpu-isolation", test_cpu_isolation },
+#endif
+#ifdef HAVE_CXL
+	{ "cxl", test_cxl },
+#endif
+#ifdef HAVE_DEVLINK
+	{ "devlink", test_devlink },
+#endif
+#ifdef HAVE_DISKERROR
+	{ "diskerror", test_diskerror },
+#endif
+#ifdef HAVE_ERST
+	{ "erst", test_erst },
+#endif
+#ifdef HAVE_EXTLOG
+	{ "extlog", test_extlog },
+#endif
+#ifdef HAVE_HISI_NS_DECODE
+	{ "hisi-ns", test_hisi_ns },
+#endif
+#ifdef HAVE_JAGUAR_NS_DECODE
+	{ "jaguar-ns", test_jaguar_ns },
+#endif
+#ifdef HAVE_MCE
+	{ "mce", test_mce },
+#endif
+#ifdef HAVE_MEMORY_CE_PFA
+	{ "memory-ce-pfa", test_memory_ce_pfa },
+#endif
+#ifdef HAVE_MEMORY_FAILURE
+	{ "memory-failure", test_memory_failure },
+#endif
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	{ "memory-row-ce-pfa", test_memory_row_ce_pfa },
+#endif
+#ifdef HAVE_NVIDIA_NS_DECODE
+	{ "nvidia-ns", test_nvidia_ns },
+#endif
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+	{ "openbmc-sel", test_openbmc_sel },
+#endif
+#ifdef HAVE_RERI
+	{ "reri", test_reri },
+#endif
+#ifdef HAVE_SIGNAL
+	{ "signal", test_signal },
+#endif
+#ifdef HAVE_YITIAN_NS_DECODE
+	{ "yitian-ns", test_yitian_ns },
+#endif
 #ifdef HAVE_MYSQL
 	{ "mysql", test_mysql },
+#endif
+#ifdef HAVE_DB
+	{ "database", test_database },
 #endif
 #ifdef HAVE_POSTGRESQL
 	{ "postgresql", test_postgresql },

@@ -50,4 +50,8 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 				struct tep_record *record,
 				struct tep_event *event, void *context);
 
+#ifdef HAVE_UNITTEST
+const char *ras_diskerror_test_error(int err);
+#endif
+
 #endif

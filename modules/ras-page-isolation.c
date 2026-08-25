@@ -198,8 +198,10 @@ parse:
 			if (units->val == 1) {
 				char *endptr;
 
+				errno = 0;
 				strtoul(config->env, &endptr, 10);
-				if (errno == ERANGE || *endptr != '\0')
+				if (errno == ERANGE || endptr == config->env ||
+				    (*endptr != '\0' && endptr != unit))
 					config->overflow = true;
 			}
 			unit_matched = 0;
@@ -710,6 +712,29 @@ static int parse_row_info(const char *detail, struct row_record *r)
 	}
 	return 0;
 }
+
+#ifdef HAVE_UNITTEST
+int ras_page_isolation_test_parse_row(const char *detail,
+				      struct row_record *record)
+{
+	memset(record, 0, sizeof(*record));
+	LIST_INIT(&record->page_head);
+	return parse_row_info(detail, record);
+}
+
+int ras_page_isolation_test_parse_value(const char *text, bool row,
+					unsigned long *value)
+{
+	struct isolation config = row ? row_threshold : threshold;
+
+	config.env = (char *)text;
+	config.unit = "";
+	config.overflow = false;
+	parse_isolation_env(&config);
+	*value = config.val;
+	return config.overflow ? -ERANGE : 0;
+}
+#endif
 
 static void row_offline(struct row_record *rr, time_t time)
 {

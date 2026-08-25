@@ -1070,7 +1070,7 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 
 struct ras_ns_ev_decoder amp_ns_oem_decoder[] = {
 	{
-		.sec_type = "e8ed898ddf1643cc8ecc54f060ef157f",
+		.sec_type = "e8ed898d-df16-43cc-8ecc-54f060ef157f",
 		.decode = decode_amp_oem_type_error,
 	},
 };

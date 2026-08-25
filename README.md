@@ -428,12 +428,32 @@ EOF
 Unit Tests
 ==========
 
-rasdaemon provides unit tests for each database backend. The tests follow
-the pattern shown in `tests/db*` [6, 9, 4], which use `module_init()` to
-initialize exactly one backend module.
+rasdaemon provides cmocka groups for the core data structures, trace-event
+handlers, optional feature modules, vendor decoders, and database backends.
+The event-handler tests use scripted trace records, so they do not require a
+kernel tracefs instance or injected hardware errors.
 
 To enable unit tests, `libcmocka-devel` or `libcmocka-dev` package is
 required.
+
+Build and run the hermetic test set with:
+
+```bash
+$ make
+$ meson test -C build --print-errorlogs
+```
+
+The groups built for the selected Meson feature configuration can be listed
+or run individually:
+
+```bash
+$ ./build/unittest --list-groups
+$ ./build/unittest --group cxl
+```
+
+SQLite is part of the hermetic Meson test set. MySQL/MariaDB and PostgreSQL
+continue to use real database servers and must be run explicitly after the
+corresponding test database has been provisioned.
 
 **SQLite3 tests** (`test-sqlite3.c` [6]):
 ```bash

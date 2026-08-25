@@ -58,7 +58,6 @@ static struct db_backend backend = {
 	.conn_parms = &conn_parms,
 };
 
-
 struct db_values {
 	enum db_field_type	type;
 	uint64_t		value;
@@ -425,6 +424,11 @@ static int tests_setup(void **state)
 
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
+	if (mock_output) {
+		rc = db_exec_sql(ras.db,
+				 "SET client_min_messages TO WARNING");
+		assert_int_equal(rc, 0);
+	}
 
 	db_exec_sql(ras.db, "DROP TABLE IF EXISTS test_tbl");
 	return rc;

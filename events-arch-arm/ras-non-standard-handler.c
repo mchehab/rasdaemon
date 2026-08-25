@@ -122,6 +122,41 @@ static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p
 	return 0;
 }
 
+#ifdef HAVE_UNITTEST
+size_t ras_ns_test_decoder_count(void)
+{
+	struct ras_ns_ev_decoder *decoder;
+	size_t count = 0;
+
+	for (decoder = ras_ns_ev_dec_list; decoder; decoder = decoder->next)
+		count++;
+	return count;
+}
+
+const char *ras_ns_test_decoder_type(size_t index)
+{
+	struct ras_ns_ev_decoder *decoder = ras_ns_ev_dec_list;
+
+	while (decoder && index--)
+		decoder = decoder->next;
+	return decoder ? decoder->sec_type : NULL;
+}
+
+int ras_ns_test_decode(const char *type, struct ras_events *ras,
+		       struct trace_seq *seq,
+		       struct ras_non_standard_event *event)
+{
+	struct ras_ns_ev_decoder *decoder;
+
+	for (decoder = ras_ns_ev_dec_list; decoder; decoder = decoder->next) {
+		if (!strcmp(type, decoder->sec_type))
+			return decoder->decode ? decoder->decode(ras, decoder, seq,
+							 event) : -1;
+	}
+	return -1;
+}
+#endif
+
 void ras_ns_finalize_vendor_tables(void)
 {
 #ifdef HAVE_DB

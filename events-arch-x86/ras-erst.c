@@ -87,7 +87,7 @@ static void ras_erst_mce_handler(struct ras_events *ras, struct mce_event *e)
 	trace_seq_destroy(&s);
 }
 
-static void handle_erst_mce_file(char *path, struct mce_event *e)
+static int handle_erst_mce_file(const char *path, struct mce_event *e)
 {
 	FILE *file;
 	struct mce mce;
@@ -96,17 +96,19 @@ static void handle_erst_mce_file(char *path, struct mce_event *e)
 	file = fopen(path, "r");
 	if (!file) {
 		log(ALL, LOG_ERR, "Failed to open file %s\n", path);
-		return;
+		return -1;
 	}
 
 	if (stat(path, &file_stat) < 0) {
 		log(ALL, LOG_ERR, "Failed to stat file %s\n", path);
-		goto out;
+		fclose(file);
+		return -1;
 	}
 
 	if (fread((char *)&mce, 1, sizeof(mce), file) < sizeof(mce)) {
 		log(ALL, LOG_ERR, "Failed to read file %s\n", path);
-		goto out;
+		fclose(file);
+		return -1;
 	}
 
 	e->mcgcap = mce.mcgcap;
@@ -137,9 +139,16 @@ static void handle_erst_mce_file(char *path, struct mce_event *e)
 			log(ALL, LOG_ERR, "Failed to delete file %s\n", path);
 	}
 
-out:
 	fclose(file);
+	return 0;
 }
+
+#ifdef HAVE_UNITTEST
+int ras_erst_test_read(const char *path, struct mce_event *event)
+{
+	return handle_erst_mce_file(path, event);
+}
+#endif
 
 static void handle_erst_mce(void)
 {

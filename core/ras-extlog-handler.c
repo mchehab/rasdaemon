@@ -59,6 +59,23 @@ static unsigned long long err_mask(int lsb)
 	return ~((1ull << lsb) - 1);
 }
 
+#ifdef HAVE_UNITTEST
+const char *ras_extlog_test_error_type(int type)
+{
+	return err_type(type);
+}
+
+const char *ras_extlog_test_severity(int severity)
+{
+	return err_severity(severity);
+}
+
+unsigned long long ras_extlog_test_mask(int lsb)
+{
+	return err_mask(lsb);
+}
+#endif
+
 #define CPER_MEM_VALID_NODE			0x0008
 #define CPER_MEM_VALID_CARD			0x0010
 #define CPER_MEM_VALID_MODULE			0x0020

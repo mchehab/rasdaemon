@@ -8,6 +8,7 @@
 #define __RAS_EVENTS_H
 
 #include <pthread.h>
+#include <stdbool.h>
 #include <time.h>
 
 #include "core/types.h"
@@ -109,5 +110,8 @@ int ras_offline_mce_event(struct ras_mc_offline_event *event);
 
 int handle_ras_events(struct ras_events *ras,
 		      int record_events, int enable_ipmitool);
+#ifdef HAVE_UNITTEST
+bool ras_events_test_is_disabled(const char *group, const char *event);
+#endif
 
 #endif

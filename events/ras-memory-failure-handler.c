@@ -161,6 +161,18 @@ static const char *get_action_result(int result)
 	return "unknown";
 }
 
+#ifdef HAVE_UNITTEST
+const char *ras_memory_failure_test_page_type(int page_type)
+{
+	return get_page_type(page_type);
+}
+
+const char *ras_memory_failure_test_action_result(int result)
+{
+	return get_action_result(result);
+}
+#endif
+
 int ras_memory_failure_event_handler(struct trace_seq *s,
 				     struct tep_record *record,
 				     struct tep_event *event, void *context)

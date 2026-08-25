@@ -40,4 +40,11 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 int ras_cxl_memory_sparing_event_handler(struct trace_seq *s,
 					 struct tep_record *record,
 					 struct tep_event *event, void *context);
+
+#ifdef HAVE_UNITTEST
+const char *ras_cxl_test_log_type(uint32_t log_type);
+void ras_cxl_test_convert_timestamp(unsigned long long timestamp,
+				    char *buf, uint16_t size);
+const char *ras_cxl_test_uuid(const char *uuid);
+#endif
 #endif

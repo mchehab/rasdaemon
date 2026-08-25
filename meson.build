@@ -22,6 +22,9 @@ c_flags = [
 
 unittest_sources = [
     'tests/main.c',
+    'tests/trace-mock.c',
+    'tests/test-core.c',
+    'tests/test-events.c',
     'tests/test-modules.c',
 ]
 
@@ -312,13 +315,6 @@ if not get_option('disable-all')
         lib_sources += 'events/ras-reri-handler.c'
     endif
 
-    if not get_option('cpu-fault-isolation').disabled()
-        enable_cpu_fault_isolation = true
-        lib_sources += [
-            'core/queue.c',
-            'modules/ras-cpu-isolation.c',
-        ]
-    endif
 endif
 
 #
@@ -413,8 +409,94 @@ if have_unittest
         'unittest', unittest_sources,
         dependencies: dependencies + cmocka_dep,
         link_whole: [librasdaemon],
+        link_args: [
+            '-Wl,--wrap=tep_get_field_raw',
+            '-Wl,--wrap=tep_get_field_val',
+            '-Wl,--wrap=tep_filter_match',
+            '-Wl,--wrap=system',
+        ],
         c_args: ['-g'] + c_flags,
     )
+
+    # Keep the default Meson test set hermetic. The MySQL and PostgreSQL
+    # groups remain real-server integration tests and are run explicitly by
+    # the CI jobs which provision those servers.
+    hermetic_test_groups = ['core', 'mc', 'modules']
+    if enable_abrt_report
+        hermetic_test_groups += 'report'
+    endif
+    if enable_aer
+        hermetic_test_groups += 'aer'
+    endif
+    if enable_amp_ns_decode
+        hermetic_test_groups += 'amp-ns'
+    endif
+    if enable_arm
+        hermetic_test_groups += 'arm'
+    endif
+    if enable_cpu_fault_isolation
+        hermetic_test_groups += 'cpu-isolation'
+    endif
+    if enable_cxl
+        hermetic_test_groups += 'cxl'
+    endif
+    if enable_devlink
+        hermetic_test_groups += 'devlink'
+    endif
+    if enable_diskerror
+        hermetic_test_groups += 'diskerror'
+    endif
+    if enable_erst
+        hermetic_test_groups += 'erst'
+    endif
+    if enable_extlog
+        hermetic_test_groups += 'extlog'
+    endif
+    if enable_hisi_ns_decode
+        hermetic_test_groups += 'hisi-ns'
+    endif
+    if enable_jaguar_ns_decode
+        hermetic_test_groups += 'jaguar-ns'
+    endif
+    if enable_mce
+        hermetic_test_groups += 'mce'
+    endif
+    if enable_memory_ce_pfa
+        hermetic_test_groups += 'memory-ce-pfa'
+    endif
+    if enable_memory_failure
+        hermetic_test_groups += 'memory-failure'
+    endif
+    if enable_memory_row_ce_pfa
+        hermetic_test_groups += 'memory-row-ce-pfa'
+    endif
+    if enable_nvidia_ns_decode
+        hermetic_test_groups += 'nvidia-ns'
+    endif
+    if enable_openbmc_unified_sel
+        hermetic_test_groups += 'openbmc-sel'
+    endif
+    if enable_reri
+        hermetic_test_groups += 'reri'
+    endif
+    if enable_signal
+        hermetic_test_groups += 'signal'
+    endif
+    if enable_yitian_ns_decode
+        hermetic_test_groups += 'yitian-ns'
+    endif
+    if enable_sqlite3
+        hermetic_test_groups += 'sqlite3'
+    endif
+
+    if enable_db
+        hermetic_test_groups += 'database'
+    endif
+
+    foreach test_group : hermetic_test_groups
+        test(test_group, unittest_exe, args: ['--group', test_group])
+    endforeach
+
 endif
 
 #

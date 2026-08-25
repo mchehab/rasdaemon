@@ -118,10 +118,10 @@ static int set_mc_event_backtrace(char *buf, struct ras_mc_event *ev)
 		"error_type=%s\n"
 		"msg=%s\n"
 		"label=%s\n"
-		"mc_index=%c\n"
-		"top_layer=%c\n"
-		"middle_layer=%c\n"
-		"lower_layer=%c\n"
+		"mc_index=%u\n"
+		"top_layer=%d\n"
+		"middle_layer=%d\n"
+		"lower_layer=%d\n"
 		"address=%llu\n"
 		"grain=%llu\n"
 		"syndrome=%llu\n"
@@ -813,6 +813,67 @@ static int set_signal_event_backtrace(char *buf, struct ras_signal_event *ev)
 	return 0;
 }
 
+static int format_report_backtrace(char *buf, int type, void *ev)
+{
+	switch (type) {
+	case MC_EVENT:
+		return set_mc_event_backtrace(buf, ev);
+	case AER_EVENT:
+		return set_aer_event_backtrace(buf, ev);
+	case MCE_EVENT:
+		return set_mce_event_backtrace(buf, ev);
+	case NON_STANDARD_EVENT:
+		return set_non_standard_event_backtrace(buf, ev);
+	case ARM_EVENT:
+		return set_arm_event_backtrace(buf, ev);
+	case DEVLINK_EVENT:
+		return set_devlink_event_backtrace(buf, ev);
+	case DISKERROR_EVENT:
+		return set_diskerror_event_backtrace(buf, ev);
+	case MF_EVENT:
+		return set_mf_event_backtrace(buf, ev);
+	case CXL_POISON_EVENT:
+		return set_cxl_poison_event_backtrace(buf, ev);
+	case CXL_AER_UE_EVENT:
+		return set_cxl_aer_ue_event_backtrace(buf, ev);
+	case CXL_AER_CE_EVENT:
+		return set_cxl_aer_ce_event_backtrace(buf, ev);
+	case CXL_OVERFLOW_EVENT:
+		return set_cxl_overflow_event_backtrace(buf, ev);
+	case CXL_GENERIC_EVENT:
+		return set_cxl_generic_event_backtrace(buf, ev);
+	case CXL_GENERAL_MEDIA_EVENT:
+		return set_cxl_general_media_event_backtrace(buf, ev);
+	case CXL_DRAM_EVENT:
+		return set_cxl_dram_event_backtrace(buf, ev);
+	case CXL_MEMORY_MODULE_EVENT:
+		return set_cxl_memory_module_event_backtrace(buf, ev);
+	case SIGNAL_EVENT:
+		return set_signal_event_backtrace(buf, ev);
+	default:
+		return -1;
+	}
+}
+
+#ifdef HAVE_UNITTEST
+int ras_report_test_format(int type, void *event, char *output, size_t size)
+{
+	char *buf;
+	int rc;
+
+	if (!event || !output || !size)
+		return -1;
+	buf = calloc(1, MAX_BACKTRACE_SIZE);
+	if (!buf)
+		return -1;
+	rc = format_report_backtrace(buf, type, event);
+	if (!rc)
+		strscpy(output, buf, size);
+	free(buf);
+	return rc;
+}
+#endif
+
 static int commit_report_backtrace(int sockfd, int type, void *ev)
 {
 	char *buf;
@@ -830,79 +891,7 @@ static int commit_report_backtrace(int sockfd, int type, void *ev)
 	}
 	pbuf = buf;
 
-	switch (type) {
-	case MC_EVENT:
-		rc = set_mc_event_backtrace(buf,
-					    (struct ras_mc_event *)ev);
-		break;
-	case AER_EVENT:
-		rc = set_aer_event_backtrace(buf,
-					     (struct ras_aer_event *)ev);
-		break;
-	case MCE_EVENT:
-		rc = set_mce_event_backtrace(buf,
-					     (struct mce_event *)ev);
-		break;
-	case NON_STANDARD_EVENT:
-		rc = set_non_standard_event_backtrace(buf,
-						      (struct ras_non_standard_event *)ev);
-		break;
-	case ARM_EVENT:
-		rc = set_arm_event_backtrace(buf,
-					     (struct ras_arm_event *)ev);
-		break;
-	case DEVLINK_EVENT:
-		rc = set_devlink_event_backtrace(buf,
-						 (struct devlink_event *)ev);
-		break;
-	case DISKERROR_EVENT:
-		rc = set_diskerror_event_backtrace(buf,
-						   (struct diskerror_event *)ev);
-		break;
-	case MF_EVENT:
-		rc = set_mf_event_backtrace(buf,
-					    (struct ras_mf_event *)ev);
-		break;
-	case CXL_POISON_EVENT:
-		rc = set_cxl_poison_event_backtrace(buf,
-						    (struct ras_cxl_poison_event *)ev);
-		break;
-	case CXL_AER_UE_EVENT:
-		rc = set_cxl_aer_ue_event_backtrace(buf,
-						    (struct ras_cxl_aer_ue_event *)ev);
-		break;
-	case CXL_AER_CE_EVENT:
-		rc = set_cxl_aer_ce_event_backtrace(buf,
-						    (struct ras_cxl_aer_ce_event *)ev);
-		break;
-	case CXL_OVERFLOW_EVENT:
-		rc = set_cxl_overflow_event_backtrace(buf,
-						      (struct ras_cxl_overflow_event *)ev);
-		break;
-	case CXL_GENERIC_EVENT:
-		rc = set_cxl_generic_event_backtrace(buf,
-						     (struct ras_cxl_generic_event *)ev);
-		break;
-	case CXL_GENERAL_MEDIA_EVENT:
-		rc = set_cxl_general_media_event_backtrace(buf,
-							   (struct ras_cxl_general_media_event *)ev);
-		break;
-	case CXL_DRAM_EVENT:
-		rc = set_cxl_dram_event_backtrace(buf,
-						  (struct ras_cxl_dram_event *)ev);
-		break;
-	case CXL_MEMORY_MODULE_EVENT:
-		rc = set_cxl_memory_module_event_backtrace(buf,
-							   (struct ras_cxl_memory_module_event *)ev);
-		break;
-	case SIGNAL_EVENT:
-		rc = set_signal_event_backtrace(buf,
-						(struct ras_signal_event *)ev);
-		break;
-	default:
-		free(buf);
-		return -1;
-	}
+	rc = format_report_backtrace(buf, type, ev);
 
 	if (rc < 0) {
 		free(buf);

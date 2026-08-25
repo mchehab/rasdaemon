@@ -44,6 +44,13 @@ static const char *get_blk_error(int err)
 	return "unknown block error";
 }
 
+#ifdef HAVE_UNITTEST
+const char *ras_diskerror_test_error(int err)
+{
+	return get_blk_error(err);
+}
+#endif
+
 int ras_diskerror_event_handler(struct trace_seq *s,
 				struct tep_record *record,
 				struct tep_event *event, void *context)

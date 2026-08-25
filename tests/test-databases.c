@@ -12,6 +12,7 @@
 #include "config.h"
 
 #include "core/ras-events.h"
+#include "core/ras-logger.h"
 #include "db/ras-db.h"
 #include "tests/unittest.h"
 
@@ -108,8 +109,9 @@ void test_database_tables(void **state)
 		size_t table;
 
 		for (table = 0; table < list.num_tables; table++) {
-			print_message("checking database table %s\n",
-				      list.tables[table]->name);
+			if (!mock_output)
+				print_message("checking database table %s\n",
+					      list.tables[table]->name);
 			populate_table(list.tables[table]);
 		}
 	}

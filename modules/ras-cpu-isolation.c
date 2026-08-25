@@ -241,8 +241,23 @@ void cpu_infos_free(void)
 			free_queue(cpu_infos[i].ce_queue);
 
 		free(cpu_infos);
+		cpu_infos = NULL;
+		ncores = 0;
 	}
 }
+
+#ifdef HAVE_UNITTEST
+int ras_cpu_isolation_test_parse(const char *text, bool use_cycle_units,
+				 unsigned long *value)
+{
+	struct isolation_param config = {
+		.units = use_cycle_units ? cycle_units : normal_units,
+	};
+
+	*value = 0;
+	return parse_ul_config(&config, (char *)text, value);
+}
+#endif
 
 static int do_cpu_offline(unsigned int cpu)
 {

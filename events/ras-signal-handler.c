@@ -59,14 +59,27 @@ static char *signal_res[] = {
 
 static void report_ras_signal_event(struct trace_seq *s, struct ras_signal_event *ev)
 {
+	const char *code = "Unknown";
+	const char *result = "Unknown";
+	const char *message = "Unknown";
+
+	if (ev->code >= 0 && ev->code <= BUS_MCEERR_AO &&
+	    errcode_str[ev->code])
+		code = errcode_str[ev->code];
+	if (ev->result >= 0 && ev->result <= TRACE_SIGNAL_LOSE_INFO &&
+	    signal_res[ev->result])
+		result = signal_res[ev->result];
+	if (ev->sig == SIGBUS && ev->code >= 0 &&
+	    ev->code <= BUS_MCEERR_AO && signal_msg[ev->code])
+		message = signal_msg[ev->code];
+
 	trace_seq_printf(s,
 			 "%s signal: %s, errorno: %d, code: %s, comm: %s, pid: %d, grp: %d, res: %s, msg: %s",
 			 ev->timestamp, strsignal(ev->sig), ev->error_no,
-			 (ev->code < 0 || ev->code > BUS_MCEERR_AO) ? "Unknown" : errcode_str[ev->code],
+			 code,
 			 ev->comm, ev->pid,
 			 ev->group,
-			 (ev->result < 0 || ev->result > TRACE_SIGNAL_LOSE_INFO) ? "Unknown" : signal_res[ev->result],
-			 ev->sig == SIGBUS ? signal_msg[ev->code] : "Unknown");
+			 result, message);
 }
 
 int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,

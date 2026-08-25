@@ -11,6 +11,8 @@
 
 #include "core/ras-events.h"
 
+struct ras_arm_event;
+
 /*
  * ARM Processor Error Information Structure, According to
  * UEFI_2_9 specification chapter N2.4.4.
@@ -36,4 +38,11 @@ int ras_arm_event_handler(struct trace_seq *s,
 void display_raw_data(struct trace_seq *s,
 		      const uint8_t *buf,
 		      uint32_t datalen);
+#ifdef HAVE_UNITTEST
+int ras_arm_test_parse_processor(struct trace_seq *s,
+				 struct ras_arm_event *event);
+#ifdef HAVE_CPU_FAULT_ISOLATION
+int ras_arm_test_count_errors(struct ras_arm_event *event, int severity);
+#endif
+#endif
 #endif

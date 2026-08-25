@@ -108,4 +108,11 @@ int ras_reri_event_handler(struct trace_seq *s,
 			   struct tep_event *event,
 			   void *context);
 
+#ifdef HAVE_UNITTEST
+const char *ras_reri_test_error_code(uint8_t value);
+const char *ras_reri_test_transaction(uint8_t value);
+const char *ras_reri_test_address_type(uint8_t value);
+const char *ras_reri_test_category(uint8_t value);
+#endif
+
 #endif /* __RAS_RERI_HANDLER_H */

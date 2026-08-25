@@ -515,6 +515,24 @@ static char *cxl_event_log_type_str(uint32_t log_type)
 	return "Unknown";
 }
 
+#ifdef HAVE_UNITTEST
+const char *ras_cxl_test_log_type(uint32_t log_type)
+{
+	return cxl_event_log_type_str(log_type);
+}
+
+void ras_cxl_test_convert_timestamp(unsigned long long timestamp,
+				    char *buf, uint16_t size)
+{
+	convert_timestamp(timestamp, buf, size);
+}
+
+const char *ras_cxl_test_uuid(const char *uuid)
+{
+	return uuid_be(uuid);
+}
+#endif
+
 int ras_cxl_overflow_event_handler(struct trace_seq *s,
 				   struct tep_record *record,
 				   struct tep_event *event, void *context)

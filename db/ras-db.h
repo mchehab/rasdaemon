@@ -26,6 +26,7 @@ extern const char *rasdaemon_hostname;
  * Returns: if the env var exists, return its content; otherwise returns @def.
  */
 int db_backend_enable(const char *name);
+const char *db_list_available_backends(void);
 
 /* #define DEBUG_SQL 1 */
 
