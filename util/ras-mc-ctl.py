@@ -18,7 +18,7 @@ import sys
 # sys.path, although that is where its sysconfig scheme (and therefore Meson)
 # installs prefix-independent modules.  Add the configured installation path
 # explicitly so the default /usr/local prefix and custom prefixes both work.
-python_dir = '@PYTHON_DIR@'
+python_dir = os.environ.get('RAS_PYTHON_DIR', '@PYTHON_DIR@')
 if python_dir not in sys.path:
     sys.path.insert(0, python_dir)
 
@@ -44,8 +44,7 @@ def main() -> None:
 
     meson_cfg = RasMesonConfig()
 
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     usage="%(prog)s <command> [options]")
+    parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument('--version', "-V", action='version',
                         version=f"%(prog)s {meson_cfg.version}")

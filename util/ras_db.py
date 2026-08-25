@@ -18,7 +18,6 @@ from typing import Any, Iterable, Mapping
 from sqlalchemy import Index, MetaData, Table, create_engine, event, func, inspect, select
 from sqlalchemy.engine import Engine, URL
 
-
 SUPPORTED_BACKENDS = ("sqlite3", "mysql", "postgresql")
 logger = logging.getLogger(__name__)
 
@@ -342,6 +341,11 @@ class RasDatabaseCommand:
         self.prog = prog
         parser = subparsers.add_parser(
             "database", aliases=["db"],
+            description=(
+                "Display and summarize RAS events from the configured "
+                "database. Table selectors accept exact names or "
+                "shell-style patterns."
+            ),
             help="Display records from the configured rasdaemon database.",
         )
         self.parser = parser
@@ -371,19 +375,18 @@ class RasDatabaseCommand:
             help="Only display records at or before this date.",
         )
         parser.add_argument(
-            "--hostname",
-            help="Only display records stored for this hostname (ignored with sqlite3).",
+            "--hostname", metavar="HOSTNAME",
+            help="Only display records for this hostname (ignored with SQLite).",
         )
         parser.add_argument(
             "--table", action="append", default=[], metavar="PATTERN",
-            help="Include an exact table name or shell-style pattern (repeatable).",
+            help="Include an exact table or shell-style pattern (repeatable).",
         )
         parser.add_argument(
             "--except", dest="exclude_table", action="append", default=[],
             metavar="PATTERN",
-            help="Exclude an exact table name or shell-style pattern (repeatable).",
+            help="Exclude an exact table or shell-style pattern (repeatable).",
         )
-
         parser.set_defaults(func=self.run)
 
     def run(self, config: Any, args: Any) -> None:

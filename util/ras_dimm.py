@@ -39,8 +39,11 @@ class RasMemoryDimm:
         self.label_dir = self.DEFAULT_LABEL_DIR
         self.delay = 0
 
-        parser = subparsers.add_parser("dimm", aliases=["mem"],
-                                       help="Get memory configuration and set banks database")
+        parser = subparsers.add_parser(
+            "dimm", aliases=["mem"],
+            description="Inspect EDAC DIMMs and manage their labels.",
+            help="Inspect EDAC DIMMs and manage their labels.",
+        )
         parser.add_argument("--mainboard", "-m", action="store_true",
                             help="Print mainboard vendor and model for this hardware.")
         parser.add_argument("--dmidecode", "-D", action="store_true",

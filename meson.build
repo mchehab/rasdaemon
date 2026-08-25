@@ -433,7 +433,7 @@ py.install_sources([
 ras_mc_ctl_conf = configuration_data()
 ras_mc_ctl_conf.set('PYTHON_DIR', pydir)
 
-configure_file(
+ras_mc_ctl = configure_file(
     input: 'util/ras-mc-ctl.py',
     output: 'ras-mc-ctl',
     configuration: ras_mc_ctl_conf,
@@ -502,7 +502,6 @@ install_map = {
 
     # Man pages
     'man/rasdaemon.1.in' : get_option('mandir') + '/man1',
-    'man/ras-mc-ctl.8.in' : get_option('mandir') + '/man8',
 
     # Systemd service files
     'misc/rasdaemon.service.in' : systemd_unitdir,
@@ -548,6 +547,26 @@ foreach in_file, install_dir : install_map
         )
     endif
 endforeach
+
+custom_target(
+    'ras-mc-ctl-man',
+    input: [
+        ras_mc_ctl,
+        'util/ras_db.py',
+        'util/ras_dimm.py',
+    ],
+    output: 'ras-mc-ctl.8',
+    command: [
+        py, files('util/help2man.py'),
+        '--program', '@INPUT0@',
+        '--output', '@OUTPUT@',
+        '--python-dir', meson.current_build_dir(),
+        '--source-dir', meson.current_source_dir() / 'util',
+    ],
+    build_by_default: true,
+    install: true,
+    install_dir: get_option('mandir') / 'man8',
+)
 
 # DIMM labels
 
