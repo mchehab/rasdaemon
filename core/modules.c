@@ -5,12 +5,22 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/queue.h>
 
 #include "core/modules.h"
 #include "core/ras-logger.h"
 
-/* Let's not declare it as static, as we want to access it on unit tests */
-struct module_list ras_modules = { 0 };
+struct ras_module_entry_runtime {
+	const struct ras_module_entry *e;
+	bool is_enabled;
+	void *priv;
+
+	LIST_ENTRY(ras_module_entry_runtime) node;
+};
+
+LIST_HEAD(module_list, ras_module_entry_runtime);
+
+static struct module_list ras_modules = LIST_HEAD_INITIALIZER(ras_modules);
 
 /*
  * Public functions
@@ -18,10 +28,10 @@ struct module_list ras_modules = { 0 };
 
 int module_register(const struct ras_module_entry *entry)
 {
-	struct ras_module_entry_runtime **head = &ras_modules.head;
 	struct ras_module_entry_runtime *new, *cur, *prev = NULL;
+	int cmp;
 
-	if (!entry) {
+	if (!entry || !entry->name) {
 		log(ALL, LOG_ERR, "module entry is missing!\n");
 		return -EINVAL;
 	}
@@ -36,33 +46,37 @@ int module_register(const struct ras_module_entry *entry)
 	new->e = entry;
 
 	/* Keep it alphabetically sorted */
-	for (cur = ras_modules.head; cur; cur = cur->next) {
-		if (strcmp(entry->name, cur->e->name) < 0)
+	LIST_FOREACH(cur, &ras_modules, node) {
+		cmp = strcmp(entry->name, cur->e->name);
+		if (!cmp) {
+			log(ALL, LOG_ERR, "module %s is already registered\n",
+			    entry->name);
+			return -EEXIST;
+		}
+
+		if (cmp < 0)
 			break;
 
 		prev = cur;
 	}
 
-	if (!prev) {
-		new->next =*head;
-		*head = new;
-	} else {
-		new->next = prev->next;
-		prev->next = new;
-	}
+	if (cur)
+		LIST_INSERT_BEFORE(cur, new, node);
+	else if (prev)
+		LIST_INSERT_AFTER(prev, new, node);
+	else
+		LIST_INSERT_HEAD(&ras_modules, new, node);
 
 	return 0;
 }
 
 bool modules_have_sql_backend(void)
 {
-	struct ras_module_entry_runtime *entry = ras_modules.head;
+	struct ras_module_entry_runtime *entry;
 
-	while (entry) {
+	LIST_FOREACH(entry, &ras_modules, node) {
 		if (entry->e->level == DB_MODULE && entry->is_enabled)
 			return true;
-
-		entry = entry->next;
 	}
 
 	return false;
@@ -72,7 +86,7 @@ int module_init(struct ras_events *ras, const char *name)
 {
 	struct ras_module_entry_runtime *entry;
 
-	for (entry = ras_modules.head; entry; entry = entry->next) {
+	LIST_FOREACH(entry, &ras_modules, node) {
 		if (entry->e->postpone_init)
 			continue;
 
@@ -96,7 +110,7 @@ int module_cleanup(const char *name)
 {
 	struct ras_module_entry_runtime *entry;
 
-	for (entry = ras_modules.head; entry; entry = entry->next) {
+	LIST_FOREACH(entry, &ras_modules, node) {
 		if (!strcmp(name, entry->e->name) && entry->e->cleanup &&
 		    entry->is_enabled) {
 			entry->e->cleanup(entry->e, entry->priv);
@@ -114,7 +128,7 @@ void modules_init(struct ras_events *ras)
 	struct ras_module_entry_runtime *entry;
 
 	for (int level = 0; level < MAX_LEVELS; level++) {
-		for (entry = ras_modules.head; entry; entry = entry->next) {
+		LIST_FOREACH(entry, &ras_modules, node) {
 			if (level == entry->e->level && entry->e->init) {
 				if (entry->e->init(entry->e->name,
 						   ras, &entry->priv)) {
@@ -131,21 +145,33 @@ void modules_init(struct ras_events *ras)
 
 bool module_is_enabled(const char *name)
 {
-	struct ras_module_entry_runtime *entry = ras_modules.head;
+	struct ras_module_entry_runtime *entry;
 
-	while (entry) {
+	LIST_FOREACH(entry, &ras_modules, node) {
 		if (!strcmp(entry->e->name, name))
 			return entry->is_enabled;
-
-		entry = entry->next;
 	}
+
+	return false;
+}
+
+bool module_is_registered(const char *name)
+{
+	struct ras_module_entry_runtime *entry;
+
+	if (!name)
+		return false;
+
+	LIST_FOREACH(entry, &ras_modules, node)
+		if (!strcmp(entry->e->name, name))
+			return true;
 
 	return false;
 }
 
 void modules_unregister(void)
 {
-	struct ras_module_entry_runtime *entry, *tmp;
+	struct ras_module_entry_runtime *entry;
 
 	/*
 	 * Cleanup each module
@@ -158,24 +184,15 @@ void modules_unregister(void)
 	 *	list requrements.
 	 */
 	for (int level = MAX_LEVELS - 1; level >= 0; level--) {
-		entry  = ras_modules.head;
-
-		while (entry) {
-			tmp = entry->next;
+		LIST_FOREACH(entry, &ras_modules, node) {
 			if (entry->e->level == level && entry->e->cleanup && entry->is_enabled)
 				entry->e->cleanup(entry->e, entry->priv);
-
-			entry = entry->next;
 		}
 	}
 
 	/* Free them and remove head */
-	entry = ras_modules.head;
-	while (entry) {
-		tmp = entry->next;
+	while ((entry = LIST_FIRST(&ras_modules))) {
+		LIST_REMOVE(entry, node);
 		free(entry);
-		entry = tmp;
 	}
-
-	ras_modules.head = NULL;
 }

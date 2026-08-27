@@ -10,23 +10,6 @@
 #include "core/modules.h"
 #include "tests/unittest.h"
 
-extern struct module_list ras_modules;
-
-static void assert_module(struct ras_module_entry_runtime *module,
-			  int pos, const char *name)
-{
-	char msg[256];
-
-	snprintf(msg, sizeof(msg),
-		 "FAIL: %s:%d: module #%d: %s is missing",
-		 __FILE__, __LINE__, pos, name);
-
-	assert_non_null_msg(module, msg);
-
-	if (module)
-		assert_string_equal(module->e->name, name);
-}
-
 static void test_register_null_entry(void **state)
 {
 	int rc = module_register(NULL);
@@ -45,16 +28,32 @@ static void test_register_single_module(void **state)
 	int rc = module_register(&entry);
 
 	assert_int_equal(rc, 0);
-	assert_non_null(ras_modules.head);
-	assert_string_equal(ras_modules.head->e->name, "test-module");
+	assert_true(module_is_registered("test-module"));
 
 	modules_unregister();
-	assert_null(ras_modules.head);
+	assert_false(module_is_registered("test-module"));
+}
+
+static void test_register_duplicate_module(void **state)
+{
+	const struct ras_module_entry first = {
+		.name = "duplicate",
+		.level = CORE_MODULE,
+	};
+	const struct ras_module_entry second = {
+		.name = "duplicate",
+		.level = DB_MODULE,
+	};
+
+	(void)state;
+	assert_int_equal(module_register(&first), 0);
+	assert_int_equal(module_register(&second), -EEXIST);
+	assert_true(module_is_registered("duplicate"));
+	modules_unregister();
 }
 
 static void test_register_modules_in_order(void **state)
 {
-	struct ras_module_entry_runtime *entry;
 	int rc = 0;
 
 	const struct ras_module_entry mods[] = {
@@ -96,20 +95,17 @@ static void test_register_modules_in_order(void **state)
 		assert_int_equal(rc, 0);
 	}
 
-	entry = ras_modules.head;
 	for (int i = 0;  i < ARRAY_SIZE(mods); i++) {
-		assert_module(entry, i, mods[i].name);
-		if (entry)
-			entry = entry->next;
+		assert_true(module_is_registered(mods[i].name));
 	}
 
 	modules_unregister();
-	assert_null(ras_modules.head);
+	for (int i = 0; i < ARRAY_SIZE(mods); i++)
+		assert_false(module_is_registered(mods[i].name));
 }
 
 static void test_register_mixed_order(void **state)
 {
-	struct ras_module_entry_runtime *entry;
 	int rc = 0;
 
 	const struct ras_module_entry mods[] = {
@@ -145,34 +141,21 @@ static void test_register_mixed_order(void **state)
 			.level  = CORE_MODULE,
 		},
 	};
-	static const char *names[] = {
-		"alpha",
-		"beta",
-		"charlie",
-		"delta",
-		"echo",
-		"foxtrot",
-	};
-
 	for (int i = 0; i < ARRAY_SIZE(mods); i++) {
 		rc = module_register(&mods[i]);
 		assert_int_equal(rc, 0);
 	}
 
-	entry = ras_modules.head;
-	for (int i = 0;  i < ARRAY_SIZE(mods); i++) {
-		assert_module(entry, i, names[i]);
-		if (entry)
-			entry = entry->next;
-	}
+	for (int i = 0; i < ARRAY_SIZE(mods); i++)
+		assert_true(module_is_registered(mods[i].name));
 
 	modules_unregister();
-	assert_null(ras_modules.head);
+	for (int i = 0; i < ARRAY_SIZE(mods); i++)
+		assert_false(module_is_registered(mods[i].name));
 }
 
 static void test_register_muptiple_levels(void **state)
 {
-	struct ras_module_entry_runtime *entry;
 	int rc = 0;
 
 	const struct ras_module_entry mods[] = {
@@ -194,18 +177,13 @@ static void test_register_muptiple_levels(void **state)
 		assert_int_equal(rc, 0);
 	}
 
-	entry = ras_modules.head;
 	for (int i = 0;  i < ARRAY_SIZE(mods); i++) {
-		assert_module(entry, i, mods[i].name);
-
-		if (entry) {
-			assert_int_equal(entry->e->level, mods[i].level);
-			entry = entry->next;
-		}
+		assert_true(module_is_registered(mods[i].name));
 	}
 
 	modules_unregister();
-	assert_null(ras_modules.head);
+	for (int i = 0; i < ARRAY_SIZE(mods); i++)
+		assert_false(module_is_registered(mods[i].name));
 }
 
 struct ras_events {
@@ -328,7 +306,6 @@ static void test_sql_backend_state(void **state)
 
 static void test_init_cleanup(void **state)
 {
-	struct ras_module_entry_runtime *entry;
 	struct ras_events ras = { 0 };
 	int rc = 0;
 
@@ -365,14 +342,6 @@ static void test_init_cleanup(void **state)
 			.level  = CORE_MODULE,
 		},
 	};
-	const char *names[] = {
-		"alpha",
-		"beta",
-		"charlie",
-		"delta",
-		"echo",
-		"foxtrot",
-	};
 
 	ras.name = calloc(ARRAY_SIZE(mods), sizeof(const char *));
 
@@ -383,13 +352,8 @@ static void test_init_cleanup(void **state)
 
 	modules_init(&ras);
 
-	entry = ras_modules.head;
-	for (int i = 0;  i < ARRAY_SIZE(mods); i++) {
-		assert_module(entry, i, names[i]);
-
-		if (entry)
-			entry = entry->next;
-	}
+	for (int i = 0; i < ARRAY_SIZE(mods); i++)
+		assert_true(module_is_registered(ras.name[i]));
 
 	assert_int_equal(ras.errors, 0);
 
@@ -397,8 +361,8 @@ static void test_init_cleanup(void **state)
 	assert_int_equal(ras.cleanup_count, ARRAY_SIZE(mods));
 	for (int i = 1; i < ras.cleanup_count; i++)
 		assert_true(ras.cleanup_level[i - 1] >= ras.cleanup_level[i]);
-	assert_null(ras_modules.head);
-	assert_null(ras_modules.next);
+	for (int i = 0; i < ARRAY_SIZE(mods); i++)
+		assert_false(module_is_registered(mods[i].name));
 	free(ras.name);
 	ras.name = NULL;
 }
@@ -410,6 +374,7 @@ static void test_init_cleanup(void **state)
 static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_register_null_entry),
 	cmocka_unit_test(test_register_single_module),
+	cmocka_unit_test(test_register_duplicate_module),
 	cmocka_unit_test(test_register_modules_in_order),
 	cmocka_unit_test(test_register_mixed_order),
 	cmocka_unit_test(test_register_muptiple_levels),

@@ -32,25 +32,6 @@ struct ras_module_entry {
 };
 
 
-struct ras_module_entry_runtime {
-	const struct ras_module_entry *e;
-
-	bool is_enabled;
-
-	void *priv;
-
-	struct ras_module_entry_runtime *next;
-};
-
-/*
- * Priority list - linked list of modules for a given priority level.
- * head = NULL means the list is empty.
- */
-struct module_list {
-	struct ras_module_entry_runtime *head;
-	struct module_list     		*next;
-};
-
 /*
  * Register one module into the given priority list.
  * Returns 0 on success, non-zero if registration failed.
@@ -73,5 +54,8 @@ bool modules_have_sql_backend(void);
  * event-handler list.
  */
 bool module_is_enabled(const char *name);
+
+/* Check whether a named module was registered. */
+bool module_is_registered(const char *name);
 
 #endif /* RAS_MODULE_H */
