@@ -56,13 +56,15 @@ jobs:
       run: |
         mock -r fedora-44-x86_64 ./rasdaemon-*.src.rpm
 
-    - name: build aarch64 package
-      run: |
-        mock -r fedora-44-aarch64 ./rasdaemon-*.src.rpm
+# FIXME: we likely need matrix here to be able to build for arm64 and RiscV
 
-    - name: build riscv64 package
-      run: |
-        mock -r fedora-44-riscv64 ./rasdaemon-*.src.rpm
+#    - name: build aarch64 package
+#      run: |
+#        mock -r fedora-44-aarch64 ./rasdaemon-*.src.rpm
+
+#    - name: build riscv64 package
+#      run: |
+#        mock -r fedora-44-riscv64 ./rasdaemon-*.src.rpm
 
   openEuler:
     name: OpenEuler LTS
