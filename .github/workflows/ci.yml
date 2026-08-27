@@ -40,18 +40,35 @@ jobs:
     - name: prepare
       run: |
         dnf install -y git mock rpmdevtools meson gcc make \
-                       libtraceevent-devel
-
-        ln -sf fedora-rawhide-x86_64.cfg /etc/mock/default.cfg
+                       libtraceevent-devel qemu-user-static
         rpmdev-setuptree
 
     - uses: actions/checkout@v7
 
-    - name: build
+    - name: build SRPM
       run: |
         meson setup build -Ddisable-all=true
         git config --global safe.directory "*"
-        make mock
+
+        make srpm
+
+    - name: build x86_64 package
+      run: |
+        mock -r fedora-rawhide-x86_64 \
+             --config-opts=use_bootstrap_container=False \
+             ./rasdaemon-*.src.rpm
+
+    - name: build aarch64 package
+      run: |
+        mock -r fedora-rawhide-aarch64 \
+             --config-opts=use_bootstrap_container=False \
+             ./rasdaemon-*.src.rpm
+
+    - name: build riscv64 package
+      run: |
+        mock -r fedora-rawhide-riscv64 \
+             --config-opts=use_bootstrap_container=False \
+             ./rasdaemon-*.src.rpm
 
   openEuler:
     name: OpenEuler LTS
