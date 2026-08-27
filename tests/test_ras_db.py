@@ -33,7 +33,6 @@ class RasDatabaseTests:
 
     backend = None
     DATABASE_SOURCES = (
-        "db/ras-store-db.c",
         "events-arch-arm/non-standard-ampere.c",
         "events-arch-arm/non-standard-hisi_hip08.c",
         "events-arch-arm/non-standard-hisilicon.c",
@@ -45,9 +44,12 @@ class RasDatabaseTests:
     @classmethod
     def _descriptors(cls):
         root = pathlib.Path(__file__).resolve().parents[1]
+        sources = {root / filename for filename in cls.DATABASE_SOURCES}
+
+        sources.update(root.glob("events*/**/*-handler.c"))
         descriptors = {}
-        for filename in cls.DATABASE_SOURCES:
-            source = (root / filename).read_text(encoding="utf-8")
+        for filename in sorted(sources):
+            source = filename.read_text(encoding="utf-8")
             field_arrays = dict(re.findall(
                 r"static const struct db_fields\s+(\w+)\[\]\s*=\s*"
                 r"\{(.*?)\n\};", source, re.DOTALL
