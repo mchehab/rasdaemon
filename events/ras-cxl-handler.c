@@ -17,14 +17,51 @@
 #include "db/ras-db.h"
 #include "events/ras-cxl-handler.h"
 
+int ras_cxl_poison_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context);
+int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context);
+int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context);
+int ras_cxl_overflow_event_handler(struct trace_seq *s,
+				   struct tep_record *record,
+				   struct tep_event *event, void *context);
+int ras_cxl_generic_event_handler(struct trace_seq *s,
+				  struct tep_record *record,
+				  struct tep_event *event, void *context);
+int ras_cxl_general_media_event_handler(struct trace_seq *s,
+					struct tep_record *record,
+					struct tep_event *event, void *context);
+int ras_cxl_dram_event_handler(struct trace_seq *s,
+			       struct tep_record *record,
+			       struct tep_event *event, void *context);
+int ras_cxl_memory_module_event_handler(struct trace_seq *s,
+					struct tep_record *record,
+					struct tep_event *event, void *context);
+int ras_cxl_memory_sparing_event_handler(struct trace_seq *s,
+					 struct tep_record *record,
+					 struct tep_event *event, void *context);
+int db_cxl_poison_event(struct ras_events *ras, void *priv);
+int db_cxl_aer_ue_event(struct ras_events *ras, void *priv);
+int db_cxl_aer_ce_event(struct ras_events *ras, void *priv);
+int db_cxl_overflow_event(struct ras_events *ras, void *priv);
+int db_cxl_generic_event(struct ras_events *ras, void *priv);
+int db_cxl_general_media_event(struct ras_events *ras, void *priv);
+int db_cxl_dram_event(struct ras_events *ras, void *priv);
+int db_cxl_memory_module_event(struct ras_events *ras, void *priv);
+
 #ifdef HAVE_UNITTEST
 int test_cxl(void) __attribute__((weak));
 #endif
 
-#define CXL_EVENT_ENTRY(var, name, callback, event_id) \
+#define CXL_EVENT_ENTRY(var, name, callback, recorder, event_id) \
 	static const struct ras_event_entry var = { \
 		.group = "cxl", .event = name, .handler = callback, \
 		.id = event_id, .trigger = true, \
+		.record = recorder, \
 	}; \
 	REGISTER_RAS_EVENT(var)
 
@@ -35,25 +72,33 @@ static const struct ras_event_entry ras_cxl_poison_entry = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_cxl,
 #endif
+	.record = db_cxl_poison_event,
 };
 REGISTER_RAS_EVENT(ras_cxl_poison_entry);
 
 CXL_EVENT_ENTRY(ras_cxl_aer_ue_entry, "cxl_aer_uncorrectable_error",
-		ras_cxl_aer_ue_event_handler, CXL_AER_UE_EVENT);
+		ras_cxl_aer_ue_event_handler, db_cxl_aer_ue_event,
+		CXL_AER_UE_EVENT);
 CXL_EVENT_ENTRY(ras_cxl_aer_ce_entry, "cxl_aer_correctable_error",
-		ras_cxl_aer_ce_event_handler, CXL_AER_CE_EVENT);
+		ras_cxl_aer_ce_event_handler, db_cxl_aer_ce_event,
+		CXL_AER_CE_EVENT);
 CXL_EVENT_ENTRY(ras_cxl_overflow_entry, "cxl_overflow",
-		ras_cxl_overflow_event_handler, CXL_OVERFLOW_EVENT);
+		ras_cxl_overflow_event_handler, db_cxl_overflow_event,
+		CXL_OVERFLOW_EVENT);
 CXL_EVENT_ENTRY(ras_cxl_generic_entry, "cxl_generic_event",
-		ras_cxl_generic_event_handler, CXL_GENERIC_EVENT);
+		ras_cxl_generic_event_handler, db_cxl_generic_event,
+		CXL_GENERIC_EVENT);
 CXL_EVENT_ENTRY(ras_cxl_media_entry, "cxl_general_media",
-		ras_cxl_general_media_event_handler, CXL_GENERAL_MEDIA_EVENT);
+		ras_cxl_general_media_event_handler, db_cxl_general_media_event,
+		CXL_GENERAL_MEDIA_EVENT);
 CXL_EVENT_ENTRY(ras_cxl_dram_entry, "cxl_dram",
-		ras_cxl_dram_event_handler, CXL_DRAM_EVENT);
+		ras_cxl_dram_event_handler, db_cxl_dram_event, CXL_DRAM_EVENT);
 CXL_EVENT_ENTRY(ras_cxl_module_entry, "cxl_memory_module",
-		ras_cxl_memory_module_event_handler, CXL_MEMORY_MODULE_EVENT);
+		ras_cxl_memory_module_event_handler, db_cxl_memory_module_event,
+		CXL_MEMORY_MODULE_EVENT);
 CXL_EVENT_ENTRY(ras_cxl_sparing_entry, "cxl_memory_sparing",
-		ras_cxl_memory_sparing_event_handler, CXL_MEMORY_SPARING_EVENT);
+		ras_cxl_memory_sparing_event_handler, NULL,
+		CXL_MEMORY_SPARING_EVENT);
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-report.h"
 
@@ -1580,8 +1625,9 @@ static struct db_desc_and_stmt cxl_poison_event_db = {
 	.desc = &cxl_poison_event_tab,
 };
 
-int db_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
+int db_cxl_poison_event(struct ras_events *ras, void *priv)
 {
+	struct ras_cxl_poison_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!cxl_poison_event_db.stmt)
@@ -1634,8 +1680,9 @@ static struct db_desc_and_stmt cxl_aer_ue_event_db = {
 	.desc = &cxl_aer_ue_event_tab,
 };
 
-int db_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev)
+int db_cxl_aer_ue_event(struct ras_events *ras, void *priv)
 {
+	struct ras_cxl_aer_ue_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!cxl_aer_ue_event_db.stmt)
@@ -1679,8 +1726,9 @@ static struct db_desc_and_stmt cxl_aer_ce_event_db = {
 	.desc = &cxl_aer_ce_event_tab,
 };
 
-int db_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
+int db_cxl_aer_ce_event(struct ras_events *ras, void *priv)
 {
+	struct ras_cxl_aer_ce_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!cxl_aer_ce_event_db.stmt)
@@ -1725,8 +1773,9 @@ static struct db_desc_and_stmt cxl_overflow_event_db = {
 	.desc = &cxl_overflow_event_tab,
 };
 
-int db_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
+int db_cxl_overflow_event(struct ras_events *ras, void *priv)
 {
+	struct ras_cxl_overflow_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!cxl_overflow_event_db.stmt)
@@ -1810,8 +1859,9 @@ static struct db_desc_and_stmt cxl_generic_event_db = {
 	.desc = &cxl_generic_event_tab,
 };
 
-int db_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
+int db_cxl_generic_event(struct ras_events *ras, void *priv)
 {
+	struct ras_cxl_generic_event *ev = priv;
 	int idx;
 	int rc;
 
@@ -1885,9 +1935,9 @@ static struct db_desc_and_stmt cxl_general_media_event_db = {
 	.desc = &cxl_general_media_event_tab,
 };
 
-int db_cxl_general_media_event(struct ras_events *ras,
-				      struct ras_cxl_general_media_event *ev)
+int db_cxl_general_media_event(struct ras_events *ras, void *priv)
 {
+	struct ras_cxl_general_media_event *ev = priv;
 	int idx;
 	int rc;
 
@@ -1983,8 +2033,9 @@ static struct db_desc_and_stmt cxl_dram_event_db = {
 	.desc = &cxl_dram_event_tab,
 };
 
-int db_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
+int db_cxl_dram_event(struct ras_events *ras, void *priv)
 {
+	struct ras_cxl_dram_event *ev = priv;
 	int idx;
 	int rc;
 
@@ -2076,9 +2127,9 @@ static struct db_desc_and_stmt cxl_memory_module_event_db = {
 	.desc = &cxl_memory_module_event_tab,
 };
 
-int db_cxl_memory_module_event(struct ras_events *ras,
-				      struct ras_cxl_memory_module_event *ev)
+int db_cxl_memory_module_event(struct ras_events *ras, void *priv)
 {
+	struct ras_cxl_memory_module_event *ev = priv;
 	int idx;
 	int rc;
 

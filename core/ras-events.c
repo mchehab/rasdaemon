@@ -971,6 +971,36 @@ static void ras_events_unregister(void)
 	}
 }
 
+#ifdef HAVE_UNITTEST
+static const struct ras_event_entry *ras_event_test_find(const char *group,
+							 const char *name)
+{
+	struct ras_event_runtime *event;
+
+	LIST_FOREACH(event, &ras_event_handlers, node)
+		if (!strcmp(group, event->entry->group) &&
+		    !strcmp(name, event->entry->event))
+			return event->entry;
+	return NULL;
+}
+
+tep_event_handler_func ras_event_test_handler(const char *group,
+					      const char *event)
+{
+	const struct ras_event_entry *entry = ras_event_test_find(group, event);
+
+	return entry ? entry->handler : NULL;
+}
+
+int ras_event_test_record(const char *group, const char *event,
+			  struct ras_events *ras, void *data)
+{
+	const struct ras_event_entry *entry = ras_event_test_find(group, event);
+
+	return entry && entry->record ? entry->record(ras, data) : -ENOENT;
+}
+#endif
+
 int ras_event_register(const struct ras_event_entry *entry)
 {
 	struct ras_event_runtime *event, *new, *prev = NULL;

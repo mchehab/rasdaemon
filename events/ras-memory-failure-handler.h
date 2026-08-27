@@ -14,14 +14,6 @@
 extern unsigned long long poison_stat_threshold;
 
 void mem_fail_event_trigger_setup(void);
-int ras_memory_failure_event_handler(struct trace_seq *s,
-				     struct tep_record *record,
-				     struct tep_event *event, void *context);
-
-#ifdef HAVE_UNITTEST
-const char *ras_memory_failure_test_page_type(int page_type);
-const char *ras_memory_failure_test_action_result(int result);
-#endif
 
 struct ras_mf_event {
 	char timestamp[64];
@@ -29,8 +21,5 @@ struct ras_mf_event {
 	const char *page_type;
 	const char *action_result;
 };
-
-int db_mf_event(struct ras_events *ras, struct ras_mf_event *ev);
-
 
 #endif

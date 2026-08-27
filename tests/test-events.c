@@ -41,9 +41,42 @@
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
 
+const char *ras_cxl_test_log_type(uint32_t log_type);
+void ras_cxl_test_convert_timestamp(unsigned long long timestamp,
+				    char *buf, uint16_t size);
+const char *ras_cxl_test_uuid(const char *uuid);
+const char *ras_diskerror_test_error(int err);
+const char *ras_extlog_test_error_type(int type);
+const char *ras_extlog_test_severity(int severity);
+unsigned long long ras_extlog_test_mask(int lsb);
+const char *ras_memory_failure_test_page_type(int page_type);
+const char *ras_memory_failure_test_action_result(int result);
+int ras_arm_test_parse_processor(struct trace_seq *s,
+				 struct ras_arm_event *event);
+#ifdef HAVE_CPU_FAULT_ISOLATION
+int ras_arm_test_count_errors(struct ras_arm_event *event, int severity);
+#endif
+size_t ras_ns_test_decoder_count(void);
+const char *ras_ns_test_decoder_type(size_t index);
+int ras_ns_test_decode(const char *type, struct ras_events *ras,
+		       struct trace_seq *seq,
+		       struct ras_non_standard_event *event);
+const char *ras_reri_test_error_code(uint8_t value);
+const char *ras_reri_test_transaction(uint8_t value);
+const char *ras_reri_test_address_type(uint8_t value);
+const char *ras_reri_test_category(uint8_t value);
+
 #define RUN_FEATURE_GROUP(group_name, test_array) \
 	_cmocka_run_group_tests(group_name, test_array, ARRAY_SIZE(test_array), \
 				NULL, NULL)
+#define RUN_EVENT(group, event, ...) \
+	ras_event_test_handler(group, event)(__VA_ARGS__)
+
+#ifdef HAVE_BLK_RQ_ERROR
+#define DISKERROR_TRACE_EVENT "block_rq_error"
+#else
+#define DISKERROR_TRACE_EVENT "block_rq_complete"
+#endif
 
 static void init_trace(struct trace_seq *seq, struct tep_record *record,
 		       struct ras_events *ras)
@@ -105,7 +138,8 @@ static void test_mc_complete_record(void **state)
 	trace_mock_add_raw("driver_detail",
 			   "APEI location node:0 card:0 module:0 rank:0 device:0 bank:1 row:2",
 			   72);
-	assert_int_equal(ras_mc_event_handler(&seq, &record, &event, &ras), 0);
+	assert_int_equal(RUN_EVENT("ras", "mc_event", &seq, &record, &event,
+				   &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "2 Corrected errors: ECC on DIMM_A0"));
 	assert_non_null(strstr(output, "location: 0:1:2"));
@@ -127,7 +161,8 @@ static void test_mc_missing_field_is_reported(void **state)
 
 	ras_logger_clean();
 	init_trace(&seq, &record, &ras);
-	assert_int_equal(ras_mc_event_handler(&seq, &record, &event, &ras), 0);
+	assert_int_equal(RUN_EVENT("ras", "mc_event", &seq, &record, &event,
+				   &ras), 0);
 	finish_trace(&seq);
 	assert_non_null(strstr(mock_log_buf, "can't parse field #0"));
 	ras_logger_clean();
@@ -200,7 +235,8 @@ static void test_aer_corrected_record(void **state)
 	trace_mock_add_raw("dev_name", "not-a-bdf", 10);
 	trace_mock_add_value("status", BIT_ULL(0) | BIT_ULL(6));
 	trace_mock_add_value("tlp_header_valid", 0);
-	assert_int_equal(ras_aer_event_handler(&seq, &record, &event, &ras), 0);
+	assert_int_equal(RUN_EVENT("ras", "aer_event", &seq, &record, &event,
+				   &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "Receiver Error, Bad TLP"));
 	assert_non_null(strstr(output, "Corrected"));
@@ -215,7 +251,8 @@ static void test_aer_requires_severity(void **state)
 	struct ras_events ras;
 
 	init_trace(&seq, &record, &ras);
-	assert_int_equal(ras_aer_event_handler(&seq, &record, &event, &ras), -1);
+	assert_int_equal(RUN_EVENT("ras", "aer_event", &seq, &record, &event,
+				   &ras), -1);
 	finish_trace(&seq);
 	trace_seq_destroy(&seq);
 }
@@ -335,8 +372,8 @@ static void test_cxl_poison_record(void **state)
 	trace_mock_add_value("dpa_length", 0x40);
 	trace_mock_add_value("source", 3);
 	trace_mock_add_value("flags", 0);
-	assert_int_equal(ras_cxl_poison_event_handler(&seq, &record, &event,
-						      &ras), 0);
+	assert_int_equal(RUN_EVENT("cxl", "cxl_poison", &seq, &record,
+				   &event, &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "trace_type:Inject"));
 	assert_non_null(strstr(output, "source:Injected"));
@@ -346,28 +383,27 @@ static void test_cxl_poison_record(void **state)
 
 static void test_all_cxl_handlers_reject_empty_record(void **state)
 {
-	typedef int (*handler_fn)(struct trace_seq *, struct tep_record *,
-				  struct tep_event *, void *);
-	static const handler_fn handlers[] = {
-		ras_cxl_poison_event_handler,
-		ras_cxl_aer_ue_event_handler,
-		ras_cxl_aer_ce_event_handler,
-		ras_cxl_overflow_event_handler,
-		ras_cxl_generic_event_handler,
-		ras_cxl_general_media_event_handler,
-		ras_cxl_dram_event_handler,
-		ras_cxl_memory_module_event_handler,
-		ras_cxl_memory_sparing_event_handler,
+	static const char * const events[] = {
+		"cxl_poison",
+		"cxl_aer_uncorrectable_error",
+		"cxl_aer_correctable_error",
+		"cxl_overflow",
+		"cxl_generic_event",
+		"cxl_general_media",
+		"cxl_dram",
+		"cxl_memory_module",
+		"cxl_memory_sparing",
 	};
 
-	for (size_t i = 0; i < ARRAY_SIZE(handlers); i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(events); i++) {
 		struct trace_seq seq;
 		struct tep_record record;
 		struct tep_event event = { 0 };
 		struct ras_events ras;
 
 		init_trace(&seq, &record, &ras);
-		assert_int_equal(handlers[i](&seq, &record, &event, &ras), -1);
+		assert_int_equal(RUN_EVENT("cxl", events[i], &seq, &record,
+					   &event, &ras), -1);
 		finish_trace(&seq);
 		trace_seq_destroy(&seq);
 	}
@@ -400,7 +436,8 @@ static void test_devlink_health_record(void **state)
 	trace_mock_add_raw("driver_name", "driver", 7);
 	trace_mock_add_raw("reporter_name", "fw", 3);
 	trace_mock_add_raw("msg", "health failure", 15);
-	assert_int_equal(ras_devlink_event_handler(&seq, &record, &event, &ras), 0);
+	assert_int_equal(RUN_EVENT("devlink", "devlink_health_report", &seq,
+				   &record, &event, &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "1970"));
 	trace_seq_destroy(&seq);
@@ -416,7 +453,8 @@ static void test_devlink_filter_and_net_timeout(void **state)
 	init_trace(&seq, &record, &ras);
 	ras.filters[DEVLINK_EVENT] = (void *)1;
 	trace_mock_set_filter_result(FILTER_MATCH);
-	assert_int_equal(ras_devlink_event_handler(&seq, &record, &event, &ras), 0);
+	assert_int_equal(RUN_EVENT("devlink", "devlink_health_report", &seq,
+				   &record, &event, &ras), 0);
 	finish_trace(&seq);
 	trace_seq_destroy(&seq);
 
@@ -424,8 +462,8 @@ static void test_devlink_filter_and_net_timeout(void **state)
 	trace_mock_add_raw("name", "eth0", 5);
 	trace_mock_add_raw("driver", "netdrv", 7);
 	trace_mock_add_value("queue_index", 3);
-	assert_int_equal(ras_net_xmit_timeout_handler(&seq, &record, &event,
-						      &ras), 0);
+	assert_int_equal(RUN_EVENT("net", "net_dev_xmit_timeout", &seq,
+				   &record, &event, &ras), 0);
 	finish_trace(&seq);
 	trace_seq_destroy(&seq);
 }
@@ -460,8 +498,8 @@ static void test_diskerror_mapping_and_record(void **state)
 	trace_mock_add_value("error", (unsigned long long)-EIO);
 	trace_mock_add_raw("rwbs", "R", 2);
 	trace_mock_add_raw("cmd", "read", 5);
-	assert_int_equal(ras_diskerror_event_handler(&seq, &record, &event,
-						     &ras), 0);
+	assert_int_equal(RUN_EVENT("block", DISKERROR_TRACE_EVENT, &seq,
+				   &record, &event, &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "[ERROR]"));
 	trace_seq_destroy(&seq);
@@ -519,8 +557,8 @@ static void test_memory_failure_record(void **state)
 	trace_mock_add_value("pfn", 0x123);
 	trace_mock_add_value("type", 4);
 	trace_mock_add_value("result", 3);
-	assert_int_equal(ras_memory_failure_event_handler(&seq, &record, &event,
-							   &ras), 0);
+	assert_int_equal(RUN_EVENT("ras", "memory_failure_event", &seq,
+				   &record, &event, &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "pfn=0x123"));
 	assert_non_null(strstr(output, "page_type=huge page"));
@@ -625,7 +663,8 @@ static void test_signal_record(void **state)
 	trace_mock_add_value("pid", 42);
 	trace_mock_add_value("group", 1);
 	trace_mock_add_value("result", 0);
-	assert_int_equal(ras_signal_event_handler(&seq, &record, &event, &ras), 0);
+	assert_int_equal(RUN_EVENT("signal", "signal_generate", &seq, &record,
+				   &event, &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "BUS_ADRERR"));
 	assert_non_null(strstr(output, "Delivered"));
@@ -640,7 +679,8 @@ static void test_signal_record(void **state)
 	trace_mock_add_value("pid", 42);
 	trace_mock_add_value("group", 1);
 	trace_mock_add_value("result", 99);
-	assert_int_equal(ras_signal_event_handler(&seq, &record, &event, &ras), 0);
+	assert_int_equal(RUN_EVENT("signal", "signal_generate", &seq, &record,
+				   &event, &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "code: Unknown"));
 	assert_non_null(strstr(output, "res: Unknown"));
@@ -684,7 +724,8 @@ static void test_reri_mappings_and_record(void **state)
 	trace_mock_add_value("source_type", RERI_SOURCE_TYPE_IOMMU);
 	trace_mock_add_value("status", status);
 	trace_mock_add_value("addr_info", 0xfeed0000);
-	assert_int_equal(ras_reri_event_handler(&seq, &record, &event, &ras), 0);
+	assert_int_equal(RUN_EVENT("ras", "reri_event", &seq, &record, &event,
+				   &ras), 0);
 	output = finish_trace(&seq);
 	assert_non_null(strstr(output, "source: IOMMU"));
 	assert_non_null(strstr(output, "error_type: Cache"));
@@ -693,7 +734,8 @@ static void test_reri_mappings_and_record(void **state)
 
 	init_trace(&seq, &record, &ras);
 	trace_mock_add_value("err_src_id", UINT16_MAX + 1ULL);
-	assert_int_equal(ras_reri_event_handler(&seq, &record, &event, &ras), -1);
+	assert_int_equal(RUN_EVENT("ras", "reri_event", &seq, &record, &event,
+				   &ras), -1);
 	finish_trace(&seq);
 	trace_seq_destroy(&seq);
 }

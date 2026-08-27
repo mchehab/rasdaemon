@@ -26,19 +26,7 @@ struct ras_ns_ev_decoder {
 #endif
 };
 
-int ras_non_standard_event_handler(struct trace_seq *s,
-				   struct tep_record *record,
-				   struct tep_event *event, void *context);
-
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index);
-
-#ifdef HAVE_UNITTEST
-size_t ras_ns_test_decoder_count(void);
-const char *ras_ns_test_decoder_type(size_t index);
-int ras_ns_test_decode(const char *type, struct ras_events *ras,
-		       struct trace_seq *seq,
-		       struct ras_non_standard_event *event);
-#endif
 
 #ifdef HAVE_NON_STANDARD
 int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder);
@@ -55,9 +43,5 @@ struct ras_non_standard_event {
 	const uint8_t *error;
 	uint32_t length;
 };
-
-int db_non_standard_record(struct ras_events *ras,
-			   struct ras_non_standard_event *ev);
-
 
 #endif

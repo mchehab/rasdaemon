@@ -4,8 +4,11 @@
  */
 
 #include <setjmp.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include <cmocka.h>
+#include <traceevent/event-parse.h>
 
 #include "core/modules.h"
 #include "core/types.h"
@@ -30,5 +33,9 @@ void test_database_tables(void **state);
 void test_ras_mc_ctl_count(const char *backend, const char *table,
 			   int expected);
 void test_ras_mc_ctl_types(const char *backend, struct ras_events *ras);
+tep_event_handler_func ras_event_test_handler(const char *group,
+					      const char *event);
+int ras_event_test_record(const char *group, const char *event,
+			  struct ras_events *ras, void *data);
 
 #endif

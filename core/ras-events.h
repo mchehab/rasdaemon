@@ -47,6 +47,8 @@ enum {
 
 struct ras_db;
 
+typedef int (*record_function)(struct ras_events *ras, void *event);
+
 struct ras_event_entry {
 	const char *group;
 	const char *event;
@@ -58,6 +60,7 @@ struct ras_event_entry {
 	int id;
 	int order;
 	bool trigger;
+	record_function record;
 #ifdef HAVE_UNITTEST
 	enum test_group test_group;
 	int (*test)(void);

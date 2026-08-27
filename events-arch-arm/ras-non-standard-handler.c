@@ -16,10 +16,15 @@
 #include "core/types.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 
+static int ras_non_standard_event_handler(struct trace_seq *s,
+					  struct tep_record *record,
+					  struct tep_event *event, void *context);
+int db_non_standard_record(struct ras_events *ras, void *priv);
+
 static const struct ras_event_entry ras_non_standard_event_entry = {
 	.group = "ras", .event = "non_standard_event",
 	.handler = ras_non_standard_event_handler, .id = NON_STANDARD_EVENT,
-	.trigger = true,
+	.trigger = true, .record = db_non_standard_record,
 };
 REGISTER_RAS_EVENT(ras_non_standard_event_entry);
 #include "modules/ras-report.h"
@@ -201,7 +206,7 @@ static void unregister_ns_ev_decoder(void)
 	ras_ns_ev_dec_list = NULL;
 }
 
-int ras_non_standard_event_handler(struct trace_seq *s,
+static int ras_non_standard_event_handler(struct trace_seq *s,
 				   struct tep_record *record,
 				   struct tep_event *event, void *context)
 {
@@ -346,8 +351,9 @@ static struct db_desc_and_stmt non_standard_event_db = {
 	.desc = &non_standard_event_tab,
 };
 
-int db_non_standard_record(struct ras_events *ras, struct ras_non_standard_event *ev)
+int db_non_standard_record(struct ras_events *ras, void *priv)
 {
+	struct ras_non_standard_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!non_standard_event_db.stmt)

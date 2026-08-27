@@ -12,16 +12,6 @@
 
 #include "core/ras-events.h"
 
-int ras_extlog_mem_event_handler(struct trace_seq *s,
-				 struct tep_record *record,
-				 struct tep_event *event,
-				 void *context);
-
-#ifdef HAVE_UNITTEST
-const char *ras_extlog_test_error_type(int type);
-const char *ras_extlog_test_severity(int severity);
-unsigned long long ras_extlog_test_mask(int lsb);
-#endif
 struct ras_extlog_event {
 	char timestamp[64];
 	int32_t error_seq;
@@ -34,9 +24,5 @@ struct ras_extlog_event {
 	const char *cper_data;
 	unsigned short cper_data_length;
 };
-
-int db_extlog_mem_record(struct ras_events *ras,
-			 struct ras_extlog_event *ev);
-
 
 #endif

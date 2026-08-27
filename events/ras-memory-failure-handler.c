@@ -15,6 +15,11 @@
 #include "core/types.h"
 #include "events/ras-memory-failure-handler.h"
 
+int ras_memory_failure_event_handler(struct trace_seq *s,
+				     struct tep_record *record,
+				     struct tep_event *event, void *context);
+int db_mf_event(struct ras_events *ras, void *priv);
+
 #ifdef HAVE_UNITTEST
 int test_memory_failure(void) __attribute__((weak));
 #endif
@@ -26,6 +31,7 @@ static const struct ras_event_entry ras_memory_failure_event = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_memory_failure,
 #endif
+	.record = db_mf_event,
 };
 REGISTER_RAS_EVENT(ras_memory_failure_event);
 #include "modules/ras-poison-page-stat.h"
@@ -270,8 +276,9 @@ static struct db_desc_and_stmt mf_event_db = {
 	.desc = &mf_event_tab,
 };
 
-int db_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
+int db_mf_event(struct ras_events *ras, void *priv)
 {
+	struct ras_mf_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!mf_event_db.stmt)

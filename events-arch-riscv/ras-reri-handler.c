@@ -20,6 +20,10 @@
 #include "db/ras-db.h"
 #include "events-arch-riscv/ras-reri-handler.h"
 
+int ras_reri_event_handler(struct trace_seq *s, struct tep_record *record,
+			   struct tep_event *event, void *context);
+int db_reri_event(struct ras_events *ras, void *priv);
+
 #ifdef HAVE_UNITTEST
 int test_reri(void) __attribute__((weak));
 #endif
@@ -30,6 +34,7 @@ static const struct ras_event_entry ras_reri_event_entry = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_RISCV_EVENTS, .test = test_reri,
 #endif
+	.record = db_reri_event,
 };
 REGISTER_RAS_EVENT(ras_reri_event_entry);
 #include "modules/ras-cpu-isolation.h"
@@ -410,8 +415,9 @@ static struct db_desc_and_stmt reri_event_db = {
 	.desc = &reri_event_tab,
 };
 
-int db_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
+int db_reri_event(struct ras_events *ras, void *priv)
 {
+	struct ras_reri_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!reri_event_db.stmt)

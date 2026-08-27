@@ -15,6 +15,13 @@
 #include "core/types.h"
 #include "events/ras-devlink-handler.h"
 
+int ras_net_xmit_timeout_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context);
+int ras_devlink_event_handler(struct trace_seq *s, struct tep_record *record,
+			      struct tep_event *event, void *context);
+int db_devlink_event(struct ras_events *ras, void *priv);
+
 static bool net_timeout_enabled;
 
 static int ras_net_timeout_prepare(struct ras_events *ras)
@@ -53,6 +60,7 @@ static const struct ras_event_entry ras_devlink_event = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_devlink,
 #endif
+	.record = db_devlink_event,
 };
 REGISTER_RAS_EVENT(ras_devlink_event);
 #include "modules/ras-report.h"
@@ -200,8 +208,9 @@ static struct db_desc_and_stmt devlink_event_db = {
 	.desc = &devlink_event_tab,
 };
 
-int db_devlink_event(struct ras_events *ras, struct devlink_event *ev)
+int db_devlink_event(struct ras_events *ras, void *priv)
 {
+	struct devlink_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!devlink_event_db.stmt)

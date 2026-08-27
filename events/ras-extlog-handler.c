@@ -19,6 +19,11 @@
 #include "core/types.h"
 #include "events/ras-extlog-handler.h"
 
+static int ras_extlog_mem_event_handler(struct trace_seq *s,
+					struct tep_record *record,
+					struct tep_event *event, void *context);
+int db_extlog_mem_record(struct ras_events *ras, void *priv);
+
 #ifdef HAVE_UNITTEST
 int test_extlog(void) __attribute__((weak));
 #endif
@@ -38,6 +43,7 @@ static const struct ras_event_entry ras_extlog_event = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_extlog,
 #endif
+	.record = db_extlog_mem_record,
 };
 REGISTER_RAS_EVENT(ras_extlog_event);
 #include "modules/ras-report.h"
@@ -278,7 +284,7 @@ static void report_extlog_mem_event(struct ras_events *ras,
 		uuid_le(ev->fru_id));
 }
 
-int ras_extlog_mem_event_handler(struct trace_seq *s,
+static int ras_extlog_mem_event_handler(struct trace_seq *s,
 				 struct tep_record *record,
 				 struct tep_event *event, void *context)
 {
@@ -361,8 +367,9 @@ static struct db_desc_and_stmt extlog_event_db = {
 	.desc = &extlog_event_tab,
 };
 
-int db_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev)
+int db_extlog_mem_record(struct ras_events *ras, void *priv)
 {
+	struct ras_extlog_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!extlog_event_db.stmt)

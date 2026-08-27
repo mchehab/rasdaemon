@@ -19,6 +19,11 @@
 #include "core/types.h"
 #include "events/ras-aer-handler.h"
 
+int ras_aer_event_handler(struct trace_seq *s, struct tep_record *record,
+			  struct tep_event *event, void *context);
+int db_aer_event(struct ras_events *ras, void *priv);
+static void ras_aer_handler_init(int enable_ipmitool);
+
 #ifdef HAVE_UNITTEST
 int test_aer(void) __attribute__((weak));
 #endif
@@ -36,6 +41,7 @@ static const struct ras_event_entry ras_aer_event = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_aer,
 #endif
+	.record = db_aer_event,
 };
 REGISTER_RAS_EVENT(ras_aer_event);
 #include "modules/ras-report.h"
@@ -119,7 +125,7 @@ void aer_event_trigger_setup(void)
 	}
 }
 
-void ras_aer_handler_init(int enable_ipmitool)
+static void ras_aer_handler_init(int enable_ipmitool)
 {
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
 	use_ipmitool = (enable_ipmitool > 0) ? 1 : 0;
@@ -385,8 +391,9 @@ static struct db_desc_and_stmt aer_event_db = {
 	.desc = &aer_event_tab,
 };
 
-int db_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
+int db_aer_event(struct ras_events *ras, void *priv)
 {
+	struct ras_aer_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!aer_event_db.stmt)

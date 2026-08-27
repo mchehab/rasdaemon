@@ -32,19 +32,9 @@ struct ras_arm_err_info {
 
 #pragma pack()
 
-int ras_arm_event_handler(struct trace_seq *s,
-			  struct tep_record *record,
-			  struct tep_event *event, void *context);
 void display_raw_data(struct trace_seq *s,
 		      const uint8_t *buf,
 		      uint32_t datalen);
-#ifdef HAVE_UNITTEST
-int ras_arm_test_parse_processor(struct trace_seq *s,
-				 struct ras_arm_event *event);
-#ifdef HAVE_CPU_FAULT_ISOLATION
-int ras_arm_test_count_errors(struct ras_arm_event *event, int severity);
-#endif
-#endif
 struct ras_arm_event {
 	char timestamp[64];
 	int32_t error_count;
@@ -65,8 +55,5 @@ struct ras_arm_event {
 	uint64_t virt_fault_addr;
 	uint64_t phy_fault_addr;
 };
-
-int db_arm_record(struct ras_events *ras, struct ras_arm_event *ev);
-
 
 #endif

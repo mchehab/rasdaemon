@@ -46,13 +46,6 @@
 #define MAJOR(dev)	((unsigned int)((dev) >> MINORBITS))
 #define MINOR(dev)	((unsigned int)((dev) & MINORMASK))
 #define MKDEV(ma, mi)	(((ma) << MINORBITS) | (mi))
-int ras_diskerror_event_handler(struct trace_seq *s,
-				struct tep_record *record,
-				struct tep_event *event, void *context);
-
-#ifdef HAVE_UNITTEST
-const char *ras_diskerror_test_error(int err);
-#endif
 
 struct diskerror_event {
 	char timestamp[64];
@@ -63,8 +56,5 @@ struct diskerror_event {
 	const char *rwbs;
 	const char *cmd;
 };
-
-int db_diskerror_event(struct ras_events *ras, struct diskerror_event *ev);
-
 
 #endif

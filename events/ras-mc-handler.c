@@ -18,6 +18,17 @@
 #include "db/ras-db.h"
 #include "events/ras-mc-handler.h"
 
+static int ras_mc_event_handler(struct trace_seq *s, struct tep_record *record,
+				struct tep_event *event, void *context);
+#ifdef HAVE_DB
+static int db_mc_event(struct ras_events *ras, void *priv);
+#else
+static inline int db_mc_event(struct ras_events *ras, void *priv)
+{
+	return 0;
+}
+#endif
+
 struct ras_record_priv {
 	struct ras_stmt *stmt_mc_event;
 };
@@ -36,6 +47,7 @@ static const struct ras_event_entry ras_mc_event = {
 	.test_group = TEST_GROUP_EVENTS,
 	.test = test_mc,
 #endif
+	.record = db_mc_event,
 };
 
 REGISTER_RAS_EVENT(ras_mc_event);
@@ -175,30 +187,31 @@ const struct db_table_descriptor mc_event_tab = {
 	.num_fields = ARRAY_SIZE(mc_event_fields),
 };
 
-int db_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
+static int db_mc_event(struct ras_events *ras, void *priv)
 {
-	struct ras_record_priv *priv = ras->db_priv;
+	struct ras_mc_event *ev = priv;
+	struct ras_record_priv *record = ras->db_priv;
 	int rc, pos = 1;
 
-	if (!priv || !priv->stmt_mc_event)
+	if (!record || !record->stmt_mc_event)
 		return 0;
-	log(TERM, LOG_INFO, "mc_event store: %p\n", priv->stmt_mc_event);
+	log(TERM, LOG_INFO, "mc_event store: %p\n", record->stmt_mc_event);
 
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->timestamp, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->error_count, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->error_type, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->msg, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->label, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->mc_index, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->top_layer, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->middle_layer, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->lower_layer, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->address, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->grain, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, ev->syndrome, -1);
-	db_bind(&mc_event_tab, priv->stmt_mc_event, pos++, (uint64_t)ev->driver_detail, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, ev->error_count, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, (uint64_t)ev->error_type, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, (uint64_t)ev->msg, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, (uint64_t)ev->label, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, ev->mc_index, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, ev->top_layer, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, ev->middle_layer, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, ev->lower_layer, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, ev->address, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, ev->grain, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, ev->syndrome, -1);
+	db_bind(&mc_event_tab, record->stmt_mc_event, pos++, (uint64_t)ev->driver_detail, -1);
 
-	rc = db_eval_stmt(priv->stmt_mc_event, "mc_event");
+	rc = db_eval_stmt(record->stmt_mc_event, "mc_event");
 	if (!rc)
 		log(TERM, LOG_INFO, "register inserted at db\n");
 
@@ -264,9 +277,9 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 
 #endif
 
-int ras_mc_event_handler(struct trace_seq *s,
-			 struct tep_record *record,
-			 struct tep_event *event, void *context)
+static int ras_mc_event_handler(struct trace_seq *s,
+				struct tep_record *record,
+				struct tep_event *event, void *context)
 {
 	int len;
 	unsigned long long val;

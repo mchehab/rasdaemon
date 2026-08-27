@@ -12,11 +12,6 @@
 #include "core/ras-events.h"
 
 void aer_event_trigger_setup(void);
-int ras_aer_event_handler(struct trace_seq *s,
-			  struct tep_record *record,
-			  struct tep_event *event, void *context);
-
-void ras_aer_handler_init(int enable_ipmitool);
 struct ras_aer_event {
 	char timestamp[64];
 	const char *error_type;
@@ -28,8 +23,5 @@ struct ras_aer_event {
 	uint16_t vendor_id;
 	uint16_t device_id;
 };
-
-int db_aer_event(struct ras_events *ras, struct ras_aer_event *ev);
-
 
 #endif

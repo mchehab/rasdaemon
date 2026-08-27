@@ -15,6 +15,11 @@
 #include "core/types.h"
 #include "events/ras-diskerror-handler.h"
 
+int ras_diskerror_event_handler(struct trace_seq *s,
+				struct tep_record *record,
+				struct tep_event *event, void *context);
+int db_diskerror_event(struct ras_events *ras, void *priv);
+
 #ifdef HAVE_UNITTEST
 int test_diskerror(void) __attribute__((weak));
 #endif
@@ -39,6 +44,7 @@ static const struct ras_event_entry ras_diskerror_event = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_diskerror,
 #endif
+	.record = db_diskerror_event,
 };
 REGISTER_RAS_EVENT(ras_diskerror_event);
 #include "modules/ras-report.h"
@@ -170,8 +176,9 @@ static struct db_desc_and_stmt diskerror_event_db = {
 	.desc = &diskerror_event_tab,
 };
 
-int db_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
+int db_diskerror_event(struct ras_events *ras, void *priv)
 {
+	struct diskerror_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!diskerror_event_db.stmt)

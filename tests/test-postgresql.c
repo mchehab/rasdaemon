@@ -431,7 +431,7 @@ static void test_ras_mc_ctl_record(void **state)
 	assert_int_equal(rc, 0);
 	rc = db_exec_sql(ras.db, "DELETE FROM mc_event");
 	assert_int_equal(rc, 0);
-	rc = db_mc_event(&ras, &event);
+	rc = ras_event_test_record("ras", "mc_event", &ras, &event);
 	assert_int_equal(rc, 0);
 	test_ras_mc_ctl_types("postgresql", &ras);
 	rc = ras_mc_event_closedb(0, &ras);

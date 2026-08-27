@@ -18,6 +18,12 @@
 #include "core/types.h"
 #include "events-arch-x86/ras-mce-handler.h"
 
+static int register_mce_handler(struct ras_events *ras, unsigned int ncpus);
+static int ras_mce_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context);
+int db_mce_record(struct ras_events *ras, void *priv);
+
 #ifdef HAVE_UNITTEST
 int test_mce(void) __attribute__((weak));
 #endif
@@ -43,6 +49,7 @@ static const struct ras_event_entry ras_mce_event = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_X86_EVENTS, .test = test_mce,
 #endif
+	.record = db_mce_record,
 };
 REGISTER_RAS_EVENT(ras_mce_event);
 #include "modules/ras-report.h"
@@ -322,7 +329,7 @@ static void set_imc_log(struct mce_priv *mce, unsigned int ncpus)
 	}
 }
 
-int register_mce_handler(struct ras_events *ras, unsigned int ncpus)
+static int register_mce_handler(struct ras_events *ras, unsigned int ncpus)
 {
 	int rc;
 
@@ -555,7 +562,7 @@ free_mce:
 	return rc;
 }
 
-int ras_mce_event_handler(struct trace_seq *s,
+static int ras_mce_event_handler(struct trace_seq *s,
 			  struct tep_record *record,
 			  struct tep_event *event, void *context)
 {
@@ -711,8 +718,9 @@ static struct db_desc_and_stmt mce_record_db = {
 	.desc = &mce_record_tab,
 };
 
-int db_mce_record(struct ras_events *ras, struct mce_event *ev)
+int db_mce_record(struct ras_events *ras, void *priv)
 {
+	struct mce_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!mce_record_db.stmt)

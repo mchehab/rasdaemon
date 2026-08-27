@@ -89,8 +89,6 @@ struct mce_event {
 	int		erst;
 };
 
-int db_mce_record(struct ras_events *ras, struct mce_event *ev);
-
 struct ras_mc_offline_event {
 	unsigned int family, model;
 	bool smca;
@@ -124,10 +122,6 @@ struct mce_priv {
 } while (0)
 
 /* register and handling routines */
-int register_mce_handler(struct ras_events *ras, unsigned int ncpus);
-int ras_mce_event_handler(struct trace_seq *s,
-			  struct tep_record *record,
-			  struct tep_event *event, void *context);
 int init_mce_priv(struct ras_events *ras);
 
 /* enables intel iMC logs */

@@ -25,9 +25,6 @@
 
 #include "core/ras-events.h"
 
-int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
-			     struct tep_event *event, void *context);
-
 struct ras_signal_event {
 	char timestamp[64];
 	int sig;
@@ -38,8 +35,5 @@ struct ras_signal_event {
 	int group;
 	int result;
 };
-
-int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev);
-
 
 #endif

@@ -12,42 +12,6 @@
 #include "core/ras-events.h"
 #include "core/types.h"
 
-int ras_cxl_poison_event_handler(struct trace_seq *s,
-				 struct tep_record *record,
-				 struct tep_event *event, void *context);
-
-int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
-				 struct tep_record *record,
-				 struct tep_event *event, void *context);
-
-int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
-				 struct tep_record *record,
-				 struct tep_event *event, void *context);
-int ras_cxl_overflow_event_handler(struct trace_seq *s,
-				   struct tep_record *record,
-				   struct tep_event *event, void *context);
-int ras_cxl_generic_event_handler(struct trace_seq *s,
-				  struct tep_record *record,
-				  struct tep_event *event, void *context);
-int ras_cxl_general_media_event_handler(struct trace_seq *s,
-					struct tep_record *record,
-					struct tep_event *event, void *context);
-int ras_cxl_dram_event_handler(struct trace_seq *s,
-			       struct tep_record *record,
-			       struct tep_event *event, void *context);
-int ras_cxl_memory_module_event_handler(struct trace_seq *s,
-					struct tep_record *record,
-					struct tep_event *event, void *context);
-int ras_cxl_memory_sparing_event_handler(struct trace_seq *s,
-					 struct tep_record *record,
-					 struct tep_event *event, void *context);
-
-#ifdef HAVE_UNITTEST
-const char *ras_cxl_test_log_type(uint32_t log_type);
-void ras_cxl_test_convert_timestamp(unsigned long long timestamp,
-				    char *buf, uint16_t size);
-const char *ras_cxl_test_uuid(const char *uuid);
-#endif
 struct ras_cxl_poison_event {
 	char timestamp[64];
 	const char *memdev;
@@ -213,24 +177,5 @@ struct ras_cxl_memory_sparing_event {
 	uint8_t entity_id[CXL_PLDM_ENTITY_ID_LEN];
 	uint8_t res_id[CXL_PLDM_RES_ID_LEN];
 };
-
-int db_cxl_poison_event(struct ras_events *ras,
-			struct ras_cxl_poison_event *ev);
-int db_cxl_aer_ue_event(struct ras_events *ras,
-			struct ras_cxl_aer_ue_event *ev);
-int db_cxl_aer_ce_event(struct ras_events *ras,
-			struct ras_cxl_aer_ce_event *ev);
-int db_cxl_overflow_event(struct ras_events *ras,
-			  struct ras_cxl_overflow_event *ev);
-int db_cxl_generic_event(struct ras_events *ras,
-			 struct ras_cxl_generic_event *ev);
-int db_cxl_general_media_event(struct ras_events *ras,
-			       struct ras_cxl_general_media_event *ev);
-int db_cxl_dram_event(struct ras_events *ras,
-		      struct ras_cxl_dram_event *ev);
-int db_cxl_memory_module_event(struct ras_events *ras,
-			       struct ras_cxl_memory_module_event *ev);
-
-
 
 #endif

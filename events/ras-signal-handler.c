@@ -26,6 +26,10 @@
 #include "core/types.h"
 #include "events/ras-signal-handler.h"
 
+int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
+			     struct tep_event *event, void *context);
+int db_signal_event(struct ras_events *ras, void *priv);
+
 #ifdef HAVE_UNITTEST
 int test_signal(void) __attribute__((weak));
 #endif
@@ -47,6 +51,7 @@ static const struct ras_event_entry ras_signal_event = {
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_signal,
 #endif
+	.record = db_signal_event,
 };
 REGISTER_RAS_EVENT(ras_signal_event);
 #include "modules/ras-report.h"
@@ -200,8 +205,9 @@ static struct db_desc_and_stmt signal_event_db = {
 	.desc = &signal_event_tab,
 };
 
-int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
+int db_signal_event(struct ras_events *ras, void *priv)
 {
+	struct ras_signal_event *ev = priv;
 	int rc, pos = 1;
 
 	if (!signal_event_db.stmt)
