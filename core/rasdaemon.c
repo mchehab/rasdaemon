@@ -262,11 +262,17 @@ int main(int argc, char *argv[])
 		return -errno;
 	}
 
-	modules_init(ras);
+	if (modules_init(ras)) {
+		modules_unregister();
+		free(ras);
+		return EXIT_FAILURE;
+	}
 
 	db_backend_enable(NULL);
 
 	handle_ras_events(ras, args.record_events, args.enable_ipmitool);
+	modules_unregister();
+	free(ras);
 
 	return 0;
 }

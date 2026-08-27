@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 struct ras_events;
+struct ras_module_ctx;
 
 enum init_level {
 	CORE_MODULE,
@@ -20,15 +21,18 @@ enum init_level {
 	MAX_LEVELS
 };
 
-/* Module entry: one per module, chained via ->next */
 struct ras_module_entry {
 	const char *name;
+	enum init_level level;
 
-	const int (*init)(const char *name, struct ras_events *ras, void **priv);
-	const void (*cleanup)(const struct ras_module_entry *entry, void *priv);
+	int (*init)(struct ras_module_ctx *ctx);
+	void (*cleanup)(struct ras_module_ctx *ctx);
+};
 
-	const enum init_level level;
-	bool postpone_init;
+struct ras_module_ctx {
+	const struct ras_module_entry *entry;
+	struct ras_events *ras;
+	void *priv;
 };
 
 
@@ -41,7 +45,7 @@ int module_register(const struct ras_module_entry *entry);
 int module_init(struct ras_events *ras, const char *name);
 int module_cleanup(const char *name);
 
-void modules_init(struct ras_events *ras);
+int modules_init(struct ras_events *ras);
 void modules_unregister(void);
 
 /*
@@ -79,6 +83,7 @@ int module_test_register(enum test_group group, int (*run)(void),
 			 unsigned int priority);
 bool module_test_group_is_registered(enum test_group group);
 int module_test_group_run(enum test_group group);
+struct ras_module_ctx *module_test_context(const char *name);
 #endif
 
 #endif /* RAS_MODULE_H */

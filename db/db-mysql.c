@@ -629,8 +629,7 @@ static struct ras_db_backend_entry mysql_backend_entry = {
 	.allow_remote	= true,
 };
 
-static int mysql_module_init(const char *name, struct ras_events *ras,
-			     void **priv)
+static int mysql_module_init(struct ras_module_ctx *ctx)
 {
 	int ret;
 
@@ -645,7 +644,6 @@ const struct ras_module_entry db_mysql_module = {
 	.name = "db-mysql",
 	.init = mysql_module_init,
 	.level = DB_MODULE,
-	.postpone_init = true,
 };
 
 __attribute__((constructor)) void mysql_register(void)

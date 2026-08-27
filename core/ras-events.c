@@ -1431,7 +1431,6 @@ err:
 			if (ras->filters[i])
 				tep_filter_free(ras->filters[i]);
 		}
-		free(ras);
 	}
 #ifdef HAVE_CPU_FAULT_ISOLATION
 	cpu_infos_free();

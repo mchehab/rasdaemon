@@ -11,9 +11,8 @@
 #include "core/ras-logger.h"
 
 struct ras_module_entry_runtime {
-	const struct ras_module_entry *e;
+	struct ras_module_ctx ctx;
 	bool is_enabled;
-	void *priv;
 
 	LIST_ENTRY(ras_module_entry_runtime) node;
 };
@@ -68,11 +67,11 @@ int module_register(const struct ras_module_entry *entry)
 		return -ENOMEM;
 	}
 
-	new->e = entry;
+	new->ctx.entry = entry;
 
 	/* Keep it alphabetically sorted */
 	LIST_FOREACH(cur, &ras_modules, node) {
-		cmp = strcmp(entry->name, cur->e->name);
+		cmp = strcmp(entry->name, cur->ctx.entry->name);
 		if (!cmp) {
 			log(ALL, LOG_ERR, "module %s is already registered\n",
 			    entry->name);
@@ -101,72 +100,107 @@ bool modules_have_sql_backend(void)
 	struct ras_module_entry_runtime *entry;
 
 	LIST_FOREACH(entry, &ras_modules, node) {
-		if (entry->e->level == DB_MODULE && entry->is_enabled)
+		if (entry->ctx.entry->level == DB_MODULE && entry->is_enabled)
 			return true;
 	}
 
 	return false;
 }
 
+static void cleanup_modules(void)
+{
+	struct ras_module_entry_runtime *entry;
+	int level;
+
+	for (level = MAX_LEVELS - 1; level >= 0; level--) {
+		LIST_FOREACH(entry, &ras_modules, node) {
+			if (entry->ctx.entry->level != level || !entry->is_enabled)
+				continue;
+
+			if (entry->ctx.entry->cleanup)
+				entry->ctx.entry->cleanup(&entry->ctx);
+			entry->ctx.priv = NULL;
+			entry->ctx.ras = NULL;
+			entry->is_enabled = false;
+		}
+	}
+}
+
 int module_init(struct ras_events *ras, const char *name)
 {
 	struct ras_module_entry_runtime *entry;
+	int rc;
+
+	if (!name)
+		return -EINVAL;
 
 	LIST_FOREACH(entry, &ras_modules, node) {
-		if (entry->e->postpone_init)
+		if (strcmp(name, entry->ctx.entry->name))
 			continue;
 
-		if (!strcmp(name, entry->e->name) && entry->e->init) {
-			if (entry->e->init(name, ras, &entry->priv)) {
-				log(ALL, LOG_ERR,
-					"module %s init failed\n",
-					entry->e->name);
-			} else {
-				entry->is_enabled = true;
+		if (entry->is_enabled)
+			return 0;
 
-				return false;
-			}
+		entry->ctx.ras = ras;
+		rc = entry->ctx.entry->init ? entry->ctx.entry->init(&entry->ctx) : 0;
+		if (rc) {
+			log(ALL, LOG_ERR, "module %s init failed: %d\n",
+			    entry->ctx.entry->name, rc);
+			return rc;
 		}
+
+		entry->is_enabled = true;
+		return 0;
 	}
 
-	return true;
+	return -ENOENT;
 }
 
 int module_cleanup(const char *name)
 {
 	struct ras_module_entry_runtime *entry;
 
+	if (!name)
+		return -EINVAL;
+
 	LIST_FOREACH(entry, &ras_modules, node) {
-		if (!strcmp(name, entry->e->name) && entry->e->cleanup &&
-		    entry->is_enabled) {
-			entry->e->cleanup(entry->e, entry->priv);
+		if (!strcmp(name, entry->ctx.entry->name) && entry->is_enabled) {
+			if (entry->ctx.entry->cleanup)
+				entry->ctx.entry->cleanup(&entry->ctx);
+			entry->ctx.priv = NULL;
+			entry->ctx.ras = NULL;
 			entry->is_enabled = false;
 
-			return false;
+			return 0;
 		}
 	}
 
-	return true;
+	return -ENOENT;
 }
 
-void modules_init(struct ras_events *ras)
+int modules_init(struct ras_events *ras)
 {
 	struct ras_module_entry_runtime *entry;
+	int level, rc;
 
-	for (int level = 0; level < MAX_LEVELS; level++) {
+	for (level = 0; level < MAX_LEVELS; level++) {
 		LIST_FOREACH(entry, &ras_modules, node) {
-			if (level == entry->e->level && entry->e->init) {
-				if (entry->e->init(entry->e->name,
-						   ras, &entry->priv)) {
-					log(ALL, LOG_ERR,
-					    "module %s init failed\n",
-					    entry->e->name);
-				} else {
-					entry->is_enabled = true;
-				}
+			if (level != entry->ctx.entry->level || entry->is_enabled)
+				continue;
+
+			entry->ctx.ras = ras;
+			rc = entry->ctx.entry->init ? entry->ctx.entry->init(&entry->ctx) : 0;
+			if (rc) {
+				log(ALL, LOG_ERR, "module %s init failed: %d\n",
+				    entry->ctx.entry->name, rc);
+				cleanup_modules();
+				return rc;
 			}
+			entry->is_enabled = true;
 		}
 	}
+
+	return 0;
 }
 
 bool module_is_enabled(const char *name)
@@ -174,7 +208,7 @@ bool module_is_enabled(const char *name)
 	struct ras_module_entry_runtime *entry;
 
 	LIST_FOREACH(entry, &ras_modules, node) {
-		if (!strcmp(entry->e->name, name))
+		if (!strcmp(entry->ctx.entry->name, name))
 			return entry->is_enabled;
 	}
 
@@ -189,7 +223,7 @@ bool module_is_registered(const char *name)
 		return false;
 
 	LIST_FOREACH(entry, &ras_modules, node)
-		if (!strcmp(entry->e->name, name))
+		if (!strcmp(entry->ctx.entry->name, name))
 			return true;
 
 	return false;
@@ -199,22 +233,7 @@ void modules_unregister(void)
 {
 	struct ras_module_entry_runtime *entry;
 
-	/*
-	 * Cleanup each module
-	 *
-	 * NOTE:
-	 *	The logic here assumes that modules at the same level
-	 *	can be unregistered in any order. It means that modules
-	 *	that has HAVE_ dependencies to other modules at event_list
-	 *	needs to handle cleanup() even if called after other event
-	 *	list requrements.
-	 */
-	for (int level = MAX_LEVELS - 1; level >= 0; level--) {
-		LIST_FOREACH(entry, &ras_modules, node) {
-			if (entry->e->level == level && entry->e->cleanup && entry->is_enabled)
-				entry->e->cleanup(entry->e, entry->priv);
-		}
-	}
+	cleanup_modules();
 
 	/* Free them and remove head */
 	while ((entry = LIST_FIRST(&ras_modules))) {
@@ -292,5 +311,19 @@ int module_test_group_run(enum test_group group)
 	}
 
 	return failed;
+}
+
+struct ras_module_ctx *module_test_context(const char *name)
+{
+	struct ras_module_entry_runtime *entry;
+
+	if (!name)
+		return NULL;
+
+	LIST_FOREACH(entry, &ras_modules, node)
+		if (!strcmp(name, entry->ctx.entry->name))
+			return &entry->ctx;
+
+	return NULL;
 }
 #endif

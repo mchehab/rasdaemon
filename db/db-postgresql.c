@@ -744,7 +744,7 @@ static struct ras_db_backend_entry pg_backend_entry = {
 	.allow_remote	= true,
 };
 
-static int pg_init(const char *name, struct ras_events *ras, void **priv)
+static int pg_init(struct ras_module_ctx *ctx)
 {
 	int ret;
 
@@ -760,7 +760,6 @@ const struct ras_module_entry db_postgresql_module = {
 	.name = "db-postgresql",
 	.init = pg_init,
 	.level = DB_MODULE,
-	.postpone_init = true,
 };
 
 __attribute__((constructor)) void pg_register(void)

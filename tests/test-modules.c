@@ -198,40 +198,43 @@ struct ras_events {
 	int cleanup_level[MAX_LEVELS + 2];
 
 	const char **name;
+	const char **cleanup_name;
 };
 
-static int test_module_init(const char *name, struct ras_events *ras, void **priv)
+static int test_module_init(struct ras_module_ctx *ctx)
 {
+	struct ras_events *ras = ctx->ras;
+	const char *name = ctx->entry->name;
+
 	ras->name[ras->count] = name;
 	ras->count++;
 
-	*priv = ras;
+	ctx->priv = ras;
 
 	return 0;
 }
 
-static void test_module_cleanup(const struct ras_module_entry *entry, void *priv)
+static void test_module_cleanup(struct ras_module_ctx *ctx)
 {
-	struct ras_events *ras = priv;
+	struct ras_events *ras = ctx->priv;
+	const char *name = ctx->entry->name;
 	int i;
 
 	for (i = 0; i < ras->count; i++)
-		if (!strcmp(entry->name, ras->name[i]))
+		if (!strcmp(name, ras->name[i]))
 			break;
 
 	if (i >= ras->count) {
 		ras->errors++;
 	} else {
-		ras->cleanup_level[ras->cleanup_count++] = entry->level;
+		if (ras->cleanup_name)
+			ras->cleanup_name[ras->cleanup_count] = name;
+		ras->cleanup_level[ras->cleanup_count++] = ctx->entry->level;
 	}
 }
 
-static int failing_module_init(const char *name, struct ras_events *ras,
-			       void **priv)
+static int failing_module_init(struct ras_module_ctx *ctx)
 {
-	(void)name;
-	(void)ras;
-	(void)priv;
 	return -EINVAL;
 }
 
@@ -249,17 +252,19 @@ static void test_named_module_lifecycle(void **state)
 	ras.name = names;
 	assert_int_equal(module_register(&entry), 0);
 	assert_false(module_is_enabled("named"));
-	assert_true(module_init(&ras, "missing"));
-	assert_false(module_init(&ras, "named"));
+	assert_int_equal(module_init(&ras, NULL), -EINVAL);
+	assert_int_equal(module_init(&ras, "missing"), -ENOENT);
+	assert_int_equal(module_init(&ras, "named"), 0);
 	assert_true(module_is_enabled("named"));
-	assert_false(module_cleanup("named"));
+	assert_int_equal(module_cleanup("named"), 0);
 	assert_false(module_is_enabled("named"));
 	assert_int_equal(ras.cleanup_count, 1);
-	assert_true(module_cleanup("named"));
+	assert_int_equal(module_cleanup(NULL), -EINVAL);
+	assert_int_equal(module_cleanup("named"), -ENOENT);
 	modules_unregister();
 }
 
-static void test_failed_and_postponed_init(void **state)
+static void test_failed_init_rollback(void **state)
 {
 	struct ras_events ras = { 0 };
 	const struct ras_module_entry failed = {
@@ -267,21 +272,26 @@ static void test_failed_and_postponed_init(void **state)
 		.init = failing_module_init,
 		.level = CORE_MODULE,
 	};
-	const struct ras_module_entry postponed = {
-		.name = "postponed",
-		.init = failing_module_init,
+	const char *names[1] = { 0 };
+	const char *cleanup_names[1] = { 0 };
+	const struct ras_module_entry initialized = {
+		.name = "alpha",
+		.init = test_module_init,
+		.cleanup = test_module_cleanup,
 		.level = CORE_MODULE,
-		.postpone_init = true,
 	};
 
+	ras.name = names;
+	ras.cleanup_name = cleanup_names;
+	assert_int_equal(module_register(&initialized), 0);
 	assert_int_equal(module_register(&failed), 0);
-	assert_int_equal(module_register(&postponed), 0);
-	assert_true(module_init(&ras, "failed"));
+	assert_int_equal(module_init(&ras, "failed"), -EINVAL);
 	assert_false(module_is_enabled("failed"));
-	assert_true(module_init(&ras, "postponed"));
-	modules_init(&ras);
+	assert_int_equal(modules_init(&ras), -EINVAL);
+	assert_int_equal(ras.cleanup_count, 1);
+	assert_string_equal(ras.cleanup_name[0], "alpha");
+	assert_false(module_is_enabled("alpha"));
 	assert_false(module_is_enabled("failed"));
-	assert_false(module_is_enabled("postponed"));
 	modules_unregister();
 }
 
@@ -299,10 +309,41 @@ static void test_sql_backend_state(void **state)
 	ras.name = names;
 	assert_int_equal(module_register(&entry), 0);
 	assert_false(modules_have_sql_backend());
-	assert_false(module_init(&ras, "test-db"));
+	assert_int_equal(module_init(&ras, "test-db"), 0);
 	assert_true(modules_have_sql_backend());
-	assert_false(module_cleanup("test-db"));
+	assert_int_equal(module_cleanup("test-db"), 0);
 	assert_false(modules_have_sql_backend());
+	modules_unregister();
+}
+
+static void test_context_helpers(void **state)
+{
+	struct ras_events ras = { 0 };
+	struct ras_events replacement = { 0 };
+	struct ras_module_ctx *ctx;
+	struct ras_events *old;
+	const char *names[1] = { 0 };
+	const char *cleanup_names[1] = { 0 };
+	const struct ras_module_entry entry = {
+		.name = "context",
+		.level = CORE_MODULE,
+		.init = test_module_init,
+		.cleanup = test_module_cleanup,
+	};
+
+	ras.name = names;
+	ras.cleanup_name = cleanup_names;
+	assert_int_equal(module_register(&entry), 0);
+	assert_int_equal(modules_init(&ras), 0);
+	ctx = module_test_context("context");
+	assert_non_null(ctx);
+	assert_ptr_equal(ctx->ras, &ras);
+	old = ctx->ras;
+	ctx->ras = &replacement;
+	assert_ptr_equal(ctx->ras, &replacement);
+	ctx->ras = old;
+	assert_null(module_test_context(NULL));
+	assert_null(module_test_context("missing"));
 	modules_unregister();
 }
 
@@ -320,6 +361,13 @@ static void test_test_registry(void **state)
 static void test_init_cleanup(void **state)
 {
 	struct ras_events ras = { 0 };
+	static const char * const init_order[] = {
+		"alpha", "charlie", "foxtrot", "delta", "echo", "beta"
+	};
+	static const char * const cleanup_order[] = {
+		"beta", "echo", "delta", "alpha", "charlie", "foxtrot"
+	};
+	const char *cleanup_names[ARRAY_SIZE(init_order)] = { 0 };
 	int rc = 0;
 
 	const struct ras_module_entry mods[] = {
@@ -357,23 +405,26 @@ static void test_init_cleanup(void **state)
 	};
 
 	ras.name = calloc(ARRAY_SIZE(mods), sizeof(const char *));
+	ras.cleanup_name = cleanup_names;
 
 	for (int i = 0; i < ARRAY_SIZE(mods); i++) {
 		rc = module_register(&mods[i]);
 		assert_int_equal(rc, 0);
 	}
 
-	modules_init(&ras);
+	assert_int_equal(modules_init(&ras), 0);
 
-	for (int i = 0; i < ARRAY_SIZE(mods); i++)
+	for (int i = 0; i < ARRAY_SIZE(mods); i++) {
+		assert_string_equal(ras.name[i], init_order[i]);
 		assert_true(module_is_registered(ras.name[i]));
+	}
 
 	assert_int_equal(ras.errors, 0);
 
 	modules_unregister();
 	assert_int_equal(ras.cleanup_count, ARRAY_SIZE(mods));
-	for (int i = 1; i < ras.cleanup_count; i++)
-		assert_true(ras.cleanup_level[i - 1] >= ras.cleanup_level[i]);
+	for (int i = 0; i < ras.cleanup_count; i++)
+		assert_string_equal(ras.cleanup_name[i], cleanup_order[i]);
 	for (int i = 0; i < ARRAY_SIZE(mods); i++)
 		assert_false(module_is_registered(mods[i].name));
 	free(ras.name);
@@ -392,8 +443,9 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_register_mixed_order),
 	cmocka_unit_test(test_register_muptiple_levels),
 	cmocka_unit_test(test_named_module_lifecycle),
-	cmocka_unit_test(test_failed_and_postponed_init),
+	cmocka_unit_test(test_failed_init_rollback),
 	cmocka_unit_test(test_sql_backend_state),
+	cmocka_unit_test(test_context_helpers),
 	cmocka_unit_test(test_test_registry),
 	cmocka_unit_test(test_init_cleanup),
 };

@@ -515,7 +515,7 @@ static struct ras_db_backend_entry sqlite3_backend_entry = {
 	.ops  = &sqlite3_backend_ops,
 };
 
-static int sqlite3_init(const char *name, struct ras_events *ras, void **priv)
+static int sqlite3_init(struct ras_module_ctx *ctx)
 {
 	int ret;
 
@@ -534,7 +534,6 @@ const struct ras_module_entry db_sqlite3_module = {
 	.name = "db-sqlite3",
 	.init = sqlite3_init,
 	.level = DB_MODULE,
-	.postpone_init = true,
 };
 
 /*

@@ -267,7 +267,10 @@ int main(int argc, char **argv)
 #endif
 	stdout_is_vt = isatty(fileno(stdout));
 
-	modules_init(&ras);
+	if (modules_init(&ras)) {
+		modules_unregister();
+		return EXIT_FAILURE;
+	}
 
 	for (index = 0; index < TEST_GROUP_MAX; ++index) {
 		if (!module_test_group_is_registered(index) ||
@@ -285,8 +288,10 @@ int main(int argc, char **argv)
 			arguments.selected_group);
 		fprintf(stderr, "Available groups:\n");
 		list_groups(stderr);
+		modules_unregister();
 		return EXIT_FAILURE;
 	}
 
+	modules_unregister();
 	return failed_groups == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
