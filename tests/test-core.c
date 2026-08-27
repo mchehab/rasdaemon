@@ -56,7 +56,6 @@ static void test_string_helpers(void **state)
 {
 	char buf[8];
 
-	(void)state;
 	assert_int_equal(strscpy(buf, "ras", sizeof(buf)), 3);
 	assert_string_equal(buf, "ras");
 	assert_int_equal(strscat(buf, "-db", sizeof(buf)), 6);
@@ -73,7 +72,6 @@ static void test_bitfield_message(void **state)
 	static const char * const names[] = { "zero", NULL, "two" };
 	char buf[64];
 
-	(void)state;
 	assert_int_equal(bitfield_msg(buf, sizeof(buf), names,
 				      ARRAY_SIZE(names), 1, 0,
 				      BIT_ULL(1) | BIT_ULL(2) | BIT_ULL(3)),
@@ -104,7 +102,6 @@ static void test_bitfield_decoders(void **state)
 	};
 	struct mce_event event = { 0 };
 
-	(void)state;
 	decode_bitfield(&event, 2ULL << 2, fields);
 	assert_string_equal(event.error_msg, "two");
 
@@ -125,7 +122,6 @@ static void test_queue_lifecycle(void **state)
 	struct queue_node *first = node_create(10, 1);
 	struct queue_node *second = node_create(20, 2);
 
-	(void)state;
 	assert_non_null(queue);
 	assert_true(is_empty(queue));
 	assert_true(is_empty(NULL));
@@ -157,7 +153,6 @@ static void test_rbtree_order_and_erase(void **state)
 	struct rb_node *node;
 	int expected = 1;
 
-	(void)state;
 	assert_true(RB_EMPTY_ROOT(&root));
 	for (size_t i = 0; i < ARRAY_SIZE(keys); i++) {
 		nodes[i].key = keys[i];
@@ -192,7 +187,6 @@ static void test_environment_file(void **state)
 		"RAS_TEST_KEEP=file\n";
 	int fd = mkstemp(path);
 
-	(void)state;
 	assert_true(fd >= 0);
 	assert_int_equal(write(fd, contents, sizeof(contents) - 1),
 			 sizeof(contents) - 1);
@@ -214,7 +208,6 @@ static void test_trigger_validation(void **state)
 	char path[] = "/tmp/rasdaemon-trigger-XXXXXX";
 	int fd = mkstemp(path);
 
-	(void)state;
 	assert_true(fd >= 0);
 	assert_int_equal(fchmod(fd, 0700), 0);
 	assert_int_equal(close(fd), 0);
@@ -227,7 +220,6 @@ static void test_trigger_validation(void **state)
 
 static void test_mock_logger(void **state)
 {
-	(void)state;
 	ras_logger_clean();
 	mock_output = true;
 	log(TERM, LOG_INFO, "value=%d", 7);
@@ -242,7 +234,6 @@ static void test_disabled_event_selection(void **state)
 {
 	char *saved = choices_disable;
 
-	(void)state;
 	choices_disable = "ras:mc_event, mce:mce_record signal:signal_generate";
 	assert_true(ras_events_test_is_disabled("ras", "mc_event"));
 	assert_true(ras_events_test_is_disabled("mce", "mce_record"));

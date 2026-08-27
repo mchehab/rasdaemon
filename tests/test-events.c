@@ -85,7 +85,6 @@ static void test_mc_complete_record(void **state)
 	struct ras_events ras;
 	const char *output;
 
-	(void)state;
 #ifdef HAVE_MEMORY_CE_PFA
 	setenv("PAGE_CE_ACTION", "account", 1);
 	setenv("PAGE_CE_THRESHOLD", "50", 1);
@@ -126,7 +125,6 @@ static void test_mc_missing_field_is_reported(void **state)
 	struct tep_event event = { 0 };
 	struct ras_events ras;
 
-	(void)state;
 	ras_logger_clean();
 	init_trace(&seq, &record, &ras);
 	assert_int_equal(ras_mc_event_handler(&seq, &record, &event, &ras), 0);
@@ -165,7 +163,6 @@ static void test_report_formats_mc_event(void **state)
 	};
 	char output[2048];
 
-	(void)state;
 	strscpy(event.timestamp, "2026-08-25 00:00:00 +0000",
 		sizeof(event.timestamp));
 	assert_int_equal(ras_report_test_format(MC_EVENT, &event, output,
@@ -198,7 +195,6 @@ static void test_aer_corrected_record(void **state)
 	struct ras_events ras;
 	const char *output;
 
-	(void)state;
 	init_trace(&seq, &record, &ras);
 	trace_mock_add_value("severity", HW_EVENT_AER_CORRECTED);
 	trace_mock_add_raw("dev_name", "not-a-bdf", 10);
@@ -218,7 +214,6 @@ static void test_aer_requires_severity(void **state)
 	struct tep_event event = { 0 };
 	struct ras_events ras;
 
-	(void)state;
 	init_trace(&seq, &record, &ras);
 	assert_int_equal(ras_aer_event_handler(&seq, &record, &event, &ras), -1);
 	finish_trace(&seq);
@@ -254,7 +249,6 @@ static void test_arm_processor_payload(void **state)
 	};
 	struct trace_seq seq;
 
-	(void)state;
 	trace_seq_init(&seq);
 	assert_int_equal(ras_arm_test_parse_processor(&seq, &event), 0);
 	trace_seq_terminate(&seq);
@@ -284,7 +278,6 @@ static void test_cpu_isolation_configuration(void **state)
 {
 	unsigned long value;
 
-	(void)state;
 	assert_int_equal(ras_cpu_isolation_test_parse("18", false, &value), 0);
 	assert_int_equal(value, 18);
 	assert_int_equal(ras_cpu_isolation_test_parse("2h", true, &value), 0);
@@ -312,7 +305,6 @@ static void test_cxl_common_decoders(void **state)
 	};
 	char timestamp[64];
 
-	(void)state;
 	assert_string_equal(ras_cxl_test_log_type(0), "Informational");
 	assert_string_equal(ras_cxl_test_log_type(3), "Fatal");
 	assert_string_equal(ras_cxl_test_log_type(99), "Unknown");
@@ -330,7 +322,6 @@ static void test_cxl_poison_record(void **state)
 	struct ras_events ras;
 	const char *output;
 
-	(void)state;
 	init_trace(&seq, &record, &ras);
 	trace_mock_add_raw("memdev", "mem0", 5);
 	trace_mock_add_raw("host", "host0", 6);
@@ -369,7 +360,6 @@ static void test_all_cxl_handlers_reject_empty_record(void **state)
 		ras_cxl_memory_sparing_event_handler,
 	};
 
-	(void)state;
 	for (size_t i = 0; i < ARRAY_SIZE(handlers); i++) {
 		struct trace_seq seq;
 		struct tep_record record;
@@ -404,7 +394,6 @@ static void test_devlink_health_record(void **state)
 	struct ras_events ras;
 	const char *output;
 
-	(void)state;
 	init_trace(&seq, &record, &ras);
 	trace_mock_add_raw("bus_name", "pci", 4);
 	trace_mock_add_raw("dev_name", "0000:01:00.0", 13);
@@ -424,7 +413,6 @@ static void test_devlink_filter_and_net_timeout(void **state)
 	struct tep_event event = { 0 };
 	struct ras_events ras;
 
-	(void)state;
 	init_trace(&seq, &record, &ras);
 	ras.filters[DEVLINK_EVENT] = (void *)1;
 	trace_mock_set_filter_result(FILTER_MATCH);
@@ -462,7 +450,6 @@ static void test_diskerror_mapping_and_record(void **state)
 	struct ras_events ras;
 	const char *output;
 
-	(void)state;
 	assert_string_equal(ras_diskerror_test_error(-EIO), "I/O error");
 	assert_string_equal(ras_diskerror_test_error(-12345),
 			    "unknown block error");
@@ -493,7 +480,6 @@ int test_diskerror(void)
 #ifdef HAVE_EXTLOG
 static void test_extlog_mappings(void **state)
 {
-	(void)state;
 	assert_string_equal(ras_extlog_test_error_type(2), "single-bit ECC");
 	assert_string_equal(ras_extlog_test_error_type(99), "unknown-type");
 	assert_string_equal(ras_extlog_test_severity(2), "corrected");
@@ -522,7 +508,6 @@ static void test_memory_failure_record(void **state)
 	struct ras_events ras;
 	const char *output;
 
-	(void)state;
 	assert_string_equal(ras_memory_failure_test_page_type(0),
 			    "reserved kernel page");
 	assert_string_equal(ras_memory_failure_test_page_type(255),
@@ -558,7 +543,6 @@ static void test_page_pfa_configuration_and_accounting(void **state)
 {
 	unsigned long value;
 
-	(void)state;
 	unsetenv("PAGE_CE_THRESHOLD");
 	assert_int_equal(ras_page_isolation_test_parse_value("50", false,
 							     &value), 0);
@@ -593,7 +577,6 @@ static void test_row_pfa_parser_and_accounting(void **state)
 	struct row_record record;
 	unsigned long value;
 
-	(void)state;
 	assert_int_equal(ras_page_isolation_test_parse_row(detail, &record), 0);
 	assert_int_equal(record.type, GHES);
 	assert_int_equal(record.location_fields[APEI_ROW], 6);
@@ -634,7 +617,6 @@ static void test_signal_record(void **state)
 	struct ras_events ras;
 	const char *output;
 
-	(void)state;
 	init_trace(&seq, &record, &ras);
 	trace_mock_add_value("sig", SIGBUS);
 	trace_mock_add_value("errno", 0);
@@ -689,7 +671,6 @@ static void test_reri_mappings_and_record(void **state)
 		((uint64_t)RERI_AIT_SPA << 12) |
 		((uint64_t)RERI_EC_CBA << 24);
 
-	(void)state;
 	assert_string_equal(ras_reri_test_error_code(RERI_EC_CBA),
 			    "Cache block data error");
 	assert_string_equal(ras_reri_test_error_code(200), "Unknown error code");
@@ -730,7 +711,6 @@ int test_reri(void)
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
 static void test_openbmc_sel_commands(void **state)
 {
-	(void)state;
 	system_mock_start(0);
 	assert_int_equal(openbmc_unified_sel_log(HW_EVENT_AER_CORRECTED,
 						 "0000:02:03.1", BIT_ULL(0)), 0);
@@ -764,7 +744,6 @@ static void test_mce_vendor_decoders(void **state)
 	struct mce_priv priv = { .cputype = CPU_ZHAOXIN };
 	struct ras_events ras = { .mce_priv = &priv };
 
-	(void)state;
 	decode_amd_errcode(&event);
 	assert_string_equal(event.error_msg,
 			    "Corrected error, no action required.");
@@ -815,7 +794,6 @@ static void test_erst_record_reader(void **state)
 	struct mce_event event = { 0 };
 	int fd = mkstemp(path);
 
-	(void)state;
 	assert_true(fd >= 0);
 	assert_int_equal(write(fd, &input, sizeof(input)), sizeof(input));
 	assert_int_equal(close(fd), 0);
@@ -865,7 +843,6 @@ static void test_database_registry_and_environment(void **state)
 	};
 	const char *available;
 
-	(void)state;
 	assert_int_equal(db_backend_register(NULL), -EINVAL);
 	assert_int_equal(db_backend_register(&incomplete), -EINVAL);
 	available = db_list_available_backends();
@@ -911,7 +888,6 @@ static void test_ampere_decoder_registration(void **state)
 	struct ras_events ras = { 0 };
 	struct trace_seq seq;
 
-	(void)state;
 	assert_true(decoder_is_registered("e8ed898d-df16-43cc-8ecc-54f060ef157f"));
 #ifdef HAVE_DB
 	assert_vendor_descriptor_count(ampere_table_descriptors(), 4);
@@ -936,7 +912,6 @@ int test_amp_ns(void)
 #ifdef HAVE_HISI_NS_DECODE
 static void test_hisilicon_decoder_registration(void **state)
 {
-	(void)state;
 	assert_true(decoder_is_registered("c8b328a8-9917-4af6-9a13-2e08ab2e7586"));
 	assert_true(decoder_is_registered("1f8161e1-55d6-41e6-bd10-7afd1dc5f7c5"));
 	assert_true(decoder_is_registered("45534ea6-ce23-4115-8535-e07ab3aef91d"));
@@ -960,7 +935,6 @@ int test_hisi_ns(void)
 #ifdef HAVE_JAGUAR_NS_DECODE
 static void test_jaguarmicro_decoder_registration(void **state)
 {
-	(void)state;
 	assert_true(decoder_is_registered("82d78ba3-fa14-407a-ba0e-f3ba8170013c"));
 	assert_true(decoder_is_registered("f9723053-2558-49b1-b58a-1c1a82492a62"));
 	assert_true(decoder_is_registered("2d31de54-3037-4f24-a283-f69ca1ec0b9a"));
@@ -991,7 +965,6 @@ static void test_nvidia_decoder(void **state)
 	};
 	struct trace_seq seq;
 
-	(void)state;
 	assert_true(decoder_is_registered(NVIDIA_GRACE_SEC_TYPE_UUID));
 	assert_true(decoder_is_registered(NVIDIA_VERA_SEC_TYPE_UUID));
 #ifdef HAVE_DB
@@ -1029,7 +1002,6 @@ static void test_yitian_decoder_registration(void **state)
 	struct trace_seq seq;
 	const char *type = "a6980811-16ea-4e4d-b936-fb00a23ff29c";
 
-	(void)state;
 	assert_true(decoder_is_registered(type));
 #ifdef HAVE_DB
 	assert_vendor_descriptor_count(yitian_table_descriptors(), 1);

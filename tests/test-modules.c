@@ -266,7 +266,6 @@ static void test_named_module_lifecycle(void **state)
 		.level = CORE_MODULE,
 	};
 
-	(void)state;
 	ras.name = names;
 	assert_int_equal(module_register(&entry), 0);
 	assert_false(module_is_enabled("named"));
@@ -295,7 +294,6 @@ static void test_failed_and_postponed_init(void **state)
 		.postpone_init = true,
 	};
 
-	(void)state;
 	assert_int_equal(module_register(&failed), 0);
 	assert_int_equal(module_register(&postponed), 0);
 	assert_true(module_init(&ras, "failed"));
@@ -318,7 +316,6 @@ static void test_sql_backend_state(void **state)
 		.level = DB_MODULE,
 	};
 
-	(void)state;
 	ras.name = names;
 	assert_int_equal(module_register(&entry), 0);
 	assert_false(modules_have_sql_backend());

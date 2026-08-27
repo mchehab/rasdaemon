@@ -427,7 +427,6 @@ static void test_ras_mc_ctl_record(void **state)
 	};
 	int rc;
 
-	(void)state;
 	rc = ras_mc_event_opendb(0, &ras);
 	assert_int_equal(rc, 0);
 	rc = db_exec_sql(ras.db, "DELETE FROM mc_event");
@@ -442,7 +441,6 @@ static void test_ras_mc_ctl_record(void **state)
 
 static int test_ras_mc_ctl_teardown(void **state)
 {
-	(void)state;
 
 	/*
 	 * Assertions in test_ras_mc_ctl_record() can abort the test before

@@ -549,7 +549,6 @@ static void test_database_environment(void **state)
 	FILE *fp;
 	int rc;
 
-	(void)state;
 	current = getenv("RAS_SQLITE3_DATABASE");
 	if (current)
 		saved = strdup(current);
@@ -688,7 +687,6 @@ static void test_mc_event_recording(void **state)
 		.severity = RERI_SEV_CORRECTED, .status = 1 };
 #endif
 
-	(void)state;
 	current = getenv("RAS_SQLITE3_DATABASE");
 	if (current)
 		saved = strdup(current);

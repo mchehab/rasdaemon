@@ -105,7 +105,6 @@ void test_database_tables(void **state)
 {
 	size_t getter;
 
-	(void)state;
 	for (getter = 0; getter < ARRAY_SIZE(table_getters); getter++) {
 		struct db_table_descriptor_list list = table_getters[getter]();
 		size_t table;
