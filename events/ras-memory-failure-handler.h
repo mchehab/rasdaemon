@@ -23,4 +23,12 @@ const char *ras_memory_failure_test_page_type(int page_type);
 const char *ras_memory_failure_test_action_result(int result);
 #endif
 
+struct ras_mf_event {
+	char timestamp[64];
+	char pfn[30];
+	const char *page_type;
+	const char *action_result;
+};
+
+
 #endif

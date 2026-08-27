@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/modules.h"
+#include "core/ras-logger.h"
 #include "core/types.h"
 #include "events/ras-signal-handler.h"
 #include "modules/ras-report.h"
@@ -142,9 +144,8 @@ int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
 	report_ras_signal_event(s, &ev);
 
 	/* Store data into SQL DB */
-#ifdef HAVE_DB
 	db_signal_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -152,4 +153,74 @@ int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
 #endif
 
 	return 0;
+}
+static const struct db_fields signal_event_fields[] = {
+	{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "sig",	.type = DB_TYPE_INT32 },
+	{ .name = "errorno",	.type = DB_TYPE_INT32 },
+	{ .name = "code",	.type = DB_TYPE_INT32 },
+	{ .name = "comm",	.type = DB_TYPE_TEXT },
+	{ .name = "pid",	.type = DB_TYPE_INT32 },
+	{ .name = "grp",	.type = DB_TYPE_INT32 },
+	{ .name = "res",	.type = DB_TYPE_INT32 },
+};
+
+const struct db_table_descriptor signal_event_tab = {
+	.name = "signal_event",
+	.fields = signal_event_fields,
+	.num_fields = ARRAY_SIZE(signal_event_fields),
+};
+
+static struct db_desc_and_stmt signal_event_db = {
+	.desc = &signal_event_tab,
+};
+
+int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!signal_event_db.stmt)
+		return -1;
+	log(TERM, LOG_INFO, "signal_event store: %p\n", signal_event_db.stmt);
+
+	db_bind(&signal_event_tab, signal_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&signal_event_tab, signal_event_db.stmt, pos++, ev->sig, -1);
+	db_bind(&signal_event_tab, signal_event_db.stmt, pos++, ev->error_no, -1);
+	db_bind(&signal_event_tab, signal_event_db.stmt, pos++, ev->code, -1);
+	db_bind(&signal_event_tab, signal_event_db.stmt, pos++, (uint64_t)ev->comm, -1);
+	db_bind(&signal_event_tab, signal_event_db.stmt, pos++, ev->pid, -1);
+	db_bind(&signal_event_tab, signal_event_db.stmt, pos++, ev->group, -1);
+	db_bind(&signal_event_tab, signal_event_db.stmt, pos++, ev->result, -1);
+
+	rc = db_eval_stmt(signal_event_db.stmt, "signal_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_signal_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &signal_event_db);
+}
+
+static void ras_signal_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_signal_module = {
+	.name = "signal-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_signal_db_init,
+	.cleanup = ras_signal_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_signal_register(void)
+{
+	int rc = module_register(&ras_signal_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register signal module: %d\n", rc);
 }

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <traceevent/kbuffer.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events/ras-diskerror-handler.h"
@@ -111,9 +112,8 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_diskerror_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -121,4 +121,72 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 #endif
 	free(ev.dev);
 	return 0;
+}
+static const struct db_fields diskerror_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "dev",		.type = DB_TYPE_TEXT },
+	{ .name = "sector",		.type = DB_TYPE_INT64 },
+	{ .name = "nr_sector",		.type = DB_TYPE_INT32 },
+	{ .name = "error",		.type = DB_TYPE_TEXT },
+	{ .name = "rwbs",		.type = DB_TYPE_TEXT },
+	{ .name = "cmd",		.type = DB_TYPE_TEXT },
+};
+
+const struct db_table_descriptor diskerror_event_tab = {
+	.name = "disk_errors",
+	.fields = diskerror_event_fields,
+	.num_fields = ARRAY_SIZE(diskerror_event_fields),
+};
+
+static struct db_desc_and_stmt diskerror_event_db = {
+	.desc = &diskerror_event_tab,
+};
+
+int db_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!diskerror_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "diskerror_event store: %p\n", diskerror_event_db.stmt);
+
+	db_bind(&diskerror_event_tab, diskerror_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&diskerror_event_tab, diskerror_event_db.stmt, pos++, (uint64_t)ev->dev, -1);
+	db_bind(&diskerror_event_tab, diskerror_event_db.stmt, pos++, ev->sector, -1);
+	db_bind(&diskerror_event_tab, diskerror_event_db.stmt, pos++, ev->nr_sector, -1);
+	db_bind(&diskerror_event_tab, diskerror_event_db.stmt, pos++, (uint64_t)ev->error, -1);
+	db_bind(&diskerror_event_tab, diskerror_event_db.stmt, pos++, (uint64_t)ev->rwbs, -1);
+	db_bind(&diskerror_event_tab, diskerror_event_db.stmt, pos++, (uint64_t)ev->cmd, -1);
+
+	rc = db_eval_stmt(diskerror_event_db.stmt, "diskerror_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_diskerror_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &diskerror_event_db);
+}
+
+static void ras_diskerror_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_diskerror_module = {
+	.name = "disk-error-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_diskerror_db_init,
+	.cleanup = ras_diskerror_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_diskerror_register(void)
+{
+	int rc = module_register(&ras_diskerror_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register disk-error module: %d\n", rc);
 }

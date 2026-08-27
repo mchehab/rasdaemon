@@ -46,4 +46,13 @@ void ras_ns_finalize_vendor_tables(void);
 static inline int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder) { return 0; };
 #endif
 
+struct ras_non_standard_event {
+	char timestamp[64];
+	const char *sec_type, *fru_id, *fru_text;
+	const char *severity;
+	const uint8_t *error;
+	uint32_t length;
+};
+
+
 #endif

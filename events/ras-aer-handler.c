@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "core/bitfield.h"
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/trigger.h"
 #include "core/types.h"
@@ -297,9 +298,8 @@ int ras_aer_event_handler(struct trace_seq *s,
 	trace_seq_puts(s, ev.error_type);
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_aer_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -346,4 +346,66 @@ int ras_aer_event_handler(struct trace_seq *s,
 		run_aer_trigger(&ev, aer_ue_trigger);
 
 	return 0;
+}
+static const struct db_fields aer_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "dev_name",		.type = DB_TYPE_TEXT },
+	{ .name = "err_type",		.type = DB_TYPE_TEXT },
+	{ .name = "err_msg",		.type = DB_TYPE_TEXT },
+};
+
+const struct db_table_descriptor aer_event_tab = {
+	.name = "aer_event",
+	.fields = aer_event_fields,
+	.num_fields = ARRAY_SIZE(aer_event_fields),
+};
+
+static struct db_desc_and_stmt aer_event_db = {
+	.desc = &aer_event_tab,
+};
+
+int db_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!aer_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "aer_event store: %p\n", aer_event_db.stmt);
+
+	db_bind(&aer_event_tab, aer_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&aer_event_tab, aer_event_db.stmt, pos++, (uint64_t)ev->dev_name, -1);
+	db_bind(&aer_event_tab, aer_event_db.stmt, pos++, (uint64_t)ev->error_type, -1);
+	db_bind(&aer_event_tab, aer_event_db.stmt, pos++, (uint64_t)ev->msg, -1);
+
+	rc = db_eval_stmt(aer_event_db.stmt, "aer_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_aer_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &aer_event_db);
+}
+
+static void ras_aer_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_aer_module = {
+	.name = "aer-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_aer_db_init,
+	.cleanup = ras_aer_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_aer_register(void)
+{
+	int rc = module_register(&ras_aer_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register AER module: %d\n", rc);
 }

@@ -13,6 +13,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events/ras-extlog-handler.h"
@@ -314,4 +315,74 @@ int ras_extlog_mem_event_handler(struct trace_seq *s,
 	db_extlog_mem_record(ras, &ev);
 
 	return 0;
+}
+static const struct db_fields extlog_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "etype",		.type = DB_TYPE_INT32 },
+	{ .name = "error_count",	.type = DB_TYPE_INT32 },
+	{ .name = "severity",		.type = DB_TYPE_INT32 },
+	{ .name = "address",		.type = DB_TYPE_INT64 },
+	{ .name = "fru_id",		.type = DB_TYPE_BLOB },
+	{ .name = "fru_text",		.type = DB_TYPE_TEXT },
+	{ .name = "cper_data",		.type = DB_TYPE_BLOB },
+};
+
+const struct db_table_descriptor extlog_event_tab = {
+	.name = "extlog_event",
+	.fields = extlog_event_fields,
+	.num_fields = ARRAY_SIZE(extlog_event_fields),
+};
+
+static struct db_desc_and_stmt extlog_event_db = {
+	.desc = &extlog_event_tab,
+};
+
+int db_extlog_mem_record(struct ras_events *ras, struct ras_extlog_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!extlog_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "extlog_record store: %p\n", extlog_event_db.stmt);
+
+	db_bind(&extlog_event_tab, extlog_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&extlog_event_tab, extlog_event_db.stmt, pos++, ev->etype, -1);
+	db_bind(&extlog_event_tab, extlog_event_db.stmt, pos++, ev->error_seq, -1);
+	db_bind(&extlog_event_tab, extlog_event_db.stmt, pos++, ev->severity, -1);
+	db_bind(&extlog_event_tab, extlog_event_db.stmt, pos++, ev->address, -1);
+	db_bind(&extlog_event_tab, extlog_event_db.stmt, pos++, (uint64_t)ev->fru_id,  16);
+	db_bind(&extlog_event_tab, extlog_event_db.stmt, pos++, (uint64_t)ev->fru_text, -1);
+	db_bind(&extlog_event_tab, extlog_event_db.stmt, pos++, (uint64_t)ev->cper_data,  ev->cper_data_length);
+
+	rc = db_eval_stmt(extlog_event_db.stmt, "extlog_record");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_extlog_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &extlog_event_db);
+}
+
+static void ras_extlog_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_extlog_module = {
+	.name = "extlog-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_extlog_db_init,
+	.cleanup = ras_extlog_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_extlog_register(void)
+{
+	int rc = module_register(&ras_extlog_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register EXTLOG module: %d\n", rc);
 }

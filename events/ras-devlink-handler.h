@@ -19,4 +19,14 @@ int ras_devlink_event_handler(struct trace_seq *s,
 			      struct tep_record *record,
 			      struct tep_event *event, void *context);
 
+struct devlink_event {
+	char timestamp[64];
+	const char *bus_name;
+	const char *dev_name;
+	const char *driver_name;
+	const char *reporter_name;
+	char *msg;
+};
+
+
 #endif

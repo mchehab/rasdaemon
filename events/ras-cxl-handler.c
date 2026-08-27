@@ -11,6 +11,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "db/ras-store-db.h"
@@ -257,9 +258,8 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_cxl_poison_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -418,9 +418,8 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_cxl_aer_ue_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -474,9 +473,8 @@ int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_cxl_aer_ce_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -590,9 +588,8 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 			return -1;
 	}
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_cxl_overflow_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -809,9 +806,8 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_cxl_generic_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -1054,9 +1050,8 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_cxl_general_media_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -1291,9 +1286,8 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_cxl_dram_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -1507,9 +1501,8 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 		}
 	}
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_cxl_memory_module_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -1517,6 +1510,615 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 #endif
 
 	return 0;
+}
+/*
+ * Table and functions to handle cxl:cxl_poison
+ */
+static const struct db_fields cxl_poison_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",		.type = DB_TYPE_TEXT },
+	{ .name = "host",		.type = DB_TYPE_TEXT },
+	{ .name = "serial",		.type = DB_TYPE_INT64 },
+	{ .name = "trace_type",		.type = DB_TYPE_TEXT },
+	{ .name = "region",		.type = DB_TYPE_TEXT },
+	{ .name = "region_uuid",	.type = DB_TYPE_TEXT },
+	{ .name = "hpa",		.type = DB_TYPE_INT64 },
+	{ .name = "dpa",		.type = DB_TYPE_INT64 },
+	{ .name = "dpa_length",		.type = DB_TYPE_INT32 },
+	{ .name = "source",		.type = DB_TYPE_TEXT },
+	{ .name = "flags",		.type = DB_TYPE_INT32 },
+	{ .name = "overflow_ts",	.type = DB_TYPE_TEXT },
+	{ .name = "hpa_alias0",		.type = DB_TYPE_INT64},
+};
+
+const struct db_table_descriptor cxl_poison_event_tab = {
+	.name = "cxl_poison_event",
+	.fields = cxl_poison_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_poison_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_poison_event_db = {
+	.desc = &cxl_poison_event_tab,
+};
+
+int db_cxl_poison_event(struct ras_events *ras, struct ras_cxl_poison_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!cxl_poison_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_poison_event store: %p\n", cxl_poison_event_db.stmt);
+
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, (uint64_t)ev->memdev, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, (uint64_t)ev->host, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, ev->serial, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, (uint64_t)ev->trace_type, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, (uint64_t)ev->region, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, (uint64_t)ev->uuid, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, ev->hpa, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, ev->dpa, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, ev->dpa_length, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, (uint64_t)ev->source, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, ev->flags, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, (uint64_t)ev->overflow_ts, -1);
+	db_bind(&cxl_poison_event_tab, cxl_poison_event_db.stmt, pos++, ev->hpa_alias0, -1);
+
+	rc = db_eval_stmt(cxl_poison_event_db.stmt, "cxl_poison_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_aer_uncorrectable_error
+ */
+static const struct db_fields cxl_aer_ue_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",		.type = DB_TYPE_TEXT },
+	{ .name = "host",		.type = DB_TYPE_TEXT },
+	{ .name = "serial",		.type = DB_TYPE_INT64 },
+	{ .name = "error_status",	.type = DB_TYPE_INT32 },
+	{ .name = "first_error",	.type = DB_TYPE_INT32 },
+	{ .name = "header_log",		.type = DB_TYPE_BLOB },
+};
+
+const struct db_table_descriptor cxl_aer_ue_event_tab = {
+	.name = "cxl_aer_ue_event",
+	.fields = cxl_aer_ue_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_aer_ue_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_aer_ue_event_db = {
+	.desc = &cxl_aer_ue_event_tab,
+};
+
+int db_cxl_aer_ue_event(struct ras_events *ras, struct ras_cxl_aer_ue_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!cxl_aer_ue_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_aer_ue_event store: %p\n", cxl_aer_ue_event_db.stmt);
+
+	db_bind(&cxl_aer_ue_event_tab, cxl_aer_ue_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&cxl_aer_ue_event_tab, cxl_aer_ue_event_db.stmt, pos++, (uint64_t)ev->memdev, -1);
+	db_bind(&cxl_aer_ue_event_tab, cxl_aer_ue_event_db.stmt, pos++, (uint64_t)ev->host, -1);
+	db_bind(&cxl_aer_ue_event_tab, cxl_aer_ue_event_db.stmt, pos++, ev->serial, -1);
+	db_bind(&cxl_aer_ue_event_tab, cxl_aer_ue_event_db.stmt, pos++, ev->error_status, -1);
+	db_bind(&cxl_aer_ue_event_tab, cxl_aer_ue_event_db.stmt, pos++, ev->first_error, -1);
+	db_bind(&cxl_aer_ue_event_tab, cxl_aer_ue_event_db.stmt, pos++, (uint64_t)ev->header_log, CXL_HEADERLOG_SIZE);
+
+	rc = db_eval_stmt(cxl_aer_ue_event_db.stmt, "cxl_aer_ue_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_aer_correctable_error
+ */
+static const struct db_fields cxl_aer_ce_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",		.type = DB_TYPE_TEXT },
+	{ .name = "host",		.type = DB_TYPE_TEXT },
+	{ .name = "serial",		.type = DB_TYPE_INT64 },
+	{ .name = "error_status",	.type = DB_TYPE_INT32 },
+};
+
+const struct db_table_descriptor cxl_aer_ce_event_tab = {
+	.name = "cxl_aer_ce_event",
+	.fields = cxl_aer_ce_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_aer_ce_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_aer_ce_event_db = {
+	.desc = &cxl_aer_ce_event_tab,
+};
+
+int db_cxl_aer_ce_event(struct ras_events *ras, struct ras_cxl_aer_ce_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!cxl_aer_ce_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_aer_ce_event store: %p\n", cxl_aer_ce_event_db.stmt);
+
+	db_bind(&cxl_aer_ce_event_tab, cxl_aer_ce_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&cxl_aer_ce_event_tab, cxl_aer_ce_event_db.stmt, pos++, (uint64_t)ev->memdev, -1);
+	db_bind(&cxl_aer_ce_event_tab, cxl_aer_ce_event_db.stmt, pos++, (uint64_t)ev->host, -1);
+	db_bind(&cxl_aer_ce_event_tab, cxl_aer_ce_event_db.stmt, pos++, ev->serial, -1);
+	db_bind(&cxl_aer_ce_event_tab, cxl_aer_ce_event_db.stmt, pos++, ev->error_status, -1);
+
+	rc = db_eval_stmt(cxl_aer_ce_event_db.stmt, "cxl_aer_ce_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_overflow
+ */
+static const struct db_fields cxl_overflow_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",		.type = DB_TYPE_TEXT },
+	{ .name = "host",		.type = DB_TYPE_TEXT },
+	{ .name = "serial",		.type = DB_TYPE_INT64 },
+	{ .name = "log_type",		.type = DB_TYPE_TEXT },
+	{ .name = "count",		.type = DB_TYPE_INT32 },
+	{ .name = "first_ts",		.type = DB_TYPE_TEXT },
+	{ .name = "last_ts",		.type = DB_TYPE_TEXT },
+};
+
+const struct db_table_descriptor cxl_overflow_event_tab = {
+	.name = "cxl_overflow_event",
+	.fields = cxl_overflow_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_overflow_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_overflow_event_db = {
+	.desc = &cxl_overflow_event_tab,
+};
+
+int db_cxl_overflow_event(struct ras_events *ras, struct ras_cxl_overflow_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!cxl_overflow_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "cxl_overflow_event store: %p\n", cxl_overflow_event_db.stmt);
+
+	db_bind(&cxl_overflow_event_tab, cxl_overflow_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&cxl_overflow_event_tab, cxl_overflow_event_db.stmt, pos++, (uint64_t)ev->memdev, -1);
+	db_bind(&cxl_overflow_event_tab, cxl_overflow_event_db.stmt, pos++, (uint64_t)ev->host, -1);
+	db_bind(&cxl_overflow_event_tab, cxl_overflow_event_db.stmt, pos++, ev->serial, -1);
+	db_bind(&cxl_overflow_event_tab, cxl_overflow_event_db.stmt, pos++, (uint64_t)ev->log_type, -1);
+	db_bind(&cxl_overflow_event_tab, cxl_overflow_event_db.stmt, pos++, ev->count, -1);
+	db_bind(&cxl_overflow_event_tab, cxl_overflow_event_db.stmt, pos++, (uint64_t)ev->first_ts, -1);
+	db_bind(&cxl_overflow_event_tab, cxl_overflow_event_db.stmt, pos++, (uint64_t)ev->last_ts, -1);
+
+	rc = db_eval_stmt(cxl_overflow_event_db.stmt, "cxl_overflow_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int db_cxl_common_hdr(const struct db_table_descriptor *db_tab,
+			     struct ras_stmt *stmt,
+			     struct ras_cxl_event_common_hdr *hdr)
+{
+	int idx = 1;
+
+	if (!stmt || !hdr)
+		return -1;
+
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->timestamp, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->memdev, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->host, -1);
+	db_bind(db_tab, stmt, idx++, hdr->serial, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->log_type, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->hdr_uuid, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_flags, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_handle, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_related_handle, -1);
+	db_bind(db_tab, stmt, idx++, (uint64_t)hdr->hdr_timestamp, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_length, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_maint_op_class, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_maint_op_sub_class, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_ld_id, -1);
+	db_bind(db_tab, stmt, idx++, hdr->hdr_head_id, -1);
+
+	return idx;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_generic_event
+ */
+static const struct db_fields cxl_generic_event_fields[] = {
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+	{ .name = "data",			.type = DB_TYPE_BLOB },
+};
+
+const struct db_table_descriptor cxl_generic_event_tab = {
+	.name = "cxl_generic_event",
+	.fields = cxl_generic_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_generic_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_generic_event_db = {
+	.desc = &cxl_generic_event_tab,
+};
+
+int db_cxl_generic_event(struct ras_events *ras, struct ras_cxl_generic_event *ev)
+{
+	int idx;
+	int rc;
+
+	if (!cxl_generic_event_db.stmt)
+		return -1;
+	log(TERM, LOG_INFO, "cxl_generic_event store: %p\n", cxl_generic_event_db.stmt);
+
+	idx = db_cxl_common_hdr(&cxl_generic_event_tab,
+				cxl_generic_event_db.stmt, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+
+	db_bind(&cxl_generic_event_tab, cxl_generic_event_db.stmt,
+		idx++, (uint64_t)ev->data, CXL_EVENT_RECORD_DATA_LENGTH);
+
+	rc = db_eval_stmt(cxl_generic_event_db.stmt, "cxl_generic_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_general_media_event
+ */
+static const struct db_fields cxl_general_media_event_fields[] = {
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+
+	{ .name = "dpa",			.type = DB_TYPE_INT64 },
+	{ .name = "dpa_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "descriptor",			.type = DB_TYPE_INT32 },
+	{ .name = "type",			.type = DB_TYPE_INT32 },
+	{ .name = "transaction_type",		.type = DB_TYPE_INT32 },
+	{ .name = "channel",			.type = DB_TYPE_INT32 },
+	{ .name = "rank",			.type = DB_TYPE_INT32 },
+	{ .name = "device",			.type = DB_TYPE_INT32 },
+	{ .name = "comp_id",			.type = DB_TYPE_BLOB },
+	{ .name = "hpa",			.type = DB_TYPE_INT64 },
+	{ .name = "region",			.type = DB_TYPE_TEXT },
+	{ .name = "region_uuid",		.type = DB_TYPE_TEXT },
+	{ .name = "pldm_entity_id",		.type = DB_TYPE_BLOB },
+	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
+	{ .name = "sub_type",			.type = DB_TYPE_INT32 },
+	{ .name = "cme_threshold_ev_flags",	.type = DB_TYPE_INT32 },
+	{ .name = "cme_count",			.type = DB_TYPE_INT32 },
+	{ .name = "hpa_alias0",			.type = DB_TYPE_INT64 },
+};
+
+const struct db_table_descriptor cxl_general_media_event_tab = {
+	.name = "cxl_general_media_event",
+	.fields = cxl_general_media_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_general_media_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_general_media_event_db = {
+	.desc = &cxl_general_media_event_tab,
+};
+
+int db_cxl_general_media_event(struct ras_events *ras,
+				      struct ras_cxl_general_media_event *ev)
+{
+	int idx;
+	int rc;
+
+	if (!cxl_general_media_event_db.stmt)
+		return -1;
+	log(TERM, LOG_INFO, "cxl_general_media_event store: %p\n",
+	    cxl_general_media_event_db.stmt);
+
+	idx = db_cxl_common_hdr(&cxl_general_media_event_tab,
+				cxl_general_media_event_db.stmt, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->dpa, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->dpa_flags, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->descriptor, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->type, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->transaction_type, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->channel, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->rank, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->device, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->hpa, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->region, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->region_uuid, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->sub_type, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->cme_threshold_ev_flags, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->cme_count, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->hpa_alias0, -1);
+
+	rc = db_eval_stmt(cxl_general_media_event_db.stmt, "cxl_general_media_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_dram_event
+ */
+static const struct db_fields cxl_dram_event_fields[] = {
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+
+	{ .name = "dpa",			.type = DB_TYPE_INT64 },
+	{ .name = "dpa_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "descriptor",			.type = DB_TYPE_INT32 },
+	{ .name = "type",			.type = DB_TYPE_INT32 },
+	{ .name = "transaction_type",		.type = DB_TYPE_INT32 },
+	{ .name = "channel",			.type = DB_TYPE_INT32 },
+	{ .name = "rank",			.type = DB_TYPE_INT32 },
+	{ .name = "nibble_mask",		.type = DB_TYPE_INT32 },
+	{ .name = "bank_group",			.type = DB_TYPE_INT32 },
+	{ .name = "bank",			.type = DB_TYPE_INT32 },
+	{ .name = "row",			.type = DB_TYPE_INT32 },
+	{ .name = "column",			.type = DB_TYPE_INT32 },
+	{ .name = "cor_mask",			.type = DB_TYPE_BLOB },
+	{ .name = "hpa",			.type = DB_TYPE_INT64 },
+	{ .name = "region",			.type = DB_TYPE_TEXT },
+	{ .name = "region_uuid",		.type = DB_TYPE_TEXT },
+	{ .name = "comp_id",			.type = DB_TYPE_BLOB },
+	{ .name = "pldm_entity_id",		.type = DB_TYPE_BLOB },
+	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
+	{ .name = "sub_type",			.type = DB_TYPE_INT32 },
+	{ .name = "sub_channel",		.type = DB_TYPE_INT32 },
+	{ .name = "cme_threshold_ev_flags",	.type = DB_TYPE_INT32 },
+	{ .name = "cvme_count",			.type = DB_TYPE_INT32 },
+	{ .name = "hpa_alias0",			.type = DB_TYPE_INT64 },
+};
+
+const struct db_table_descriptor cxl_dram_event_tab = {
+	.name = "cxl_dram_event",
+	.fields = cxl_dram_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_dram_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_dram_event_db = {
+	.desc = &cxl_dram_event_tab,
+};
+
+int db_cxl_dram_event(struct ras_events *ras, struct ras_cxl_dram_event *ev)
+{
+	int idx;
+	int rc;
+
+	if (!cxl_dram_event_db.stmt)
+		return -1;
+	log(TERM, LOG_INFO, "cxl_dram_event store: %p\n",
+	    cxl_dram_event_db.stmt);
+
+	idx = db_cxl_common_hdr(&cxl_dram_event_tab,
+				cxl_dram_event_db.stmt, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->dpa, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->dpa_flags, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->descriptor, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->type, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->transaction_type, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->channel, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->rank, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->nibble_mask, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->bank_group, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->bank, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->row, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->column, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->cor_mask, CXL_EVENT_DER_CORRECTION_MASK_SIZE);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->hpa, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->region, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->region_uuid, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->sub_type, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->sub_channel, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->cme_threshold_ev_flags, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->cvme_count, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->hpa_alias0, -1);
+
+	rc = db_eval_stmt(cxl_dram_event_db.stmt, "cxl_dram_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+/*
+ * Table and functions to handle cxl:cxl_memory_module_event
+ */
+static const struct db_fields cxl_memory_module_event_fields[] = {
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+
+	{ .name = "event_type",			.type = DB_TYPE_INT32 },
+	{ .name = "health_status",		.type = DB_TYPE_INT32 },
+	{ .name = "media_status",		.type = DB_TYPE_INT32 },
+	{ .name = "life_used",			.type = DB_TYPE_INT32 },
+	{ .name = "dirty_shutdown_cnt",		.type = DB_TYPE_INT32 },
+	{ .name = "cor_vol_err_cnt",		.type = DB_TYPE_INT32 },
+	{ .name = "cor_per_err_cnt",		.type = DB_TYPE_INT32 },
+	{ .name = "device_temp",		.type = DB_TYPE_INT32 },
+	{ .name = "add_status",			.type = DB_TYPE_INT32 },
+	{ .name = "event_sub_type",		.type = DB_TYPE_INT32 },
+	{ .name = "comp_id",			.type = DB_TYPE_BLOB },
+	{ .name = "pldm_entity_id",		.type = DB_TYPE_BLOB },
+	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
+};
+
+const struct db_table_descriptor cxl_memory_module_event_tab = {
+	.name = "cxl_memory_module_event",
+	.fields = cxl_memory_module_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_memory_module_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_memory_module_event_db = {
+	.desc = &cxl_memory_module_event_tab,
+};
+
+int db_cxl_memory_module_event(struct ras_events *ras,
+				      struct ras_cxl_memory_module_event *ev)
+{
+	int idx;
+	int rc;
+
+	if (!cxl_memory_module_event_db.stmt)
+		return -1;
+	log(TERM, LOG_INFO, "cxl_memory_module_event store: %p\n",
+	    cxl_memory_module_event_db.stmt);
+
+	idx = db_cxl_common_hdr(&cxl_memory_module_event_tab,
+				cxl_memory_module_event_db.stmt, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->event_type, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->health_status, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->media_status, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->life_used, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->dirty_shutdown_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->cor_vol_err_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->cor_per_err_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->device_temp, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->add_status, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->event_sub_type, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+
+	rc = db_eval_stmt(cxl_memory_module_event_db.stmt, "cxl_memory_module_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static struct db_desc_and_stmt * const ras_cxl_tables[] = {
+	&cxl_poison_event_db,
+	&cxl_aer_ue_event_db,
+	&cxl_aer_ce_event_db,
+	&cxl_overflow_event_db,
+	&cxl_generic_event_db,
+	&cxl_general_media_event_db,
+	&cxl_dram_event_db,
+	&cxl_memory_module_event_db,
+};
+
+static int ras_cxl_db_init(struct ras_module_ctx *ctx)
+{
+	size_t i;
+	int rc;
+
+	for (i = 0; i < ARRAY_SIZE(ras_cxl_tables); i++) {
+		rc = ras_db_table_register(ctx, ras_cxl_tables[i]);
+		if (rc) {
+			ras_db_table_unregister(ctx);
+			return rc;
+		}
+	}
+	return 0;
+}
+
+static void ras_cxl_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_cxl_module = {
+	.name = "cxl-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_cxl_db_init,
+	.cleanup = ras_cxl_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_cxl_register(void)
+{
+	int rc = module_register(&ras_cxl_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register CXL module: %d\n", rc);
 }
 
 /*

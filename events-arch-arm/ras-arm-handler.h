@@ -45,4 +45,26 @@ int ras_arm_test_parse_processor(struct trace_seq *s,
 int ras_arm_test_count_errors(struct ras_arm_event *event, int severity);
 #endif
 #endif
+struct ras_arm_event {
+	char timestamp[64];
+	int32_t error_count;
+	int8_t affinity;
+	int64_t mpidr;
+	int64_t midr;
+	int32_t running_state;
+	int32_t psci_state;
+	const uint8_t *pei_error;
+	uint32_t pei_len;
+	const uint8_t *ctx_error;
+	uint32_t ctx_len;
+	const uint8_t *vsei_error;
+	uint32_t oem_len;
+	char error_types[512];
+	char error_flags[512];
+	uint64_t error_info;
+	uint64_t virt_fault_addr;
+	uint64_t phy_fault_addr;
+};
+
+
 #endif

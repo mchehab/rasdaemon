@@ -114,3 +114,97 @@ void test_database_tables(void **state)
 		}
 	}
 }
+
+extern const struct db_table_descriptor mc_event_tab;
+#ifdef HAVE_AER
+extern const struct db_table_descriptor aer_event_tab;
+#endif
+#ifdef HAVE_NON_STANDARD
+extern const struct db_table_descriptor non_standard_event_tab;
+#endif
+#ifdef HAVE_ARM
+extern const struct db_table_descriptor arm_event_tab;
+#endif
+#ifdef HAVE_EXTLOG
+extern const struct db_table_descriptor extlog_event_tab;
+#endif
+#ifdef HAVE_MCE
+extern const struct db_table_descriptor mce_record_tab;
+#endif
+#ifdef HAVE_DEVLINK
+extern const struct db_table_descriptor devlink_event_tab;
+#endif
+#ifdef HAVE_DISKERROR
+extern const struct db_table_descriptor diskerror_event_tab;
+#endif
+#ifdef HAVE_MEMORY_FAILURE
+extern const struct db_table_descriptor mf_event_tab;
+#endif
+#ifdef HAVE_CXL
+extern const struct db_table_descriptor cxl_poison_event_tab;
+extern const struct db_table_descriptor cxl_aer_ue_event_tab;
+extern const struct db_table_descriptor cxl_aer_ce_event_tab;
+extern const struct db_table_descriptor cxl_overflow_event_tab;
+extern const struct db_table_descriptor cxl_generic_event_tab;
+extern const struct db_table_descriptor cxl_general_media_event_tab;
+extern const struct db_table_descriptor cxl_dram_event_tab;
+extern const struct db_table_descriptor cxl_memory_module_event_tab;
+#endif
+#ifdef HAVE_SIGNAL
+extern const struct db_table_descriptor signal_event_tab;
+#endif
+#ifdef HAVE_RERI
+extern const struct db_table_descriptor reri_event_tab;
+#endif
+
+struct db_table_descriptor_list ras_record_table_descriptors(void)
+{
+	static const struct db_table_descriptor * const tables[] = {
+		&mc_event_tab,
+#ifdef HAVE_AER
+		&aer_event_tab,
+#endif
+#ifdef HAVE_NON_STANDARD
+		&non_standard_event_tab,
+#endif
+#ifdef HAVE_ARM
+		&arm_event_tab,
+#endif
+#ifdef HAVE_EXTLOG
+		&extlog_event_tab,
+#endif
+#ifdef HAVE_MCE
+		&mce_record_tab,
+#endif
+#ifdef HAVE_DEVLINK
+		&devlink_event_tab,
+#endif
+#ifdef HAVE_DISKERROR
+		&diskerror_event_tab,
+#endif
+#ifdef HAVE_MEMORY_FAILURE
+		&mf_event_tab,
+#endif
+#ifdef HAVE_CXL
+		&cxl_poison_event_tab,
+		&cxl_aer_ue_event_tab,
+		&cxl_aer_ce_event_tab,
+		&cxl_overflow_event_tab,
+		&cxl_generic_event_tab,
+		&cxl_general_media_event_tab,
+		&cxl_dram_event_tab,
+		&cxl_memory_module_event_tab,
+#endif
+#ifdef HAVE_SIGNAL
+		&signal_event_tab,
+#endif
+#ifdef HAVE_RERI
+		&reri_event_tab,
+#endif
+	};
+
+	return (struct db_table_descriptor_list) {
+		.tables = tables,
+		.num_tables = ARRAY_SIZE(tables),
+	};
+}

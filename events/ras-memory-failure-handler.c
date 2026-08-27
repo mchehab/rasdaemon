@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/trigger.h"
 #include "core/types.h"
@@ -226,9 +227,8 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 #endif
 
 	/* Store data into SQL DB */
-#ifdef HAVE_DB
 	db_mf_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -237,4 +237,66 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 	run_mf_trigger(&ev);
 
 	return 0;
+}
+static const struct db_fields mf_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "pfn",		.type = DB_TYPE_TEXT },
+	{ .name = "page_type",		.type = DB_TYPE_TEXT },
+	{ .name = "action_result",	.type = DB_TYPE_TEXT },
+};
+
+const struct db_table_descriptor mf_event_tab = {
+	.name = "memory_failure_event",
+	.fields = mf_event_fields,
+	.num_fields = ARRAY_SIZE(mf_event_fields),
+};
+
+static struct db_desc_and_stmt mf_event_db = {
+	.desc = &mf_event_tab,
+};
+
+int db_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!mf_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "memory_failure_event store: %p\n", mf_event_db.stmt);
+
+	db_bind(&mf_event_tab, mf_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&mf_event_tab, mf_event_db.stmt, pos++, (uint64_t)ev->pfn, -1);
+	db_bind(&mf_event_tab, mf_event_db.stmt, pos++, (uint64_t)ev->page_type, -1);
+	db_bind(&mf_event_tab, mf_event_db.stmt, pos++, (uint64_t)ev->action_result, -1);
+
+	rc = db_eval_stmt(mf_event_db.stmt, "mf_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_memory_failure_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &mf_event_db);
+}
+
+static void ras_memory_failure_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_memory_failure_module = {
+	.name = "memory-failure-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_memory_failure_db_init,
+	.cleanup = ras_memory_failure_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_memory_failure_register(void)
+{
+	int rc = module_register(&ras_memory_failure_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register memory-failure module: %d\n", rc);
 }

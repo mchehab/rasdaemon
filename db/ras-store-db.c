@@ -13,6 +13,7 @@
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "db/ras-store-db.h"
+#include "events/ras-mc-handler.h"
 
 #ifdef HAVE_DB
 

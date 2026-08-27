@@ -11,6 +11,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
@@ -302,9 +303,8 @@ int ras_non_standard_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_non_standard_record(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -318,4 +318,70 @@ __attribute__((destructor))
 static void ns_exit(void)
 {
 	unregister_ns_ev_decoder();
+}
+static const struct db_fields non_standard_event_fields[] = {
+		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+		{ .name = "sec_type",		.type = DB_TYPE_BLOB },
+		{ .name = "fru_id",		.type = DB_TYPE_BLOB },
+		{ .name = "fru_text",		.type = DB_TYPE_TEXT },
+		{ .name = "severity",		.type = DB_TYPE_TEXT },
+		{ .name = "error",		.type = DB_TYPE_BLOB },
+};
+
+const struct db_table_descriptor non_standard_event_tab = {
+	.name = "non_standard_event",
+	.fields = non_standard_event_fields,
+	.num_fields = ARRAY_SIZE(non_standard_event_fields),
+};
+
+static struct db_desc_and_stmt non_standard_event_db = {
+	.desc = &non_standard_event_tab,
+};
+
+int db_non_standard_record(struct ras_events *ras, struct ras_non_standard_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!non_standard_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "non_standard_event store: %p\n", non_standard_event_db.stmt);
+
+	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->sec_type, -1);
+	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->fru_id,  16);
+	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->fru_text, -1);
+	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->severity, -1);
+	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->error,  ev->length);
+
+	rc = db_eval_stmt(non_standard_event_db.stmt, "non_standard_record");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_non_standard_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &non_standard_event_db);
+}
+
+static void ras_non_standard_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_non_standard_module = {
+	.name = "non-standard-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_non_standard_db_init,
+	.cleanup = ras_non_standard_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_non_standard_register(void)
+{
+	int rc = module_register(&ras_non_standard_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register non-standard module: %d\n", rc);
 }

@@ -21,8 +21,18 @@
 #include "db/db-sqlite3.h"
 #include "db/ras-db.h"
 #include "db/ras-store-db.h"
+#include "events-arch-arm/ras-arm-handler.h"
+#include "events-arch-arm/ras-non-standard-handler.h"
 #include "events-arch-riscv/ras-reri-handler.h"
 #include "events-arch-x86/ras-mce-handler.h"
+#include "events/ras-aer-handler.h"
+#include "events/ras-cxl-handler.h"
+#include "events/ras-devlink-handler.h"
+#include "events/ras-diskerror-handler.h"
+#include "events/ras-extlog-handler.h"
+#include "events/ras-mc-handler.h"
+#include "events/ras-memory-failure-handler.h"
+#include "events/ras-signal-handler.h"
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;

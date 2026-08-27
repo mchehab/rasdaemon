@@ -20,11 +20,24 @@
 #ifndef __RAS_SIGNAL_HANDLER_H
 #define __RAS_SIGNAL_HANDLER_H
 
+#include <sys/types.h>
 #include <traceevent/event-parse.h>
 
 #include "core/ras-events.h"
 
 int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
 			     struct tep_event *event, void *context);
+
+struct ras_signal_event {
+	char timestamp[64];
+	int sig;
+	int error_no;
+	int code;
+	char *comm;
+	pid_t pid;
+	int group;
+	int result;
+};
+
 
 #endif

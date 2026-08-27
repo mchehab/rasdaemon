@@ -10,6 +10,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events/ras-devlink-handler.h"
@@ -56,9 +57,8 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_devlink_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -129,9 +129,8 @@ int ras_devlink_event_handler(struct trace_seq *s,
 		return -1;
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_devlink_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -139,4 +138,70 @@ int ras_devlink_event_handler(struct trace_seq *s,
 #endif
 
 	return 0;
+}
+static const struct db_fields devlink_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "bus_name",		.type = DB_TYPE_TEXT },
+	{ .name = "dev_name",		.type = DB_TYPE_TEXT },
+	{ .name = "driver_name",	.type = DB_TYPE_TEXT },
+	{ .name = "reporter_name",	.type = DB_TYPE_TEXT },
+	{ .name = "msg",		.type = DB_TYPE_TEXT },
+};
+
+const struct db_table_descriptor devlink_event_tab = {
+	.name = "devlink_event",
+	.fields = devlink_event_fields,
+	.num_fields = ARRAY_SIZE(devlink_event_fields),
+};
+
+static struct db_desc_and_stmt devlink_event_db = {
+	.desc = &devlink_event_tab,
+};
+
+int db_devlink_event(struct ras_events *ras, struct devlink_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!devlink_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "devlink_event store: %p\n", devlink_event_db.stmt);
+
+	db_bind(&devlink_event_tab, devlink_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&devlink_event_tab, devlink_event_db.stmt, pos++, (uint64_t)ev->bus_name, -1);
+	db_bind(&devlink_event_tab, devlink_event_db.stmt, pos++, (uint64_t)ev->dev_name, -1);
+	db_bind(&devlink_event_tab, devlink_event_db.stmt, pos++, (uint64_t)ev->driver_name, -1);
+	db_bind(&devlink_event_tab, devlink_event_db.stmt, pos++, (uint64_t)ev->reporter_name, -1);
+	db_bind(&devlink_event_tab, devlink_event_db.stmt, pos++, (uint64_t)ev->msg, -1);
+
+	rc = db_eval_stmt(devlink_event_db.stmt, "devlink_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_devlink_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &devlink_event_db);
+}
+
+static void ras_devlink_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_devlink_module = {
+	.name = "devlink-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_devlink_db_init,
+	.cleanup = ras_devlink_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_devlink_register(void)
+{
+	int rc = module_register(&ras_devlink_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register devlink module: %d\n", rc);
 }

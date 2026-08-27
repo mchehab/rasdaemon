@@ -14,6 +14,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "db/ras-store-db.h"
@@ -347,9 +348,8 @@ int ras_reri_event_handler(struct trace_seq *s,
 
 	trace_seq_puts(s, "\n");
 
-#ifdef HAVE_DB
 	db_reri_event(ras, &ev);
-#endif
+
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
 	if (ev.source_type == RERI_SOURCE_TYPE_CPU && hart_id_valid &&
@@ -371,4 +371,80 @@ int ras_reri_event_handler(struct trace_seq *s,
 #endif
 
 	return 0;
+}
+static const struct db_fields reri_event_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "err_src_id",		.type = DB_TYPE_INT32 },
+	{ .name = "source_type",	.type = DB_TYPE_INT32 },
+	{ .name = "severity",		.type = DB_TYPE_INT32 },
+	{ .name = "hart_id",		.type = DB_TYPE_INT32 },
+	{ .name = "cluster_id",		.type = DB_TYPE_INT32 },
+	{ .name = "status",		.type = DB_TYPE_INT64 },
+	{ .name = "addr_info",		.type = DB_TYPE_INT64 },
+	{ .name = "info",		.type = DB_TYPE_INT64 },
+	{ .name = "suppl_info",		.type = DB_TYPE_INT64 },
+	{ .name = "timestamp_val",	.type = DB_TYPE_INT64 },
+};
+
+const struct db_table_descriptor reri_event_tab = {
+	.name = "reri_event",
+	.fields = reri_event_fields,
+	.num_fields = ARRAY_SIZE(reri_event_fields),
+};
+
+static struct db_desc_and_stmt reri_event_db = {
+	.desc = &reri_event_tab,
+};
+
+int db_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!reri_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "reri_event store: %p\n", reri_event_db.stmt);
+
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->err_src_id, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->source_type, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->severity, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->hart_id, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->cluster_id, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->status, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->addr_info, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->info, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->suppl_info, -1);
+	db_bind(&reri_event_tab, reri_event_db.stmt, pos++, ev->timestamp_val, -1);
+
+	rc = db_eval_stmt(reri_event_db.stmt, "reri_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_reri_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &reri_event_db);
+}
+
+static void ras_reri_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_reri_module = {
+	.name = "reri-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_reri_db_init,
+	.cleanup = ras_reri_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_reri_register(void)
+{
+	int rc = module_register(&ras_reri_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register RERI module: %d\n", rc);
 }

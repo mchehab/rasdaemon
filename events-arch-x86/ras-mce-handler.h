@@ -7,6 +7,7 @@
 #ifndef __RAS_MCE_HANDLER_H
 #define __RAS_MCE_HANDLER_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <traceevent/event-parse.h>
 
@@ -86,6 +87,15 @@ struct mce_event {
 	char		user_action[4096];
 	char		mc_location[256];
 	int		erst;
+};
+
+struct ras_mc_offline_event {
+	unsigned int family, model;
+	bool smca;
+	uint8_t bank;
+	uint64_t ipid;
+	uint64_t synd;
+	uint64_t status;
 };
 
 struct mce_priv {

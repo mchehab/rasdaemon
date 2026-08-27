@@ -19,4 +19,16 @@ int ras_mc_event_handler(struct trace_seq *s,
 			 struct tep_record *record,
 			 struct tep_event *event, void *context);
 
+struct ras_mc_event {
+	char timestamp[64];
+	int error_count;
+	const char *error_type, *msg, *label;
+	unsigned char mc_index;
+	signed char top_layer, middle_layer, lower_layer;
+	unsigned long long address, grain, syndrome;
+	const char *driver_detail;
+	int erst;
+};
+
+
 #endif

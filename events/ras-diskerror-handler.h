@@ -54,4 +54,15 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 const char *ras_diskerror_test_error(int err);
 #endif
 
+struct diskerror_event {
+	char timestamp[64];
+	char *dev;
+	unsigned long long sector;
+	unsigned int nr_sector;
+	const char *error;
+	const char *rwbs;
+	const char *cmd;
+};
+
+
 #endif

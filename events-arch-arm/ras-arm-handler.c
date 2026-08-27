@@ -10,6 +10,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events-arch-arm/non-standard-ampere.h"
@@ -640,9 +641,8 @@ int ras_arm_event_handler(struct trace_seq *s,
 	}
 
 	/* Insert data into the SGBD */
-#ifdef HAVE_DB
 	db_arm_record(ras, &ev);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -650,4 +650,86 @@ int ras_arm_event_handler(struct trace_seq *s,
 #endif
 
 	return 0;
+}
+static const struct db_fields arm_event_fields[] = {
+		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+		{ .name = "error_count",	.type = DB_TYPE_INT32 },
+		{ .name = "affinity",		.type = DB_TYPE_INT32 },
+		{ .name = "mpidr",		.type = DB_TYPE_INT64 },
+		{ .name = "running_state",	.type = DB_TYPE_INT32 },
+		{ .name = "psci_state",		.type = DB_TYPE_INT32 },
+		{ .name = "err_info",		.type = DB_TYPE_BLOB },
+		{ .name = "context_info",	.type = DB_TYPE_BLOB },
+		{ .name = "vendor_info",	.type = DB_TYPE_BLOB },
+		{ .name = "error_type",		.type = DB_TYPE_TEXT },
+		{ .name = "error_flags",	.type = DB_TYPE_TEXT },
+		{ .name = "error_info",		.type = DB_TYPE_INT64 },
+		{ .name = "virt_fault_addr",	.type = DB_TYPE_INT64 },
+		{ .name = "phy_fault_addr",	.type = DB_TYPE_INT64 },
+};
+
+const struct db_table_descriptor arm_event_tab = {
+	.name = "arm_event",
+	.fields = arm_event_fields,
+	.num_fields = ARRAY_SIZE(arm_event_fields),
+};
+
+static struct db_desc_and_stmt arm_event_db = {
+	.desc = &arm_event_tab,
+};
+
+int db_arm_record(struct ras_events *ras, struct ras_arm_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!arm_event_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "arm_event store: %p\n", arm_event_db.stmt);
+
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, ev->error_count, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, ev->affinity, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, ev->mpidr, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, ev->running_state, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, ev->psci_state, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, (uint64_t)ev->pei_error,  ev->pei_len);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, (uint64_t)ev->ctx_error,  ev->ctx_len);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, (uint64_t)ev->vsei_error,  ev->oem_len);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, (uint64_t)ev->error_types, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, (uint64_t)ev->error_flags, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, ev->error_info, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, ev->virt_fault_addr, -1);
+	db_bind(&arm_event_tab, arm_event_db.stmt, pos++, ev->phy_fault_addr, -1);
+
+	rc = db_eval_stmt(arm_event_db.stmt, "arm_record");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_arm_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &arm_event_db);
+}
+
+static void ras_arm_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_arm_module = {
+	.name = "arm-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_arm_db_init,
+	.cleanup = ras_arm_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_arm_register(void)
+{
+	int rc = module_register(&ras_arm_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register ARM module: %d\n", rc);
 }

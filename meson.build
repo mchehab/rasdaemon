@@ -365,7 +365,6 @@ if enable_db
     lib_sources += [
         'db/ras-db.c',
         'db/ras-store-db.c',
-        'modules/record-events.c',
     ]
     unittest_sources += 'tests/test-databases.c'
 endif

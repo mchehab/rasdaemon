@@ -13,6 +13,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events-arch-x86/ras-mce-handler.h"
@@ -629,9 +630,8 @@ int ras_mce_event_handler(struct trace_seq *s,
 
 	report_mce_event(ras, record, s, &e);
 
-#ifdef HAVE_DB
 	db_mce_record(ras, &e);
-#endif
+
 
 #ifdef HAVE_ABRT_REPORT
 	/* Report event to ABRT */
@@ -639,4 +639,113 @@ int ras_mce_event_handler(struct trace_seq *s,
 #endif
 
 	return 0;
+}
+static const struct db_fields mce_record_fields[] = {
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
+
+	/* MCE registers */
+	{ .name = "mcgcap",		.type = DB_TYPE_INT32 },
+	{ .name = "mcgstatus",		.type = DB_TYPE_INT32 },
+	{ .name = "status",		.type = DB_TYPE_INT64 },
+	{ .name = "addr",		.type = DB_TYPE_INT64 }, // 5
+	{ .name = "misc",		.type = DB_TYPE_INT64 },
+	{ .name = "ip",			.type = DB_TYPE_INT64 },
+	{ .name = "tsc",		.type = DB_TYPE_INT64 },
+	{ .name = "walltime",		.type = DB_TYPE_INT64 },
+	{ .name = "ppin",		.type = DB_TYPE_INT32 }, // 10
+	{ .name = "cpu",		.type = DB_TYPE_INT32 },
+	{ .name = "cpuid",		.type = DB_TYPE_INT32 },
+	{ .name = "apicid",		.type = DB_TYPE_INT32 },
+	{ .name = "socketid",		.type = DB_TYPE_INT32 },
+	{ .name = "cs",			.type = DB_TYPE_INT32 }, // 15
+	{ .name = "bank",		.type = DB_TYPE_INT32 },
+	{ .name = "cpuvendor",		.type = DB_TYPE_INT32 },
+	{ .name = "microcode",		.type = DB_TYPE_INT32 },
+
+	/* Parsed data - will likely change */
+	{ .name = "bank_name",		.type = DB_TYPE_TEXT },
+	{ .name = "error_msg",		.type = DB_TYPE_TEXT }, // 20
+	{ .name = "mcgstatus_msg",	.type = DB_TYPE_TEXT },
+	{ .name = "mcistatus_msg",	.type = DB_TYPE_TEXT },
+	{ .name = "mcastatus_msg",	.type = DB_TYPE_TEXT },
+	{ .name = "user_action",	.type = DB_TYPE_TEXT },
+	{ .name = "mc_location",	.type = DB_TYPE_TEXT },
+};
+
+const struct db_table_descriptor mce_record_tab = {
+	.name = "mce_record",
+	.fields = mce_record_fields,
+	.num_fields = ARRAY_SIZE(mce_record_fields),
+};
+
+static struct db_desc_and_stmt mce_record_db = {
+	.desc = &mce_record_tab,
+};
+
+int db_mce_record(struct ras_events *ras, struct mce_event *ev)
+{
+	int rc, pos = 1;
+
+	if (!mce_record_db.stmt)
+		return 0;
+	log(TERM, LOG_INFO, "mce_record store: %p\n", mce_record_db.stmt);
+
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->mcgcap, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->mcgstatus, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->status, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->addr, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->misc, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->ip, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->tsc, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->walltime, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->ppin, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->cpu, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->cpuid, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->apicid, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->socketid, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->cs, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->bank, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->cpuvendor, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, ev->microcode, -1);
+
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, (uint64_t)ev->bank_name, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, (uint64_t)ev->error_msg, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, (uint64_t)ev->mcgstatus_msg, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, (uint64_t)ev->mcistatus_msg, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, (uint64_t)ev->mcastatus_msg, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, (uint64_t)ev->user_action, -1);
+	db_bind(&mce_record_tab, mce_record_db.stmt, pos++, (uint64_t)ev->mc_location, -1);
+
+	rc = db_eval_stmt(mce_record_db.stmt, "mce_record");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
+static int ras_mce_db_init(struct ras_module_ctx *ctx)
+{
+	return ras_db_table_register(ctx, &mce_record_db);
+}
+
+static void ras_mce_db_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ras_mce_module = {
+	.name = "x86-mce-event",
+	.level = BASE_EVENT_MODULE,
+	.init = ras_mce_db_init,
+	.cleanup = ras_mce_db_cleanup,
+};
+
+static void __attribute__((constructor)) ras_mce_register(void)
+{
+	int rc = module_register(&ras_mce_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register MCE module: %d\n", rc);
 }

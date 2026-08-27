@@ -31,6 +31,7 @@
 #include "db/db-mysql.h"
 #include "db/ras-db.h"
 #include "db/ras-store-db.h"
+#include "events/ras-mc-handler.h"
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;

@@ -22,4 +22,18 @@ const char *ras_extlog_test_error_type(int type);
 const char *ras_extlog_test_severity(int severity);
 unsigned long long ras_extlog_test_mask(int lsb);
 #endif
+struct ras_extlog_event {
+	char timestamp[64];
+	int32_t error_seq;
+	int8_t etype;
+	int8_t severity;
+	unsigned long long address;
+	int8_t pa_mask_lsb;
+	const char *fru_id;
+	const char *fru_text;
+	const char *cper_data;
+	unsigned short cper_data_length;
+};
+
+
 #endif
