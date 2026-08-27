@@ -16,9 +16,6 @@
 
 #ifdef HAVE_DB
 
-int ras_db_features_open(struct ras_events *ras);
-int ras_db_features_close(unsigned int cpu, struct ras_events *ras);
-
 /*
  * Table and functions to handle ras:mc_event
  */
@@ -102,10 +99,6 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 	if (rc)
 		return -1;
 
-	rc = ras_db_features_open(ras);
-	if (rc)
-		return -1;
-
 	return 0;
 }
 
@@ -131,9 +124,6 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 
 	if (db_cpu_finalize(cpu, priv->stmt_mc_event, "mc_event"))
 		rc = -1;
-	if (ras_db_features_close(cpu, ras))
-		rc = -1;
-
 	if (db_close(cpu, ras))
 		rc = -1;
 

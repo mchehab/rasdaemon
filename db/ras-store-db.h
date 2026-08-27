@@ -320,45 +320,6 @@ struct ras_reri_event;
 
 struct ras_record_priv {
 	struct ras_stmt	*stmt_mc_event;
-	/* AER */
-	struct ras_stmt	*stmt_aer_event;
-
-	/* MCE */
-	struct ras_stmt	*stmt_mce_record;
-
-	/* EXTLOG */
-	struct ras_stmt	*stmt_extlog_record;
-
-	/* NON_STANDARD */
-	struct ras_stmt	*stmt_non_standard_record;
-
-	/* ARM */
-	struct ras_stmt	*stmt_arm_record;
-
-	/* DEVLINK */
-	struct ras_stmt	*stmt_devlink_event;
-
-	/* DISKERROR */
-	struct ras_stmt	*stmt_diskerror_event;
-
-	/* MEMORY_FAILURE */
-	struct ras_stmt	*stmt_mf_event;
-
-	/* CXL */
-	struct ras_stmt	*stmt_cxl_poison_event;
-	struct ras_stmt	*stmt_cxl_aer_ue_event;
-	struct ras_stmt	*stmt_cxl_aer_ce_event;
-	struct ras_stmt	*stmt_cxl_overflow_event;
-	struct ras_stmt	*stmt_cxl_generic_event;
-	struct ras_stmt	*stmt_cxl_general_media_event;
-	struct ras_stmt	*stmt_cxl_dram_event;
-	struct ras_stmt	*stmt_cxl_memory_module_event;
-
-	/* SIGNAL */
-	struct ras_stmt	*stmt_signal_event;
-
-	/* RERI */
-	struct ras_stmt	*stmt_reri_event;
 };
 
 
