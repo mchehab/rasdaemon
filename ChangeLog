@@ -5,6 +5,8 @@
           Makefile for common build, install, clean, and test operations
         * Build: Auto-detect optional dependencies and non-standard CPER
           decoders, and add an option to disable optional features
+        * Build: Select architecture-specific features automatically and fix
+          several Makefile, Meson, RPM, and Fedora build issues
         * Packaging: Fix Meson-generated RPM and install rules, install the
           DIMM label database, and update Python runtime dependencies
         * Database: Introduce a generic, modular database abstraction layer
@@ -14,6 +16,7 @@
         * Database: Record the hostname in remote databases
         * SQLite3: Allow the full database path to be configured at build time
           or with RAS_SQLITE3_DATABASE at runtime
+        * SQLite3: Bind binary fields as BLOBs instead of text
         * MySQL/MariaDB: Add MariaDB Connector/C support and constrain hostname
           storage to the backend limit
         * MySQL/PostgreSQL: Quote field names and improve binding and error
@@ -23,6 +26,8 @@
           layout commands compatible with the former tool
         * ras-mc-ctl: Add SQLite3, MySQL/MariaDB, and PostgreSQL database query
           support, including date and hostname filters and automatic indexes
+        * ras-mc-ctl: Add short command-line aliases, error counts, per-rank
+          output, per-table error summaries, and inclusive --until handling
         * ras-mc-ctl: Allow selection of an alternate configuration file
         * ras-mc-ctl: Update the manual page and Bash and Zsh completions for
           the new subcommand interface
@@ -30,18 +35,26 @@
           backends and a fill-test-databases data generator
         * Tests: Move the C unit tests to cmocka and expand database, module,
           DIMM, layout, environment, and Python tool coverage
+        * Tests: Add realistic cross-backend database tests, MariaDB coverage,
+          and checks that ras-mc-ctl reads records from SQLite, MySQL, and
+          PostgreSQL
         * CI: Build with Meson and test SQLite3, MySQL, MariaDB, and PostgreSQL
         * rasdaemon: Add a module registration and lifecycle interface
         * ras-report: Consolidate common reporting code and eliminate unsafe
           stack allocations
+        * ras-db: Fix resource lifetime handling, binding failures, and
+          several use-after-free and memory-leak issues
         * ras-cxl-handler: Gracefully handle missing optional DRAM fields
         * ras-logger: Improve log identification and use colors on terminals
         * ras-events: Restore compatibility with Ubuntu 22.04
+        * ras-events: Fix configuration handling, event endianness, and
+          compatibility when optional event files are unavailable
         * non-standard: Fix duplicate Ampere fields, missing database guards,
           and duplicate JaguarMicro table creation
         * systemd: Order rasdaemon after debugfs
         * Documentation: Describe Meson builds and SQLite3, MySQL/MariaDB, and
           PostgreSQL configuration and dependencies
+        * Security: Fix multiple security issues reported by static analysis
 
 2026-06-26      Mauro Carvalho Chehab <mchehab@kernel.org>
         - Version 0.8.5
