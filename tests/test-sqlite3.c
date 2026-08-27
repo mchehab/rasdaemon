@@ -20,7 +20,6 @@
 #include "core/ras-logger.h"
 #include "db/db-sqlite3.h"
 #include "db/ras-db.h"
-#include "db/ras-store-db.h"
 #include "events-arch-arm/ras-arm-handler.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "events-arch-riscv/ras-reri-handler.h"
@@ -596,7 +595,6 @@ static void test_mc_event_recording(void **state)
 	const char *database = "/tmp/rasdaemon-mc-event-test.db";
 	const char *current;
 	char *saved = NULL;
-	struct ras_record_priv *priv;
 	struct ras_mc_event mc = {
 		.timestamp = "2026-08-25 12:00:00 +0000",
 		.error_count = 1,
@@ -706,9 +704,7 @@ static void test_mc_event_recording(void **state)
 
 	rc = ras_mc_event_opendb(0, &ras);
 	assert_int_equal(rc, 0);
-	priv = ras.db_priv;
-	assert_non_null(priv);
-	assert_non_null(priv->stmt_mc_event);
+	assert_non_null(ras.db_priv);
 
 	rc = db_mc_event(&ras, &mc);
 	assert_int_equal(rc, 0);

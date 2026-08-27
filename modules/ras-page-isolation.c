@@ -16,7 +16,6 @@
 
 #include "core/ras-logger.h"
 #include "core/types.h"
-#include "db/ras-store-db.h"
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-poison-page-stat.h"
 

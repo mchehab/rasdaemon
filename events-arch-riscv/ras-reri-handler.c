@@ -17,7 +17,7 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
-#include "db/ras-store-db.h"
+#include "db/ras-db.h"
 #include "events-arch-riscv/ras-reri-handler.h"
 #include "modules/ras-cpu-isolation.h"
 #include "modules/ras-report.h"

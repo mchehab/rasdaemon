@@ -35,5 +35,8 @@ struct ras_extlog_event {
 	unsigned short cper_data_length;
 };
 
+int db_extlog_mem_record(struct ras_events *ras,
+			 struct ras_extlog_event *ev);
+
 
 #endif

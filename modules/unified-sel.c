@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
-#include "db/ras-store-db.h"
 #include "modules/ras-report.h"
 #include "modules/unified-sel.h"
 

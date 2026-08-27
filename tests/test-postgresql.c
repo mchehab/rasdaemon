@@ -28,7 +28,6 @@
 #include "db/db-postgresql-priv.h"
 #include "db/db-postgresql.h"
 #include "db/ras-db.h"
-#include "db/ras-store-db.h"
 #include "events/ras-mc-handler.h"
 #include "tests/unittest.h"
 

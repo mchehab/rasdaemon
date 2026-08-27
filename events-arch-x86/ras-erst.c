@@ -4,6 +4,8 @@
  * Copyright (C) 2025 Alibaba Inc
  */
 
+#include "config.h"
+
 #include <dirent.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -12,7 +14,6 @@
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
-#include "db/ras-store-db.h"
 #include "events-arch-x86/ras-erst.h"
 #include "events-arch-x86/ras-mce-handler.h"
 

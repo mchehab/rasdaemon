@@ -64,5 +64,7 @@ struct diskerror_event {
 	const char *cmd;
 };
 
+int db_diskerror_event(struct ras_events *ras, struct diskerror_event *ev);
+
 
 #endif

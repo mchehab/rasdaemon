@@ -89,6 +89,8 @@ struct mce_event {
 	int		erst;
 };
 
+int db_mce_record(struct ras_events *ras, struct mce_event *ev);
+
 struct ras_mc_offline_event {
 	unsigned int family, model;
 	bool smca;

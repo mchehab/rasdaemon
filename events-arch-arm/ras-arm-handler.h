@@ -66,5 +66,7 @@ struct ras_arm_event {
 	uint64_t phy_fault_addr;
 };
 
+int db_arm_record(struct ras_events *ras, struct ras_arm_event *ev);
+
 
 #endif

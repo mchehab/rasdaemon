@@ -104,6 +104,8 @@ struct ras_reri_event {
 	uint64_t timestamp_val;
 };
 
+int db_reri_event(struct ras_events *ras, struct ras_reri_event *ev);
+
 int ras_reri_event_handler(struct trace_seq *s,
 			   struct tep_record *record,
 			   struct tep_event *event,

@@ -39,5 +39,7 @@ struct ras_signal_event {
 	int result;
 };
 
+int db_signal_event(struct ras_events *ras, struct ras_signal_event *ev);
+
 
 #endif

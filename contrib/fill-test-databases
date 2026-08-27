@@ -38,7 +38,12 @@ class TestDatabaseFiller:
             os.path.abspath(__file__)
         ))
         self.descriptor_sources = (
-            os.path.join(self.root_dir, "db", "ras-record.c"),
+            os.path.join(self.root_dir, "events", "ras-mc-handler.c"),
+            os.path.join(self.root_dir, "events", "ras-aer-handler.c"),
+            os.path.join(self.root_dir, "events", "ras-cxl-handler.c"),
+            os.path.join(
+                self.root_dir, "events-arch-x86", "ras-mce-handler.c"
+            ),
             os.path.join(
                 self.root_dir, "events-arch-arm", "non-standard-ampere.c"
             ),

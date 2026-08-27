@@ -28,5 +28,7 @@ struct devlink_event {
 	char *msg;
 };
 
+int db_devlink_event(struct ras_events *ras, struct devlink_event *ev);
+
 
 #endif

@@ -29,5 +29,7 @@ struct ras_aer_event {
 	uint16_t device_id;
 };
 
+int db_aer_event(struct ras_events *ras, struct ras_aer_event *ev);
+
 
 #endif

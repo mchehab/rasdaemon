@@ -10,7 +10,9 @@
 #include <traceevent/event-parse.h>
 
 #include "core/ras-events.h"
-#include "db/ras-store-db.h"
+#include "db/ras-db.h"
+
+struct ras_non_standard_event;
 
 struct ras_ns_ev_decoder {
 	struct ras_ns_ev_decoder *next;
@@ -53,6 +55,9 @@ struct ras_non_standard_event {
 	const uint8_t *error;
 	uint32_t length;
 };
+
+int db_non_standard_record(struct ras_events *ras,
+			   struct ras_non_standard_event *ev);
 
 
 #endif

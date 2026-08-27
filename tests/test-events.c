@@ -18,7 +18,6 @@
 #include "core/ras-logger.h"
 #include "db/ras-db-backend.h"
 #include "db/ras-db.h"
-#include "db/ras-store-db.h"
 #include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/non-standard-nvidia.h"
 #include "events-arch-arm/non-standard-yitian.h"

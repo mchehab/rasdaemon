@@ -15,8 +15,12 @@
 #include "core/ras-logger.h"
 #include "core/trigger.h"
 #include "core/types.h"
-#include "db/ras-store-db.h"
+#include "db/ras-db.h"
 #include "events/ras-mc-handler.h"
+
+struct ras_record_priv {
+	struct ras_stmt *stmt_mc_event;
+};
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-report.h"
 

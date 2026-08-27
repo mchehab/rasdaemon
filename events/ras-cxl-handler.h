@@ -214,6 +214,23 @@ struct ras_cxl_memory_sparing_event {
 	uint8_t res_id[CXL_PLDM_RES_ID_LEN];
 };
 
+int db_cxl_poison_event(struct ras_events *ras,
+			struct ras_cxl_poison_event *ev);
+int db_cxl_aer_ue_event(struct ras_events *ras,
+			struct ras_cxl_aer_ue_event *ev);
+int db_cxl_aer_ce_event(struct ras_events *ras,
+			struct ras_cxl_aer_ce_event *ev);
+int db_cxl_overflow_event(struct ras_events *ras,
+			  struct ras_cxl_overflow_event *ev);
+int db_cxl_generic_event(struct ras_events *ras,
+			 struct ras_cxl_generic_event *ev);
+int db_cxl_general_media_event(struct ras_events *ras,
+			       struct ras_cxl_general_media_event *ev);
+int db_cxl_dram_event(struct ras_events *ras,
+		      struct ras_cxl_dram_event *ev);
+int db_cxl_memory_module_event(struct ras_events *ras,
+			       struct ras_cxl_memory_module_event *ev);
+
 
 
 #endif

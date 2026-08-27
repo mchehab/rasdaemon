@@ -30,5 +30,7 @@ struct ras_mf_event {
 	const char *action_result;
 };
 
+int db_mf_event(struct ras_events *ras, struct ras_mf_event *ev);
+
 
 #endif
