@@ -12,6 +12,7 @@
 #include <time.h>
 
 #include "core/ras-logger.h"
+#include "core/modules.h"
 #include "events-arch-arm/non-standard-nvidia.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 
@@ -698,10 +699,29 @@ static struct ras_ns_ev_decoder nvidia_vera_ns_ev_decoder = {
 #endif
 };
 
-static void __attribute__((constructor)) nvidia_init(void)
+static int nvidia_init(struct ras_module_ctx *ctx)
 {
-	register_ns_ev_decoder(&nvidia_ns_ev_decoder);
-	register_ns_ev_decoder(&nvidia_vera_ns_ev_decoder);
+	int rc;
+
+	rc = register_ns_ev_decoder(&nvidia_ns_ev_decoder);
+	if (rc)
+		return rc;
+
+	return register_ns_ev_decoder(&nvidia_vera_ns_ev_decoder);
+}
+
+static const struct ras_module_entry nvidia_module = {
+	.name = "non-standard-nvidia",
+	.level = SUB_EVENT_MODULE,
+	.init = nvidia_init,
+};
+
+static void __attribute__((constructor)) nvidia_register(void)
+{
+	int rc = module_register(&nvidia_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register NVIDIA module: %d\n", rc);
 }
 
 #if defined(HAVE_DB) && defined(HAVE_UNITTEST)

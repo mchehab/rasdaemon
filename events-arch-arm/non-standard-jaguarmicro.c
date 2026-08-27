@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
+#include "core/modules.h"
 #include "core/types.h"
 #include "events-arch-arm/non-standard-jaguarmicro.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
@@ -1102,12 +1103,32 @@ struct ras_ns_ev_decoder jm_ns_oem_type_decoder[] = {
 	},
 };
 
-static void __attribute__((constructor)) jm_init(void)
+static int jm_init(struct ras_module_ctx *ctx)
 {
 	int i;
+	int rc;
 
-	for (i = 0; i < ARRAY_SIZE(jm_ns_oem_type_decoder); i++)
-		register_ns_ev_decoder(&jm_ns_oem_type_decoder[i]);
+	for (i = 0; i < ARRAY_SIZE(jm_ns_oem_type_decoder); i++) {
+		rc = register_ns_ev_decoder(&jm_ns_oem_type_decoder[i]);
+		if (rc)
+			return rc;
+	}
+
+	return 0;
+}
+
+static const struct ras_module_entry jm_module = {
+	.name = "non-standard-jaguarmicro",
+	.level = SUB_EVENT_MODULE,
+	.init = jm_init,
+};
+
+static void __attribute__((constructor)) jm_register(void)
+{
+	int rc = module_register(&jm_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register JaguarMicro module: %d\n", rc);
 }
 
 #if defined(HAVE_DB) && defined(HAVE_UNITTEST)

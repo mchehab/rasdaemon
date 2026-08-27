@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
+#include "core/modules.h"
 #include "core/types.h"
 #include "events-arch-arm/non-standard-hisilicon.h"
 #include "modules/ras-report.h"
@@ -388,12 +389,32 @@ static struct ras_ns_ev_decoder hisi_section_ns_ev_decoder[]  = {
 	},
 };
 
-static void __attribute__((constructor)) hisi_ns_init(void)
+static int hisi_ns_init(struct ras_module_ctx *ctx)
 {
 	unsigned int i;
+	int rc;
 
-	for (i = 0; i < ARRAY_SIZE(hisi_section_ns_ev_decoder); i++)
-		register_ns_ev_decoder(&hisi_section_ns_ev_decoder[i]);
+	for (i = 0; i < ARRAY_SIZE(hisi_section_ns_ev_decoder); i++) {
+		rc = register_ns_ev_decoder(&hisi_section_ns_ev_decoder[i]);
+		if (rc)
+			return rc;
+	}
+
+	return 0;
+}
+
+static const struct ras_module_entry hisi_ns_module = {
+	.name = "non-standard-hisilicon",
+	.level = SUB_EVENT_MODULE,
+	.init = hisi_ns_init,
+};
+
+static void __attribute__((constructor)) hisi_ns_register(void)
+{
+	int rc = module_register(&hisi_ns_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register HiSilicon module: %d\n", rc);
 }
 
 #if defined(HAVE_DB) && defined(HAVE_UNITTEST)

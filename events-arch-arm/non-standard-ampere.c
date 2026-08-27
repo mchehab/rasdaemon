@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
+#include "core/modules.h"
 #include "core/types.h"
 #include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
@@ -1075,9 +1076,23 @@ struct ras_ns_ev_decoder amp_ns_oem_decoder[] = {
 	},
 };
 
-static void __attribute__((constructor)) amp_init(void)
+static int amp_init(struct ras_module_ctx *ctx)
 {
-	register_ns_ev_decoder(amp_ns_oem_decoder);
+	return register_ns_ev_decoder(amp_ns_oem_decoder);
+}
+
+static const struct ras_module_entry amp_module = {
+	.name = "non-standard-ampere",
+	.level = SUB_EVENT_MODULE,
+	.init = amp_init,
+};
+
+static void __attribute__((constructor)) amp_register(void)
+{
+	int rc = module_register(&amp_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register Ampere module: %d\n", rc);
 }
 
 #if defined(HAVE_DB) && defined(HAVE_UNITTEST)

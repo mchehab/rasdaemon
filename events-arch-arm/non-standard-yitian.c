@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
+#include "core/modules.h"
 #include "core/types.h"
 #include "events-arch-arm/non-standard-yitian.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
@@ -266,12 +267,32 @@ struct ras_ns_ev_decoder yitian_ns_oem_decoder[] = {
 	},
 };
 
-static void __attribute__((constructor)) yitian_ns_init(void)
+static int yitian_ns_init(struct ras_module_ctx *ctx)
 {
 	int i;
+	int rc;
 
-	for (i = 0; i < ARRAY_SIZE(yitian_ns_oem_decoder); i++)
-		register_ns_ev_decoder(&yitian_ns_oem_decoder[i]);
+	for (i = 0; i < ARRAY_SIZE(yitian_ns_oem_decoder); i++) {
+		rc = register_ns_ev_decoder(&yitian_ns_oem_decoder[i]);
+		if (rc)
+			return rc;
+	}
+
+	return 0;
+}
+
+static const struct ras_module_entry yitian_ns_module = {
+	.name = "non-standard-yitian",
+	.level = SUB_EVENT_MODULE,
+	.init = yitian_ns_init,
+};
+
+static void __attribute__((constructor)) yitian_ns_register(void)
+{
+	int rc = module_register(&yitian_ns_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register Yitian module: %d\n", rc);
 }
 
 #if defined(HAVE_DB) && defined(HAVE_UNITTEST)

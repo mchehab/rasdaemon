@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
+#include "core/modules.h"
 #include "core/types.h"
 #include "events-arch-arm/non-standard-hisilicon.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
@@ -1038,12 +1039,32 @@ static struct ras_ns_ev_decoder hip08_ns_ev_decoder[] = {
 	},
 };
 
-static void __attribute__((constructor)) hip08_init(void)
+static int hip08_init(struct ras_module_ctx *ctx)
 {
 	unsigned int i;
+	int rc;
 
-	for (i = 0; i < ARRAY_SIZE(hip08_ns_ev_decoder); i++)
-		register_ns_ev_decoder(&hip08_ns_ev_decoder[i]);
+	for (i = 0; i < ARRAY_SIZE(hip08_ns_ev_decoder); i++) {
+		rc = register_ns_ev_decoder(&hip08_ns_ev_decoder[i]);
+		if (rc)
+			return rc;
+	}
+
+	return 0;
+}
+
+static const struct ras_module_entry hip08_module = {
+	.name = "non-standard-hip08",
+	.level = SUB_EVENT_MODULE,
+	.init = hip08_init,
+};
+
+static void __attribute__((constructor)) hip08_register(void)
+{
+	int rc = module_register(&hip08_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register HIP08 module: %d\n", rc);
 }
 
 #if defined(HAVE_DB) && defined(HAVE_UNITTEST)
