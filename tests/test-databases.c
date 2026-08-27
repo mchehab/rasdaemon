@@ -42,31 +42,9 @@ static const table_getter table_getters[] = {
 #endif
 };
 
-static uint64_t field_value(enum db_field_type type, unsigned int row,
-			    int *length)
-{
-	static const char text[] = "database unit test";
-	static const char timestamp[] = "2026-08-21 12:00:00+00";
-	static const unsigned char blob[] = { 0x52, 0x41, 0x53, 0xdb };
-
-	*length = -1;
-	switch (type) {
-	case DB_TYPE_TIMESTAMP:
-		return (uint64_t)timestamp;
-	case DB_TYPE_TEXT:
-		return (uint64_t)text;
-	case DB_TYPE_BLOB:
-		*length = sizeof(blob);
-		return (uint64_t)blob;
-	case DB_TYPE_INT32:
-	case DB_TYPE_INT64:
-		return row + 1;
-	case DB_TYPE_SERIAL:
-		return 0;
-	}
-
-	return 0;
-}
+static const char text[] = "database unit test";
+static const char timestamp[] = "2026-08-21 12:00:00 +00:00";
+static const unsigned char blob[] = { 0x52, 0x41, 0x53, 0xdb };
 
 static void populate_table(const struct db_table_descriptor *table)
 {
@@ -81,15 +59,34 @@ static void populate_table(const struct db_table_descriptor *table)
 	for (row = 0; row < 10; row++) {
 		int position = 1;
 		size_t field;
+		uint64_t val;
 
 		for (field = 0; field < table->num_fields; field++) {
 			const enum db_field_type type = table->fields[field].type;
-			int length;
+			int length = -1;
 
-			if (type == DB_TYPE_SERIAL)
-				continue;
-			rc = db_bind(table, stmt, position++,
-				     field_value(type, row, &length), length);
+			switch (type) {
+				case DB_TYPE_SERIAL:
+					continue;
+				case DB_TYPE_INT32:
+				case DB_TYPE_INT64:
+					val = row + 1;
+					break;
+				case DB_TYPE_TIMESTAMP:
+					val = (uint64_t)timestamp;
+					break;
+				default:
+				case DB_TYPE_TEXT:
+					val = (uint64_t)text;
+					break;
+				case DB_TYPE_BLOB:
+					length = sizeof(blob);
+					val = (uint64_t)blob;
+					break;
+			}
+
+			rc = db_bind(table, stmt, position++, val, length);
+
 			assert_int_equal(rc, 0);
 		}
 
@@ -110,9 +107,9 @@ void test_database_tables(void **state)
 		size_t table;
 
 		for (table = 0; table < list.num_tables; table++) {
-			if (!mock_output)
-				print_message("checking database table %s\n",
-					      list.tables[table]->name);
+				log(TERM, LOG_DEBUG,
+				    "checking database table %s\n",
+				    list.tables[table]->name);
 			populate_table(list.tables[table]);
 		}
 	}
