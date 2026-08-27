@@ -34,7 +34,7 @@ jobs:
     name: Fedora
     runs-on: ubuntu-latest
     container:
-      image: fedora:rawhide
+      image: fedora:44
       options: --privileged
     steps:
     - name: prepare
@@ -54,21 +54,15 @@ jobs:
 
     - name: build x86_64 package
       run: |
-        mock -r fedora-rawhide-x86_64 \
-             --config-opts=use_bootstrap_container=False \
-             ./rasdaemon-*.src.rpm
+        mock -r fedora-44-x86_64 ./rasdaemon-*.src.rpm
 
     - name: build aarch64 package
       run: |
-        mock -r fedora-rawhide-aarch64 \
-             --config-opts=use_bootstrap_container=False \
-             ./rasdaemon-*.src.rpm
+        mock -r fedora-44-aarch64 ./rasdaemon-*.src.rpm
 
     - name: build riscv64 package
       run: |
-        mock -r fedora-rawhide-riscv64 \
-             --config-opts=use_bootstrap_container=False \
-             ./rasdaemon-*.src.rpm
+        mock -r fedora-44-riscv64 ./rasdaemon-*.src.rpm
 
   openEuler:
     name: OpenEuler LTS
