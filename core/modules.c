@@ -76,6 +76,7 @@ int module_register(const struct ras_module_entry *entry)
 		if (!cmp) {
 			log(ALL, LOG_ERR, "module %s is already registered\n",
 			    entry->name);
+			free(new);
 			return -EEXIST;
 		}
 
