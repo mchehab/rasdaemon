@@ -11,29 +11,21 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#ifndef HAVE_DB
-
-static inline int db_backend_enable(const char *name) { return 0; }
-
-#else
-
-extern const char *rasdaemon_hostname;
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * db_backend_enable - select backend to use
  * @name: name of the backend. NULL to allow selecting via env vars
  * Returns: if the env var exists, return its content; otherwise returns @def.
  */
-int db_backend_enable(const char *name);
-const char *db_list_available_backends(void);
-
 /* #define DEBUG_SQL 1 */
 
 /* Opaque types to make SQL data structs generic */
 struct ras_db;
 struct ras_stmt;
 struct ras_events;
+struct ras_module_ctx;
 
 /**
  * enum db_field_type - Supported database column types
@@ -128,6 +120,16 @@ struct db_table_descriptor {
 	size_t				num_fields;
 };
 
+/**
+ * struct db_desc_and_stmt - A table descriptor and its prepared statement
+ * @desc: Database table schema
+ * @stmt: Storage for the prepared insert statement
+ */
+struct db_desc_and_stmt {
+	const struct db_table_descriptor *desc;
+	struct ras_stmt *stmt;
+};
+
 #ifdef HAVE_UNITTEST
 struct db_table_descriptor_list {
 	const struct db_table_descriptor * const *tables;
@@ -152,6 +154,33 @@ struct db_backend {
 	const char *name;
 	void *conn_parms;
 };
+
+#ifdef HAVE_DB
+
+extern const char *rasdaemon_hostname;
+
+/**
+ * db_backend_enable - select backend to use
+ * @name: name of the backend. NULL to allow selecting via env vars
+ * Returns: if the env var exists, return its content; otherwise returns @def.
+ */
+int db_backend_enable(const char *name);
+const char *db_list_available_backends(void);
+/**
+ * ras_db_table_register - Register one module-owned table pair
+ * @ctx: Owning module context
+ * @entry: Descriptor and statement pair that remains valid until unregistered
+ */
+int ras_db_table_register(struct ras_module_ctx *ctx,
+			  struct db_desc_and_stmt *entry);
+
+/**
+ * ras_db_table_unregister - Remove every table pair owned by a module
+ * @ctx: Owning module context
+ *
+ * The owner must finalize its statements before calling this function.
+ */
+void ras_db_table_unregister(struct ras_module_ctx *ctx);
 
 /**
  * ops_bind_type - Bind a single value based on its type descriptor
@@ -302,6 +331,110 @@ int db_open(struct db_backend *backend, unsigned int cpu,
  * 0 on success or a negative errno value on failure.
  */
 int db_close(unsigned int cpu, struct ras_events *ras);
+
+#else /* HAVE_DB */
+
+static inline int db_backend_enable(const char *name)
+{
+	return 0;
+}
+
+static inline const char *db_list_available_backends(void)
+{
+	return "";
+}
+
+static inline int ras_db_table_register(struct ras_module_ctx *ctx,
+					struct db_desc_and_stmt *entry)
+{
+	return 0;
+}
+
+static inline void ras_db_table_unregister(struct ras_module_ctx *ctx)
+{
+}
+
+static inline int db_bind_type(struct ras_stmt *stmt,
+			       const enum db_field_type type, const int pos,
+			       uint64_t value, int len)
+{
+	return 0;
+}
+
+static inline int db_bind(const struct db_table_descriptor *db_tab,
+			  struct ras_stmt *stmt, int pos, uint64_t value, int len)
+{
+	return 0;
+}
+
+static inline const char *db_get_sql_type(enum db_field_type type, bool is_pk)
+{
+	return "";
+}
+
+static inline int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name)
+{
+	return 0;
+}
+
+static inline int db_create_table(struct ras_db *db,
+				  const struct db_table_descriptor *db_tab)
+{
+	return 0;
+}
+
+static inline int db_alter_table(struct ras_db *db, struct ras_stmt **stmt,
+				 const struct db_table_descriptor *db_tab)
+{
+	if (stmt)
+		*stmt = NULL;
+	return 0;
+}
+
+static inline int db_prepare_insert_stmt(struct ras_db *db,
+					 struct ras_stmt **stmt,
+					 const struct db_table_descriptor *db_tab)
+{
+	if (stmt)
+		*stmt = NULL;
+	return 0;
+}
+
+static inline int db_create_table_prep_stmt(struct ras_events *ras,
+					    struct ras_stmt **stmt,
+					    const struct db_table_descriptor *db_tab)
+{
+	if (stmt)
+		*stmt = NULL;
+	return 0;
+}
+
+static inline int db_exec_sql(struct ras_db *db, const char *sql)
+{
+	return 0;
+}
+
+static inline int db_finalize(struct ras_stmt *stmt)
+{
+	return 0;
+}
+
+static inline int db_cpu_finalize(unsigned int cpu, struct ras_stmt *stmt,
+				  const char *name)
+{
+	return 0;
+}
+
+static inline int db_open(struct db_backend *backend, unsigned int cpu,
+			  struct ras_events *ras, size_t size_priv)
+{
+	return 0;
+}
+
+static inline int db_close(unsigned int cpu, struct ras_events *ras)
+{
+	return 0;
+}
 
 #endif /* HAVE_DB */
 

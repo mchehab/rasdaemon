@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "db/ras-db-backend.h"
 #include "db/ras-db.h"
@@ -834,6 +835,25 @@ static void assert_vendor_descriptor_count(struct db_table_descriptor_list list,
 #endif
 
 #ifdef HAVE_DB
+static void test_db_table_registry(void **state)
+{
+	static const struct db_table_descriptor descriptor = {
+		.name = "test-table",
+	};
+	struct db_desc_and_stmt entry = {
+		.desc = &descriptor,
+	};
+	struct ras_module_ctx ctx = { 0 };
+
+	assert_int_equal(ras_db_table_register(NULL, &entry), -EINVAL);
+	assert_int_equal(ras_db_table_register(&ctx, NULL), -EINVAL);
+	assert_int_equal(ras_db_table_register(&ctx, &entry), 0);
+	assert_int_equal(ras_db_table_register(&ctx, &entry), -EEXIST);
+	ras_db_table_unregister(&ctx);
+	assert_int_equal(ras_db_table_register(&ctx, &entry), 0);
+	ras_db_table_unregister(&ctx);
+}
+
 static void test_database_registry_and_environment(void **state)
 {
 	static const struct ras_db_backend_ops incomplete_ops = { 0 };
@@ -871,6 +891,7 @@ static void test_database_registry_and_environment(void **state)
 
 static const struct CMUnitTest database_tests[] = {
 	cmocka_unit_test(test_database_registry_and_environment),
+	cmocka_unit_test(test_db_table_registry),
 };
 
 int test_database(void)

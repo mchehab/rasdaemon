@@ -800,7 +800,44 @@ static void test_mc_event_recording(void **state)
 	}
 }
 
+static void test_db_open_registered_tables(void **state)
+{
+	static const struct db_fields fields[] = {
+		{ .name = "id", .type = DB_TYPE_SERIAL, .is_pk = true },
+		{ .name = "value", .type = DB_TYPE_INT32 },
+	};
+	static const struct db_table_descriptor desc[] = {
+		{ .name = "registered_one", .fields = fields, .num_fields = 2 },
+		{ .name = "registered_two", .fields = fields, .num_fields = 2 },
+		{ .name = "registered_three", .fields = fields, .num_fields = 2 },
+	};
+	struct db_desc_and_stmt tables[] = {
+		{ .desc = &desc[0] }, { .desc = &desc[1] }, { .desc = &desc[2] },
+	};
+	struct ras_events test_ras = { 0 };
+	struct ras_module_ctx ctx = { 0 };
+	struct db_values values[2];
+	int rc;
+
+	for (size_t i = 0; i < ARRAY_SIZE(tables); i++)
+		assert_int_equal(ras_db_table_register(&ctx, &tables[i]), 0);
+	assert_int_equal(db_open(&backend, 0, &test_ras, sizeof(struct mock_priv)), 0);
+	for (size_t i = 0; i < ARRAY_SIZE(tables); i++) {
+		values[0] = (struct db_values) { .type = DB_TYPE_SERIAL, .value = 1 };
+		values[1] = (struct db_values) { .type = DB_TYPE_INT32, .value = i + 1 };
+		assert_int_equal(db_bind(&desc[i], tables[i].stmt, 1, values[1].value, -1), 0);
+		assert_int_equal(db_eval_stmt(tables[i].stmt, desc[i].name), 0);
+		rc = sqlite3_check_values(state, test_ras.db, &tables[i].stmt,
+					  &desc[i], values, ARRAY_SIZE(values));
+		assert_int_equal(rc, 0);
+		tables[i].stmt = NULL;
+	}
+	assert_int_equal(db_close(0, &test_ras), 0);
+	ras_db_table_unregister(&ctx);
+}
+
 static const struct CMUnitTest tests[] = {
+	cmocka_unit_test(test_db_open_registered_tables),
 	cmocka_unit_test(test_database_environment),
 	cmocka_unit_test(test_mc_event_recording),
 
