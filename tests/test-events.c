@@ -845,10 +845,13 @@ static void test_database_registry_and_environment(void **state)
 
 	assert_int_equal(db_backend_register(NULL), -EINVAL);
 	assert_int_equal(db_backend_register(&incomplete), -EINVAL);
+	assert_false(db_backend_is_registered(NULL));
+	assert_false(db_backend_is_registered("incomplete"));
 	available = db_list_available_backends();
 	assert_non_null(available);
 #ifdef HAVE_SQLITE3
 	assert_non_null(strstr(available, "sqlite3"));
+	assert_true(db_backend_is_registered("sqlite3"));
 	assert_int_equal(db_backend_enable("sqlite3"), 0);
 #endif
 	assert_int_equal(db_backend_enable("does-not-exist"), -1);

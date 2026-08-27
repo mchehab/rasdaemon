@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/queue.h>
 #include <unistd.h>
 
 #include "core/ras-events.h"
@@ -15,8 +16,18 @@
 #include "db/ras-db.h"
 
 const char *selected_backend = NULL;
-struct ras_db_backend_entry ras_db_backends = { 0 };
 const struct ras_db_backend_ops *ras_db_ops = NULL;
+
+struct ras_db_backend_runtime {
+	const struct ras_db_backend_entry *entry;
+
+	LIST_ENTRY(ras_db_backend_runtime) node;
+};
+
+LIST_HEAD(ras_db_backend_list, ras_db_backend_runtime);
+
+static struct ras_db_backend_list ras_db_backends =
+	LIST_HEAD_INITIALIZER(ras_db_backends);
 
 const char *rasdaemon_hostname = "";
 
@@ -26,8 +37,7 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 {
 	const struct ras_db_backend_ops *ops;
 	const char *name;
-	struct ras_db_backend_entry **head = &ras_db_backends.next;
-	struct ras_db_backend_entry *new, *cur, *prev = NULL;
+	struct ras_db_backend_runtime *new, *cur, *prev = NULL;
 
 	if (!entry) {
 		log(TERM, LOG_ERR, "Backend entry is missing!\n");
@@ -36,12 +46,17 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 	ops = entry->ops;
 	name = entry->name;
 
-	if (!ops || !ops->get_sql_type || !ops->bind_type ||
+	if (!name || !ops || !ops->get_sql_type || !ops->bind_type ||
 	    !ops->eval_stmt || !ops->create_table || !ops->alter_table ||
 	    !ops->prepare_stmt || !ops->finalize || !ops->open ||
 	    !ops->close || !ops->db_exec_sql) {
 		log(TERM, LOG_ERR, "Incomplete ops for backend %s\n", name);
 		return -EINVAL;
+	}
+
+	LIST_FOREACH(cur, &ras_db_backends, node) {
+		if (!strcmp(name, cur->entry->name))
+			return -EEXIST;
 	}
 
 	new = malloc(sizeof(*new));
@@ -50,39 +65,53 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 		    entry->name);
 		return -ENOMEM;
 	}
-	memcpy(new, entry, sizeof(*entry));
+	new->entry = entry;
 
 	/* Keep it alphabetically sorted */
-	for (cur = ras_db_backends.next; cur; cur = cur->next) {
-		if (strcmp(entry->name, cur->name) < 0)
+	LIST_FOREACH(cur, &ras_db_backends, node) {
+		if (strcmp(entry->name, cur->entry->name) < 0)
 			break;
 
 		prev = cur;
 	}
 
-	if (!prev) {
-		new->next = *head;
-		*head = new;
-	} else {
-		new->next = prev->next;
-		prev->next = new;
-	}
+	if (cur)
+		LIST_INSERT_BEFORE(cur, new, node);
+	else if (prev)
+		LIST_INSERT_AFTER(prev, new, node);
+	else
+		LIST_INSERT_HEAD(&ras_db_backends, new, node);
 
 	return 0;
 }
 
+bool db_backend_is_registered(const char *name)
+{
+	const struct ras_db_backend_runtime *backend;
+
+	if (!name)
+		return false;
+
+	LIST_FOREACH(backend, &ras_db_backends, node) {
+		if (!strcmp(name, backend->entry->name))
+			return true;
+	}
+
+	return false;
+}
+
 const char *db_list_available_backends(void)
 {
-	const struct ras_db_backend_entry *entry;
+	const struct ras_db_backend_runtime *backend;
 	static char buf[256];
 	int len = 0;
 
 	buf[0] = '\0';
 
-	for (entry = ras_db_backends.next; entry; entry = entry->next) {
+	LIST_FOREACH(backend, &ras_db_backends, node) {
 		if (len > 0)
 			strncat(buf, ", ", sizeof(buf) - len - 1);
-		strncat(buf, entry->name, sizeof(buf) - len - 1);
+		strncat(buf, backend->entry->name, sizeof(buf) - len - 1);
 		len = (int)strlen(buf);
 	}
 
@@ -91,7 +120,7 @@ const char *db_list_available_backends(void)
 
 int db_backend_enable(const char *name)
 {
-	const struct ras_db_backend_entry *entry = NULL;
+	const struct ras_db_backend_runtime *registered = NULL;
 	const char *backend;
 
 	if (name)
@@ -99,12 +128,12 @@ int db_backend_enable(const char *name)
 	else
 		backend = env_or("RASDAEMON_DB_BACKEND", "sqlite3");
 
-	for (entry = ras_db_backends.next; entry; entry = entry->next) {
-		if (strcmp(entry->name, backend) == 0)
+	LIST_FOREACH(registered, &ras_db_backends, node) {
+		if (strcmp(registered->entry->name, backend) == 0)
 			break;
 	}
 
-	if (!entry) {
+	if (!registered) {
 		log(TERM, LOG_ERR,
 		    "Backend '%s' not found. Available: %s\n",
 		    backend, db_list_available_backends());
@@ -156,7 +185,8 @@ static void db_get_rasdaemon_hostname(void)
 int db_open(struct db_backend *backend, unsigned int cpu,
 	    struct ras_events *ras, size_t size_priv)
 {
-	struct ras_db_backend_entry *entry = &ras_db_backends;
+	const struct ras_db_backend_runtime *registered;
+	const struct ras_db_backend_entry *entry;
 	const char *backend_name;
 	void *conn_parms;
 	void *db_priv;
@@ -182,7 +212,8 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 	else
 		backend_name = selected_backend;
 
-	for (entry = entry->next; entry; entry = entry->next) {
+	LIST_FOREACH(registered, &ras_db_backends, node) {
+		entry = registered->entry;
 		if (strcmp(backend_name, entry->name)) {
 			continue;
 		}

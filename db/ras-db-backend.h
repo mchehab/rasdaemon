@@ -43,10 +43,9 @@ struct ras_db_backend_entry {
 	const struct ras_db_backend_ops *ops;
 	void *priv;
 	bool allow_remote;
-
-	struct ras_db_backend_entry *next;
 };
 
 int db_backend_register(struct ras_db_backend_entry *entry);
+bool db_backend_is_registered(const char *name);
 
 #endif /* RAS_DB_REGISTER_H */
