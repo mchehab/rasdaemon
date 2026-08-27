@@ -44,7 +44,7 @@ static uint64_t field_value(enum db_field_type type, unsigned int row,
 			    int *length)
 {
 	static const char text[] = "database unit test";
-	static const char timestamp[] = "2026-08-21 12:00:00 +0000";
+	static const char timestamp[] = "2026-08-21 12:00:00+00";
 	static const unsigned char blob[] = { 0x52, 0x41, 0x53, 0xdb };
 
 	*length = -1;
