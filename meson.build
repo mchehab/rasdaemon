@@ -23,6 +23,7 @@ c_flags = [
 unittest_sources = [
     'tests/main.c',
     'tests/trace-mock.c',
+    'tests/test-db-cli.c',
     'tests/test-core.c',
     'tests/test-events.c',
     'tests/test-modules.c',
@@ -430,7 +431,9 @@ if have_unittest
             '-Wl,--wrap=tep_filter_match',
             '-Wl,--wrap=system',
         ],
-        c_args: ['-g'] + c_flags,
+        c_args: ['-g',
+                 '-DRAS_SOURCE_DIR="' + meson.current_source_dir() + '"',
+                 '-DRAS_BUILD_DIR="' + meson.current_build_dir() + '"'] + c_flags,
     )
 
     # Keep the default Meson test set hermetic. The MySQL and PostgreSQL

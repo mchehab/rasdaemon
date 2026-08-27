@@ -788,8 +788,10 @@ static void test_mc_event_recording(void **state)
 
 #undef RECORD_AND_CHECK
 
+	test_ras_mc_ctl_types("sqlite3", &ras);
 	rc = ras_mc_event_closedb(0, &ras);
 	assert_int_equal(rc, 0);
+	test_ras_mc_ctl_count("sqlite3", "mc_event", 1);
 
 	unlink(database);
 	if (saved) {

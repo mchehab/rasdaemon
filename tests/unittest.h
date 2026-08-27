@@ -9,6 +9,8 @@
 
 #include "core/types.h"
 
+struct ras_events;
+
 #ifndef CMOCKA_VERSION_2
 #define assert_non_null_msg(x, y) assert_non_null(x)
 #define assert_null_msg(x, y) assert_null(x)
@@ -51,5 +53,8 @@ int test_mysql(void);
 int test_postgresql(void);
 int test_sqlite3(void);
 void test_database_tables(void **state);
+void test_ras_mc_ctl_count(const char *backend, const char *table,
+			   int expected);
+void test_ras_mc_ctl_types(const char *backend, struct ras_events *ras);
 
 #endif

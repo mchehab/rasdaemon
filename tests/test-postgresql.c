@@ -28,6 +28,7 @@
 #include "db/db-postgresql-priv.h"
 #include "db/db-postgresql.h"
 #include "db/ras-db.h"
+#include "db/ras-record.h"
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;
@@ -415,6 +416,30 @@ static void test_db_complex_table(void **state)
 	assert_int_equal(rc, 0);
 }
 
+static void test_ras_mc_ctl_record(void **state)
+{
+	struct ras_mc_event event = {
+		.timestamp = "2026-08-27 09:01:50 +0000",
+		.error_count = 1,
+		.error_type = "Corrected",
+		.msg = "database CLI test",
+		.label = "DIMM0",
+	};
+	int rc;
+
+	(void)state;
+	rc = ras_mc_event_opendb(0, &ras);
+	assert_int_equal(rc, 0);
+	rc = db_exec_sql(ras.db, "DELETE FROM mc_event");
+	assert_int_equal(rc, 0);
+	rc = db_mc_event(&ras, &event);
+	assert_int_equal(rc, 0);
+	test_ras_mc_ctl_types("postgresql", &ras);
+	rc = ras_mc_event_closedb(0, &ras);
+	assert_int_equal(rc, 0);
+	test_ras_mc_ctl_count("postgresql", "mc_event", 1);
+}
+
 static int tests_setup(void **state)
 {
 	int rc = db_open(&backend, 0, &ras, sizeof(struct mock_priv));
@@ -447,6 +472,7 @@ static int tests_teardown(void **state)
 }
 
 static const struct CMUnitTest tests[] = {
+	cmocka_unit_test(test_ras_mc_ctl_record),
 	cmocka_unit_test_setup_teardown(test_database_tables,
 					tests_setup, tests_teardown),
 
