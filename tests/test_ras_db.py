@@ -33,7 +33,7 @@ class RasDatabaseTests:
 
     backend = None
     DATABASE_SOURCES = (
-        "db/ras-record.c",
+        "db/ras-store-db.c",
         "events-arch-arm/non-standard-ampere.c",
         "events-arch-arm/non-standard-hisi_hip08.c",
         "events-arch-arm/non-standard-hisilicon.c",

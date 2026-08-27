@@ -28,7 +28,7 @@
 #include "db/db-postgresql-priv.h"
 #include "db/db-postgresql.h"
 #include "db/ras-db.h"
-#include "db/ras-record.h"
+#include "db/ras-store-db.h"
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;

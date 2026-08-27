@@ -12,7 +12,7 @@
 
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "db/ras-record.h"
+#include "db/ras-store-db.h"
 #include "events-arch-riscv/ras-reri-handler.h"
 #include "events-arch-x86/ras-mce-handler.h"
 #include "events/ras-aer-handler.h"

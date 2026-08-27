@@ -23,7 +23,7 @@
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "core/trigger.h"
-#include "db/ras-record.h"
+#include "db/ras-store-db.h"
 #include "events-arch-arm/ras-arm-handler.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "events-arch-riscv/ras-reri-handler.h"

@@ -10,7 +10,7 @@
 #include <traceevent/event-parse.h>
 
 #include "core/ras-events.h"
-#include "db/ras-record.h"
+#include "db/ras-store-db.h"
 
 struct ras_ns_ev_decoder {
 	struct ras_ns_ev_decoder *next;
