@@ -531,3 +531,5 @@ int test_mysql(void)
 					   group_setup,
 					   group_teardown);
 }
+
+REGISTER_TEST(TEST_GROUP_DB_MYSQL, test_mysql, 0);

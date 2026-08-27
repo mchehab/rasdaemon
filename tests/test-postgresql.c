@@ -549,3 +549,5 @@ int test_postgresql(void)
 					   group_setup,
 					   group_teardown);
 }
+
+REGISTER_TEST(TEST_GROUP_DB_POSTGRESQL, test_postgresql, 0);

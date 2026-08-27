@@ -22,6 +22,31 @@ LIST_HEAD(module_list, ras_module_entry_runtime);
 
 static struct module_list ras_modules = LIST_HEAD_INITIALIZER(ras_modules);
 
+#ifdef HAVE_UNITTEST
+struct module_test_runtime {
+	enum test_group group;
+	int (*run)(void);
+	unsigned int priority;
+
+	LIST_ENTRY(module_test_runtime) node;
+};
+
+LIST_HEAD(module_test_list, module_test_runtime);
+
+static struct module_test_list module_tests =
+	LIST_HEAD_INITIALIZER(module_tests);
+
+static void module_tests_unregister(void)
+{
+	struct module_test_runtime *test;
+
+	while ((test = LIST_FIRST(&module_tests))) {
+		LIST_REMOVE(test, node);
+		free(test);
+	}
+}
+#endif
+
 /*
  * Public functions
  */
@@ -196,3 +221,75 @@ void modules_unregister(void)
 		free(entry);
 	}
 }
+
+#ifdef HAVE_UNITTEST
+int module_test_register(enum test_group group, int (*run)(void),
+			 unsigned int priority)
+{
+	struct module_test_runtime *test, *new, *prev = NULL;
+	static bool cleanup_registered;
+
+	if (group < 0 || group >= TEST_GROUP_MAX || !run)
+		return -EINVAL;
+
+	if (!cleanup_registered) {
+		if (atexit(module_tests_unregister))
+			return -ENOMEM;
+		cleanup_registered = true;
+	}
+
+	LIST_FOREACH(test, &module_tests, node) {
+		if (test->run == run)
+			return -EEXIST;
+	}
+
+	new = malloc(sizeof(*new));
+	if (!new)
+		return -ENOMEM;
+
+	new->group = group;
+	new->run = run;
+	new->priority = priority;
+
+	LIST_FOREACH(test, &module_tests, node) {
+		if (priority < test->priority) {
+			LIST_INSERT_BEFORE(test, new, node);
+			return 0;
+		}
+
+		prev = test;
+	}
+
+	if (prev)
+		LIST_INSERT_AFTER(prev, new, node);
+	else
+		LIST_INSERT_HEAD(&module_tests, new, node);
+
+	return 0;
+}
+
+bool module_test_group_is_registered(enum test_group group)
+{
+	struct module_test_runtime *test;
+
+	LIST_FOREACH(test, &module_tests, node) {
+		if (test->group == group)
+			return true;
+	}
+
+	return false;
+}
+
+int module_test_group_run(enum test_group group)
+{
+	struct module_test_runtime *test;
+	int failed = 0;
+
+	LIST_FOREACH(test, &module_tests, node) {
+		if (test->group == group && test->run())
+			failed++;
+	}
+
+	return failed;
+}
+#endif

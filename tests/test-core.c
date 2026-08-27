@@ -265,3 +265,5 @@ int test_core(void)
 	return _cmocka_run_group_tests("core helpers", tests,
 				       ARRAY_SIZE(tests), NULL, NULL);
 }
+
+REGISTER_TEST(TEST_GROUP_CORE, test_core, 0);

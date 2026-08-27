@@ -1023,3 +1023,71 @@ int test_yitian_ns(void)
 	return RUN_FEATURE_GROUP("Yitian non-standard CPER", yitian_ns_tests);
 }
 #endif
+
+REGISTER_TEST(TEST_GROUP_EVENTS, test_mc, 0);
+#ifdef HAVE_ABRT_REPORT
+REGISTER_TEST(TEST_GROUP_ACTIONS, test_report, 0);
+#endif
+#ifdef HAVE_AER
+REGISTER_TEST(TEST_GROUP_EVENTS, test_aer, 0);
+#endif
+#ifdef HAVE_ARM
+REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_arm, 0);
+#endif
+#ifdef HAVE_CPU_FAULT_ISOLATION
+REGISTER_TEST(TEST_GROUP_ACTIONS, test_cpu_isolation, 0);
+#endif
+#ifdef HAVE_CXL
+REGISTER_TEST(TEST_GROUP_EVENTS, test_cxl, 0);
+#endif
+#ifdef HAVE_DEVLINK
+REGISTER_TEST(TEST_GROUP_EVENTS, test_devlink, 0);
+#endif
+#ifdef HAVE_DISKERROR
+REGISTER_TEST(TEST_GROUP_EVENTS, test_diskerror, 0);
+#endif
+#ifdef HAVE_EXTLOG
+REGISTER_TEST(TEST_GROUP_EVENTS, test_extlog, 0);
+#endif
+#ifdef HAVE_MEMORY_FAILURE
+REGISTER_TEST(TEST_GROUP_EVENTS, test_memory_failure, 0);
+#endif
+#ifdef HAVE_MEMORY_CE_PFA
+REGISTER_TEST(TEST_GROUP_ACTIONS, test_memory_ce_pfa, 0);
+#endif
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+REGISTER_TEST(TEST_GROUP_ACTIONS, test_memory_row_ce_pfa, 0);
+#endif
+#ifdef HAVE_SIGNAL
+REGISTER_TEST(TEST_GROUP_EVENTS, test_signal, 0);
+#endif
+#ifdef HAVE_RERI
+REGISTER_TEST(TEST_GROUP_RISCV_EVENTS, test_reri, 0);
+#endif
+#ifdef HAVE_OPENBMC_UNIFIED_SEL
+REGISTER_TEST(TEST_GROUP_ACTIONS, test_openbmc_sel, 0);
+#endif
+#ifdef HAVE_MCE
+REGISTER_TEST(TEST_GROUP_X86_EVENTS, test_mce, 0);
+#endif
+#ifdef HAVE_ERST
+REGISTER_TEST(TEST_GROUP_EVENTS, test_erst, 0);
+#endif
+#ifdef HAVE_DB
+REGISTER_TEST(TEST_GROUP_DATABASE, test_database, 0);
+#endif
+#ifdef HAVE_AMP_NS_DECODE
+REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_amp_ns, 0);
+#endif
+#ifdef HAVE_HISI_NS_DECODE
+REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_hisi_ns, 0);
+#endif
+#ifdef HAVE_JAGUAR_NS_DECODE
+REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_jaguar_ns, 0);
+#endif
+#ifdef HAVE_NVIDIA_NS_DECODE
+REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_nvidia_ns, 0);
+#endif
+#ifdef HAVE_YITIAN_NS_DECODE
+REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_yitian_ns, 0);
+#endif

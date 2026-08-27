@@ -58,4 +58,27 @@ bool module_is_enabled(const char *name);
 /* Check whether a named module was registered. */
 bool module_is_registered(const char *name);
 
+#ifdef HAVE_UNITTEST
+enum test_group {
+	TEST_GROUP_CORE,
+	TEST_GROUP_EVENTS,
+	TEST_GROUP_X86_EVENTS,
+	TEST_GROUP_ARM_EVENTS,
+	TEST_GROUP_RISCV_EVENTS,
+	TEST_GROUP_ACTIONS,
+	TEST_GROUP_DATABASE,
+	TEST_GROUP_DB_SQLITE3,
+	TEST_GROUP_DB_MYSQL,
+	TEST_GROUP_DB_POSTGRESQL,
+	TEST_GROUP_MODULES,
+
+	TEST_GROUP_MAX
+};
+
+int module_test_register(enum test_group group, int (*run)(void),
+			 unsigned int priority);
+bool module_test_group_is_registered(enum test_group group);
+int module_test_group_run(enum test_group group);
+#endif
+
 #endif /* RAS_MODULE_H */

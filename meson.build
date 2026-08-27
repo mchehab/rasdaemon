@@ -439,69 +439,18 @@ if have_unittest
     # Keep the default Meson test set hermetic. The MySQL and PostgreSQL
     # groups remain real-server integration tests and are run explicitly by
     # the CI jobs which provision those servers.
-    hermetic_test_groups = ['core', 'mc', 'modules']
-    if enable_abrt_report
-        hermetic_test_groups += 'report'
-    endif
-    if enable_aer
-        hermetic_test_groups += 'aer'
-    endif
-    if enable_amp_ns_decode
-        hermetic_test_groups += 'amp-ns'
-    endif
-    if enable_arm
-        hermetic_test_groups += 'arm'
-    endif
-    if enable_cpu_fault_isolation
-        hermetic_test_groups += 'cpu-isolation'
-    endif
-    if enable_cxl
-        hermetic_test_groups += 'cxl'
-    endif
-    if enable_devlink
-        hermetic_test_groups += 'devlink'
-    endif
-    if enable_diskerror
-        hermetic_test_groups += 'diskerror'
-    endif
-    if enable_erst
-        hermetic_test_groups += 'erst'
-    endif
-    if enable_extlog
-        hermetic_test_groups += 'extlog'
-    endif
-    if enable_hisi_ns_decode
-        hermetic_test_groups += 'hisi-ns'
-    endif
-    if enable_jaguar_ns_decode
-        hermetic_test_groups += 'jaguar-ns'
-    endif
+    hermetic_test_groups = ['core', 'events', 'modules']
     if enable_mce
-        hermetic_test_groups += 'mce'
+        hermetic_test_groups += 'x86-events'
     endif
-    if enable_memory_ce_pfa
-        hermetic_test_groups += 'memory-ce-pfa'
-    endif
-    if enable_memory_failure
-        hermetic_test_groups += 'memory-failure'
-    endif
-    if enable_memory_row_ce_pfa
-        hermetic_test_groups += 'memory-row-ce-pfa'
-    endif
-    if enable_nvidia_ns_decode
-        hermetic_test_groups += 'nvidia-ns'
-    endif
-    if enable_openbmc_unified_sel
-        hermetic_test_groups += 'openbmc-sel'
+    if enable_arm or enable_amp_ns_decode or enable_hisi_ns_decode or enable_jaguar_ns_decode or enable_nvidia_ns_decode or enable_yitian_ns_decode
+        hermetic_test_groups += 'arm-events'
     endif
     if enable_reri
-        hermetic_test_groups += 'reri'
+        hermetic_test_groups += 'riscv-events'
     endif
-    if enable_signal
-        hermetic_test_groups += 'signal'
-    endif
-    if enable_yitian_ns_decode
-        hermetic_test_groups += 'yitian-ns'
+    if enable_abrt_report or enable_cpu_fault_isolation or enable_memory_ce_pfa or enable_memory_row_ce_pfa or enable_openbmc_unified_sel
+        hermetic_test_groups += 'actions'
     endif
     if enable_sqlite3
         hermetic_test_groups += 'sqlite3'

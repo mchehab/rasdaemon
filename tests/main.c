@@ -18,95 +18,24 @@
 #include "core/ras-logger.h"
 #include "tests/unittest.h"
 
-static const struct test_group groups[] = {
-	{ "core", test_core },
-	{ "mc", test_mc },
-#ifdef HAVE_ABRT_REPORT
-	{ "report", test_report },
-#endif
-#ifdef HAVE_AER
-	{ "aer", test_aer },
-#endif
-#ifdef HAVE_AMP_NS_DECODE
-	{ "amp-ns", test_amp_ns },
-#endif
-#ifdef HAVE_ARM
-	{ "arm", test_arm },
-#endif
-#ifdef HAVE_CPU_FAULT_ISOLATION
-	{ "cpu-isolation", test_cpu_isolation },
-#endif
-#ifdef HAVE_CXL
-	{ "cxl", test_cxl },
-#endif
-#ifdef HAVE_DEVLINK
-	{ "devlink", test_devlink },
-#endif
-#ifdef HAVE_DISKERROR
-	{ "diskerror", test_diskerror },
-#endif
-#ifdef HAVE_ERST
-	{ "erst", test_erst },
-#endif
-#ifdef HAVE_EXTLOG
-	{ "extlog", test_extlog },
-#endif
-#ifdef HAVE_HISI_NS_DECODE
-	{ "hisi-ns", test_hisi_ns },
-#endif
-#ifdef HAVE_JAGUAR_NS_DECODE
-	{ "jaguar-ns", test_jaguar_ns },
-#endif
-#ifdef HAVE_MCE
-	{ "mce", test_mce },
-#endif
-#ifdef HAVE_MEMORY_CE_PFA
-	{ "memory-ce-pfa", test_memory_ce_pfa },
-#endif
-#ifdef HAVE_MEMORY_FAILURE
-	{ "memory-failure", test_memory_failure },
-#endif
-#ifdef HAVE_MEMORY_ROW_CE_PFA
-	{ "memory-row-ce-pfa", test_memory_row_ce_pfa },
-#endif
-#ifdef HAVE_NVIDIA_NS_DECODE
-	{ "nvidia-ns", test_nvidia_ns },
-#endif
-#ifdef HAVE_OPENBMC_UNIFIED_SEL
-	{ "openbmc-sel", test_openbmc_sel },
-#endif
-#ifdef HAVE_RERI
-	{ "reri", test_reri },
-#endif
-#ifdef HAVE_SIGNAL
-	{ "signal", test_signal },
-#endif
-#ifdef HAVE_YITIAN_NS_DECODE
-	{ "yitian-ns", test_yitian_ns },
-#endif
-#ifdef HAVE_MYSQL
-	{ "mysql", test_mysql },
-#endif
-#ifdef HAVE_DB
-	{ "database", test_database },
-#endif
-#ifdef HAVE_POSTGRESQL
-	{ "postgresql", test_postgresql },
-#endif
-#ifdef HAVE_DB
-	{ "sqlite3", test_sqlite3 },
-#endif
-
-	/* Should be the last one, as it will mock with probed modules */
-	{ "modules", test_modules },
+static const char * const group_names[TEST_GROUP_MAX] = {
+	[TEST_GROUP_CORE] = "core",
+	[TEST_GROUP_EVENTS] = "events",
+	[TEST_GROUP_X86_EVENTS] = "x86-events",
+	[TEST_GROUP_ARM_EVENTS] = "arm-events",
+	[TEST_GROUP_RISCV_EVENTS] = "riscv-events",
+	[TEST_GROUP_ACTIONS] = "actions",
+	[TEST_GROUP_DATABASE] = "database",
+	[TEST_GROUP_DB_SQLITE3] = "sqlite3",
+	[TEST_GROUP_DB_MYSQL] = "mysql",
+	[TEST_GROUP_DB_POSTGRESQL] = "postgresql",
+	[TEST_GROUP_MODULES] = "modules",
 };
 
 struct ras_events ras = { 0 };
 
 const char *argp_program_version = "rasdaemon unit tests 0.1.0";
 const char *argp_program_bug_address = "mchehab@kernel.org";
-
-static const size_t group_count = sizeof(groups) / sizeof(groups[0]);
 
 struct arguments {
 	const char *selected_group;
@@ -134,8 +63,9 @@ static void list_groups(FILE *stream)
 {
 	size_t index;
 
-	for (index = 0; index < group_count; ++index) {
-		fprintf(stream, "%s\n", groups[index].name);
+	for (index = 0; index < TEST_GROUP_MAX; ++index) {
+		if (module_test_group_is_registered(index))
+			fprintf(stream, "%s\n", group_names[index]);
 	}
 }
 
@@ -213,10 +143,11 @@ static error_t parse_option(int key, char *value, struct argp_state *state)
 
 static const struct argp argp = { options, parse_option, NULL, doc };
 
-static bool group_is_selected(const struct test_group *group,
+static bool group_is_selected(enum test_group group,
 			      const char *selected_group)
 {
-	return selected_group == NULL || !strcasecmp(group->name, selected_group);
+	return !selected_group ||
+	       !strcasecmp(group_names[group], selected_group);
 }
 
 static bool stdout_is_vt = false;
@@ -338,18 +269,15 @@ int main(int argc, char **argv)
 
 	modules_init(&ras);
 
-	for (index = 0; index < group_count; ++index) {
-		const struct test_group *group = &groups[index];
-
-		if (!group_is_selected(group, arguments.selected_group)) {
+	for (index = 0; index < TEST_GROUP_MAX; ++index) {
+		if (!module_test_group_is_registered(index) ||
+		    !group_is_selected(index, arguments.selected_group)) {
 			continue;
 		}
 
 		found_group = true;
 
-		if (group->run() != 0) {
-			++failed_groups;
-		}
+		failed_groups += module_test_group_run(index);
 	}
 
 	if (!found_group) {

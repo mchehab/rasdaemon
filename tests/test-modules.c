@@ -10,6 +10,8 @@
 #include "core/modules.h"
 #include "tests/unittest.h"
 
+int test_modules(void);
+
 static void test_register_null_entry(void **state)
 {
 	int rc = module_register(NULL);
@@ -304,6 +306,17 @@ static void test_sql_backend_state(void **state)
 	modules_unregister();
 }
 
+static void test_test_registry(void **state)
+{
+	(void)state;
+	assert_true(module_test_group_is_registered(TEST_GROUP_CORE));
+	assert_true(module_test_group_is_registered(TEST_GROUP_MODULES));
+	assert_int_equal(module_test_register(TEST_GROUP_MAX, test_modules, 0),
+			 -EINVAL);
+	assert_int_equal(module_test_register(TEST_GROUP_MODULES,
+					      test_modules, 0), -EEXIST);
+}
+
 static void test_init_cleanup(void **state)
 {
 	struct ras_events ras = { 0 };
@@ -381,6 +394,7 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_named_module_lifecycle),
 	cmocka_unit_test(test_failed_and_postponed_init),
 	cmocka_unit_test(test_sql_backend_state),
+	cmocka_unit_test(test_test_registry),
 	cmocka_unit_test(test_init_cleanup),
 };
 
@@ -394,3 +408,5 @@ int test_modules(void)
 				       NULL,
 				       NULL);
 }
+
+REGISTER_TEST(TEST_GROUP_MODULES, test_modules, 0);

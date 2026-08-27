@@ -847,3 +847,5 @@ int test_sqlite3(void)
 				       group_setup,
 				       group_teardown);
 }
+
+REGISTER_TEST(TEST_GROUP_DB_SQLITE3, test_sqlite3, 0);
