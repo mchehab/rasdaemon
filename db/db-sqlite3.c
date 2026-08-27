@@ -209,9 +209,15 @@ static int db_sqlite3_bind_type(struct ras_stmt *__stmt,
 		case DB_TYPE_INT64:
 			return sqlite3_bind_int64(stmt, pos, value);
 
+		case DB_TYPE_BLOB:
+			if (!value)
+				return sqlite3_bind_null(stmt, pos);
+
+			return sqlite3_bind_blob(stmt, pos, (const char *)value,
+						 len, SQLITE_TRANSIENT);
+
 		case DB_TYPE_TIMESTAMP:
 		case DB_TYPE_TEXT:
-		case DB_TYPE_BLOB:
 		default:
 			if (!value)
 				return sqlite3_bind_null(stmt, pos);
