@@ -15,6 +15,7 @@
 #include <sys/poll.h>
 #include <sys/signalfd.h>
 #include <sys/stat.h>
+#include <sys/queue.h>
 #include <sys/types.h>
 #include <traceevent/event-parse.h>
 #include <traceevent/kbuffer.h>
@@ -277,7 +278,7 @@ bool ras_events_test_is_disabled(const char *group, const char *event)
  * Tracing enable/disable code
  */
 static int __toggle_ras_mc_event(struct ras_events *ras,
-				 char *group, char *event, int enable)
+				 const char *group, const char *event, int enable)
 {
 	int fd, rc;
 	char fname[MAX_PATH + 1];
@@ -398,7 +399,7 @@ free_ras:
 	return 0;
 }
 
-static void setup_event_trigger(char *event)
+static void setup_event_trigger(const char *event)
 {
 	struct event_trigger trigger;
 
@@ -936,7 +937,8 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	return 0;
 }
 
-static bool check_event_exist(struct ras_events *ras, char *group, char *event)
+static bool check_event_exist(struct ras_events *ras, const char *group,
+			      const char *event)
 {
 	char fname[MAX_PATH + 256];
 
@@ -950,9 +952,88 @@ static bool check_event_exist(struct ras_events *ras, char *group, char *event)
 
 #define EVENT_DISABLED	1
 
-static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
-			     unsigned int page_size, char *group, char *event,
-			     tep_event_handler_func func, char *filter_str, int id)
+struct ras_event_runtime {
+	const struct ras_event_entry *entry;
+	LIST_ENTRY(ras_event_runtime) node;
+};
+
+LIST_HEAD(ras_event_list, ras_event_runtime);
+
+static struct ras_event_list ras_event_handlers =
+	LIST_HEAD_INITIALIZER(ras_event_handlers);
+
+static void ras_events_unregister(void)
+{
+	struct ras_event_runtime *event;
+
+	while ((event = LIST_FIRST(&ras_event_handlers))) {
+		LIST_REMOVE(event, node);
+		free(event);
+	}
+}
+
+int ras_event_register(const struct ras_event_entry *entry)
+{
+	struct ras_event_runtime *event, *new, *prev = NULL;
+	static bool cleanup_registered;
+	int cmp;
+
+	if (!entry || !entry->group || !entry->event || !entry->handler ||
+	    entry->id < 0 || entry->id >= NR_EVENTS)
+		return -EINVAL;
+
+	LIST_FOREACH(event, &ras_event_handlers, node) {
+		cmp = strcmp(entry->group, event->entry->group);
+		if (!cmp)
+			cmp = strcmp(entry->event, event->entry->event);
+		if (!cmp)
+			return -EEXIST;
+		if (cmp < 0)
+			break;
+		prev = event;
+	}
+
+	new = calloc(1, sizeof(*new));
+	if (!new)
+		return -ENOMEM;
+	new->entry = entry;
+
+	if (event)
+		LIST_INSERT_BEFORE(event, new, node);
+	else if (prev)
+		LIST_INSERT_AFTER(prev, new, node);
+	else
+		LIST_INSERT_HEAD(&ras_event_handlers, new, node);
+
+	if (!cleanup_registered) {
+		if (atexit(ras_events_unregister)) {
+			LIST_REMOVE(new, node);
+			free(new);
+			return -ENOMEM;
+		}
+		cleanup_registered = true;
+	}
+
+#ifdef HAVE_UNITTEST
+	if (entry->test) {
+		cmp = module_test_register(entry->test_group, entry->test,
+					   entry->test_priority);
+		if (cmp) {
+			LIST_REMOVE(new, node);
+			free(new);
+			return cmp;
+		}
+	}
+#endif
+
+	return 0;
+}
+
+static int add_event_handler(struct ras_events *ras,
+			     struct tep_handle *pevent,
+			     unsigned int page_size, const char *group,
+			     const char *event, tep_event_handler_func func,
+			     const char *filter_str, int id, bool trigger)
 {
 	int fd, rc;
 	int size = 0;
@@ -1080,9 +1161,58 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 		return -EINVAL;
 	}
 
-	setup_event_trigger(event);
+	if (trigger)
+		setup_event_trigger(event);
 
 	log(ALL, LOG_INFO, "Enabled event %s:%s\n", group, event);
+
+	return 0;
+}
+
+int ras_events_prepare(struct ras_events *ras, int record_events)
+{
+	struct ras_event_runtime *event;
+	struct tep_handle *pevent;
+	int rc;
+
+	if (!ras)
+		return -EINVAL;
+
+	rc = get_tracing_dir(ras);
+	if (rc < 0) {
+		log(TERM, LOG_ERR, "Can't locate a mounted debugfs\n");
+		return rc;
+	}
+
+	rc = select_tracing_timestamp(ras);
+	if (rc < 0)
+		log(TERM, LOG_ERR,
+		    "Can't select a timestamp for tracing. Using default\n");
+
+	pevent = tep_alloc();
+	if (!pevent)
+		return -errno;
+
+	ras->pevent = pevent;
+	ras->page_size = get_pagesize(ras, pevent);
+	ras->record_events = record_events;
+	ras->daemon_active_fd = -1;
+	ras->num_events = 0;
+
+	LIST_FOREACH(event, &ras_event_handlers, node) {
+		const struct ras_event_entry *entry = event->entry;
+
+		rc = add_event_handler(ras, pevent, ras->page_size,
+				       entry->group, entry->event, entry->handler,
+				       entry->filter, entry->id, entry->trigger);
+		if (!rc) {
+			ras->num_events++;
+			continue;
+		}
+		if (rc != EVENT_DISABLED)
+			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
+			    entry->group, entry->event);
+	}
 
 	return 0;
 }
@@ -1090,41 +1220,24 @@ static int add_event_handler(struct ras_events *ras, struct tep_handle *pevent,
 int handle_ras_events(struct ras_events *ras, int record_events,
 		      int enable_ipmitool)
 {
-	int rc, page_size, i;
-	int num_events = 0;
+	int rc, page_size __attribute__((unused)), i;
+	int num_events;
 	unsigned int cpus;
-	struct tep_handle *pevent = NULL;
+	struct tep_handle *pevent;
 	struct pthread_data *data = NULL;
 #ifdef HAVE_DEVLINK
 	char *filter_str = NULL;
 #endif
-	ras->daemon_active_fd = -1;
 #ifdef HAVE_SIGNAL
 	char signal_filter[64];
 #endif
 
-	rc = get_tracing_dir(ras);
-	if (rc < 0) {
-		log(TERM, LOG_ERR, "Can't locate a mounted debugfs\n");
-		goto err;
-	}
+	if (!ras || !ras->pevent)
+		return -EINVAL;
 
-	rc = select_tracing_timestamp(ras);
-	if (rc < 0)
-		log(TERM, LOG_ERR, "Can't select a timestamp for tracing. Using default\n");
-
-	pevent = tep_alloc();
-	if (!pevent) {
-		log(TERM, LOG_ERR, "Can't allocate pevent\n");
-		rc = -errno;
-		goto err;
-	}
-
-	page_size = get_pagesize(ras, pevent);
-
-	ras->pevent = pevent;
-	ras->page_size = page_size;
-	ras->record_events = record_events;
+	pevent = ras->pevent;
+	page_size = ras->page_size;
+	num_events = ras->num_events;
 
 #ifdef HAVE_MEMORY_ROW_CE_PFA
 	ras_row_account_init();
@@ -1135,18 +1248,10 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 	ras_page_account_init();
 #endif
 
-	rc = add_event_handler(ras, pevent, page_size, "ras", "mc_event",
-			       ras_mc_event_handler, NULL, MC_EVENT);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "ras", "mc_event");
-
 #ifdef HAVE_AER
 	ras_aer_handler_init(enable_ipmitool);
 	rc = add_event_handler(ras, pevent, page_size, "ras", "aer_event",
-			       ras_aer_event_handler, NULL, AER_EVENT);
+			       ras_aer_event_handler, NULL, AER_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED && rc != ENOENT)
@@ -1156,7 +1261,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 
 #ifdef HAVE_NON_STANDARD
 	rc = add_event_handler(ras, pevent, page_size, "ras", "non_standard_event",
-			       ras_non_standard_event_handler, NULL, NON_STANDARD_EVENT);
+			       ras_non_standard_event_handler, NULL,
+			       NON_STANDARD_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1166,7 +1272,7 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 
 #ifdef HAVE_ARM
 	rc = add_event_handler(ras, pevent, page_size, "ras", "arm_event",
-			       ras_arm_event_handler, NULL, ARM_EVENT);
+			       ras_arm_event_handler, NULL, ARM_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1187,7 +1293,7 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 	if (ras->mce_priv) {
 		rc = add_event_handler(ras, pevent, page_size,
 				       "mce", "mce_record",
-				       ras_mce_event_handler, NULL, MCE_EVENT);
+				       ras_mce_event_handler, NULL, MCE_EVENT, true);
 		if (!rc)
 			num_events++;
 	else
@@ -1198,7 +1304,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 
 #ifdef HAVE_EXTLOG
 	rc = add_event_handler(ras, pevent, page_size, "ras", "extlog_mem_event",
-			       ras_extlog_mem_event_handler, NULL, EXTLOG_EVENT);
+			       ras_extlog_mem_event_handler, NULL, EXTLOG_EVENT,
+			       true);
 	if (!rc) {
 		/* tell kernel we are listening, so don't printk to console */
 		ras->daemon_active_fd =
@@ -1214,13 +1321,15 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 #ifdef HAVE_DEVLINK
 	rc = add_event_handler(ras, pevent, page_size, "net",
 			       "net_dev_xmit_timeout",
-			       ras_net_xmit_timeout_handler, NULL, DEVLINK_EVENT);
+			       ras_net_xmit_timeout_handler, NULL, DEVLINK_EVENT,
+			       true);
 	if (!rc)
 		filter_str = "devlink/devlink_health_report:msg=~\'TX timeout*\'";
 
 	rc = add_event_handler(ras, pevent, page_size, "devlink",
 			       "devlink_health_report",
-			       ras_devlink_event_handler, filter_str, DEVLINK_EVENT);
+			       ras_devlink_event_handler, filter_str, DEVLINK_EVENT,
+			       true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1232,7 +1341,7 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 #ifdef HAVE_BLK_RQ_ERROR
 	rc = add_event_handler(ras, pevent, page_size, "block",
 			       "block_rq_error", ras_diskerror_event_handler,
-				NULL, DISKERROR_EVENT);
+				NULL, DISKERROR_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1243,7 +1352,7 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 	if (!rc) {
 		rc = add_event_handler(ras, pevent, page_size, "block",
 				       "block_rq_complete", ras_diskerror_event_handler,
-					NULL, DISKERROR_EVENT);
+					NULL, DISKERROR_EVENT, true);
 		if (!rc)
 			num_events++;
 		else if (rc != EVENT_DISABLED)
@@ -1255,7 +1364,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 
 #ifdef HAVE_MEMORY_FAILURE
 	rc = add_event_handler(ras, pevent, page_size, "ras", "memory_failure_event",
-			       ras_memory_failure_event_handler, NULL, MF_EVENT);
+			       ras_memory_failure_event_handler, NULL, MF_EVENT,
+			       true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1265,7 +1375,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 
 #ifdef HAVE_CXL
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_poison",
-			       ras_cxl_poison_event_handler, NULL, CXL_POISON_EVENT);
+			       ras_cxl_poison_event_handler, NULL, CXL_POISON_EVENT,
+			       true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1273,7 +1384,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 		    "cxl", "cxl_poison");
 
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_aer_uncorrectable_error",
-			       ras_cxl_aer_ue_event_handler, NULL, CXL_AER_UE_EVENT);
+			       ras_cxl_aer_ue_event_handler, NULL, CXL_AER_UE_EVENT,
+			       true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1281,7 +1393,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 		    "cxl", "cxl_aer_uncorrectable_error");
 
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_aer_correctable_error",
-			       ras_cxl_aer_ce_event_handler, NULL, CXL_AER_CE_EVENT);
+			       ras_cxl_aer_ce_event_handler, NULL, CXL_AER_CE_EVENT,
+			       true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1289,7 +1402,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 		    "cxl", "cxl_aer_correctable_error");
 
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_overflow",
-			       ras_cxl_overflow_event_handler, NULL, CXL_OVERFLOW_EVENT);
+			       ras_cxl_overflow_event_handler, NULL,
+			       CXL_OVERFLOW_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1297,7 +1411,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 		    "cxl", "cxl_overflow");
 
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_generic_event",
-			       ras_cxl_generic_event_handler, NULL, CXL_GENERIC_EVENT);
+			       ras_cxl_generic_event_handler, NULL,
+			       CXL_GENERIC_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1305,7 +1420,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 		    "cxl", "cxl_generic_event");
 
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_general_media",
-			       ras_cxl_general_media_event_handler, NULL, CXL_GENERAL_MEDIA_EVENT);
+			       ras_cxl_general_media_event_handler, NULL,
+			       CXL_GENERAL_MEDIA_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1313,7 +1429,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 		    "cxl", "cxl_general_media");
 
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_dram",
-			       ras_cxl_dram_event_handler, NULL, CXL_DRAM_EVENT);
+			       ras_cxl_dram_event_handler, NULL, CXL_DRAM_EVENT,
+			       true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1321,7 +1438,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 		    "cxl", "cxl_dram");
 
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_memory_module",
-			       ras_cxl_memory_module_event_handler, NULL, CXL_MEMORY_MODULE_EVENT);
+			       ras_cxl_memory_module_event_handler, NULL,
+			       CXL_MEMORY_MODULE_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1329,7 +1447,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 		    "cxl", "memory_module");
 
 	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_memory_sparing",
-			       ras_cxl_memory_sparing_event_handler, NULL, CXL_MEMORY_SPARING_EVENT);
+			       ras_cxl_memory_sparing_event_handler, NULL,
+			       CXL_MEMORY_SPARING_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1344,7 +1463,8 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 	rc = filter_ras_mc_event(ras, "signal", "signal_generate", signal_filter);
 	if (!rc) {
 		rc = add_event_handler(ras, pevent, page_size, "signal", "signal_generate",
-				       ras_signal_event_handler, NULL, SIGNAL_EVENT);
+				       ras_signal_event_handler, NULL, SIGNAL_EVENT,
+				       true);
 		if (!rc)
 			num_events++;
 		else if (rc != -EINVAL)
@@ -1355,7 +1475,7 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 
 #ifdef HAVE_RERI
 	rc = add_event_handler(ras, pevent, page_size, "ras", "reri_event",
-			       ras_reri_event_handler, NULL, RERI_EVENT);
+			       ras_reri_event_handler, NULL, RERI_EVENT, true);
 	if (!rc)
 		num_events++;
 	else if (rc != EVENT_DISABLED)
@@ -1422,6 +1542,7 @@ err:
 
 	if (pevent)
 		tep_free(pevent);
+	ras->pevent = NULL;
 
 	if (ras) {
 		if (ras->daemon_active_fd >= 0)

@@ -10,7 +10,9 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <time.h>
+#include <traceevent/event-parse.h>
 
+#include "core/modules.h"
 #include "core/types.h"
 
 extern char *choices_disable;
@@ -45,6 +47,20 @@ enum {
 
 struct ras_db;
 
+struct ras_event_entry {
+	const char *group;
+	const char *event;
+	tep_event_handler_func handler;
+	const char *filter;
+	int id;
+	bool trigger;
+#ifdef HAVE_UNITTEST
+	enum test_group test_group;
+	int (*test)(void);
+	unsigned int test_priority;
+#endif
+};
+
 struct ras_events {
 	char			tracing[MAX_PATH + 1];
 	struct tep_handle	*pevent;
@@ -61,6 +77,7 @@ struct ras_events {
 	struct ras_db		*db;
 	void			*db_priv;
 	int			db_ref_count;
+	unsigned int		num_events;
 	pthread_mutex_t		db_lock;
 
 	/* For the mce handler */
@@ -108,6 +125,8 @@ enum ghes_severity {
 int toggle_ras_mc_event(int enable);
 int ras_offline_mce_event(struct ras_mc_offline_event *event);
 
+int ras_event_register(const struct ras_event_entry *entry);
+int ras_events_prepare(struct ras_events *ras, int record_events);
 int handle_ras_events(struct ras_events *ras,
 		      int record_events, int enable_ipmitool);
 #ifdef HAVE_UNITTEST

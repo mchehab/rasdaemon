@@ -21,6 +21,30 @@
 struct ras_record_priv {
 	struct ras_stmt *stmt_mc_event;
 };
+
+#ifdef HAVE_UNITTEST
+int test_mc(void) __attribute__((weak));
+#endif
+
+static const struct ras_event_entry ras_mc_event = {
+	.group = "ras",
+	.event = "mc_event",
+	.handler = ras_mc_event_handler,
+	.id = MC_EVENT,
+	.trigger = true,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_EVENTS,
+	.test = test_mc,
+#endif
+};
+
+static void __attribute__((constructor)) ras_mc_event_register(void)
+{
+	int rc = ras_event_register(&ras_mc_event);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register MC event: %d\n", rc);
+}
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-report.h"
 

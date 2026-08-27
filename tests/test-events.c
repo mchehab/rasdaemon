@@ -1044,7 +1044,6 @@ int test_yitian_ns(void)
 }
 #endif
 
-REGISTER_TEST(TEST_GROUP_EVENTS, test_mc, 0);
 #ifdef HAVE_ABRT_REPORT
 REGISTER_TEST(TEST_GROUP_ACTIONS, test_report, 0);
 #endif
