@@ -19,6 +19,19 @@
 #include "core/types.h"
 #include "db/ras-db.h"
 #include "events-arch-riscv/ras-reri-handler.h"
+
+#ifdef HAVE_UNITTEST
+int test_reri(void) __attribute__((weak));
+#endif
+
+static const struct ras_event_entry ras_reri_event_entry = {
+	.group = "ras", .event = "reri_event",
+	.handler = ras_reri_event_handler, .id = RERI_EVENT, .trigger = true,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_RISCV_EVENTS, .test = test_reri,
+#endif
+};
+REGISTER_RAS_EVENT(ras_reri_event_entry);
 #include "modules/ras-cpu-isolation.h"
 #include "modules/ras-report.h"
 

@@ -25,6 +25,30 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events/ras-signal-handler.h"
+
+#ifdef HAVE_UNITTEST
+int test_signal(void) __attribute__((weak));
+#endif
+
+static int ras_signal_prepare(struct ras_events *ras)
+{
+	char filter[64];
+
+	snprintf(filter, sizeof(filter), "sig == %d && code >= %d",
+		 SIGBUS, BUS_OBJERR);
+	usleep(30000);
+	return ras_event_filter(ras, "signal", "signal_generate", filter);
+}
+
+static const struct ras_event_entry ras_signal_event = {
+	.group = "signal", .event = "signal_generate",
+	.handler = ras_signal_event_handler, .id = SIGNAL_EVENT,
+	.trigger = true, .prepare = ras_signal_prepare,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_EVENTS, .test = test_signal,
+#endif
+};
+REGISTER_RAS_EVENT(ras_signal_event);
 #include "modules/ras-report.h"
 
 enum {

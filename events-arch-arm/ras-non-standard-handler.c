@@ -15,6 +15,13 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
+
+static const struct ras_event_entry ras_non_standard_event_entry = {
+	.group = "ras", .event = "non_standard_event",
+	.handler = ras_non_standard_event_handler, .id = NON_STANDARD_EVENT,
+	.trigger = true,
+};
+REGISTER_RAS_EVENT(ras_non_standard_event_entry);
 #include "modules/ras-report.h"
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;

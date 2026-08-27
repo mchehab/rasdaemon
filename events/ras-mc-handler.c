@@ -38,13 +38,7 @@ static const struct ras_event_entry ras_mc_event = {
 #endif
 };
 
-static void __attribute__((constructor)) ras_mc_event_register(void)
-{
-	int rc = ras_event_register(&ras_mc_event);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register MC event: %d\n", rc);
-}
+REGISTER_RAS_EVENT(ras_mc_event);
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-report.h"
 

@@ -15,6 +15,19 @@
 #include "core/types.h"
 #include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/ras-arm-handler.h"
+
+#ifdef HAVE_UNITTEST
+int test_arm(void) __attribute__((weak));
+#endif
+
+static const struct ras_event_entry ras_arm_event_entry = {
+	.group = "ras", .event = "arm_event", .handler = ras_arm_event_handler,
+	.id = ARM_EVENT, .trigger = true,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_ARM_EVENTS, .test = test_arm,
+#endif
+};
+REGISTER_RAS_EVENT(ras_arm_event_entry);
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "modules/ras-cpu-isolation.h"
 #include "modules/ras-report.h"

@@ -17,6 +17,34 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events-arch-x86/ras-mce-handler.h"
+
+#ifdef HAVE_UNITTEST
+int test_mce(void) __attribute__((weak));
+#endif
+
+static int ras_mce_prepare(struct ras_events *ras)
+{
+	long cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int rc;
+
+	if (cpus < 1)
+		return -EINVAL;
+	rc = register_mce_handler(ras, cpus);
+
+	if (rc)
+		return rc;
+	return ras->mce_priv ? 0 : -ENODEV;
+}
+
+static const struct ras_event_entry ras_mce_event = {
+	.group = "mce", .event = "mce_record",
+	.handler = ras_mce_event_handler, .id = MCE_EVENT, .trigger = true,
+	.prepare = ras_mce_prepare,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_X86_EVENTS, .test = test_mce,
+#endif
+};
+REGISTER_RAS_EVENT(ras_mce_event);
 #include "modules/ras-report.h"
 
 /*

@@ -14,6 +14,47 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events/ras-devlink-handler.h"
+
+static bool net_timeout_enabled;
+
+static int ras_net_timeout_prepare(struct ras_events *ras)
+{
+	net_timeout_enabled = false;
+	return 0;
+}
+
+#ifdef HAVE_UNITTEST
+int test_devlink(void) __attribute__((weak));
+#endif
+
+static void ras_net_timeout_enabled(struct ras_events *ras)
+{
+	net_timeout_enabled = true;
+}
+
+static const char *ras_devlink_filter(struct ras_events *ras)
+{
+	return net_timeout_enabled ?
+		"devlink/devlink_health_report:msg=~'TX timeout*'" : NULL;
+}
+
+static const struct ras_event_entry ras_net_timeout_event = {
+	.group = "net", .event = "net_dev_xmit_timeout",
+	.handler = ras_net_xmit_timeout_handler, .id = DEVLINK_EVENT,
+	.trigger = true, .prepare = ras_net_timeout_prepare,
+	.enabled = ras_net_timeout_enabled,
+};
+REGISTER_RAS_EVENT(ras_net_timeout_event);
+
+static const struct ras_event_entry ras_devlink_event = {
+	.group = "devlink", .event = "devlink_health_report",
+	.handler = ras_devlink_event_handler, .filter_cb = ras_devlink_filter,
+	.id = DEVLINK_EVENT, .order = 1, .trigger = true,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_EVENTS, .test = test_devlink,
+#endif
+};
+REGISTER_RAS_EVENT(ras_devlink_event);
 #include "modules/ras-report.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,

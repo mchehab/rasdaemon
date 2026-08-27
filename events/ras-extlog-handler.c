@@ -6,6 +6,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +18,28 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events/ras-extlog-handler.h"
+
+#ifdef HAVE_UNITTEST
+int test_extlog(void) __attribute__((weak));
+#endif
+
+static void ras_extlog_enabled(struct ras_events *ras)
+{
+	ras->daemon_active_fd =
+		open("/sys/kernel/debug/ras/daemon_active", O_RDONLY);
+	if (ras->daemon_active_fd < 0)
+		log(TERM, LOG_WARNING, "Can't mark extlog daemon active\n");
+}
+
+static const struct ras_event_entry ras_extlog_event = {
+	.group = "ras", .event = "extlog_mem_event",
+	.handler = ras_extlog_mem_event_handler, .id = EXTLOG_EVENT,
+	.trigger = true, .enabled = ras_extlog_enabled,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_EVENTS, .test = test_extlog,
+#endif
+};
+REGISTER_RAS_EVENT(ras_extlog_event);
 #include "modules/ras-report.h"
 
 static char *err_type(int etype)

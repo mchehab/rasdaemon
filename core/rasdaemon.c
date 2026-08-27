@@ -270,13 +270,13 @@ int main(int argc, char *argv[])
 
 	db_backend_enable(NULL);
 
-	if (ras_events_prepare(ras, args.record_events)) {
+	if (ras_events_prepare(ras, args.record_events, args.enable_ipmitool)) {
 		modules_unregister();
 		free(ras);
 		return EXIT_FAILURE;
 	}
 
-	handle_ras_events(ras, args.record_events, args.enable_ipmitool);
+	handle_ras_events(ras);
 	modules_unregister();
 	free(ras);
 

@@ -18,6 +18,26 @@
 #include "core/trigger.h"
 #include "core/types.h"
 #include "events/ras-aer-handler.h"
+
+#ifdef HAVE_UNITTEST
+int test_aer(void) __attribute__((weak));
+#endif
+
+static int ras_aer_prepare(struct ras_events *ras)
+{
+	ras_aer_handler_init(ras->enable_ipmitool);
+	return 0;
+}
+
+static const struct ras_event_entry ras_aer_event = {
+	.group = "ras", .event = "aer_event",
+	.handler = ras_aer_event_handler, .id = AER_EVENT, .trigger = true,
+	.prepare = ras_aer_prepare,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_EVENTS, .test = test_aer,
+#endif
+};
+REGISTER_RAS_EVENT(ras_aer_event);
 #include "modules/ras-report.h"
 #include "modules/unified-sel.h"
 

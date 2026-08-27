@@ -14,6 +14,33 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "events/ras-diskerror-handler.h"
+
+#ifdef HAVE_UNITTEST
+int test_diskerror(void) __attribute__((weak));
+#endif
+
+#ifndef HAVE_BLK_RQ_ERROR
+static int ras_diskerror_prepare(struct ras_events *ras)
+{
+	return ras_event_filter(ras, "block", "block_rq_complete",
+				"error != 0");
+}
+#endif
+
+static const struct ras_event_entry ras_diskerror_event = {
+	.group = "block",
+#ifdef HAVE_BLK_RQ_ERROR
+	.event = "block_rq_error",
+#else
+	.event = "block_rq_complete", .prepare = ras_diskerror_prepare,
+#endif
+	.handler = ras_diskerror_event_handler, .id = DISKERROR_EVENT,
+	.trigger = true,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_EVENTS, .test = test_diskerror,
+#endif
+};
+REGISTER_RAS_EVENT(ras_diskerror_event);
 #include "modules/ras-report.h"
 
 static const struct {

@@ -24,19 +24,7 @@
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "core/trigger.h"
-#include "events-arch-arm/ras-arm-handler.h"
-#include "events-arch-arm/ras-non-standard-handler.h"
-#include "events-arch-riscv/ras-reri-handler.h"
-#include "events-arch-x86/ras-mce-handler.h"
-#include "events/ras-aer-handler.h"
-#include "events/ras-aer-handler.h"
-#include "events/ras-cxl-handler.h"
-#include "events/ras-devlink-handler.h"
-#include "events/ras-diskerror-handler.h"
-#include "events/ras-extlog-handler.h"
 #include "events/ras-mc-handler.h"
-#include "events/ras-memory-failure-handler.h"
-#include "events/ras-signal-handler.h"
 #include "modules/ras-cpu-isolation.h"
 #include "modules/ras-page-isolation.h"
 
@@ -410,13 +398,14 @@ static void setup_event_trigger(const char *event)
 	}
 }
 
-#ifdef HAVE_DISKERROR
-#if (!defined(HAVE_BLK_RQ_ERROR)) || defined(HAVE_SIGNAL)
+#if (defined(HAVE_DISKERROR) && !defined(HAVE_BLK_RQ_ERROR)) || \
+    defined(HAVE_SIGNAL)
 /*
  * Set kernel filter. libtrace doesn't provide an API for setting filters
  * in kernel, we have to implement it here.
  */
-static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
+static int filter_ras_mc_event(struct ras_events *ras, const char *group,
+			       const char *event,
 			       const char *filter_str)
 {
 	int fd, rc;
@@ -444,7 +433,17 @@ static int filter_ras_mc_event(struct ras_events *ras, char *group, char *event,
 	return 0;
 }
 #endif
+
+int ras_event_filter(struct ras_events *ras, const char *group,
+		     const char *event, const char *filter)
+{
+#if (defined(HAVE_DISKERROR) && !defined(HAVE_BLK_RQ_ERROR)) || \
+    defined(HAVE_SIGNAL)
+	return filter_ras_mc_event(ras, group, event, filter);
+#else
+	return -EOPNOTSUPP;
 #endif
+}
 
 /*
  * Tracing read code
@@ -983,11 +982,16 @@ int ras_event_register(const struct ras_event_entry *entry)
 		return -EINVAL;
 
 	LIST_FOREACH(event, &ras_event_handlers, node) {
-		cmp = strcmp(entry->group, event->entry->group);
+		if (!strcmp(entry->group, event->entry->group) &&
+		    !strcmp(entry->event, event->entry->event))
+			return -EEXIST;
+
+		cmp = entry->order < event->entry->order ? -1 :
+		      entry->order > event->entry->order;
+		if (!cmp)
+			cmp = strcmp(entry->group, event->entry->group);
 		if (!cmp)
 			cmp = strcmp(entry->event, event->entry->event);
-		if (!cmp)
-			return -EEXIST;
 		if (cmp < 0)
 			break;
 		prev = event;
@@ -1169,7 +1173,8 @@ static int add_event_handler(struct ras_events *ras,
 	return 0;
 }
 
-int ras_events_prepare(struct ras_events *ras, int record_events)
+int ras_events_prepare(struct ras_events *ras, int record_events,
+		       int enable_ipmitool)
 {
 	struct ras_event_runtime *event;
 	struct tep_handle *pevent;
@@ -1196,17 +1201,26 @@ int ras_events_prepare(struct ras_events *ras, int record_events)
 	ras->pevent = pevent;
 	ras->page_size = get_pagesize(ras, pevent);
 	ras->record_events = record_events;
+	ras->enable_ipmitool = enable_ipmitool;
 	ras->daemon_active_fd = -1;
 	ras->num_events = 0;
 
 	LIST_FOREACH(event, &ras_event_handlers, node) {
 		const struct ras_event_entry *entry = event->entry;
+		const char *filter = entry->filter;
+
+		if (entry->prepare && entry->prepare(ras))
+			continue;
+		if (entry->filter_cb)
+			filter = entry->filter_cb(ras);
 
 		rc = add_event_handler(ras, pevent, ras->page_size,
 				       entry->group, entry->event, entry->handler,
-				       entry->filter, entry->id, entry->trigger);
+				       filter, entry->id, entry->trigger);
 		if (!rc) {
 			ras->num_events++;
+			if (entry->enabled)
+				entry->enabled(ras);
 			continue;
 		}
 		if (rc != EVENT_DISABLED)
@@ -1217,26 +1231,18 @@ int ras_events_prepare(struct ras_events *ras, int record_events)
 	return 0;
 }
 
-int handle_ras_events(struct ras_events *ras, int record_events,
-		      int enable_ipmitool)
+int handle_ras_events(struct ras_events *ras)
 {
-	int rc, page_size __attribute__((unused)), i;
+	int rc, i;
 	int num_events;
 	unsigned int cpus;
 	struct tep_handle *pevent;
 	struct pthread_data *data = NULL;
-#ifdef HAVE_DEVLINK
-	char *filter_str = NULL;
-#endif
-#ifdef HAVE_SIGNAL
-	char signal_filter[64];
-#endif
 
 	if (!ras || !ras->pevent)
 		return -EINVAL;
 
 	pevent = ras->pevent;
-	page_size = ras->page_size;
 	num_events = ras->num_events;
 
 #ifdef HAVE_MEMORY_ROW_CE_PFA
@@ -1248,239 +1254,10 @@ int handle_ras_events(struct ras_events *ras, int record_events,
 	ras_page_account_init();
 #endif
 
-#ifdef HAVE_AER
-	ras_aer_handler_init(enable_ipmitool);
-	rc = add_event_handler(ras, pevent, page_size, "ras", "aer_event",
-			       ras_aer_event_handler, NULL, AER_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED && rc != ENOENT)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "ras", "aer_event");
-#endif
-
-#ifdef HAVE_NON_STANDARD
-	rc = add_event_handler(ras, pevent, page_size, "ras", "non_standard_event",
-			       ras_non_standard_event_handler, NULL,
-			       NON_STANDARD_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "ras", "non_standard_event");
-#endif
-
-#ifdef HAVE_ARM
-	rc = add_event_handler(ras, pevent, page_size, "ras", "arm_event",
-			       ras_arm_event_handler, NULL, ARM_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "ras", "arm_event");
-#endif
-
 	cpus = get_num_cpus(ras);
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
 	ras_cpu_isolation_init(sysconf(_SC_NPROCESSORS_CONF));
-#endif
-
-#ifdef HAVE_MCE
-	rc = register_mce_handler(ras, cpus);
-	if (rc && rc != -ENOENT)
-		log(ALL, LOG_INFO, "Can't register mce handler\n");
-	if (ras->mce_priv) {
-		rc = add_event_handler(ras, pevent, page_size,
-				       "mce", "mce_record",
-				       ras_mce_event_handler, NULL, MCE_EVENT, true);
-		if (!rc)
-			num_events++;
-	else
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "mce", "mce_record");
-	}
-#endif
-
-#ifdef HAVE_EXTLOG
-	rc = add_event_handler(ras, pevent, page_size, "ras", "extlog_mem_event",
-			       ras_extlog_mem_event_handler, NULL, EXTLOG_EVENT,
-			       true);
-	if (!rc) {
-		/* tell kernel we are listening, so don't printk to console */
-		ras->daemon_active_fd =
-			open("/sys/kernel/debug/ras/daemon_active", O_RDONLY);
-		if (ras->daemon_active_fd < 0)
-			log(TERM, LOG_WARNING, "Can't mark extlog daemon active\n");
-		num_events++;
-	} else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "ras", "extlog_mem_event");
-#endif
-
-#ifdef HAVE_DEVLINK
-	rc = add_event_handler(ras, pevent, page_size, "net",
-			       "net_dev_xmit_timeout",
-			       ras_net_xmit_timeout_handler, NULL, DEVLINK_EVENT,
-			       true);
-	if (!rc)
-		filter_str = "devlink/devlink_health_report:msg=~\'TX timeout*\'";
-
-	rc = add_event_handler(ras, pevent, page_size, "devlink",
-			       "devlink_health_report",
-			       ras_devlink_event_handler, filter_str, DEVLINK_EVENT,
-			       true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "devlink", "devlink_health_report");
-#endif
-
-#ifdef HAVE_DISKERROR
-#ifdef HAVE_BLK_RQ_ERROR
-	rc = add_event_handler(ras, pevent, page_size, "block",
-			       "block_rq_error", ras_diskerror_event_handler,
-				NULL, DISKERROR_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "block", "block_rq_error");
-#else
-	rc = filter_ras_mc_event(ras, "block", "block_rq_complete", "error != 0");
-	if (!rc) {
-		rc = add_event_handler(ras, pevent, page_size, "block",
-				       "block_rq_complete", ras_diskerror_event_handler,
-					NULL, DISKERROR_EVENT, true);
-		if (!rc)
-			num_events++;
-		else if (rc != EVENT_DISABLED)
-			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-			    "block", "block_rq_complete");
-	}
-#endif
-#endif
-
-#ifdef HAVE_MEMORY_FAILURE
-	rc = add_event_handler(ras, pevent, page_size, "ras", "memory_failure_event",
-			       ras_memory_failure_event_handler, NULL, MF_EVENT,
-			       true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "ras", "memory_failure_event");
-#endif
-
-#ifdef HAVE_CXL
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_poison",
-			       ras_cxl_poison_event_handler, NULL, CXL_POISON_EVENT,
-			       true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_poison");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_aer_uncorrectable_error",
-			       ras_cxl_aer_ue_event_handler, NULL, CXL_AER_UE_EVENT,
-			       true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_aer_uncorrectable_error");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_aer_correctable_error",
-			       ras_cxl_aer_ce_event_handler, NULL, CXL_AER_CE_EVENT,
-			       true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_aer_correctable_error");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_overflow",
-			       ras_cxl_overflow_event_handler, NULL,
-			       CXL_OVERFLOW_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_overflow");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_generic_event",
-			       ras_cxl_generic_event_handler, NULL,
-			       CXL_GENERIC_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_generic_event");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_general_media",
-			       ras_cxl_general_media_event_handler, NULL,
-			       CXL_GENERAL_MEDIA_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_general_media");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_dram",
-			       ras_cxl_dram_event_handler, NULL, CXL_DRAM_EVENT,
-			       true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_dram");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_memory_module",
-			       ras_cxl_memory_module_event_handler, NULL,
-			       CXL_MEMORY_MODULE_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "memory_module");
-
-	rc = add_event_handler(ras, pevent, page_size, "cxl", "cxl_memory_sparing",
-			       ras_cxl_memory_sparing_event_handler, NULL,
-			       CXL_MEMORY_SPARING_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "cxl", "cxl_memory_sparing");
-#endif
-
-#ifdef HAVE_SIGNAL
-	snprintf(signal_filter, sizeof(signal_filter), "sig == %d && code >= %d", SIGBUS, BUS_OBJERR);
-	// ensure filter enabled
-	usleep(30000);
-	rc = filter_ras_mc_event(ras, "signal", "signal_generate", signal_filter);
-	if (!rc) {
-		rc = add_event_handler(ras, pevent, page_size, "signal", "signal_generate",
-				       ras_signal_event_handler, NULL, SIGNAL_EVENT,
-				       true);
-		if (!rc)
-			num_events++;
-		else if (rc != -EINVAL)
-			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-			    "signal", "signal_generate");
-	}
-#endif
-
-#ifdef HAVE_RERI
-	rc = add_event_handler(ras, pevent, page_size, "ras", "reri_event",
-			       ras_reri_event_handler, NULL, RERI_EVENT, true);
-	if (!rc)
-		num_events++;
-	else if (rc != EVENT_DISABLED)
-		log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-		    "ras", "reri_event");
 #endif
 
 	if (!num_events) {

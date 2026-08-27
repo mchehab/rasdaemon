@@ -14,6 +14,20 @@
 #include "core/trigger.h"
 #include "core/types.h"
 #include "events/ras-memory-failure-handler.h"
+
+#ifdef HAVE_UNITTEST
+int test_memory_failure(void) __attribute__((weak));
+#endif
+
+static const struct ras_event_entry ras_memory_failure_event = {
+	.group = "ras", .event = "memory_failure_event",
+	.handler = ras_memory_failure_event_handler, .id = MF_EVENT,
+	.trigger = true,
+#ifdef HAVE_UNITTEST
+	.test_group = TEST_GROUP_EVENTS, .test = test_memory_failure,
+#endif
+};
+REGISTER_RAS_EVENT(ras_memory_failure_event);
 #include "modules/ras-poison-page-stat.h"
 #include "modules/ras-report.h"
 

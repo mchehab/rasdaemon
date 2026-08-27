@@ -52,7 +52,11 @@ struct ras_event_entry {
 	const char *event;
 	tep_event_handler_func handler;
 	const char *filter;
+	const char *(*filter_cb)(struct ras_events *ras);
+	int (*prepare)(struct ras_events *ras);
+	void (*enabled)(struct ras_events *ras);
 	int id;
+	int order;
 	bool trigger;
 #ifdef HAVE_UNITTEST
 	enum test_group test_group;
@@ -69,6 +73,7 @@ struct ras_events {
 	/* Booleans */
 	unsigned		use_uptime: 1;
 	unsigned		record_events: 1;
+	unsigned		enable_ipmitool: 1;
 
 	/* For timestamp */
 	time_t			uptime_diff;
@@ -126,11 +131,19 @@ int toggle_ras_mc_event(int enable);
 int ras_offline_mce_event(struct ras_mc_offline_event *event);
 
 int ras_event_register(const struct ras_event_entry *entry);
-int ras_events_prepare(struct ras_events *ras, int record_events);
-int handle_ras_events(struct ras_events *ras,
-		      int record_events, int enable_ipmitool);
+int ras_event_filter(struct ras_events *ras, const char *group,
+		     const char *event, const char *filter);
+int ras_events_prepare(struct ras_events *ras, int record_events,
+		       int enable_ipmitool);
+int handle_ras_events(struct ras_events *ras);
 #ifdef HAVE_UNITTEST
 bool ras_events_test_is_disabled(const char *group, const char *event);
 #endif
+
+#define REGISTER_RAS_EVENT(entry) \
+	static void __attribute__((constructor)) register_##entry(void) \
+	{ \
+		ras_event_register(&(entry)); \
+	}
 
 #endif
