@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 #include "core/ras-logger.h"
-#include "core/ras-mc-handler.h"
+#include "events/ras-mc-handler.h"
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-report.h"
 #include "core/trigger.h"

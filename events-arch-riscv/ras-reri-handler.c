@@ -14,7 +14,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
-#include "events/ras-reri-handler.h"
+#include "events-arch-riscv/ras-reri-handler.h"
 #include "modules/ras-cpu-isolation.h"
 #include "core/ras-logger.h"
 #include "db/ras-record.h"

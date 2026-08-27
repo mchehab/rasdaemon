@@ -8,7 +8,7 @@
 #define __NON_STANDARD_HISILICON_H
 
 #include "db/ras-record.h"
-#include "core/ras-mc-handler.h"
+#include "events/ras-mc-handler.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 
 #define HISI_SNPRINTF	mce_snprintf

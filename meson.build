@@ -80,7 +80,7 @@ lib_sources = [
     'core/ras-logger.c',
     'core/ras-env.c',
     'core/ras-events.c',
-    'core/ras-mc-handler.c',
+    'events/ras-mc-handler.c',
     'core/trigger.c',
     'core/types.c',
 ]
@@ -190,7 +190,7 @@ if not get_option('disable-all')
     if not get_option('aer').disabled()
         if libpci_dep.found()
             enable_aer = true
-            lib_sources += 'modules/ras-aer-handler.c'
+            lib_sources += 'events/ras-aer-handler.c'
             dependencies += libpci_dep
         else
           message('libpci not found: disabling AER support')
@@ -247,7 +247,7 @@ if not get_option('disable-all')
 
     if not get_option('extlog').disabled()
         enable_extlog = true
-        lib_sources += 'core/ras-extlog-handler.c'
+        lib_sources += 'events/ras-extlog-handler.c'
     endif
 
     if not get_option('hisi-ns-decode').disabled()
@@ -296,7 +296,7 @@ if not get_option('disable-all')
 
     if not get_option('openbmc-unified-sel').disabled()
         enable_openbmc_unified_sel = true
-        lib_sources += 'events/unified-sel.c'
+        lib_sources += 'modules/unified-sel.c'
     endif
 
     if not get_option('signal').disabled()
@@ -312,7 +312,7 @@ if not get_option('disable-all')
 
     if not get_option('reri').disabled()
         enable_reri = true
-        lib_sources += 'events/ras-reri-handler.c'
+        lib_sources += 'events-arch-riscv/ras-reri-handler.c'
     endif
 
 endif
@@ -338,7 +338,7 @@ if enable_page_isolation
 endif
 
 if enable_poison_page_stat
-    lib_sources += 'events/ras-poison-page-stat.c'
+    lib_sources += 'modules/ras-poison-page-stat.c'
 endif
 
 #

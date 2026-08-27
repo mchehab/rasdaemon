@@ -7,10 +7,10 @@
 #ifndef __RAS_REPORT_H
 #define __RAS_REPORT_H
 
-#include "modules/ras-aer-handler.h"
+#include "events/ras-aer-handler.h"
 #include "core/ras-events.h"
 #include "events-arch-x86/ras-mce-handler.h"
-#include "core/ras-mc-handler.h"
+#include "events/ras-mc-handler.h"
 #include "db/ras-record.h"
 #include "core/types.h"
 

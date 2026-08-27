@@ -13,10 +13,10 @@
 #include <unistd.h>
 
 #include "core/bitfield.h"
-#include "modules/ras-aer-handler.h"
+#include "events/ras-aer-handler.h"
 #include "core/ras-logger.h"
 #include "modules/ras-report.h"
-#include "events/unified-sel.h"
+#include "modules/unified-sel.h"
 #include "core/trigger.h"
 #include "core/types.h"
 

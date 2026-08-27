@@ -14,13 +14,13 @@
 #include "core/ras-env.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "core/ras-mc-handler.h"
+#include "events/ras-mc-handler.h"
 #include "core/modules.h"
 
 #include "db/ras-db.h"
 #include "db/ras-record.h"
 
-#include "events/ras-poison-page-stat.h"
+#include "modules/ras-poison-page-stat.h"
 
 #include "events-arch-x86/ras-erst.h"
 

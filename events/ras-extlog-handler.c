@@ -13,7 +13,7 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
-#include "core/ras-extlog-handler.h"
+#include "events/ras-extlog-handler.h"
 #include "core/ras-logger.h"
 #include "modules/ras-report.h"
 #include "core/types.h"

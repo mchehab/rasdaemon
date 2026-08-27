@@ -10,7 +10,7 @@
 #include <sys/syslog.h>
 
 #include "core/ras-logger.h"
-#include "events/ras-poison-page-stat.h"
+#include "modules/ras-poison-page-stat.h"
 #include "core/types.h"
 
 unsigned long long poison_stat_threshold;

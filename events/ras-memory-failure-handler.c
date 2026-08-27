@@ -11,7 +11,7 @@
 
 #include "core/ras-logger.h"
 #include "events/ras-memory-failure-handler.h"
-#include "events/ras-poison-page-stat.h"
+#include "modules/ras-poison-page-stat.h"
 #include "modules/ras-report.h"
 #include "core/trigger.h"
 #include "core/types.h"
