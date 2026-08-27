@@ -440,6 +440,21 @@ static void test_ras_mc_ctl_record(void **state)
 	test_ras_mc_ctl_count("postgresql", "mc_event", 1);
 }
 
+static int test_ras_mc_ctl_teardown(void **state)
+{
+	(void)state;
+
+	/*
+	 * Assertions in test_ras_mc_ctl_record() can abort the test before
+	 * ras_mc_event_closedb() is reached.  Always release the record
+	 * statements here so the following test cannot reuse dangling state.
+	 */
+	if (ras.db_ref_count > 0)
+		return ras_mc_event_closedb(0, &ras);
+
+	return 0;
+}
+
 static int tests_setup(void **state)
 {
 	int rc = db_open(&backend, 0, &ras, sizeof(struct mock_priv));
@@ -472,7 +487,8 @@ static int tests_teardown(void **state)
 }
 
 static const struct CMUnitTest tests[] = {
-	cmocka_unit_test(test_ras_mc_ctl_record),
+	cmocka_unit_test_teardown(test_ras_mc_ctl_record,
+				  test_ras_mc_ctl_teardown),
 	cmocka_unit_test_setup_teardown(test_database_tables,
 					tests_setup, tests_teardown),
 
