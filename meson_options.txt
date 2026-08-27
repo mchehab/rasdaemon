@@ -11,6 +11,10 @@
 option('disable-all', type : 'boolean', value: false,
         description: 'disable all features. Useful to check broken deps')
 
+option('enable-arch', type : 'combo', choices : ['auto', 'all', 'x86', 'arm', 'riscv'],
+       value : 'all',
+       description : 'select the architecture-specific event family (or all for testing)')
+
 #
 # Main options
 #

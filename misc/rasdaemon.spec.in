@@ -18,6 +18,10 @@ BuildRequires:		sqlite-devel
 BuildRequires:		systemd
 BuildRequires:		libtraceevent-devel
 BuildRequires:		pciutils-devel
+BuildRequires:		python3-devel
+BuildRequires:		python3-sqlalchemy
+BuildRequires:		mariadb-connector-c-devel
+BuildRequires:		libpq-devel
 Provides:		bundled(kernel-event-lib)
 Requires:		hwdata
 Requires:		python3
@@ -48,7 +52,15 @@ an utility for reporting current error counts from the EDAC sysfs files.
 
 %prep
 %autosetup -p1
-%meson
+%ifarch %{ix86} x86_64
+%meson -Denable-arch=x86
+%elifarch aarch64 armv7hl armv8hl
+%meson -Denable-arch=arm
+%elifarch riscv32 riscv64
+%meson -Denable-arch=riscv
+%else
+%meson -Denable-arch=auto
+%endif
 
 %build
 %meson_build
@@ -61,7 +73,7 @@ an utility for reporting current error counts from the EDAC sysfs files.
 %{_sbindir}/%{name}
 %{_sbindir}/ras-mc-ctl
 %{python3_sitelib}/*.py
-%{python3_sitelib}/__pycache__/*.pyc
+%{python3_sitelib}/__pycache__/*
 %{_mandir}/*/*
 %{_unitdir}/*.service
 %{_sysconfdir}/ras/*/*

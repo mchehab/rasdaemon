@@ -38,6 +38,21 @@ datadir = get_option('datadir')
 
 py = import('python').find_installation('python3')
 
+arch = get_option('enable-arch')
+if arch == 'auto'
+  host_arch = host_machine.cpu_family()
+  if host_arch in ['x86', 'x86_64']
+    arch = 'x86'
+  elif host_arch in ['arm', 'aarch64']
+    arch = 'arm'
+  elif host_arch in ['riscv32', 'riscv64']
+    arch = 'riscv'
+  endif
+endif
+arch_x86 = arch == 'all' or arch == 'x86'
+arch_arm = arch == 'all' or arch == 'arm'
+arch_riscv = arch == 'all' or arch == 'riscv'
+
 pydir = py.get_install_dir(pure: true)
 
 #
@@ -206,13 +221,13 @@ if not get_option('disable-all')
         lib_sources += 'modules/ras-report.c'
     endif
 
-    if not get_option('amp-ns-decode').disabled()
+    if arch_arm and not get_option('amp-ns-decode').disabled()
         enable_amp_ns_decode = true
         enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-ampere.c'
     endif
 
-    if not get_option('arm').disabled()
+    if arch_arm and not get_option('arm').disabled()
         enable_arm = true
         lib_sources += 'events-arch-arm/ras-arm-handler.c'
     endif
@@ -240,7 +255,7 @@ if not get_option('disable-all')
         lib_sources += 'events/ras-diskerror-handler.c'
     endif
 
-    if not get_option('erst').disabled()
+    if arch_x86 and not get_option('erst').disabled()
         enable_erst = true
         lib_sources += 'events-arch-x86/ras-erst.c'
     endif
@@ -250,7 +265,7 @@ if not get_option('disable-all')
         lib_sources += 'events/ras-extlog-handler.c'
     endif
 
-    if not get_option('hisi-ns-decode').disabled()
+    if arch_arm and not get_option('hisi-ns-decode').disabled()
         enable_hisi_ns_decode = true
         enable_non_standard = true
         lib_sources += [
@@ -259,13 +274,13 @@ if not get_option('disable-all')
         ]
     endif
 
-    if not get_option('jaguar-ns-decode').disabled()
+    if arch_arm and not get_option('jaguar-ns-decode').disabled()
         enable_jaguar_ns_decode = true
         enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-jaguarmicro.c'
     endif
 
-    if not get_option('mce').disabled()
+    if arch_x86 and not get_option('mce').disabled()
         enable_mce = true
         lib_sources += mce_sources
     endif
@@ -288,7 +303,7 @@ if not get_option('disable-all')
         enable_page_isolation = true
     endif
 
-    if not get_option('nvidia-ns-decode').disabled()
+    if arch_arm and not get_option('nvidia-ns-decode').disabled()
         enable_nvidia_ns_decode = true
         enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-nvidia.c'
@@ -304,13 +319,13 @@ if not get_option('disable-all')
         lib_sources += 'events/ras-signal-handler.c'
     endif
 
-    if not get_option('yitian-ns-decode').disabled()
+    if arch_arm and not get_option('yitian-ns-decode').disabled()
         enable_yitian_ns_decode = true
         enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-yitian.c'
     endif
 
-    if not get_option('reri').disabled()
+    if arch_riscv and not get_option('reri').disabled()
         enable_reri = true
         lib_sources += 'events-arch-riscv/ras-reri-handler.c'
     endif
