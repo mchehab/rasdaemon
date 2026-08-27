@@ -6,6 +6,8 @@ default: all
 
 PYTHON ?= python3
 
+build/Makefile.inc: Makefile.inc.in all
+
 -include build/Makefile.inc
 
 build/build.ninja:
@@ -32,5 +34,3 @@ uninstall: build/build.ninja
 
 python-test:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) tests/run.py
-
-.PHONY: python-test

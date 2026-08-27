@@ -16,7 +16,7 @@ test: all
 	fi
 
 dist:
-	meson dist -C build
+	meson dist -C build --no-tests
 
 dist-rpm: dist
 	if [ ! -d "$(RPM_TOPDIR)/SOURCES/" ]; then \
