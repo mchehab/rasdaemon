@@ -73,7 +73,7 @@ def main() -> None:
 
     main_help = rasdaemon_help(args.program, [], env)
     dimm_help = rasdaemon_help(args.program, ["dimm"], env)
-    database_help = rasdaemon_help(args.program, ["database"], env)
+
     date = datetime.date.today().strftime("%d %B %Y")
     output = dedent(f'''\
         .TH RAS-MC-CTL 8 "{date}" "rasdaemon" "System Administration"
@@ -90,8 +90,13 @@ def main() -> None:
     output += '.SH DIMM COMMAND\n'
     output += nf_block(dimm_help)
 
-    output += '.SH DATABASE COMMAND\n'
-    output += nf_block(database_help)
+   # Only add DB help if rasdaemon was compiled with DB support
+    try:
+        database_help = rasdaemon_help(args.program, ["database"], env)
+        output += '.SH DATABASE COMMAND\n'
+        output += nf_block(database_help)
+    except subprocess.CalledProcessError:
+        pass
 
     output += dedent('''\
         .SH FILES
