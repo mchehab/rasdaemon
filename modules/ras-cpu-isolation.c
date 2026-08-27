@@ -4,17 +4,17 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2021-2021. All rights reserved.
  */
 
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <limits.h>
-#include "modules/ras-cpu-isolation.h"
 #include "core/ras-logger.h"
+#include "modules/ras-cpu-isolation.h"
 
 #define SECOND_OF_MON (30 * 24 * 60 * 60)
 #define SECOND_OF_DAY (24 * 60 * 60)

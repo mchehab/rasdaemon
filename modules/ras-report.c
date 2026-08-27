@@ -5,17 +5,17 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/utsname.h>
 #include <unistd.h>
-#include <stdlib.h>
 
 #include "core/ras-logger.h"
-#include "modules/ras-report.h"
 #include "db/ras-record.h"
+#include "modules/ras-report.h"
 
 static int setup_report_socket(void)
 {

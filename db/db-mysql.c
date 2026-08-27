@@ -8,23 +8,21 @@
  * Links:		 -lmysqlclient (or -lmariadb)
  */
 
+#include "config.h"
+
 #include <errno.h>
+#include <mysql/mysql.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
-#include <mysql/mysql.h>
-
-#include "config.h"
-
 #include "core/modules.h"
 #include "core/ras-logger.h"
-
-#include "db/ras-db.h"
-#include "db/ras-db-backend.h"
 #include "db/db-mysql.h"
+#include "db/ras-db-backend.h"
+#include "db/ras-db.h"
 
 //#define DEBUG_SQL
 

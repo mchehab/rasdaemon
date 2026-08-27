@@ -7,9 +7,9 @@
 #ifndef __RAS_PAGE_ISOLATION_H
 #define __RAS_PAGE_ISOLATION_H
 
-#include <sys/types.h>
-#include <sys/queue.h>
 #include <stdbool.h>
+#include <sys/queue.h>
+#include <sys/types.h>
 #include <time.h>
 
 #include "core/rbtree.h"

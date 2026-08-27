@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /* Unit tests for dependency-free core helpers. */
 
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -8,7 +10,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "config.h"
 #include "core/bitfield.h"
 #include "core/queue.h"
 #include "core/ras-env.h"

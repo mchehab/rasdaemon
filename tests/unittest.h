@@ -7,7 +7,7 @@
 
 #include <cmocka.h>
 
-#include <core/types.h>
+#include "core/types.h"
 
 #ifndef CMOCKA_VERSION_2
 #define assert_non_null_msg(x, y) assert_non_null(x)

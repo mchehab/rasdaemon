@@ -5,21 +5,21 @@
  * RISC-V RAS Error Report Register Interface (RERI) handler
  */
 
+#include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <limits.h>
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/ras-logger.h"
+#include "core/types.h"
+#include "db/ras-record.h"
 #include "events-arch-riscv/ras-reri-handler.h"
 #include "modules/ras-cpu-isolation.h"
-#include "core/ras-logger.h"
-#include "db/ras-record.h"
 #include "modules/ras-report.h"
-#include "core/types.h"
 
 #define RERI_GET_FIELD(val, offset, mask)	(((val) >> (offset)) & (mask))
 

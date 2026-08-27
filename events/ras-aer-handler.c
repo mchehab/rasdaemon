@@ -6,19 +6,19 @@
 
 #include <pci/pci.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
 #include "core/bitfield.h"
-#include "events/ras-aer-handler.h"
 #include "core/ras-logger.h"
-#include "modules/ras-report.h"
-#include "modules/unified-sel.h"
 #include "core/trigger.h"
 #include "core/types.h"
+#include "events/ras-aer-handler.h"
+#include "modules/ras-report.h"
+#include "modules/unified-sel.h"
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {

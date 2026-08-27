@@ -4,17 +4,17 @@
  * Copyright (C) 2023 Alibaba Inc
  */
 
-#include <stdbool.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "events-arch-arm/non-standard-yitian.h"
 #include "core/ras-logger.h"
+#include "core/types.h"
+#include "events-arch-arm/non-standard-yitian.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "modules/ras-report.h"
-#include "core/types.h"
 
 static bool append_text(char **cursor, char *end, const char *fmt, ...)
 {

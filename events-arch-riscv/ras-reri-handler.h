@@ -9,6 +9,7 @@
 #define __RAS_RERI_HANDLER_H
 
 #include <traceevent/event-parse.h>
+
 #include "core/ras-events.h"
 
 /* RERI Transaction Types */

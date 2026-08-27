@@ -10,11 +10,11 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
+#include "core/trigger.h"
+#include "core/types.h"
 #include "events/ras-memory-failure-handler.h"
 #include "modules/ras-poison-page-stat.h"
 #include "modules/ras-report.h"
-#include "core/trigger.h"
-#include "core/types.h"
 
 /* Memory failure - various types of pages */
 enum mf_action_page_type {

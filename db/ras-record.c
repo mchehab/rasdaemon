@@ -11,13 +11,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "events/ras-aer-handler.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "events-arch-x86/ras-mce-handler.h"
-#include "events/ras-mc-handler.h"
 #include "db/ras-record.h"
 #include "events-arch-riscv/ras-reri-handler.h"
+#include "events-arch-x86/ras-mce-handler.h"
+#include "events/ras-aer-handler.h"
+#include "events/ras-mc-handler.h"
 
 #ifdef HAVE_DB
 

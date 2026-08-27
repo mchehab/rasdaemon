@@ -4,12 +4,12 @@
  * backend.  Backend-specific test suites provide the open connection.
  */
 
-#include <stdint.h>
+#include "config.h"
+
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "config.h"
 
 #include "core/ras-events.h"
 #include "core/ras-logger.h"

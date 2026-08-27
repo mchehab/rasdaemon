@@ -3,6 +3,7 @@
 #define RAS_DB_REGISTER_H
 
 #include <stdbool.h>
+
 #include "db/ras-db.h"
 
 struct ras_db_backend_ops {

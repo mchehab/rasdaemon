@@ -15,10 +15,10 @@
 #include <unistd.h>
 
 #include "core/ras-logger.h"
+#include "core/types.h"
+#include "db/ras-record.h"
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-poison-page-stat.h"
-#include "db/ras-record.h"
-#include "core/types.h"
 
 #define PARSED_ENV_LEN 50
 #define ROW_ID_MAX_LEN 200

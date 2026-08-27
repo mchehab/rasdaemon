@@ -4,17 +4,17 @@
  * Copyright (c) 2023, JaguarMicro
  */
 
-#include "events-arch-arm/non-standard-jaguarmicro.h"
-#include "core/ras-logger.h"
-#include "events-arch-x86/ras-mce-handler.h"
-#include "events-arch-arm/ras-non-standard-handler.h"
-#include "modules/ras-report.h"
-#include "core/types.h"
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "core/ras-logger.h"
+#include "core/types.h"
+#include "events-arch-arm/non-standard-jaguarmicro.h"
+#include "events-arch-arm/ras-non-standard-handler.h"
+#include "events-arch-x86/ras-mce-handler.h"
+#include "modules/ras-report.h"
 
 #define JM_BUF_LEN	256
 #define JM_REG_BUF_LEN	2048

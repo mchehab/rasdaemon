@@ -3,6 +3,8 @@
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
+#include "config.h"
+
 #include <argp.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -10,8 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "config.h"
 
 #include "core/modules.h"
 #include "core/ras-events.h"

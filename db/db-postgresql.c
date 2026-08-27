@@ -8,25 +8,23 @@
  * Links:		 -lpq
  */
 
-#include <errno.h>
+#include "config.h"
+
 #include <ctype.h>
+#include <errno.h>
+#include <libpq-fe.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
 
-#include <libpq-fe.h>
-
-#include "config.h"
-
 #include "core/modules.h"
 #include "core/ras-logger.h"
-
-#include "db/ras-db.h"
-#include "db/ras-db-backend.h"
-#include "db/db-postgresql.h"
 #include "db/db-postgresql-priv.h"
+#include "db/db-postgresql.h"
+#include "db/ras-db-backend.h"
+#include "db/ras-db.h"
 
 //#define DEBUG_SQL
 

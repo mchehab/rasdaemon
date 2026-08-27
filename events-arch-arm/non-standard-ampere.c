@@ -9,11 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "events-arch-arm/non-standard-ampere.h"
 #include "core/ras-logger.h"
+#include "core/types.h"
+#include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "modules/ras-report.h"
-#include "core/types.h"
 
 /*Armv8 RAS compicant Error Record(APEI and BMC Reporting) Payload Type 0*/
 static const char * const disp_payload0_err_reg_name[] = {

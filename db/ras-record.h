@@ -8,14 +8,14 @@
 #ifndef __RAS_RECORD_H
 #define __RAS_RECORD_H
 
+#include "config.h"
+
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "config.h"
-
-#include "db/ras-db.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 
 struct ras_events;
 

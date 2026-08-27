@@ -10,19 +10,16 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "core/types.h"
+#include "core/modules.h"
 #include "core/ras-env.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "events/ras-mc-handler.h"
-#include "core/modules.h"
-
+#include "core/types.h"
 #include "db/ras-db.h"
 #include "db/ras-record.h"
-
-#include "modules/ras-poison-page-stat.h"
-
 #include "events-arch-x86/ras-erst.h"
+#include "events/ras-mc-handler.h"
+#include "modules/ras-poison-page-stat.h"
 
 /*
  * Arguments(argp) handling logic and main

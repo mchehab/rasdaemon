@@ -13,24 +13,21 @@
  *   RAS_PG_DATABASE	(default: "rasdaemon_test")
  */
 
+#include "config.h"
+
+#include <errno.h>
+#include <libpq-fe.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
 
-#include <libpq-fe.h>
-
-#include "config.h"
-
+#include "core/modules.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "core/modules.h"
-
-#include "db/ras-db.h"
-#include "db/db-postgresql.h"
 #include "db/db-postgresql-priv.h"
-
+#include "db/db-postgresql.h"
+#include "db/ras-db.h"
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;

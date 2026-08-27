@@ -3,17 +3,16 @@
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "config.h"
-
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-
-#include "db/ras-db.h"
 #include "db/ras-db-backend.h"
+#include "db/ras-db.h"
 
 const char *selected_backend = NULL;
 struct ras_db_backend_entry ras_db_backends = { 0 };

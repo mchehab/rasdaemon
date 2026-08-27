@@ -3,22 +3,21 @@
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
+#include "config.h"
+
 #include <errno.h>
+#include <sqlite3.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sqlite3.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "config.h"
-
 #include "core/modules.h"
 #include "core/ras-logger.h"
-
-#include "db/ras-db.h"
-#include "db/ras-db-backend.h"
 #include "db/db-sqlite3.h"
+#include "db/ras-db-backend.h"
+#include "db/ras-db.h"
 
 //#define DEBUG_SQL
 

@@ -10,10 +10,10 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
-#include "events/ras-devlink-handler.h"
 #include "core/ras-logger.h"
-#include "modules/ras-report.h"
 #include "core/types.h"
+#include "events/ras-devlink-handler.h"
+#include "modules/ras-report.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
 				 struct tep_record *record,

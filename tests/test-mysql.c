@@ -16,23 +16,20 @@
  *
  */
 
+#include "config.h"
+
+#include <errno.h>
+#include <mysql/mysql.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
 
-#include <mysql/mysql.h>
-
-#include "config.h"
-
+#include "core/modules.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "core/modules.h"
-
-#include "db/ras-db.h"
 #include "db/db-mysql.h"
-
+#include "db/ras-db.h"
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;

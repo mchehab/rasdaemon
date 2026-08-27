@@ -6,13 +6,13 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 #include <time.h>
 
-#include "events-arch-arm/non-standard-nvidia.h"
 #include "core/ras-logger.h"
+#include "events-arch-arm/non-standard-nvidia.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 
 static void nvidia_format_timestamp(char *timestamp, size_t len)

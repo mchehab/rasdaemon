@@ -8,6 +8,7 @@
 #define __RAS_CPU_ISOLATION_H
 
 #include <stdbool.h>
+
 #include "core/queue.h"
 
 #define MAX_BUF_LEN 1024

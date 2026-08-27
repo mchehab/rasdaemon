@@ -10,13 +10,13 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/ras-logger.h"
+#include "core/types.h"
 #include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/ras-arm-handler.h"
-#include "modules/ras-cpu-isolation.h"
-#include "core/ras-logger.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
+#include "modules/ras-cpu-isolation.h"
 #include "modules/ras-report.h"
-#include "core/types.h"
 
 #define ARM_ERR_VALID_ERROR_COUNT BIT(0)
 #define ARM_ERR_VALID_FLAGS BIT(1)

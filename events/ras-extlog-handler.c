@@ -13,10 +13,10 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
-#include "events/ras-extlog-handler.h"
 #include "core/ras-logger.h"
-#include "modules/ras-report.h"
 #include "core/types.h"
+#include "events/ras-extlog-handler.h"
+#include "modules/ras-report.h"
 
 static char *err_type(int etype)
 {

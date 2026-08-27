@@ -14,9 +14,9 @@
 #include <unistd.h>
 
 #include "core/ras-logger.h"
+#include "core/types.h"
 #include "events-arch-x86/ras-mce-handler.h"
 #include "modules/ras-report.h"
-#include "core/types.h"
 
 /*
  * The code below were adapted from Andi Kleen/Intel/SUSE mcelog code,

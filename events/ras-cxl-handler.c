@@ -11,12 +11,12 @@
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
+#include "core/ras-logger.h"
+#include "core/types.h"
+#include "db/ras-record.h"
 #include "events/ras-cxl-handler.h"
 #include "modules/ras-page-isolation.h"
-#include "core/ras-logger.h"
-#include "db/ras-record.h"
 #include "modules/ras-report.h"
-#include "core/types.h"
 
 /* Common Functions */
 static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size)

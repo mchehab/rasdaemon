@@ -3,29 +3,26 @@
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
 
+#include "config.h"
+
+#include <errno.h>
+#include <signal.h>
+/* for sqlite3 flags */
+#include <sqlite3.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <signal.h>
 #include <unistd.h>
 
-/* for sqlite3 flags */
-#include <sqlite3.h>
-
-#include "config.h"
-
-#include "core/ras-events.h"
-#include "core/ras-env.h"
-#include "core/ras-logger.h"
 #include "core/modules.h"
-
-#include "db/ras-db.h"
+#include "core/ras-env.h"
+#include "core/ras-events.h"
+#include "core/ras-logger.h"
 #include "db/db-sqlite3.h"
+#include "db/ras-db.h"
 #include "db/ras-record.h"
 #include "events-arch-riscv/ras-reri-handler.h"
 #include "events-arch-x86/ras-mce-handler.h"
-
 #include "tests/unittest.h"
 
 extern struct module_list ras_modules;

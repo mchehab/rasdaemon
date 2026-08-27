@@ -7,8 +7,9 @@
 #ifndef __NON_STANDARD_YITIAN_H
 #define __NON_STANDARD_YITIAN_H
 
+#include <traceevent/event-parse.h>
+
 #include "core/ras-events.h"
-#include "traceevent/event-parse.h"
 
 struct ras_ns_ev_decoder;
 

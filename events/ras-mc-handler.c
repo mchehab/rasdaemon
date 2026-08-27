@@ -5,19 +5,19 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <traceevent/kbuffer.h>
 #include <unistd.h>
 
 #include "core/ras-logger.h"
+#include "core/trigger.h"
+#include "core/types.h"
 #include "events/ras-mc-handler.h"
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-report.h"
-#include "core/trigger.h"
-#include "core/types.h"
 
 #define MAX_ENV 30
 static const char *mc_ce_trigger = NULL;

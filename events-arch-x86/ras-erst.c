@@ -10,11 +10,11 @@
 #include <unistd.h>
 
 #include "core/ras-events.h"
-#include "events-arch-x86/ras-erst.h"
 #include "core/ras-logger.h"
-#include "events-arch-x86/ras-mce-handler.h"
-#include "db/ras-record.h"
 #include "core/types.h"
+#include "db/ras-record.h"
+#include "events-arch-x86/ras-erst.h"
+#include "events-arch-x86/ras-mce-handler.h"
 
 struct mce {
 	uint64_t status;		/* Bank's MCi_STATUS MSR */

@@ -3,12 +3,13 @@
  * Copyright (c) 2023, Meta Platforms Inc.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include "db/ras-record.h"
+
 #include "core/ras-logger.h"
+#include "db/ras-record.h"
 #include "modules/ras-report.h"
 #include "modules/unified-sel.h"
 

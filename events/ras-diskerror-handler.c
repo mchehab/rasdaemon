@@ -10,10 +10,10 @@
 #include <string.h>
 #include <traceevent/kbuffer.h>
 
-#include "events/ras-diskerror-handler.h"
 #include "core/ras-logger.h"
-#include "modules/ras-report.h"
 #include "core/types.h"
+#include "events/ras-diskerror-handler.h"
+#include "modules/ras-report.h"
 
 static const struct {
 	int             error;

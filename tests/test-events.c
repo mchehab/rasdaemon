@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /* Feature-level C tests using scripted trace records. */
 
+#include "config.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -8,31 +10,30 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "config.h"
-#include "events/ras-extlog-handler.h"
 #include "core/ras-logger.h"
-#include "events/ras-mc-handler.h"
-#include "db/ras-db.h"
 #include "db/ras-db-backend.h"
+#include "db/ras-db.h"
 #include "db/ras-record.h"
-#include "events/ras-cxl-handler.h"
-#include "events/ras-devlink-handler.h"
-#include "events/ras-diskerror-handler.h"
-#include "events/ras-memory-failure-handler.h"
-#include "events-arch-riscv/ras-reri-handler.h"
-#include "events/ras-signal-handler.h"
-#include "modules/unified-sel.h"
 #include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/non-standard-nvidia.h"
 #include "events-arch-arm/non-standard-yitian.h"
 #include "events-arch-arm/ras-arm-handler.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
+#include "events-arch-riscv/ras-reri-handler.h"
 #include "events-arch-x86/ras-erst.h"
 #include "events-arch-x86/ras-mce-handler.h"
 #include "events/ras-aer-handler.h"
+#include "events/ras-cxl-handler.h"
+#include "events/ras-devlink-handler.h"
+#include "events/ras-diskerror-handler.h"
+#include "events/ras-extlog-handler.h"
+#include "events/ras-mc-handler.h"
+#include "events/ras-memory-failure-handler.h"
+#include "events/ras-signal-handler.h"
 #include "modules/ras-cpu-isolation.h"
 #include "modules/ras-page-isolation.h"
 #include "modules/ras-report.h"
+#include "modules/unified-sel.h"
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
 
