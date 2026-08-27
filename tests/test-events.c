@@ -1,5 +1,9 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-/* Feature-level C tests using scripted trace records. */
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ *
+ * Test several events.
+ */
 
 #include "config.h"
 

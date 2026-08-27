@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Originally from Debian's Lintian tool. Various false positives have been
 # removed, and various additions have been made as they've been discovered

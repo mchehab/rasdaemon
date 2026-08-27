@@ -1,5 +1,9 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-/* Scripted libtraceevent field access for event-handler unit tests. */
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ *
+ * Scripted libtraceevent field access for event-handler unit tests.
+ */
 
 #include <assert.h>
 #include <stdbool.h>

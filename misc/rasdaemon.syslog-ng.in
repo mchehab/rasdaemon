@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 
 destination d_rasdaemon		{ file("@localstatedir@/log/rasdaemon"); };
 

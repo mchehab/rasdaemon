@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-
 /*
  * Copyright (C) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  * Copyright (c) 2016, The Linux Foundation. All rights reserved.

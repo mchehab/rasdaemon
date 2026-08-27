@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
-# SPDX-License-Identifier: GPL-2.0
-
+# SPDX-License-Identifier: GPL-2.0-only
 # Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-
 
 """
 Convert data from the memory layout as detected with EDAC into a

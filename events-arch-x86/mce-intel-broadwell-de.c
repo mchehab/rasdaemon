@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * The code below came from Tony Luck's mcelog code,
  * released under GNU Public General License, v.2

@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-/* Unit tests for dependency-free core helpers. */
+/*
+ * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ *
+ * Unit tests for dependency-free core helpers.
+ */
 
 #include "config.h"
 

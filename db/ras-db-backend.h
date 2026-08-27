@@ -1,4 +1,7 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ */
 #ifndef RAS_DB_REGISTER_H
 #define RAS_DB_REGISTER_H
 

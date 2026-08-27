@@ -1,7 +1,7 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-only
 /*
-* Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-*/
+ * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ */
 
 #include <stdlib.h>
 #include <string.h>

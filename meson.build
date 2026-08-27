@@ -1,10 +1,10 @@
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
 project('rasdaemon', 'c',
         version: '0.9.90',
-        license: 'GPL-2.0',
+        license: 'GPL-2.0-only',
         meson_version: '>= 0.60')
 
 #

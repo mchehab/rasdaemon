@@ -1,5 +1,7 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
+// SPDX-License-Identifier: GPL-2.0-only
 /*
+ * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+ *
  * Exercise every production database table descriptor against each enabled
  * backend.  Backend-specific test suites provide the open connection.
  */

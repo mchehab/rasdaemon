@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: GPL-2.0
+# SPDX-License-Identifier: GPL-2.0-only
 #
 #  This shell script can be executed by rasdaemon in daemon mode when a
 #  mc_event is occured, environment variables include all information

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 
 /*
  * The code below came from Andi Kleen/Intel/SUSE mcelog code,

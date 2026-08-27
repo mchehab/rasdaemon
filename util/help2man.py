@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: GPL-2.0
+#
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
 """
 This is a poor man's helper tool to generate a roff manual from ras-mc-ctl

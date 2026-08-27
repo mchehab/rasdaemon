@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: GPL-2.0
+#
+# SPDX-License-Identifier: GPL-2.0-only
 # Copyright(c) 2025-2026: Mauro Carvalho Chehab <mchehab@kernel.org>.
 
 import os
