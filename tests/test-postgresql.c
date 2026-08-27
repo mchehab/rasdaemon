@@ -525,6 +525,15 @@ static int group_setup(void **state)
 	if (port)
 		conn_parms.port = atoi(port);
 
+	if (setenv("RAS_PG_USER", conn_parms.user, 1) ||
+	    setenv("RAS_PG_PASSWORD", conn_parms.password, 1) ||
+	    setenv("RAS_PG_SCHEMA", conn_parms.schema, 1) ||
+	    setenv("RAS_PG_DATABASE", conn_parms.database, 1) ||
+	    setenv("RAS_PG_PORT", port ? port : "5432", 1))
+		return -1;
+	if (conn_parms.host && setenv("RAS_PG_HOST", conn_parms.host, 1))
+		return -1;
+
 	return db_backend_enable("postgresql");
 }
 

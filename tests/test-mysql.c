@@ -506,6 +506,16 @@ static int group_setup(void **state)
 	if (port)
 		conn_parms.port = atoi(port);
 
+	if (setenv("RAS_MYSQL_USER", conn_parms.user, 1) ||
+	    setenv("RAS_MYSQL_PASSWORD", conn_parms.password, 1) ||
+	    setenv("RAS_MYSQL_DATABASE", conn_parms.database, 1) ||
+	    setenv("RAS_MYSQL_PORT", port ? port : "3306", 1))
+		return -1;
+	if (conn_parms.host && setenv("RAS_MYSQL_HOST", conn_parms.host, 1))
+		return -1;
+	if (conn_parms.socket && setenv("RAS_MYSQL_SOCKET", conn_parms.socket, 1))
+		return -1;
+
 	return db_backend_enable("mysql");
 }
 
