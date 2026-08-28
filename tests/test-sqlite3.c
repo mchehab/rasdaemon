@@ -19,6 +19,7 @@
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "db/db-sqlite3.h"
+#include "db/ras-db-backend.h"
 #include "db/ras-db.h"
 #include "events-arch-arm/ras-arm-handler.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
@@ -907,6 +908,16 @@ static void test_db_reference_count(void **state)
 	}
 }
 
+static void test_backend_module_reinitialization(void **state)
+{
+	assert_true(db_backend_is_registered("sqlite3"));
+	assert_int_equal(module_cleanup("db-sqlite3"), 0);
+	assert_false(db_backend_is_registered("sqlite3"));
+	assert_int_equal(module_init(&ras, "db-sqlite3"), 0);
+	assert_true(db_backend_is_registered("sqlite3"));
+	assert_int_equal(db_backend_enable("sqlite3"), 0);
+}
+
 static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_db_open_registered_tables),
 	cmocka_unit_test(test_db_reference_count),
@@ -935,6 +946,8 @@ static const struct CMUnitTest tests[] = {
 
 	cmocka_unit_test_setup_teardown(test_db_complex_table,
 					tests_setup, tests_teardown),
+
+	cmocka_unit_test(test_backend_module_reinitialization),
 };
 
 static int group_setup(void **state)

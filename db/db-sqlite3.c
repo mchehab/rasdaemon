@@ -524,6 +524,16 @@ static int sqlite3_init(struct ras_module_ctx *ctx)
 	return ret;
 }
 
+static void sqlite3_cleanup(struct ras_module_ctx *ctx)
+{
+	int ret;
+
+	ret = db_backend_unregister(&sqlite3_backend_entry);
+	if (ret != 0)
+		log(TERM, LOG_ERR,
+		    "Failed to cleanup SQLite3 backend: %d\n", ret);
+}
+
 /*
  * Module auto-register data and code
  */
@@ -531,6 +541,7 @@ static int sqlite3_init(struct ras_module_ctx *ctx)
 const struct ras_module_entry db_sqlite3_module = {
 	.name = "db-sqlite3",
 	.init = sqlite3_init,
+	.cleanup = sqlite3_cleanup,
 	.level = DB_MODULE,
 };
 

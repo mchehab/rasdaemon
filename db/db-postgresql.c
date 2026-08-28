@@ -783,9 +783,20 @@ static int pg_init(struct ras_module_ctx *ctx)
 	return ret;
 }
 
+static void pg_cleanup(struct ras_module_ctx *ctx)
+{
+	int ret;
+
+	ret = db_backend_unregister(&pg_backend_entry);
+	if (ret != 0)
+		log(TERM, LOG_ERR,
+		    "Failed to cleanup PostgreSQL backend: %d\n", ret);
+}
+
 const struct ras_module_entry db_postgresql_module = {
 	.name = "db-postgresql",
 	.init = pg_init,
+	.cleanup = pg_cleanup,
 	.level = DB_MODULE,
 };
 

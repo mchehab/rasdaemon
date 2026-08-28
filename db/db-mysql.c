@@ -640,9 +640,20 @@ static int mysql_module_init(struct ras_module_ctx *ctx)
 	return ret;
 }
 
+static void mysql_module_cleanup(struct ras_module_ctx *ctx)
+{
+	int ret;
+
+	ret = db_backend_unregister(&mysql_backend_entry);
+	if (ret != 0)
+		log(TERM, LOG_ERR,
+		    "Failed to cleanup MySQL backend: %d\n", ret);
+}
+
 const struct ras_module_entry db_mysql_module = {
 	.name = "db-mysql",
 	.init = mysql_module_init,
+	.cleanup = mysql_module_cleanup,
 	.level = DB_MODULE,
 };
 

@@ -86,6 +86,33 @@ int db_backend_register(struct ras_db_backend_entry *entry)
 	return 0;
 }
 
+int db_backend_unregister(struct ras_db_backend_entry *entry)
+{
+	struct ras_db_backend_runtime *registered;
+
+	if (!entry)
+		return -EINVAL;
+
+	if (ras_db_ops == entry->ops)
+		return -EBUSY;
+
+	LIST_FOREACH(registered, &ras_db_backends, node) {
+		if (registered->entry != entry)
+			continue;
+
+		LIST_REMOVE(registered, node);
+		free(registered);
+
+		if (selected_backend &&
+		    !strcmp(selected_backend, entry->name))
+			selected_backend = NULL;
+
+		return 0;
+	}
+
+	return -ENOENT;
+}
+
 bool db_backend_is_registered(const char *name)
 {
 	const struct ras_db_backend_runtime *backend;
