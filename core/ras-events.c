@@ -479,7 +479,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	void *page;
 	struct pollfd fds[n_cpus + 1];
 	struct signalfd_siginfo fdsiginfo;
-	sigset_t mask;
+	sigset_t mask, oldmask;
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
 	int legacy_kernel = 0;
@@ -531,13 +531,15 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	sigaddset(&mask, SIGTERM);
 	sigaddset(&mask, SIGHUP);
 	sigaddset(&mask, SIGQUIT);
-	if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
+	if (sigprocmask(SIG_BLOCK, &mask, &oldmask) == -1) {
 		log(TERM, LOG_WARNING, "sigprocmask\n");
+		goto error;
+	}
 	fds[n_cpus].events = POLLIN;
 	fds[n_cpus].fd = signalfd(-1, &mask, 0);
 	if (fds[n_cpus].fd < 0) {
 		log(TERM, LOG_WARNING, "signalfd\n");
-		goto error;
+		goto cleanup;
 	}
 
 	log(TERM, LOG_INFO, "Listening to events for cpus 0 to %d\n", n_cpus - 1);
@@ -619,10 +621,10 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	    "Old kernel detected. Stop listening and fall back to pthread way.\n");
 
 cleanup:
+	sigprocmask(SIG_SETMASK, &oldmask, NULL);
 error:
 	kbuffer_free(kbuf);
 	free(page);
-	sigprocmask(SIG_UNBLOCK, &mask, NULL);
 
 	for (i = 0; i < (n_cpus + 1); i++) {
 		if (fds[i].fd >= 0)
