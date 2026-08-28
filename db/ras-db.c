@@ -31,6 +31,7 @@ static struct ras_db_backend_list ras_db_backends =
 	LIST_HEAD_INITIALIZER(ras_db_backends);
 
 const char *rasdaemon_hostname = "";
+static char rasdaemon_hostname_buf[256];
 
 static bool add_hostname = false;
 
@@ -176,7 +177,6 @@ int db_backend_enable(const char *name)
 static void db_get_rasdaemon_hostname(void)
 {
 	const char *env_hostname;
-	char hostname[256];
 
 	/* Hostname already set */
 	if (*rasdaemon_hostname)
@@ -188,12 +188,14 @@ static void db_get_rasdaemon_hostname(void)
 		return;
 	}
 
-	if (gethostname(hostname, sizeof(hostname)) != 0) {
+	if (gethostname(rasdaemon_hostname_buf,
+			sizeof(rasdaemon_hostname_buf)) != 0) {
 		log(TERM, LOG_ERR, "Failed to get hostname\n");
 		return;
 	}
 
-	rasdaemon_hostname = strdup(hostname);
+	rasdaemon_hostname_buf[sizeof(rasdaemon_hostname_buf) - 1] = '\0';
+	rasdaemon_hostname = rasdaemon_hostname_buf;
 }
 
 /*
