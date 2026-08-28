@@ -219,8 +219,6 @@ int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras)
 	int rc;
 	struct ras_record_priv *priv;
 
-	printf("Calling %s()\n", __func__);
-
 	rc = db_open(NULL, cpu, ras, sizeof(*priv));
 	if (rc)
 		return -1;
@@ -244,8 +242,6 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 	struct ras_record_priv *priv = ras->db_priv;
 	struct ras_db *db;
 	int rc = 0;
-
-	printf("Calling %s()\n", __func__);
 
 	if (ras->db_ref_count <= 0)
 		return -1;
