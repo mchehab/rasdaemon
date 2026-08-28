@@ -52,7 +52,9 @@ static void populate_table(const struct db_table_descriptor *table)
 	unsigned int row;
 	int rc;
 
-	rc = db_create_table_prep_stmt(&ras, &stmt, table);
+	rc = db_create_table(ras.db, table);
+	assert_int_equal(rc, 0);
+	rc = db_prepare_insert_stmt(ras.db, &stmt, table);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 

@@ -255,19 +255,6 @@ int db_prepare_insert_stmt(struct ras_db *db,
 		    const struct db_table_descriptor *db_tab);
 
 /**
- * db_create_table_prep_stmt - Prepare a CREATE TABLE statement for caching
- * @ras:	RAS events context (opaque)
- * @stmt:	Output pointer for the prepared statement handle
- * @db_tab:	Table descriptor containing the schema to create
- *
- * Returns:
- * 0 on success or a negative errno value on failure.
- */
-int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
-			      const struct db_table_descriptor *db_tab);
-
-
-/**
  * db_exec_sql - Execute a SQL statement
  * @stmt:	Prepared statement handle to finalize
  * @sql:	SQL command to execute
@@ -374,15 +361,6 @@ static inline int db_alter_table(struct ras_db *db, struct ras_stmt **stmt,
 static inline int db_prepare_insert_stmt(struct ras_db *db,
 					 struct ras_stmt **stmt,
 					 const struct db_table_descriptor *db_tab)
-{
-	if (stmt)
-		*stmt = NULL;
-	return 0;
-}
-
-static inline int db_create_table_prep_stmt(struct ras_events *ras,
-					    struct ras_stmt **stmt,
-					    const struct db_table_descriptor *db_tab)
 {
 	if (stmt)
 		*stmt = NULL;

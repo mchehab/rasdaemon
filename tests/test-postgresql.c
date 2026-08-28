@@ -298,7 +298,9 @@ static void test_db_bind_types(void **state)
 		{ .type = fields[2].type, .string = "boo" },
 	};
 
-	rc = db_create_table_prep_stmt(&ras, &stmt, &db_tab);
+	rc = db_create_table(ras.db, &db_tab);
+	assert_int_equal(rc, 0);
+	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
@@ -345,7 +347,9 @@ static void test_db_bind(void **state)
 		  .string = "jumps over the lazy dog" },
 	};
 
-	rc = db_create_table_prep_stmt(&ras, &stmt, &db_tab);
+	rc = db_create_table(ras.db, &db_tab);
+	assert_int_equal(rc, 0);
+	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
@@ -397,7 +401,9 @@ static void test_db_complex_table(void **state)
 
 	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S %z", &tm);
 
-	rc = db_create_table_prep_stmt(&ras, &stmt, &db_tab);
+	rc = db_create_table(ras.db, &db_tab);
+	assert_int_equal(rc, 0);
+	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 

@@ -50,8 +50,10 @@ static void db_tables_open(struct ras_events *ras)
 	int rc;
 
 	LIST_FOREACH(table, &ras_db_tables, node) {
-		rc = db_create_table_prep_stmt(ras, &table->entry->stmt,
-					       table->entry->desc);
+		rc = db_create_table(ras->db, table->entry->desc);
+		if (!rc)
+			rc = db_prepare_insert_stmt(ras->db, &table->entry->stmt,
+						    table->entry->desc);
 		if (rc)
 			log(TERM, LOG_ERR, "Failed to open table %s: %d\n",
 			    table->entry->desc->name, rc);
@@ -446,21 +448,6 @@ int db_prepare_insert_stmt(struct ras_db *db, struct ras_stmt **stmt,
 	if (unlikely(!ras_db_ops))
 		return 0;
 	return ras_db_ops->prepare_stmt(db, stmt, db_tab);
-}
-
-int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
-			      const struct db_table_descriptor *db_tab)
-{
-	int rc;
-
-	if (unlikely(!ras_db_ops))
-		return 0;
-
-	rc = ras_db_ops->create_table(ras->db, db_tab);
-	if (rc)
-		return rc;
-
-	return ras_db_ops->prepare_stmt(ras->db, stmt, db_tab);
 }
 
 int db_exec_sql(struct ras_db *db, const char *sql)

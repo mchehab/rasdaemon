@@ -338,7 +338,9 @@ static void test_db_bind_types(void **state)
 		},
 	};
 
-	rc = db_create_table_prep_stmt(&ras, &stmt, &db_tab);
+	rc = db_create_table(ras.db, &db_tab);
+	assert_int_equal(rc, 0);
+	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
@@ -393,7 +395,8 @@ static void test_db_bind(void **state)
 		},
 	};
 
-	db_create_table_prep_stmt(&ras, &stmt, &db_tab);
+	assert_int_equal(db_create_table(ras.db, &db_tab), 0);
+	assert_int_equal(db_prepare_insert_stmt(ras.db, &stmt, &db_tab), 0);
 	assert_non_null(stmt);
 
 	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[1].string, -1);
@@ -512,7 +515,9 @@ static void test_db_complex_table(void **state)
 		},
 	};
 
-	rc = db_create_table_prep_stmt(&ras, &stmt, &db_tab);
+	rc = db_create_table(ras.db, &db_tab);
+	assert_int_equal(rc, 0);
+	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 

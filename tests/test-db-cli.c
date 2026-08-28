@@ -76,7 +76,9 @@ void test_ras_mc_ctl_types(const char *backend, struct ras_events *ras)
 
 	rc = db_exec_sql(ras->db, "DROP TABLE IF EXISTS ras_mc_ctl_types");
 	assert_int_equal(rc, 0);
-	rc = db_create_table_prep_stmt(ras, &stmt, &table);
+	rc = db_create_table(ras->db, &table);
+	assert_int_equal(rc, 0);
+	rc = db_prepare_insert_stmt(ras->db, &stmt, &table);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 	db_bind(&table, stmt, pos++, (uint64_t)"2026-08-27 09:01:50 +0000", -1);
