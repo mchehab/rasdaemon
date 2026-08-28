@@ -114,19 +114,17 @@ struct isolation {
 	char			*unit;
 };
 
-void ras_record_page_error(unsigned long long addr,
-			   unsigned int count, time_t time);
-void ras_hw_threshold_pageoffline(unsigned long long addr);
-void ras_record_row_error(const char *detail, unsigned int count, time_t time,
-			  unsigned long long addr);
-
 #ifdef HAVE_UNITTEST
-int ras_page_isolation_test_parse_row(const char *detail,
-				      struct row_record *record);
 int ras_page_isolation_test_parse_value(const char *text, bool row,
 					unsigned long *value);
+#ifdef HAVE_MEMORY_CE_PFA
 size_t ras_page_isolation_test_record_count(void);
+#endif /* HAVE_MEMORY_CE_PFA */
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+int ras_page_isolation_test_parse_row(const char *detail,
+				      struct row_record *record);
 size_t ras_page_isolation_test_row_record_count(void);
-#endif
+#endif /* HAVE_MEMORY_ROW_CE_PFA */
+#endif /* HAVE_UNITTEST */
 
-#endif
+#endif /* __RAS_PAGE_ISOLATION_H */

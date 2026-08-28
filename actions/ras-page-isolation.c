@@ -46,34 +46,6 @@ static const struct config cycle_units[] = {
 	{}
 };
 
-static struct isolation threshold = {
-	.name = "PAGE_CE_THRESHOLD",
-	.units = threshold_units,
-	.env = "50",
-	.unit = "",
-};
-
-static struct isolation row_threshold = {
-	.name = "ROW_CE_THRESHOLD",
-	.units = threshold_units,
-	.env = "50",
-	.unit = "",
-};
-
-static struct isolation cycle = {
-	.name = "PAGE_CE_REFRESH_CYCLE",
-	.units = cycle_units,
-	.env = "24h",
-	.unit = "h",
-};
-
-static struct isolation row_cycle = {
-	.name = "ROW_CE_REFRESH_CYCLE",
-	.units = cycle_units,
-	.env = "24h",
-	.unit = "h",
-};
-
 static const char * const kernel_offline[] = {
 	[OFFLINE_SOFT]		 = "/sys/devices/system/memory/soft_offline_page",
 	[OFFLINE_HARD]		 = "/sys/devices/system/memory/hard_offline_page",
@@ -95,21 +67,50 @@ static const char * const page_state[] = {
 	[PAGE_OFFLINE_FAILED]	= "offline-failed",
 };
 
+#ifdef HAVE_MEMORY_CE_PFA
+static struct isolation threshold = {
+	.name = "PAGE_CE_THRESHOLD",
+	.units = threshold_units,
+	.env = "50",
+	.unit = "",
+};
+
+static struct isolation cycle = {
+	.name = "PAGE_CE_REFRESH_CYCLE",
+	.units = cycle_units,
+	.env = "24h",
+	.unit = "h",
+};
+
 static enum otype offline = OFFLINE_SOFT;
-static enum otype row_offline_action = OFFLINE_OFF;
 static struct rb_root page_records;
 static size_t page_record_count;
+static const struct ras_event_consumer page_isolation_consumer;
+#endif /* HAVE_MEMORY_CE_PFA */
+
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+static struct isolation row_threshold = {
+	.name = "ROW_CE_THRESHOLD",
+	.units = threshold_units,
+	.env = "50",
+	.unit = "",
+};
+
+static struct isolation row_cycle = {
+	.name = "ROW_CE_REFRESH_CYCLE",
+	.units = cycle_units,
+	.env = "24h",
+	.unit = "h",
+};
+
+static enum otype row_offline_action = OFFLINE_OFF;
 static size_t row_record_count;
 static size_t row_page_record_count;
-LIST_HEAD(row_listhead, row_record) row_head;
+static LIST_HEAD(row_listhead, row_record) row_head;
+static const struct ras_event_consumer row_isolation_consumer;
+#endif /* HAVE_MEMORY_ROW_CE_PFA */
 
 #ifdef HAVE_MEMORY_CE_PFA
-static const struct ras_event_consumer page_isolation_consumer;
-#endif
-#ifdef HAVE_MEMORY_ROW_CE_PFA
-static const struct ras_event_consumer row_isolation_consumer;
-#endif
-
 static void page_offline_init(void)
 {
 	const char *env = "PAGE_CE_ACTION";
@@ -135,14 +136,17 @@ static void page_offline_init(void)
 		offline = OFFLINE_ACCOUNT;
 	}
 
+#ifdef HAVE_MEMORY_ROW_CE_PFA
 	if (row_offline_action != OFFLINE_OFF) {
 		log(TERM, LOG_INFO, "row threshold is open, so turn off page threshold\n");
 		offline = OFFLINE_OFF;
 	}
+#endif /* HAVE_MEMORY_ROW_CE_PFA */
 
 	log(TERM, LOG_INFO, "Page offline choice on Corrected Errors is %s\n",
 	    offline_choice[offline].name);
 }
+#endif /* HAVE_MEMORY_CE_PFA */
 
 static void parse_isolation_env(struct isolation *config)
 {
@@ -239,6 +243,7 @@ static void parse_env_string(struct isolation *config, char *str, unsigned int s
 	}
 }
 
+#ifdef HAVE_MEMORY_CE_PFA
 static void page_isolation_init(void)
 {
 	char threshold_string[PARSED_ENV_LEN];
@@ -257,7 +262,9 @@ static void page_isolation_init(void)
 	log(TERM, LOG_INFO, "Threshold of memory Corrected Errors is %s / %s\n",
 	    threshold_string, cycle_string);
 }
+#endif /* HAVE_MEMORY_CE_PFA */
 
+#ifdef HAVE_MEMORY_ROW_CE_PFA
 static void row_offline_init(void)
 {
 	const char *env = "ROW_CE_ACTION";
@@ -308,43 +315,34 @@ static void row_isolation_init(void)
 
 static int ras_row_account_init(struct ras_module_ctx *ctx)
 {
-#ifdef HAVE_MEMORY_ROW_CE_PFA
 	int rc;
-#endif
 
 	row_offline_init();
 	row_isolation_init();
-#ifdef HAVE_MEMORY_ROW_CE_PFA
 	rc = ras_event_consumer_register(&row_isolation_consumer);
 	if (rc)
 		log(TERM, LOG_ERR,
 		    "Failed to register row isolation consumer: %d\n", rc);
 
 	return rc;
-#else
-	return 0;
-#endif
 }
+#endif /* HAVE_MEMORY_ROW_CE_PFA */
 
+#ifdef HAVE_MEMORY_CE_PFA
 static int ras_page_account_init(struct ras_module_ctx *ctx)
 {
-#ifdef HAVE_MEMORY_CE_PFA
 	int rc;
-#endif
 
 	page_offline_init();
 	page_isolation_init();
-#ifdef HAVE_MEMORY_CE_PFA
 	rc = ras_event_consumer_register(&page_isolation_consumer);
 	if (rc)
 		log(TERM, LOG_ERR,
 		    "Failed to register page isolation consumer: %d\n", rc);
 
 	return rc;
-#else
-	return 0;
-#endif
 }
+#endif /* HAVE_MEMORY_CE_PFA */
 
 static int do_page_offline(unsigned long long addr, enum otype type)
 {
@@ -369,6 +367,7 @@ static int do_page_offline(unsigned long long addr, enum otype type)
 	return rc;
 }
 
+#ifdef HAVE_MEMORY_CE_PFA
 static void page_offline(struct page_record *pr)
 {
 	unsigned long long addr = pr->addr;
@@ -464,9 +463,7 @@ static void page_record_infos_free(struct ras_module_ctx *ctx)
 {
 	struct rb_node *node = rb_first(&page_records);
 
-#ifdef HAVE_MEMORY_CE_PFA
 	ras_event_consumer_unregister(&page_isolation_consumer);
-#endif
 	while (node) {
 		struct rb_node *next = rb_next(node);
 		struct page_record *pr = rb_entry(node, struct page_record, entry);
@@ -515,7 +512,8 @@ static struct page_record *page_lookup_insert(unsigned long long addr,
 	return find;
 }
 
-void ras_record_page_error(unsigned long long addr, unsigned int count, time_t time)
+static void ras_record_page_error(unsigned long long addr, unsigned int count,
+				  time_t time)
 {
 	struct page_record *pr = NULL;
 
@@ -530,16 +528,102 @@ void ras_record_page_error(unsigned long long addr, unsigned int count, time_t t
 	}
 }
 
-void ras_hw_threshold_pageoffline(unsigned long long addr)
+static void ras_hw_threshold_pageoffline(unsigned long long addr)
 {
 	time_t now = time(NULL);
 
 	ras_record_page_error(addr, threshold.val, now);
 }
 
+static int page_isolation_consume(struct ras_events *ras, int event,
+				  void *data)
+{
+	if (event == MC_EVENT) {
+		struct ras_mc_event *mc = data;
+
+		if (!strcmp(mc->error_type, "Corrected"))
+			ras_record_page_error(mc->address, mc->error_count,
+					      time(NULL));
+		return 0;
+	}
+
+	if (event == CXL_DRAM_EVENT) {
+		struct ras_cxl_dram_event *dram = data;
+
+		if (dram->hpa &&
+		    !(dram->descriptor &
+		      CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT) &&
+		    (dram->descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT))
+			ras_hw_threshold_pageoffline(dram->hpa);
+	}
+
+	return 0;
+}
+
+static const struct ras_event_consumer page_isolation_consumer = {
+	.name = "page-isolation",
+	.priority = PRI_MEM_ISOLATION,
+	.events = BIT_ULL(MC_EVENT) | BIT_ULL(CXL_DRAM_EVENT),
+	.consume = page_isolation_consume,
+};
+
+static const struct ras_module_entry page_isolation_module = {
+	.name = "page-isolation",
+	.level = ACTIONS_MODULE,
+	.init = ras_page_account_init,
+	.cleanup = page_record_infos_free,
+};
+
+static void __attribute__((constructor)) page_isolation_register(void)
+{
+	int rc = module_register(&page_isolation_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register page isolation module: %d\n",
+		    rc);
+}
+#endif /* HAVE_MEMORY_CE_PFA */
+
 /* memory page CE threshold policy ends */
 
+#ifdef HAVE_UNITTEST
+#ifdef HAVE_MEMORY_CE_PFA
+size_t ras_page_isolation_test_record_count(void)
+{
+	return page_record_count;
+}
+#endif /* HAVE_MEMORY_CE_PFA */
+
+int ras_page_isolation_test_parse_value(const char *text, bool row,
+					unsigned long *value)
+{
+	struct isolation config;
+
+	if (row) {
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+		config = row_threshold;
+#else
+		return -EINVAL;
+#endif /* HAVE_MEMORY_ROW_CE_PFA */
+	} else {
+#ifdef HAVE_MEMORY_CE_PFA
+		config = threshold;
+#else
+		return -EINVAL;
+#endif /* HAVE_MEMORY_CE_PFA */
+	}
+
+	config.env = (char *)text;
+	config.unit = "";
+	config.overflow = false;
+	parse_isolation_env(&config);
+	*value = config.val;
+	return config.overflow ? -ERANGE : 0;
+}
+#endif /* HAVE_UNITTEST */
+
 /* memory row CE threshold policy starts */
+#ifdef HAVE_MEMORY_ROW_CE_PFA
 static const struct memory_location_field apei_fields[] = {
 	[APEI_NODE] = {
 		.name = "node",
@@ -689,7 +773,8 @@ static void row_record_copy(struct row_record *dst, struct row_record *src)
 		dst->location_fields[i] = src->location_fields[i];
 }
 
-static int parse_value(const char *str, const char *anchor_str, int value_base, int *value)
+static int parse_value(const char *str, const char *anchor_str, int value_base,
+		       int *value)
 {
 	char *start, *endptr;
 	int tmp;
@@ -707,7 +792,8 @@ static int parse_value(const char *str, const char *anchor_str, int value_base, 
 	tmp = (int)strtol(start, &endptr, value_base);
 
 	if (errno != 0) {
-		log(TERM, LOG_ERR, "%s error, start: %s, value_base: %d, errno: %d\n",
+		log(TERM, LOG_ERR,
+		    "%s error, start: %s, value_base: %d, errno: %d\n",
 		    __func__, start, value_base, errno);
 		return 1;
 	}
@@ -754,11 +840,6 @@ static int parse_row_info(const char *detail, struct row_record *r)
 }
 
 #ifdef HAVE_UNITTEST
-size_t ras_page_isolation_test_record_count(void)
-{
-	return page_record_count;
-}
-
 size_t ras_page_isolation_test_row_record_count(void)
 {
 	return row_record_count;
@@ -771,20 +852,7 @@ int ras_page_isolation_test_parse_row(const char *detail,
 	LIST_INIT(&record->page_head);
 	return parse_row_info(detail, record);
 }
-
-int ras_page_isolation_test_parse_value(const char *text, bool row,
-					unsigned long *value)
-{
-	struct isolation config = row ? row_threshold : threshold;
-
-	config.env = (char *)text;
-	config.unit = "";
-	config.overflow = false;
-	parse_isolation_env(&config);
-	*value = config.val;
-	return config.overflow ? -ERANGE : 0;
-}
-#endif
+#endif /* HAVE_UNITTEST */
 
 static void row_offline(struct row_record *rr, time_t time)
 {
@@ -995,7 +1063,8 @@ static struct row_record *row_lookup_insert(struct row_record *r,
 	return new_row_record;
 }
 
-void ras_record_row_error(const char *detail, unsigned int count, time_t time, unsigned long long addr)
+static void ras_record_row_error(const char *detail, unsigned int count,
+				 time_t time, unsigned long long addr)
 {
 	struct row_record *pr = NULL;
 	struct row_record r = {0};
@@ -1019,10 +1088,7 @@ static void row_record_infos_free(struct ras_module_ctx *ctx)
 {
 	struct row_record *row_record = NULL, *tmp_row_record = NULL;
 	struct page_addr *page_addr = NULL, *tmp_page_addr = NULL;
-
-#ifdef HAVE_MEMORY_ROW_CE_PFA
 	ras_event_consumer_unregister(&row_isolation_consumer);
-#endif
 	row_record = LIST_FIRST(&row_head);
 	while (row_record) {
 		page_addr = LIST_FIRST(&row_record->page_head);
@@ -1042,59 +1108,6 @@ static void row_record_infos_free(struct ras_module_ctx *ctx)
 	row_page_record_count = 0;
 }
 
-/* memory row CE threshold policy ends */
-
-#ifdef HAVE_MEMORY_CE_PFA
-static int page_isolation_consume(struct ras_events *ras, int event,
-				  void *data)
-{
-	if (event == MC_EVENT) {
-		struct ras_mc_event *mc = data;
-
-		if (!strcmp(mc->error_type, "Corrected"))
-			ras_record_page_error(mc->address, mc->error_count,
-					      time(NULL));
-		return 0;
-	}
-
-	if (event == CXL_DRAM_EVENT) {
-		struct ras_cxl_dram_event *dram = data;
-
-		if (dram->hpa &&
-		    !(dram->descriptor &
-		      CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT) &&
-		    (dram->descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT))
-			ras_hw_threshold_pageoffline(dram->hpa);
-	}
-
-	return 0;
-}
-
-static const struct ras_event_consumer page_isolation_consumer = {
-	.name = "page-isolation",
-	.priority = PRI_MEM_ISOLATION,
-	.events = BIT_ULL(MC_EVENT) | BIT_ULL(CXL_DRAM_EVENT),
-	.consume = page_isolation_consume,
-};
-
-static const struct ras_module_entry page_isolation_module = {
-	.name = "page-isolation",
-	.level = ACTIONS_MODULE,
-	.init = ras_page_account_init,
-	.cleanup = page_record_infos_free,
-};
-
-static void __attribute__((constructor)) page_isolation_register(void)
-{
-	int rc = module_register(&page_isolation_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register page isolation module: %d\n",
-		    rc);
-}
-#endif
-
-#ifdef HAVE_MEMORY_ROW_CE_PFA
 static int row_isolation_consume(struct ras_events *ras, int event, void *data)
 {
 	struct ras_mc_event *mc = data;
@@ -1135,4 +1148,4 @@ static void __attribute__((constructor)) row_isolation_register(void)
 		log(TERM, LOG_ERR, "Failed to register row isolation module: %d\n",
 		    rc);
 }
-#endif
+#endif /* HAVE_MEMORY_ROW_CE_PFA */
