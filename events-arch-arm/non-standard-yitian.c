@@ -105,19 +105,25 @@ static const struct db_table_descriptor yitian_ddr_payload_section_tab = {
 	.num_fields = ARRAY_SIZE(yitian_ddr_payload_fields),
 };
 
-int record_yitian_ddr_reg_dump_event(struct ras_ns_ev_decoder *ev_decoder,
-				     struct ras_yitian_ddr_payload_event *ev)
+static struct db_desc_and_stmt yitian_ddr_payload_section_db = {
+	.desc = &yitian_ddr_payload_section_tab,
+};
+
+static int record_yitian_ddr_reg_dump_event(struct ras_yitian_ddr_payload_event *ev)
 {
+	struct ras_stmt *stmt = yitian_ddr_payload_section_db.stmt;
 	int pos = 1;
 
 	log(TERM, LOG_INFO, "yitian_ddr_reg_dump_event store: %p\n",
-	    ev_decoder->stmt_dec_record);
+	    stmt);
 
-	db_bind(&yitian_ddr_payload_section_tab, ev_decoder->stmt_dec_record, pos++, (uint64_t)ev->timestamp, -1);
-	db_bind(&yitian_ddr_payload_section_tab, ev_decoder->stmt_dec_record, pos++, ev->address, -1);
-	db_bind(&yitian_ddr_payload_section_tab, ev_decoder->stmt_dec_record, pos++, (uint64_t)ev->reg_msg, -1);
+	db_bind(&yitian_ddr_payload_section_tab, stmt, pos++,
+		(uint64_t)ev->timestamp, -1);
+	db_bind(&yitian_ddr_payload_section_tab, stmt, pos++, ev->address, -1);
+	db_bind(&yitian_ddr_payload_section_tab, stmt, pos++,
+		(uint64_t)ev->reg_msg, -1);
 
-	return db_eval_stmt(ev_decoder->stmt_dec_record, "yitian_ddr_reg_dump_event");
+	return db_eval_stmt(stmt, yitian_ddr_payload_section_db.desc->name);
 }
 
 static const char *oem_type_name(const struct yitian_ras_type_info *info,
@@ -152,10 +158,9 @@ static const char *oem_subtype_name(const struct yitian_ras_type_info *info,
 	return "unknown";
 }
 
-void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-					struct trace_seq *s,
-				const struct yitian_ddr_payload_type_sec *err,
-				struct ras_events *ras)
+static void decode_yitian_ddr_err_regs(struct trace_seq *s,
+				       const struct yitian_ddr_payload_type_sec *err,
+				       struct ras_events *ras)
 {
 	char buf[1024];
 	char *p = buf;
@@ -209,21 +214,10 @@ void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	end = NULL;
 	trace_seq_printf(s, "%s\n", buf);
 
-	record_yitian_ddr_reg_dump_event(ev_decoder, &ev);
-}
-
-static int add_yitian_common_table(struct ras_events *ras,
-				   struct ras_ns_ev_decoder *ev_decoder)
-{
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
-					    &yitian_ddr_payload_section_tab) != 0) {
-			log(TERM, LOG_WARNING,
-			    "Failed to create sql yitian_ddr_payload_section_tab\n");
-			return -1;
-		}
-	}
-	return 0;
+	WARN_ONCE(ras->record_events && !yitian_ddr_payload_section_db.stmt,
+		  ALL, LOG_WARNING, "Can't insert into table %s: no statement\n",
+		  yitian_ddr_payload_section_db.desc->name);
+	record_yitian_ddr_reg_dump_event(&ev);
 }
 
 /* error data decoding functions */
@@ -245,7 +239,7 @@ static int decode_yitian710_ns_error(struct ras_events *ras,
 		}
 		const struct yitian_ddr_payload_type_sec *err =
 			(struct yitian_ddr_payload_type_sec *)event->error;
-		decode_yitian_ddr_payload_err_regs(ev_decoder, s, err, ras);
+		decode_yitian_ddr_err_regs(s, err, ras);
 	} else {
 		trace_seq_printf(s, "%s: wrong payload type\n", __func__);
 		return -1;
@@ -256,7 +250,6 @@ static int decode_yitian710_ns_error(struct ras_events *ras,
 struct ras_ns_ev_decoder yitian_ns_oem_decoder[] = {
 	{
 		.sec_type = "a6980811-16ea-4e4d-b936-fb00a23ff29c",
-		.add_table = add_yitian_common_table,
 		.decode = decode_yitian710_ns_error,
 	},
 };
@@ -266,19 +259,31 @@ static int yitian_ns_init(struct ras_module_ctx *ctx)
 	int i;
 	int rc;
 
+	rc = ras_db_table_register(ctx, &yitian_ddr_payload_section_db);
+	if (rc)
+		return rc;
+
 	for (i = 0; i < ARRAY_SIZE(yitian_ns_oem_decoder); i++) {
 		rc = register_ns_ev_decoder(&yitian_ns_oem_decoder[i]);
-		if (rc)
+		if (rc) {
+			ras_db_table_unregister(ctx);
 			return rc;
+		}
 	}
 
 	return 0;
+}
+
+static void yitian_ns_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
 }
 
 static const struct ras_module_entry yitian_ns_module = {
 	.name = "non-standard-yitian",
 	.level = SUB_EVENT_MODULE,
 	.init = yitian_ns_init,
+	.cleanup = yitian_ns_cleanup,
 };
 
 static void __attribute__((constructor)) yitian_ns_register(void)

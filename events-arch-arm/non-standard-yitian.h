@@ -11,8 +11,6 @@
 
 #include "core/ras-events.h"
 
-struct ras_ns_ev_decoder;
-
 #define YITIAN_RAS_TYPE_DDR		0x50
 
 struct yitian_payload_header {
@@ -62,10 +60,4 @@ struct ras_yitian_ddr_payload_event {
 	char *reg_msg;
 };
 
-int record_yitian_ddr_reg_dump_event(struct ras_ns_ev_decoder *ev_decoder,
-				     struct ras_yitian_ddr_payload_event *ev);
-void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-					struct trace_seq *s,
-					const struct yitian_ddr_payload_type_sec *err,
-					struct ras_events *ras);
 #endif
