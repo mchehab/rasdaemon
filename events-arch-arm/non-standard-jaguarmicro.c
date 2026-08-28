@@ -21,9 +21,8 @@
 #define JM_REG_BUF_LEN	2048
 #define JM_SNPRINTF	mce_snprintf
 
-static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-			   enum db_field_type data_type,
-			   int id, int64_t data, const char *text);
+static const struct db_table_descriptor jm_payload0_event_tab;
+static struct db_desc_and_stmt jm_payload0_event_db;
 
 struct jm_event {
 	char error_msg[JM_BUF_LEN];
@@ -470,84 +469,92 @@ static inline char *jm_err_severity(uint8_t err_sev)
 
 static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 				      const struct jm_common_sec_head *err,
-					struct jm_event *event)
+				      struct jm_event *event)
 {
+	struct ras_stmt *stmt = jm_payload0_event_db.stmt;
+
 	JM_SNPRINTF(event->error_msg, "[");
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SOC_ID)) {
-		JM_SNPRINTF(event->error_msg, "table_version=%hhu decode_version:%hhu",
+		JM_SNPRINTF(event->error_msg,
+			    "table_version=%hhu decode_version:%hhu",
 			    err->version, PAYLOAD_VERSION);
-		record_jm_data(ev_decoder, DB_TYPE_INT32,
-			       JM_PAYLOAD_FIELD_VERSION,
-					err->version, NULL);
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_VERSION, err->version, -1);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SOC_ID)) {
-		JM_SNPRINTF(event->error_msg, "soc=%s", get_jm_soc_desc(err->soc_id));
-		record_jm_data(ev_decoder, DB_TYPE_INT32,
-			       JM_PAYLOAD_FIELD_SOC_ID,
-				err->soc_id, NULL);
+		JM_SNPRINTF(event->error_msg, "soc=%s",
+			    get_jm_soc_desc(err->soc_id));
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_SOC_ID, err->soc_id, -1);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SUBSYSTEM_ID)) {
 		JM_SNPRINTF(event->error_msg, "sub system=%s",
 			    get_jm_subsystem_desc(err->subsystem_id));
-		record_jm_data(ev_decoder, DB_TYPE_TEXT,
-			       JM_PAYLOAD_FIELD_SUB_SYS,
-					0, get_jm_subsystem_desc(err->subsystem_id));
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_SUB_SYS,
+			(uint64_t)get_jm_subsystem_desc(err->subsystem_id),
+			-1);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_MODULE_ID)) {
 		JM_SNPRINTF(event->error_msg, "module=%s",
-			    get_jm_module_desc(err->subsystem_id, err->module_id));
-		record_jm_data(ev_decoder, DB_TYPE_TEXT,
-			       JM_PAYLOAD_FIELD_MODULE,
-				0, get_jm_module_desc(err->subsystem_id, err->module_id));
-		record_jm_data(ev_decoder, DB_TYPE_INT32,
-			       JM_PAYLOAD_FIELD_MODULE_ID,
-				err->module_id, NULL);
+			    get_jm_module_desc(err->subsystem_id,
+					       err->module_id));
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_MODULE,
+			(uint64_t)get_jm_module_desc(err->subsystem_id,
+						     err->module_id),
+			-1);
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_MODULE_ID, err->module_id, -1);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_SUBMODULE_ID)) {
 		JM_SNPRINTF(event->error_msg, "sub module=%s",
 			    get_jm_submod_desc(err->subsystem_id,
-					       err->module_id, err->submodule_id));
-		record_jm_data(ev_decoder, DB_TYPE_TEXT,
-			       JM_PAYLOAD_FIELD_SUB_MODULE,
-			0,
-			get_jm_submod_desc(err->subsystem_id,
-					   err->module_id, err->submodule_id));
-		record_jm_data(ev_decoder, DB_TYPE_INT32,
-			       JM_PAYLOAD_FIELD_MODULE_ID,
-			err->submodule_id, NULL);
+					       err->module_id,
+					       err->submodule_id));
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_SUB_MODULE,
+			(uint64_t)get_jm_submod_desc(err->subsystem_id,
+						     err->module_id,
+						     err->submodule_id),
+			-1);
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_MODULE_ID, err->submodule_id,
+			-1);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_DEV_ID)) {
 		JM_SNPRINTF(event->error_msg, "dev=%s",
-			    get_jm_dev_desc(err->subsystem_id,
-					    err->module_id, err->submodule_id));
-		record_jm_data(ev_decoder, DB_TYPE_TEXT,
-			       JM_PAYLOAD_FIELD_DEV,
-			0, get_jm_dev_desc(err->subsystem_id,
-					   err->module_id, err->submodule_id));
-		record_jm_data(ev_decoder, DB_TYPE_INT32,
-			       JM_PAYLOAD_FIELD_DEV_ID,
-					err->dev_id, NULL);
+			    get_jm_dev_desc(err->subsystem_id, err->module_id,
+					    err->submodule_id));
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_DEV,
+			(uint64_t)get_jm_dev_desc(err->subsystem_id,
+						  err->module_id,
+						  err->submodule_id),
+			-1);
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_DEV_ID, err->dev_id, -1);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_ERR_TYPE)) {
 		JM_SNPRINTF(event->error_msg, "err_type=%hu", err->err_type);
-		record_jm_data(ev_decoder, DB_TYPE_INT32,
-			       JM_PAYLOAD_FIELD_ERR_TYPE,
-					err->err_type, NULL);
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_ERR_TYPE, err->err_type, -1);
 	}
 
 	if (err->val_bits & BIT(JM_COMMON_VALID_ERR_SEVERITY)) {
 		JM_SNPRINTF(event->error_msg, "err_severity=%s",
 			    jm_err_severity(err->err_severity));
-		record_jm_data(ev_decoder, DB_TYPE_TEXT,
-			       JM_PAYLOAD_FIELD_ERR_SEVERITY,
-					0, jm_err_severity(err->err_severity));
+		db_bind(&jm_payload0_event_tab, stmt,
+			JM_PAYLOAD_FIELD_ERR_SEVERITY,
+			(uint64_t)jm_err_severity(err->err_severity),
+			-1);
 	}
 
 	JM_SNPRINTF(event->error_msg, "]");
@@ -555,24 +562,21 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 
 static void decode_jm_common_sec_tail(struct ras_ns_ev_decoder *ev_decoder,
 				      const struct jm_common_sec_tail *err,
-					struct jm_event *event, uint32_t val_bits)
+				      struct jm_event *event, uint32_t val_bits)
 {
-	if (val_bits & BIT(JM_COMMON_VALID_REG_ARRAY_SIZE) && err->reg_array_size > 0) {
+	if (val_bits & BIT(JM_COMMON_VALID_REG_ARRAY_SIZE) &&
+	    err->reg_array_size > 0) {
 		int i;
 
 		JM_SNPRINTF(event->reg_msg, "Extended Register Dump:");
 		JM_SNPRINTF(event->reg_msg, "[");
 		for (i = 0; i < err->reg_array_size; i++) {
-			JM_SNPRINTF(event->reg_msg, "reg%02d=0x%08x",
-				    i, err->reg_array[i]);
+			JM_SNPRINTF(event->reg_msg, "reg%02d=0x%08x", i,
+				    err->reg_array[i]);
 		}
 		JM_SNPRINTF(event->reg_msg, "]");
 	}
 }
-
-static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-			   enum db_field_type data_type,
-			   int id, int64_t data, const char *text);
 
 /*key pair definition for jaguar micro specific error payload type 0*/
 static const struct db_fields jm_payload0_event_fields[] = {
@@ -598,33 +602,18 @@ static const struct db_table_descriptor jm_payload0_event_tab = {
 	.num_fields = ARRAY_SIZE(jm_payload0_event_fields),
 };
 
-/* Save data with different type into database */
-static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-			   enum db_field_type data_type, int id,
-				int64_t data, const char *text)
-{
-	switch (data_type) {
-		case DB_TYPE_TEXT:
-			db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
-					    id, (uint64_t)text, -1);
-			break;
-		default:
-			db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
-					    id, data, -1);
-			break;
-	}
-}
+static struct db_desc_and_stmt jm_payload0_event_db = {
+	.desc = &jm_payload0_event_tab,
+};
 
 /* save all JaguarMicro Specific Error Payload type 0 to database */
-static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
-				  const char *reg_str)
+static void record_jm_payload_err(const char *reg_str)
 {
-	if (ev_decoder) {
-		record_jm_data(ev_decoder, DB_TYPE_TEXT,
-			       JM_PAYLOAD_FIELD_REGS_DUMP, 0, reg_str);
-		db_eval_stmt(ev_decoder->stmt_dec_record,
-			     "jm_payload0_event_tab");
-	}
+	struct ras_stmt *stmt = jm_payload0_event_db.stmt;
+
+	db_bind(&jm_payload0_event_tab, stmt, JM_PAYLOAD_FIELD_REGS_DUMP,
+		(uint64_t)reg_str, -1);
+	db_eval_stmt(stmt, "jm_payload0_event_tab");
 }
 
 /*
@@ -712,7 +701,7 @@ static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
-	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
+	record_jm_payload_err(jmevent.reg_msg);
 
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
@@ -759,7 +748,7 @@ static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
-	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
+	record_jm_payload_err(jmevent.reg_msg);
 
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
@@ -802,7 +791,7 @@ static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
-	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
+	record_jm_payload_err(jmevent.reg_msg);
 
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
@@ -885,7 +874,7 @@ static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
 
-	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
+	record_jm_payload_err(jmevent.reg_msg);
 
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
@@ -934,31 +923,38 @@ static void decode_jm_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 	//display GICT_ERR_MISC1
 	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_err_misc1);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx",
+		    (unsigned long long)err->gict_err_misc1);
 
-	//display GICT_ERRGSR
+	// display GICT_ERRGSR
 	JM_SNPRINTF(jmevent.reg_msg, "%s", disp_payload6_err_reg_name[i++]);
-	JM_SNPRINTF(jmevent.reg_msg, "0x%llx", (unsigned long long)err->gict_errgsr);
+	JM_SNPRINTF(jmevent.reg_msg, "0x%llx",
+		    (unsigned long long)err->gict_errgsr);
 	JM_SNPRINTF(jmevent.reg_msg, "]");
 
 	trace_seq_printf(s, "Register Dump:");
-	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
+	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent,
+				  common_head->val_bits);
 
-	record_jm_payload_err(ev_decoder, jmevent.reg_msg);
+	record_jm_payload_err(jmevent.reg_msg);
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
 }
 
 /* error data decoding functions */
 static int decode_jm_oem_type_error(struct ras_events *ras,
 				    struct ras_ns_ev_decoder *ev_decoder,
-					struct trace_seq *s,
-					struct ras_non_standard_event *event,
-					int payload_type)
+				    struct trace_seq *s,
+				    struct ras_non_standard_event *event,
+				    int payload_type)
 {
 	int id = JM_PAYLOAD_FIELD_TIMESTAMP;
+	struct ras_stmt *stmt = jm_payload0_event_db.stmt;
 
-	record_jm_data(ev_decoder, DB_TYPE_TEXT,
-		       id, 0, event->timestamp);
+	WARN_ONCE(ras->record_events && !stmt, ALL, LOG_WARNING,
+		  "Can't insert into table %s: no statement\n",
+		  jm_payload0_event_db.desc->name);
+	db_bind(&jm_payload0_event_tab, stmt, id,
+		(uint64_t)event->timestamp, -1);
 
 	if (payload_type == PAYLOAD_TYPE_0) {
 		const struct jm_payload0_type_sec *err =
@@ -1033,54 +1029,25 @@ static int decode_jm_oem_type6_error(struct ras_events *ras,
 	return decode_jm_oem_type_error(ras, ev_decoder, s, event, PAYLOAD_TYPE_6);
 }
 
-static int add_jm_oem_type0_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
-{
-	static bool started = false;
-
-	/*
-	 * Don't start table and prepare statement twice, as PostgreSQL
-	 * allows to prepare statements for the same table only once.
-	 */
-
-	if (started)
-		return 0;
-
-	started = true;
-
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
-					    &jm_payload0_event_tab) != 0) {
-			log(TERM, LOG_WARNING, "Failed to create sql jm_payload0_event_tab\n");
-			return -1;
-		}
-	}
-	return 0;
-}
-
 struct ras_ns_ev_decoder jm_ns_oem_type_decoder[] = {
 	{
 		.sec_type = "82d78ba3-fa14-407a-ba0e-f3ba8170013c",
-		.add_table = add_jm_oem_type0_table,
 		.decode = decode_jm_oem_type0_error,
 	},
 	{
 		.sec_type = "f9723053-2558-49b1-b58a-1c1a82492a62",
-		.add_table = add_jm_oem_type0_table,
 		.decode = decode_jm_oem_type1_error,
 	},
 	{
 		.sec_type = "2d31de54-3037-4f24-a283-f69ca1ec0b9a",
-		.add_table = add_jm_oem_type0_table,
 		.decode = decode_jm_oem_type2_error,
 	},
 	{
 		.sec_type = "dac80d69-0a72-4eba-8114-148ee344af06",
-		.add_table = add_jm_oem_type0_table,
 		.decode = decode_jm_oem_type5_error,
 	},
 	{
 		.sec_type = "746f06fe-405e-451f-8d09-02e802ed984a",
-		.add_table = add_jm_oem_type0_table,
 		.decode = decode_jm_oem_type6_error,
 	},
 };
@@ -1090,19 +1057,31 @@ static int jm_init(struct ras_module_ctx *ctx)
 	int i;
 	int rc;
 
+	rc = ras_db_table_register(ctx, &jm_payload0_event_db);
+	if (rc)
+		return rc;
+
 	for (i = 0; i < ARRAY_SIZE(jm_ns_oem_type_decoder); i++) {
 		rc = register_ns_ev_decoder(&jm_ns_oem_type_decoder[i]);
-		if (rc)
+		if (rc) {
+			ras_db_table_unregister(ctx);
 			return rc;
+		}
 	}
 
 	return 0;
+}
+
+static void jm_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
 }
 
 static const struct ras_module_entry jm_module = {
 	.name = "non-standard-jaguarmicro",
 	.level = SUB_EVENT_MODULE,
 	.init = jm_init,
+	.cleanup = jm_cleanup,
 };
 
 static void __attribute__((constructor)) jm_register(void)
