@@ -542,15 +542,25 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	log(TERM, LOG_INFO, "Listening to events for cpus 0 to %d\n", n_cpus - 1);
 	do {
 		ready = poll(fds, (n_cpus + 1), -1);
-		if (ready < 0)
+		if (ready < 0) {
+			if (errno == EINTR)
+				continue;
 			log(TERM, LOG_WARNING, "poll\n");
+			goto cleanup;
+		}
 
 		/* check for the signal */
+		if (fds[n_cpus].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+			log(TERM, LOG_WARNING, "signalfd poll\n");
+			goto cleanup;
+		}
 		if (fds[n_cpus].revents & POLLIN) {
 			size = read(fds[n_cpus].fd, &fdsiginfo,
-				    sizeof(struct signalfd_siginfo));
-			if (size != sizeof(struct signalfd_siginfo))
+				    sizeof(fdsiginfo));
+			if (size != sizeof(fdsiginfo)) {
 				log(TERM, LOG_WARNING, "signalfd read\n");
+				goto cleanup;
+			}
 
 			if (fdsiginfo.ssi_signo == SIGINT ||
 			    fdsiginfo.ssi_signo == SIGTERM ||
