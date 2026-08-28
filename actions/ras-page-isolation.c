@@ -306,7 +306,7 @@ static void row_isolation_init(void)
 	    threshold_string, cycle_string);
 }
 
-int ras_row_account_init(struct ras_module_ctx *ctx)
+static int ras_row_account_init(struct ras_module_ctx *ctx)
 {
 #ifdef HAVE_MEMORY_ROW_CE_PFA
 	int rc;
@@ -326,7 +326,7 @@ int ras_row_account_init(struct ras_module_ctx *ctx)
 #endif
 }
 
-int ras_page_account_init(struct ras_module_ctx *ctx)
+static int ras_page_account_init(struct ras_module_ctx *ctx)
 {
 #ifdef HAVE_MEMORY_CE_PFA
 	int rc;
@@ -460,7 +460,7 @@ static void page_records_expire(time_t now)
 	}
 }
 
-void page_record_infos_free(struct ras_module_ctx *ctx)
+static void page_record_infos_free(struct ras_module_ctx *ctx)
 {
 	struct rb_node *node = rb_first(&page_records);
 
@@ -1015,7 +1015,7 @@ void ras_record_row_error(const char *detail, unsigned int count, time_t time, u
 	row_record(pr, time);
 }
 
-void row_record_infos_free(struct ras_module_ctx *ctx)
+static void row_record_infos_free(struct ras_module_ctx *ctx)
 {
 	struct row_record *row_record = NULL, *tmp_row_record = NULL;
 	struct page_addr *page_addr = NULL, *tmp_page_addr = NULL;
