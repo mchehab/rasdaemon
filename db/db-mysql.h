@@ -31,6 +31,4 @@ struct db_mysql_conn_params {
 	bool use_ssl;
 };
 
-void mysql_register_backend(void);
-
 #endif /* DB_MYSQL_H */

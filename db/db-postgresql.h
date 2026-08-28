@@ -31,6 +31,4 @@ struct db_postgresql_conn_params {
 	const char *sslmode;
 };
 
-void postgresql_register_backend(void);
-
 #endif /* DB_POSTGRESQL_H */
