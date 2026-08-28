@@ -341,7 +341,7 @@ static int ras_extlog_mem_event_handler(struct trace_seq *s,
 
 	report_extlog_mem_event(ras, record, s, &ev);
 
-	db_extlog_mem_record(ras, &ev);
+	ras_event_publish(ras, EXTLOG_EVENT, &ev);
 
 	return 0;
 }

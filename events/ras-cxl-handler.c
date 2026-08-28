@@ -2304,5 +2304,7 @@ int ras_cxl_memory_sparing_event_handler(struct trace_seq *s,
 		}
 	}
 
+	ras_event_publish(context, CXL_MEMORY_SPARING_EVENT, &ev);
+
 	return 0;
 }

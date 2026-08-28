@@ -24,6 +24,7 @@
 #include "events/ras-cxl-handler.h"
 #include "events/ras-devlink-handler.h"
 #include "events/ras-diskerror-handler.h"
+#include "events/ras-extlog-handler.h"
 #include "events/ras-memory-failure-handler.h"
 #include "events/ras-mc-handler.h"
 #include "events/ras-signal-handler.h"
@@ -798,6 +799,110 @@ static int set_cxl_memory_module_event_backtrace(char *buf, struct ras_cxl_memor
 	return 0;
 }
 
+static int set_cxl_sparing(char *buf, struct ras_cxl_memory_sparing_event *ev)
+{
+	unsigned int size = MAX_BACKTRACE_SIZE;
+
+	if (!buf || !ev)
+		return -1;
+
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
+		"timestamp=%s\n"
+		"memdev=%s\n"
+		"host=%s\n"
+		"serial=0x%lx\n"
+		"log_type=%s\n"
+		"hdr_uuid=%s\n"
+		"hdr_flags=0x%x\n"
+		"hdr_handle=0x%x\n"
+		"hdr_related_handle=0x%x\n"
+		"hdr_timestamp=%s\n"
+		"hdr_length=%u\n"
+		"hdr_maint_op_class=%u\n"
+		"hdr_maint_op_sub_class=%u\n"
+		"hdr_ld_id=0x%x\n"
+		"hdr_head_id=0x%x\n"
+		"flags=0x%x\n"
+		"result=0x%x\n"
+		"validity_flags=0x%x\n"
+		"resources_available=%u\n"
+		"channel=%u\n"
+		"sub_channel=%u\n"
+		"rank=%u\n"
+		"nibble_mask=0x%x\n"
+		"bank_group=%u\n"
+		"bank=%u\n"
+		"row=%u\n"
+		"column=%u\n",
+		ev->hdr.timestamp,
+		ev->hdr.memdev,
+		ev->hdr.host,
+		ev->hdr.serial,
+		ev->hdr.log_type,
+		ev->hdr.hdr_uuid,
+		ev->hdr.hdr_flags,
+		ev->hdr.hdr_handle,
+		ev->hdr.hdr_related_handle,
+		ev->hdr.hdr_timestamp,
+		ev->hdr.hdr_length,
+		ev->hdr.hdr_maint_op_class,
+		ev->hdr.hdr_maint_op_sub_class,
+		ev->hdr.hdr_ld_id,
+		ev->hdr.hdr_head_id,
+		ev->flags,
+		ev->result,
+		ev->validity_flags,
+		ev->res_avail,
+		ev->channel,
+		ev->sub_channel,
+		ev->rank,
+		ev->nibble_mask,
+		ev->bank_group,
+		ev->bank,
+		ev->row,
+		ev->column);
+
+	return 0;
+}
+
+static int set_extlog_event_backtrace(char *buf, struct ras_extlog_event *ev)
+{
+	unsigned int size = MAX_BACKTRACE_SIZE;
+
+	if (!buf || !ev)
+		return -1;
+
+	while (*buf && size > 0) {
+		buf++;
+		size--;
+	}
+
+	snprintf(buf, size, "BACKTRACE="
+		"timestamp=%s\n"
+		"error_sequence=%d\n"
+		"error_type=%d\n"
+		"severity=%d\n"
+		"address=0x%llx\n"
+		"physical_address_mask_lsb=%d\n"
+		"fru_text=%s\n"
+		"cper_data_length=%u\n",
+		ev->timestamp,
+		ev->error_seq,
+		ev->etype,
+		ev->severity,
+		ev->address,
+		ev->pa_mask_lsb,
+		ev->fru_text,
+		ev->cper_data_length);
+
+	return 0;
+}
+
 static int set_signal_event_backtrace(char *buf, struct ras_signal_event *ev)
 {
 	unsigned int size = MAX_BACKTRACE_SIZE;
@@ -842,6 +947,8 @@ static int format_report_backtrace(char *buf, int type, void *ev)
 		return set_non_standard_event_backtrace(buf, ev);
 	case ARM_EVENT:
 		return set_arm_event_backtrace(buf, ev);
+	case EXTLOG_EVENT:
+		return set_extlog_event_backtrace(buf, ev);
 	case DEVLINK_EVENT:
 		return set_devlink_event_backtrace(buf, ev);
 	case DISKERROR_EVENT:
@@ -864,6 +971,8 @@ static int format_report_backtrace(char *buf, int type, void *ev)
 		return set_cxl_dram_event_backtrace(buf, ev);
 	case CXL_MEMORY_MODULE_EVENT:
 		return set_cxl_memory_module_event_backtrace(buf, ev);
+	case CXL_MEMORY_SPARING_EVENT:
+		return set_cxl_sparing(buf, ev);
 	case SIGNAL_EVENT:
 		return set_signal_event_backtrace(buf, ev);
 	default:
@@ -995,6 +1104,7 @@ static const struct report_description report_descriptions[NR_EVENTS] = {
 	[NON_STANDARD_EVENT] = { "rasdaemon-non-standard",
 				 "Unknown CPER section problem" },
 	[ARM_EVENT] = { "rasdaemon-arm", "ARM CPU report problem" },
+	[EXTLOG_EVENT] = { "rasdaemon-extlog", "Extended error log event" },
 	[DEVLINK_EVENT] = { "rasdaemon-devlink",
 			    "devlink health report problem" },
 	[DISKERROR_EVENT] = { "rasdaemon-diskerror", "disk I/O error" },
@@ -1014,6 +1124,8 @@ static const struct report_description report_descriptions[NR_EVENTS] = {
 	[CXL_DRAM_EVENT] = { "rasdaemon-cxl_dram_event", "CXL DRAM Event" },
 	[CXL_MEMORY_MODULE_EVENT] = { "rasdaemon-cxl_memory_module_event",
 				       "CXL Memory Module Event" },
+	[CXL_MEMORY_SPARING_EVENT] = { "rasdaemon-cxl_memory_sparing_event",
+					"CXL Memory Sparing Event" },
 	[RERI_EVENT] = { "rasdaemon-reri", "RISC-V RERI error report" },
 };
 
@@ -1034,12 +1146,14 @@ static int abrt_report_event(struct ras_events *ras, int event, void *data)
 
 #define REPORT_EVENT_MASK (BIT_ULL(MC_EVENT) | BIT_ULL(MCE_EVENT) | \
 	BIT_ULL(AER_EVENT) | BIT_ULL(NON_STANDARD_EVENT) | BIT_ULL(ARM_EVENT) | \
+	BIT_ULL(EXTLOG_EVENT) | \
 	BIT_ULL(DEVLINK_EVENT) | BIT_ULL(DISKERROR_EVENT) | BIT_ULL(MF_EVENT) | \
 	BIT_ULL(SIGNAL_EVENT) | BIT_ULL(CXL_POISON_EVENT) | \
 	BIT_ULL(CXL_AER_UE_EVENT) | BIT_ULL(CXL_AER_CE_EVENT) | \
 	BIT_ULL(CXL_OVERFLOW_EVENT) | BIT_ULL(CXL_GENERIC_EVENT) | \
 	BIT_ULL(CXL_GENERAL_MEDIA_EVENT) | BIT_ULL(CXL_DRAM_EVENT) | \
-	BIT_ULL(CXL_MEMORY_MODULE_EVENT) | BIT_ULL(RERI_EVENT))
+	BIT_ULL(CXL_MEMORY_MODULE_EVENT) | \
+	BIT_ULL(CXL_MEMORY_SPARING_EVENT) | BIT_ULL(RERI_EVENT))
 
 /* Meson source selection controls whether this consumer is registered. */
 static const struct ras_event_consumer abrt_report_consumer = {

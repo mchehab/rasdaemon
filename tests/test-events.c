@@ -244,8 +244,72 @@ static void test_abrt_report_formats_mc_event(void **state)
 	assert_int_equal(rc, -1);
 }
 
+static void test_abrt_report_formats_extlog_event(void **state)
+{
+	struct ras_extlog_event event = {
+		.error_seq = 9,
+		.etype = 3,
+		.severity = 2,
+		.address = 0x12340000,
+		.pa_mask_lsb = 12,
+		.fru_text = "DIMM A0",
+		.cper_data_length = 32,
+	};
+	char output[2048];
+	int rc;
+
+	strscpy(event.timestamp, "2026-08-28 00:00:00 +0000",
+		sizeof(event.timestamp));
+	rc = abrt_report_test_format(EXTLOG_EVENT, &event, output,
+				     sizeof(output));
+	assert_int_equal(rc, 0);
+	assert_non_null(strstr(output, "error_sequence=9"));
+	assert_non_null(strstr(output, "address=0x12340000"));
+	assert_non_null(strstr(output, "fru_text=DIMM A0"));
+}
+
+static void test_abrt_report_formats_cxl_memory_sparing_event(void **state)
+{
+	struct ras_cxl_memory_sparing_event event = {
+		.hdr.memdev = "mem0",
+		.hdr.host = "host0",
+		.hdr.serial = 0x1234,
+		.hdr.log_type = "failure",
+		.hdr.hdr_uuid = "uuid",
+		.hdr.hdr_flags = 1,
+		.flags = 3,
+		.result = 2,
+		.validity_flags = 0xff,
+		.res_avail = 4,
+		.channel = 1,
+		.sub_channel = 2,
+		.rank = 3,
+		.nibble_mask = 0xa5,
+		.bank_group = 4,
+		.bank = 5,
+		.row = 1024,
+		.column = 64,
+	};
+	char output[4096];
+	int rc;
+
+	strscpy(event.hdr.timestamp, "2026-08-28 00:00:00 +0000",
+		sizeof(event.hdr.timestamp));
+	strscpy(event.hdr.hdr_timestamp, "2026-08-28 00:00:01 +0000",
+		sizeof(event.hdr.hdr_timestamp));
+	rc = abrt_report_test_format(CXL_MEMORY_SPARING_EVENT, &event, output,
+				     sizeof(output));
+	assert_int_equal(rc, 0);
+	assert_non_null(strstr(output, "memdev=mem0"));
+	assert_non_null(strstr(output, "resources_available=4"));
+	assert_non_null(strstr(output, "nibble_mask=0xa5"));
+	assert_non_null(strstr(output, "row=1024"));
+}
+
 static const struct CMUnitTest abrt_report_tests[] = {
 	cmocka_unit_test(test_abrt_report_formats_mc_event),
+	cmocka_unit_test(test_abrt_report_formats_extlog_event),
+	cmocka_unit_test(test_abrt_report_formats_cxl_memory_sparing_event),
 };
 
 int test_abrt_report(void)
