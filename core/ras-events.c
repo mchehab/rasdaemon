@@ -1058,6 +1058,7 @@ static int add_event_handler(struct ras_events *ras,
 	if (is_disabled_event(group, event)) {
 		log(ALL, LOG_INFO, "Disabled %s:%s tracing from config\n",
 		    group, event);
+		free(page);
 		return EVENT_DISABLED;
 	}
 
