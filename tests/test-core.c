@@ -320,6 +320,8 @@ static void test_event_consumers(void **state)
 	struct ras_events ras = { 0 };
 	int data;
 
+	module_cleanup("abrt-report");
+
 	/* Deliberately register these out of execution order. */
 	assert_int_equal(ras_event_consumer_register(&z_consumer), 0);
 	assert_int_equal(ras_event_consumer_register(&error_consumer), 0);

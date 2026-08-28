@@ -8,8 +8,11 @@
 #ifndef __RAS_RERI_HANDLER_H
 #define __RAS_RERI_HANDLER_H
 
+#include <stdbool.h>
+#include <time.h>
 #include <traceevent/event-parse.h>
 
+#include "config.h"
 #include "core/ras-events.h"
 
 /* RERI Transaction Types */
@@ -96,6 +99,10 @@ struct ras_reri_event {
 	uint8_t source_type;
 	uint8_t severity;
 	uint32_t hart_id;
+#ifdef HAVE_CPU_FAULT_ISOLATION
+	time_t event_time;
+	bool hart_id_valid;
+#endif
 	uint32_t cluster_id;
 	uint64_t status;
 	uint64_t addr_info;

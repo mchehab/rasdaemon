@@ -8,6 +8,7 @@
 #define __RAS_CPU_ISOLATION_H
 
 #include <stdbool.h>
+#include <time.h>
 
 #include "core/queue.h"
 
@@ -55,8 +56,6 @@ struct error_info {
 	time_t time;
 	enum error_type err_type;
 };
-
-void ras_record_cpu_error(struct error_info *err_info, int cpu);
 
 #ifdef HAVE_UNITTEST
 int ras_cpu_isolation_test_parse(const char *text, bool use_cycle_units,

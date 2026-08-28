@@ -7,8 +7,10 @@
 #ifndef __RAS_ARM_HANDLER_H
 #define __RAS_ARM_HANDLER_H
 
+#include <time.h>
 #include <traceevent/event-parse.h>
 
+#include "config.h"
 #include "core/ras-events.h"
 
 struct ras_arm_event;
@@ -37,6 +39,12 @@ void display_raw_data(struct trace_seq *s,
 		      uint32_t datalen);
 struct ras_arm_event {
 	char timestamp[64];
+#ifdef HAVE_CPU_FAULT_ISOLATION
+	time_t event_time;
+	int cpu;
+	int severity;
+	bool cpu_isolation_valid;
+#endif
 	int32_t error_count;
 	int8_t affinity;
 	int64_t mpidr;

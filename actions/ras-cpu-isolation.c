@@ -16,6 +16,11 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "actions/ras-cpu-isolation.h"
+#include "events-arch-arm/ras-arm-handler.h"
+#include "events-arch-riscv/ras-reri-handler.h"
+
+#define ARM_ERR_VALID_ERROR_COUNT BIT(0)
+#define ARM_ERR_VALID_FLAGS BIT(1)
 
 #define SECOND_OF_MON (30 * 24 * 60 * 60)
 #define SECOND_OF_DAY (24 * 60 * 60)
@@ -221,56 +226,50 @@ static int check_config_status(void)
 	return 0;
 }
 
-static int ras_cpu_isolation_init(struct ras_module_ctx *ctx)
+static int is_core_failure(struct ras_arm_err_info *err_info)
 {
-	unsigned int cpus = sysconf(_SC_NPROCESSORS_CONF);
-
-	(void)ctx;
-	enabled = 1;
-	if (init_cpu_info(cpus) < 0 || check_config_status() < 0) {
-		enabled = 0;
-		log(TERM, LOG_WARNING, "Cpu fault isolation is disabled\n");
-		return 0;
-	}
-
-	log(TERM, LOG_INFO, "Cpu fault isolation is enabled\n");
-	init_config(&threshold);
-	init_config(&cpu_limit);
-	init_config(&cycle);
+	if (err_info->validation_bits & ARM_ERR_VALID_FLAGS)
+		return (err_info->flags & 0xf) && !(err_info->flags & BIT(2));
 
 	return 0;
 }
 
-static void cpu_infos_free(struct ras_module_ctx *ctx)
+static int count_arm_errors(struct ras_arm_event *event, int severity)
 {
-	(void)ctx;
-	if (cpu_infos) {
-		for (int i = 0; i < ncores; ++i)
-			free_queue(cpu_infos[i].ce_queue);
+	struct ras_arm_err_info *err_info;
+	int error_count;
+	int num_pei;
+	int num = 0;
+	int i;
 
-		free(cpu_infos);
-		cpu_infos = NULL;
-		ncores = 0;
+	if (event->pei_len % sizeof(*err_info)) {
+		log(TERM, LOG_ERR,
+		    "The event data does not match the ARM Processor Error Information Structure\n");
+		return 0;
 	}
-}
 
-static const struct ras_module_entry cpu_isolation_module = {
-	.name = "cpu-isolation",
-	.level = ACTIONS_MODULE,
-	.init = ras_cpu_isolation_init,
-	.cleanup = cpu_infos_free,
-};
+	num_pei = event->pei_len / sizeof(*err_info);
+	err_info = (struct ras_arm_err_info *)event->pei_error;
+	for (i = 0; i < num_pei; i++, err_info++) {
+		error_count = 1;
+		if (err_info->validation_bits & ARM_ERR_VALID_ERROR_COUNT)
+			error_count = err_info->multiple_error + 1;
+		if (severity == GHES_SEV_RECOVERABLE &&
+		    !is_core_failure(err_info))
+			error_count = 0;
+		num += error_count;
+	}
 
-static void __attribute__((constructor)) cpu_isolation_register(void)
-{
-	int rc = module_register(&cpu_isolation_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register CPU isolation module: %d\n",
-		    rc);
+	log(TERM, LOG_INFO, "%d error in cpu core caught\n", num);
+	return num;
 }
 
 #ifdef HAVE_UNITTEST
+int ras_arm_test_count_errors(struct ras_arm_event *event, int severity)
+{
+	return count_arm_errors(event, severity);
+}
+
 int ras_cpu_isolation_test_parse(const char *text, bool use_cycle_units,
 				 unsigned long *value)
 {
@@ -389,7 +388,7 @@ static void record_error_info(unsigned int cpu, struct error_info *err_info)
 	}
 }
 
-void ras_record_cpu_error(struct error_info *err_info, int cpu)
+static void ras_record_cpu_error(struct error_info *err_info, int cpu)
 {
 	int ret;
 
@@ -435,4 +434,102 @@ void ras_record_cpu_error(struct error_info *err_info, int cpu)
 		log(TERM, LOG_WARNING, "Offline cpu%d fail, the state is %s\n",
 		    cpu, cpu_state[cpu_infos[cpu].state]);
 	}
+}
+
+static int cpu_isolation_consume(struct ras_events *ras, int event, void *data)
+{
+	struct error_info error = {
+		.nums = 1,
+		.err_type = UCE,
+	};
+
+	if (event == ARM_EVENT) {
+		struct ras_arm_event *arm = data;
+
+		if (!arm->cpu_isolation_valid ||
+		    (arm->severity != GHES_SEV_CORRECTED &&
+		     arm->severity != GHES_SEV_RECOVERABLE))
+			return 0;
+		error.nums = count_arm_errors(arm, arm->severity);
+		if (!error.nums)
+			return 0;
+		error.time = arm->event_time;
+		error.err_type = arm->severity;
+		ras_record_cpu_error(&error, arm->cpu);
+		return 0;
+	}
+
+	if (event == RERI_EVENT) {
+		struct ras_reri_event *reri = data;
+
+		if (reri->source_type != RERI_SOURCE_TYPE_CPU ||
+		    !reri->hart_id_valid ||
+		    (reri->severity != RERI_SEV_FATAL &&
+		     reri->severity != RERI_SEV_RECOVERABLE))
+			return 0;
+		error.time = reri->event_time;
+		ras_record_cpu_error(&error, reri->hart_id);
+	}
+
+	return 0;
+}
+
+static const struct ras_event_consumer cpu_isolation_consumer = {
+	.name = "cpu-isolation",
+	.priority = PRI_CPU_ISOLATION,
+	.events = BIT_ULL(ARM_EVENT) | BIT_ULL(RERI_EVENT),
+	.consume = cpu_isolation_consume,
+};
+
+static int ras_cpu_isolation_init(struct ras_module_ctx *ctx)
+{
+	unsigned int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int rc;
+
+	enabled = 1;
+	if (init_cpu_info(cpus) < 0 || check_config_status() < 0) {
+		enabled = 0;
+		log(TERM, LOG_WARNING, "Cpu fault isolation is disabled\n");
+	} else {
+		log(TERM, LOG_INFO, "Cpu fault isolation is enabled\n");
+		init_config(&threshold);
+		init_config(&cpu_limit);
+		init_config(&cycle);
+	}
+
+	rc = ras_event_consumer_register(&cpu_isolation_consumer);
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register CPU isolation consumer: %d\n",
+		    rc);
+
+	return rc;
+}
+
+static void cpu_infos_free(struct ras_module_ctx *ctx)
+{
+	ras_event_consumer_unregister(&cpu_isolation_consumer);
+	if (cpu_infos) {
+		for (int i = 0; i < ncores; ++i)
+			free_queue(cpu_infos[i].ce_queue);
+
+		free(cpu_infos);
+		cpu_infos = NULL;
+		ncores = 0;
+	}
+}
+
+static const struct ras_module_entry cpu_isolation_module = {
+	.name = "cpu-isolation",
+	.level = ACTIONS_MODULE,
+	.init = ras_cpu_isolation_init,
+	.cleanup = cpu_infos_free,
+};
+
+static void __attribute__((constructor)) cpu_isolation_register(void)
+{
+	int rc = module_register(&cpu_isolation_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register CPU isolation module: %d\n",
+		    rc);
 }

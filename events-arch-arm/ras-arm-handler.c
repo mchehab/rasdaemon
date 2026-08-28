@@ -36,11 +36,8 @@ static const struct ras_event_entry ras_arm_event_entry = {
 };
 REGISTER_RAS_EVENT(ras_arm_event_entry);
 #include "events-arch-arm/ras-non-standard-handler.h"
-#include "actions/ras-cpu-isolation.h"
 
 #define ARM_ERR_VALID_ERROR_COUNT BIT(0)
-#define ARM_ERR_VALID_FLAGS BIT(1)
-#define BIT2 2
 
 #define ARM_INFO_VALID_MULTI_ERR	BIT(0)
 #define ARM_INFO_VALID_FLAGS		BIT(1)
@@ -419,82 +416,23 @@ int ras_arm_test_parse_processor(struct trace_seq *s,
 #endif
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
-static int is_core_failure(struct ras_arm_err_info *err_info)
-{
-	if (err_info->validation_bits & ARM_ERR_VALID_FLAGS) {
-		/*
-		 * core failure:
-		 * Bit 0\1\3: (at lease 1)
-		 * Bit 2: 0
-		 */
-		return (err_info->flags & 0xf) && !(err_info->flags & (0x1 << BIT2));
-	}
-	return 0;
-}
-
-static int count_errors(struct ras_arm_event *ev, int sev)
-{
-	struct ras_arm_err_info *err_info;
-	int num_pei;
-	int err_info_size = sizeof(struct ras_arm_err_info);
-	int num = 0;
-	int i;
-	int error_count;
-
-	if (ev->pei_len % err_info_size != 0) {
-		log(TERM, LOG_ERR,
-		    "The event data does not match to the ARM Processor Error Information Structure\n");
-		return num;
-	}
-	num_pei = ev->pei_len / err_info_size;
-	err_info = (struct ras_arm_err_info *)(ev->pei_error);
-
-	for (i = 0; i < num_pei; ++i) {
-		error_count = 1;
-		if (err_info->validation_bits & ARM_ERR_VALID_ERROR_COUNT) {
-			/*
-			 * The value of this field is defined as follows:
-			 * 0: Single Error
-			 * 1: Multiple Errors
-			 * 2-65535: Error Count
-			 */
-			error_count = err_info->multiple_error + 1;
-		}
-		if (sev == GHES_SEV_RECOVERABLE && !is_core_failure(err_info))
-			error_count = 0;
-
-		num += error_count;
-		err_info += 1;
-	}
-	log(TERM, LOG_INFO, "%d error in cpu core caught\n", num);
-	return num;
-}
-
-#ifdef HAVE_UNITTEST
-int ras_arm_test_count_errors(struct ras_arm_event *event, int severity)
-{
-	return count_errors(event, severity);
-}
-#endif
-
-static int ras_handle_cpu_error(struct trace_seq *s,
-				struct tep_record *record,
-				struct tep_event *event,
-				struct ras_arm_event *ev, time_t now)
+static int ras_decode_cpu_isolation(struct trace_seq *s,
+				    struct tep_record *record,
+				    struct tep_event *event,
+				    struct ras_arm_event *ev)
 {
 	unsigned long long val;
-	int cpu;
 	char *severity;
-	struct error_info err_info;
 
 	if (tep_get_field_val(s, event, "cpu", record, &val, 1) < 0)
 		return -1;
-	cpu = val;
-	trace_seq_printf(s, "\n cpu: %d", cpu);
+	ev->cpu = val;
+	trace_seq_printf(s, "\n cpu: %d", ev->cpu);
 
 	/* record cpu error */
 	if (tep_get_field_val(s, event, "sev", record, &val, 1) < 0)
 		return -1;
+	ev->severity = val;
 	/* refer to UEFI_2_9 specification chapter N2.2 Table N-5 */
 	switch (val) {
 	case GHES_SEV_NO:
@@ -511,17 +449,6 @@ static int ras_handle_cpu_error(struct trace_seq *s,
 		severity = "Fatal";
 	}
 	trace_seq_printf(s, "\n severity: %s", severity);
-
-	if (val == GHES_SEV_CORRECTED || val == GHES_SEV_RECOVERABLE) {
-		int nums = count_errors(ev, val);
-
-		if (nums > 0) {
-			err_info.nums = nums;
-			err_info.time = now;
-			err_info.err_type = val;
-			ras_record_cpu_error(&err_info, cpu);
-		}
-	}
 
 	return 0;
 }
@@ -555,6 +482,9 @@ static int ras_arm_event_handler(struct trace_seq *s,
 		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
+#ifdef HAVE_CPU_FAULT_ISOLATION
+	ev.event_time = now;
+#endif
 
 	tm = localtime(&now);
 	if (tm)
@@ -654,8 +584,10 @@ static int ras_arm_event_handler(struct trace_seq *s,
 		display_raw_data(s, ev.vsei_error, ev.oem_len);
 #endif
 #ifdef HAVE_CPU_FAULT_ISOLATION
-		if (ras_handle_cpu_error(s, record, event, &ev, now) < 0)
+		if (ras_decode_cpu_isolation(s, record, event, &ev) < 0)
 			printf("Can't do CPU fault isolation!\n");
+		else
+			ev.cpu_isolation_valid = true;
 #endif
 	}
 

@@ -37,7 +37,6 @@ static const struct ras_event_entry ras_reri_event_entry = {
 	.record = db_reri_event,
 };
 REGISTER_RAS_EVENT(ras_reri_event_entry);
-#include "actions/ras-cpu-isolation.h"
 
 #define RERI_GET_FIELD(val, offset, mask)	(((val) >> (offset)) & (mask))
 
@@ -254,9 +253,6 @@ int ras_reri_event_handler(struct trace_seq *s,
 	uint8_t ait, tt, ec;
 	uint8_t ce, ued, uec;
 	const char *severity_str;
-#ifdef HAVE_CPU_FAULT_ISOLATION
-	bool hart_id_valid = false;
-#endif
 
 	memset(&ev, 0, sizeof(ev));
 
@@ -266,6 +262,9 @@ int ras_reri_event_handler(struct trace_seq *s,
 		now = record->ts / user_hz + ras->uptime_diff;
 	else
 		now = time(NULL);
+#ifdef HAVE_CPU_FAULT_ISOLATION
+	ev.event_time = now;
+#endif
 
 	tm = localtime(&now);
 	if (tm)
@@ -287,7 +286,7 @@ int ras_reri_event_handler(struct trace_seq *s,
 		if (tep_get_field_val(s, event, "hart_id", record, &val, 1) >= 0) {
 			CHECK_AND_ASSIGN_U32(ev.hart_id, val);
 #ifdef HAVE_CPU_FAULT_ISOLATION
-			hart_id_valid = true;
+			ev.hart_id_valid = true;
 #endif
 			trace_seq_printf(s, " hart_id: %u", ev.hart_id);
 		}
@@ -364,20 +363,6 @@ int ras_reri_event_handler(struct trace_seq *s,
 			 (unsigned long long)ev.status);
 
 	trace_seq_puts(s, "\n");
-
-#ifdef HAVE_CPU_FAULT_ISOLATION
-	if (ev.source_type == RERI_SOURCE_TYPE_CPU && hart_id_valid &&
-	    (ev.severity == RERI_SEV_FATAL ||
-	     ev.severity == RERI_SEV_RECOVERABLE)) {
-		struct error_info error = {
-			.nums = 1,
-			.time = now,
-			.err_type = UCE,
-		};
-
-		ras_record_cpu_error(&error, ev.hart_id);
-	}
-#endif
 
 	ras_event_publish(ras, RERI_EVENT, &ev);
 
