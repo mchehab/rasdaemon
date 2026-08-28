@@ -162,11 +162,8 @@ static int open_trace(struct ras_events *ras, char *name, int flags)
 	}
 
 	rc = open(fname, flags);
-	if (rc < 0) {
-		rc = -errno;
-
+	if (rc < 0)
 		return -errno;
-	}
 
 	return rc;
 }
@@ -751,8 +748,9 @@ static int select_tracing_timestamp(struct ras_events *ras)
 {
 	FILE *fp;
 	int fd, rc;
-	time_t uptime, now;
-	size_t size;
+	size_t uptime;
+	time_t now;
+	ssize_t size;
 	unsigned int j1;
 	char buf[4096];
 
@@ -762,12 +760,17 @@ static int select_tracing_timestamp(struct ras_events *ras)
 		log(TERM, LOG_ERR, "Can't open trace_clock\n");
 		return -EINVAL;
 	}
-	size = read(fd, buf, sizeof(buf));
+	size = read(fd, buf, sizeof(buf) - 1);
 	close(fd);
+	if (size < 0) {
+		log(TERM, LOG_ERR, "Can't read trace_clock\n");
+		return -EINVAL;
+	}
 	if (!size) {
 		log(TERM, LOG_ERR, "trace_clock is empty!\n");
 		return -EINVAL;
 	}
+	buf[size] = '\0';
 
 	if (!strstr(buf, UPTIME)) {
 		log(TERM, LOG_INFO, "Kernel doesn't support uptime clock\n");
@@ -776,15 +779,15 @@ static int select_tracing_timestamp(struct ras_events *ras)
 
 	/* Select uptime tracing */
 	fd = open_trace(ras, "trace_clock", O_WRONLY);
-	if (!fd) {
+	if (fd < 0) {
 		log(TERM, LOG_ERR,
 		    "Kernel didn't allow writing to trace_clock\n");
 		return 0;
 	}
-	rc = write(fd, UPTIME, sizeof(UPTIME));
+	size = write(fd, UPTIME, sizeof(UPTIME) - 1);
 	close(fd);
 
-	if (rc < 0) {
+	if (size != sizeof(UPTIME) - 1) {
 		log(TERM, LOG_ERR,
 		    "Kernel didn't allow selecting uptime on trace_clock\n");
 		return 0;
@@ -799,14 +802,14 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	}
 	rc = fscanf(fp, "%zu.%u ", &uptime, &j1);
 	fclose(fp);
-	if (rc <= 0) {
+	if (rc != 2) {
 		log(TERM, LOG_ERR, "Can't parse /proc/uptime!\n");
 		return -EINVAL;
 	}
 	now = time(NULL);
 
 	ras->use_uptime = 1;
-	ras->uptime_diff = now - uptime;
+	ras->uptime_diff = now - (time_t)uptime;
 
 	return 0;
 }
