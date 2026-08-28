@@ -113,15 +113,28 @@ static int get_cpu_status(unsigned int cpu)
 	return (num < 0 || num > CPU_UNKNOWN) ? CPU_UNKNOWN : num;
 }
 
+static void cpu_infos_release(void)
+{
+	if (!cpu_infos)
+		return;
+
+	for (unsigned int i = 0; i < ncores; ++i)
+		free_queue(cpu_infos[i].ce_queue);
+
+	free(cpu_infos);
+	cpu_infos = NULL;
+	ncores = 0;
+}
+
 static int init_cpu_info(unsigned int cpus)
 {
-	ncores = cpus;
-	cpu_infos = (struct cpu_info *)malloc(sizeof(*cpu_infos) * cpus);
+	cpu_infos = calloc(cpus, sizeof(*cpu_infos));
 	if (!cpu_infos) {
 		log(TERM, LOG_ERR,
 		    "Failed to allocate memory for cpu infos in %s.\n", __func__);
-		return -1;
+		return -ENOMEM;
 	}
+	ncores = cpus;
 
 	for (unsigned int i = 0; i < cpus; ++i) {
 		cpu_infos[i].ce_nums = 0;
@@ -132,7 +145,8 @@ static int init_cpu_info(unsigned int cpus)
 		if (!cpu_infos[i].ce_queue) {
 			log(TERM, LOG_ERR,
 			    "Failed to allocate memory for cpu ce queue in %s.\n", __func__);
-			return -1;
+			cpu_infos_release();
+			return -ENOMEM;
 		}
 	}
 	/* set limit of offlined cpu limit according to number of cpu */
@@ -279,6 +293,11 @@ int ras_cpu_isolation_test_parse(const char *text, bool use_cycle_units,
 
 	*value = 0;
 	return parse_ul_config(&config, (char *)text, value);
+}
+
+unsigned int ras_cpu_isolation_test_cpu_count(void)
+{
+	return ncores;
 }
 #endif
 
@@ -486,11 +505,13 @@ static int ras_cpu_isolation_init(struct ras_module_ctx *ctx)
 	unsigned int cpus = sysconf(_SC_NPROCESSORS_CONF);
 	int rc;
 
-	enabled = 1;
-	if (init_cpu_info(cpus) < 0 || check_config_status() < 0) {
-		enabled = 0;
+	enabled = 0;
+	if (check_config_status() < 0) {
+		log(TERM, LOG_WARNING, "Cpu fault isolation is disabled\n");
+	} else if (init_cpu_info(cpus) < 0) {
 		log(TERM, LOG_WARNING, "Cpu fault isolation is disabled\n");
 	} else {
+		enabled = 1;
 		log(TERM, LOG_INFO, "Cpu fault isolation is enabled\n");
 		init_config(&threshold);
 		init_config(&cpu_limit);
@@ -498,9 +519,12 @@ static int ras_cpu_isolation_init(struct ras_module_ctx *ctx)
 	}
 
 	rc = ras_event_consumer_register(&cpu_isolation_consumer);
-	if (rc)
+	if (rc) {
 		log(TERM, LOG_ERR, "Failed to register CPU isolation consumer: %d\n",
 		    rc);
+		cpu_infos_release();
+		enabled = 0;
+	}
 
 	return rc;
 }
@@ -508,14 +532,8 @@ static int ras_cpu_isolation_init(struct ras_module_ctx *ctx)
 static void cpu_infos_free(struct ras_module_ctx *ctx)
 {
 	ras_event_consumer_unregister(&cpu_isolation_consumer);
-	if (cpu_infos) {
-		for (int i = 0; i < ncores; ++i)
-			free_queue(cpu_infos[i].ce_queue);
-
-		free(cpu_infos);
-		cpu_infos = NULL;
-		ncores = 0;
-	}
+	cpu_infos_release();
+	enabled = 0;
 }
 
 static const struct ras_module_entry cpu_isolation_module = {

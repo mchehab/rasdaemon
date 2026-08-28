@@ -15,6 +15,7 @@
 #include <unistd.h>
 
 #include "core/modules.h"
+#include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "db/ras-db-backend.h"
 #include "db/ras-db.h"
@@ -455,6 +456,19 @@ int test_arm(void)
 #endif
 
 #ifdef HAVE_CPU_FAULT_ISOLATION
+static int cpu_isolation_conflict_consume(struct ras_events *ras, int event,
+					  void *data)
+{
+	return 0;
+}
+
+static const struct ras_event_consumer cpu_isolation_conflict = {
+	.name = "cpu-isolation",
+	.priority = PRI_CPU_ISOLATION,
+	.events = BIT_ULL(ARM_EVENT),
+	.consume = cpu_isolation_conflict_consume,
+};
+
 static void test_cpu_isolation_configuration(void **state)
 {
 	unsigned long value;
@@ -468,8 +482,37 @@ static void test_cpu_isolation_configuration(void **state)
 	assert_int_equal(ras_cpu_isolation_test_parse("", false, &value), -1);
 }
 
+static void test_cpu_isolation_init_rollback(void **state)
+{
+	const char *current = getenv("CPU_ISOLATION_ENABLE");
+	char *saved = current ? strdup(current) : NULL;
+	struct ras_events ras = { 0 };
+
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(setenv("CPU_ISOLATION_ENABLE", "yes", 1), 0);
+	assert_int_equal(ras_event_consumer_register(&cpu_isolation_conflict), 0);
+	assert_int_equal(module_init(&ras, "cpu-isolation"), -EEXIST);
+	assert_false(module_is_enabled("cpu-isolation"));
+	assert_int_equal(ras_cpu_isolation_test_cpu_count(), 0);
+	assert_int_equal(ras_event_consumer_unregister(&cpu_isolation_conflict), 0);
+
+	assert_int_equal(module_init(&ras, "cpu-isolation"), 0);
+	assert_true(module_is_enabled("cpu-isolation"));
+	assert_true(ras_cpu_isolation_test_cpu_count() > 0);
+	assert_int_equal(module_cleanup("cpu-isolation"), 0);
+	assert_int_equal(ras_cpu_isolation_test_cpu_count(), 0);
+
+	if (saved) {
+		assert_int_equal(setenv("CPU_ISOLATION_ENABLE", saved, 1), 0);
+		free(saved);
+	} else {
+		assert_int_equal(unsetenv("CPU_ISOLATION_ENABLE"), 0);
+	}
+}
+
 static const struct CMUnitTest cpu_isolation_tests[] = {
 	cmocka_unit_test(test_cpu_isolation_configuration),
+	cmocka_unit_test(test_cpu_isolation_init_rollback),
 };
 
 int test_cpu_isolation(void)

@@ -60,6 +60,7 @@ struct error_info {
 #ifdef HAVE_UNITTEST
 int ras_cpu_isolation_test_parse(const char *text, bool use_cycle_units,
 				 unsigned long *value);
+unsigned int ras_cpu_isolation_test_cpu_count(void);
 #endif
 
 #endif
