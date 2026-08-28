@@ -41,7 +41,6 @@ static const struct ras_event_entry ras_diskerror_event = {
 	.event = "block_rq_complete", .prepare = ras_diskerror_prepare,
 #endif
 	.handler = ras_diskerror_event_handler, .id = DISKERROR_EVENT,
-	.trigger = true,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_diskerror,
 #endif

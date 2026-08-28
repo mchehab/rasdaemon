@@ -26,7 +26,7 @@ int db_non_standard_record(struct ras_events *ras, void *priv);
 static const struct ras_event_entry ras_non_standard_event_entry = {
 	.group = "ras", .event = "non_standard_event",
 	.handler = ras_non_standard_event_handler, .id = NON_STANDARD_EVENT,
-	.trigger = true, .record = db_non_standard_record,
+	.record = db_non_standard_record,
 };
 REGISTER_RAS_EVENT(ras_non_standard_event_entry);
 

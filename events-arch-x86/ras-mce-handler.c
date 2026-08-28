@@ -45,7 +45,7 @@ static int ras_mce_prepare(struct ras_events *ras)
 
 static const struct ras_event_entry ras_mce_event = {
 	.group = "mce", .event = "mce_record",
-	.handler = ras_mce_event_handler, .id = MCE_EVENT, .trigger = true,
+	.handler = ras_mce_event_handler, .id = MCE_EVENT,
 	.prepare = ras_mce_prepare,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_X86_EVENTS, .test = test_mce,

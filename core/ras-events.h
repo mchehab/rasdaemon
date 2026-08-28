@@ -81,7 +81,6 @@ struct ras_event_entry {
 	void (*trigger_setup)(void);
 	int id;
 	int order;
-	bool trigger;
 	record_function record;
 #ifdef HAVE_UNITTEST
 	enum test_group test_group;

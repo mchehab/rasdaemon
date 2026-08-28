@@ -950,7 +950,7 @@ static int add_event_handler(struct ras_events *ras,
 			     struct tep_handle *pevent,
 			     unsigned int page_size, const char *group,
 			     const char *event, tep_event_handler_func func,
-			     const char *filter_str, int id, bool trigger)
+			     const char *filter_str, int id)
 {
 	int fd, rc;
 	int size = 0;
@@ -1126,7 +1126,7 @@ int ras_events_prepare(struct ras_events *ras, int record_events,
 
 		rc = add_event_handler(ras, pevent, ras->page_size,
 				       entry->group, entry->event, entry->handler,
-				       filter, entry->id, entry->trigger);
+				       filter, entry->id);
 		if (!rc) {
 			ras->num_events++;
 			if (entry->trigger_setup)

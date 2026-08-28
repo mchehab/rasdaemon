@@ -28,7 +28,7 @@ int test_arm(void) __attribute__((weak));
 
 static const struct ras_event_entry ras_arm_event_entry = {
 	.group = "ras", .event = "arm_event", .handler = ras_arm_event_handler,
-	.id = ARM_EVENT, .trigger = true,
+	.id = ARM_EVENT,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_ARM_EVENTS, .test = test_arm,
 #endif

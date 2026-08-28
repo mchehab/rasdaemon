@@ -30,7 +30,7 @@ int test_reri(void) __attribute__((weak));
 
 static const struct ras_event_entry ras_reri_event_entry = {
 	.group = "ras", .event = "reri_event",
-	.handler = ras_reri_event_handler, .id = RERI_EVENT, .trigger = true,
+	.handler = ras_reri_event_handler, .id = RERI_EVENT,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_RISCV_EVENTS, .test = test_reri,
 #endif

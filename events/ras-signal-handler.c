@@ -48,7 +48,7 @@ static int ras_signal_prepare(struct ras_events *ras)
 static const struct ras_event_entry ras_signal_event = {
 	.group = "signal", .event = "signal_generate",
 	.handler = ras_signal_event_handler, .id = SIGNAL_EVENT,
-	.trigger = true, .prepare = ras_signal_prepare,
+	.prepare = ras_signal_prepare,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_signal,
 #endif

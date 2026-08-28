@@ -40,7 +40,7 @@ static void ras_extlog_enabled(struct ras_events *ras)
 static const struct ras_event_entry ras_extlog_event = {
 	.group = "ras", .event = "extlog_mem_event",
 	.handler = ras_extlog_mem_event_handler, .id = EXTLOG_EVENT,
-	.trigger = true, .enabled = ras_extlog_enabled,
+	.enabled = ras_extlog_enabled,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_extlog,
 #endif

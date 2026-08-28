@@ -49,7 +49,7 @@ static const char *ras_devlink_filter(struct ras_events *ras)
 static const struct ras_event_entry ras_net_timeout_event = {
 	.group = "net", .event = "net_dev_xmit_timeout",
 	.handler = ras_net_xmit_timeout_handler, .id = DEVLINK_EVENT,
-	.trigger = true, .prepare = ras_net_timeout_prepare,
+	.prepare = ras_net_timeout_prepare,
 	.enabled = ras_net_timeout_enabled,
 };
 REGISTER_RAS_EVENT(ras_net_timeout_event);
@@ -57,7 +57,7 @@ REGISTER_RAS_EVENT(ras_net_timeout_event);
 static const struct ras_event_entry ras_devlink_event = {
 	.group = "devlink", .event = "devlink_health_report",
 	.handler = ras_devlink_event_handler, .filter_cb = ras_devlink_filter,
-	.id = DEVLINK_EVENT, .order = 1, .trigger = true,
+	.id = DEVLINK_EVENT, .order = 1,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_devlink,
 #endif

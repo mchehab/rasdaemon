@@ -61,7 +61,7 @@ int test_cxl(void) __attribute__((weak));
 #define CXL_EVENT_ENTRY(var, name, callback, recorder, event_id) \
 	static const struct ras_event_entry var = { \
 		.group = "cxl", .event = name, .handler = callback, \
-		.id = event_id, .trigger = true, \
+		.id = event_id, \
 		.record = recorder, \
 	}; \
 	REGISTER_RAS_EVENT(var)
@@ -69,7 +69,6 @@ int test_cxl(void) __attribute__((weak));
 static const struct ras_event_entry ras_cxl_poison_entry = {
 	.group = "cxl", .event = "cxl_poison",
 	.handler = ras_cxl_poison_event_handler, .id = CXL_POISON_EVENT,
-	.trigger = true,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_cxl,
 #endif
