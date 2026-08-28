@@ -211,16 +211,12 @@ static const char * const err_bert_sub_type[] = {
 	"PMPRO Fatal",
 };
 
-#ifdef HAVE_DB
-
 static char *table_list[] = {
 	"amp_payload0_event_tab",
 	"amp_payload1_event_tab",
 	"amp_payload2_event_tab",
 	"amp_payload3_event_tab",
 };
-
-#endif
 
 struct amp_ras_type_info {
 	int id;
@@ -358,7 +354,6 @@ static const char *oem_subtype_name(const struct amp_ras_type_info *info,
 	return "unknown";
 }
 
-#ifdef HAVE_DB
 /*key pair definition for ampere specific error payload type 0*/
 static const struct db_fields amp_payload0_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
@@ -645,34 +640,6 @@ static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 				    "amp_payload3_event_tab");
 	}
 }
-
-#else
-
-static void record_amp_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct amp_payload0_type_sec *err)
-{
-}
-
-static void record_amp_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct amp_payload1_type_sec *err)
-{
-}
-
-static void record_amp_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct amp_payload2_type_sec *err)
-{
-}
-
-static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct amp_payload3_type_sec *err)
-{
-}
-
-#endif
 
 /*
  * decode ampere specific error payload type 0, the CPU's data is save
@@ -1012,7 +979,6 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 {
 	int payload_type = PAYLOAD_TYPE(event->error[0]);
 
-#ifdef HAVE_DB
 	struct db_table_descriptor db_tab;
 	int id = 0;
 
@@ -1043,7 +1009,6 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 	}
 	record_amp_data(ev_decoder, DB_TYPE_TEXT,
 			id, 0, event->timestamp);
-#endif
 
 	if (payload_type == PAYLOAD_TYPE_0) {
 		const struct amp_payload0_type_sec *err =
@@ -1095,7 +1060,7 @@ static void __attribute__((constructor)) amp_register(void)
 		log(TERM, LOG_ERR, "Failed to register Ampere module: %d\n", rc);
 }
 
-#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+#ifdef HAVE_UNITTEST
 struct db_table_descriptor_list ampere_table_descriptors(void)
 {
 	static const struct db_table_descriptor * const tables[] = {

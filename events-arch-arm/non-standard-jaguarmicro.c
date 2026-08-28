@@ -21,15 +21,9 @@
 #define JM_REG_BUF_LEN	2048
 #define JM_SNPRINTF	mce_snprintf
 
-#ifdef HAVE_DB
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 			   enum db_field_type data_type,
 			   int id, int64_t data, const char *text);
-#else
-static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
-			   enum db_field_type data_type,
-			   int id, int64_t data, const char *text) {};
-#endif
 
 struct jm_event {
 	char error_msg[JM_BUF_LEN];
@@ -576,8 +570,6 @@ static void decode_jm_common_sec_tail(struct ras_ns_ev_decoder *ev_decoder,
 	}
 }
 
-#ifdef HAVE_DB
-
 static void record_jm_data(struct ras_ns_ev_decoder *ev_decoder,
 			   enum db_field_type data_type,
 			   int id, int64_t data, const char *text);
@@ -634,14 +626,6 @@ static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
 			     "jm_payload0_event_tab");
 	}
 }
-
-#else
-static void record_jm_payload_err(struct ras_ns_ev_decoder *ev_decoder,
-				  const char *reg_str)
-{
-}
-
-#endif
 
 /*
  * decode JaguarMicro specific error payload type 0, the CPU's data is save
@@ -1063,7 +1047,6 @@ static int add_jm_oem_type0_table(struct ras_events *ras, struct ras_ns_ev_decod
 
 	started = true;
 
-	#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &jm_payload0_event_tab) != 0) {
@@ -1071,7 +1054,6 @@ static int add_jm_oem_type0_table(struct ras_events *ras, struct ras_ns_ev_decod
 			return -1;
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -1131,7 +1113,7 @@ static void __attribute__((constructor)) jm_register(void)
 		log(TERM, LOG_ERR, "Failed to register JaguarMicro module: %d\n", rc);
 }
 
-#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+#ifdef HAVE_UNITTEST
 struct db_table_descriptor_list jaguarmicro_table_descriptors(void)
 {
 	static const struct db_table_descriptor * const tables[] = {

@@ -20,14 +20,7 @@
 
 static int ras_mc_event_handler(struct trace_seq *s, struct tep_record *record,
 				struct tep_event *event, void *context);
-#ifdef HAVE_DB
 static int db_mc_event(struct ras_events *ras, void *priv);
-#else
-static inline int db_mc_event(struct ras_events *ras, void *priv)
-{
-	return 0;
-}
-#endif
 
 struct ras_record_priv {
 	struct ras_stmt *stmt_mc_event;
@@ -158,8 +151,6 @@ static int ras_mc_event_stat(time_t now, struct ras_mc_event *e)
 	return 0;
 }
 
-#ifdef HAVE_DB
-
 /*
  * Table and functions to handle ras:mc_event
  */
@@ -274,8 +265,6 @@ int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras)
 
 	return rc;
 }
-
-#endif
 
 static int ras_mc_event_handler(struct trace_seq *s,
 				struct tep_record *record,

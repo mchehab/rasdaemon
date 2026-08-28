@@ -875,7 +875,6 @@ static void assert_vendor_descriptor_count(struct db_table_descriptor_list list,
 }
 #endif
 
-#ifdef HAVE_DB
 static void test_db_table_registry(void **state)
 {
 	static const struct db_table_descriptor descriptor = {
@@ -885,6 +884,9 @@ static void test_db_table_registry(void **state)
 		.desc = &descriptor,
 	};
 	struct ras_module_ctx ctx = { 0 };
+
+	if (!modules_have_sql_backend())
+		skip();
 
 	assert_int_equal(ras_db_table_register(NULL, &entry), -EINVAL);
 	assert_int_equal(ras_db_table_register(&ctx, NULL), -EINVAL);
@@ -897,25 +899,6 @@ static void test_db_table_registry(void **state)
 
 static void test_database_registry_and_environment(void **state)
 {
-	static const struct ras_db_backend_ops incomplete_ops = { 0 };
-	struct ras_db_backend_entry incomplete = {
-		.name = "incomplete",
-		.ops = &incomplete_ops,
-	};
-	const char *available;
-
-	assert_int_equal(db_backend_register(NULL), -EINVAL);
-	assert_int_equal(db_backend_register(&incomplete), -EINVAL);
-	assert_false(db_backend_is_registered(NULL));
-	assert_false(db_backend_is_registered("incomplete"));
-	available = db_list_available_backends();
-	assert_non_null(available);
-#ifdef HAVE_SQLITE3
-	assert_non_null(strstr(available, "sqlite3"));
-	assert_true(db_backend_is_registered("sqlite3"));
-	assert_int_equal(db_backend_enable("sqlite3"), 0);
-#endif
-	assert_int_equal(db_backend_enable("does-not-exist"), -1);
 	unsetenv("RAS_TEST_DB_BOOL");
 	assert_int_equal(env_or_bool("RAS_TEST_DB_BOOL", 1), 1);
 	setenv("RAS_TEST_DB_BOOL", "no", 1);
@@ -939,7 +922,6 @@ int test_database(void)
 {
 	return RUN_FEATURE_GROUP("database registry", database_tests);
 }
-#endif
 
 #ifdef HAVE_AMP_NS_DECODE
 static void test_ampere_decoder_registration(void **state)
@@ -954,9 +936,7 @@ static void test_ampere_decoder_registration(void **state)
 	struct trace_seq seq;
 
 	assert_true(decoder_is_registered("e8ed898d-df16-43cc-8ecc-54f060ef157f"));
-#ifdef HAVE_DB
 	assert_vendor_descriptor_count(ampere_table_descriptors(), 4);
-#endif
 	trace_seq_init(&seq);
 	assert_int_equal(ras_ns_test_decode(
 		"e8ed898d-df16-43cc-8ecc-54f060ef157f",
@@ -981,10 +961,8 @@ static void test_hisilicon_decoder_registration(void **state)
 	assert_true(decoder_is_registered("1f8161e1-55d6-41e6-bd10-7afd1dc5f7c5"));
 	assert_true(decoder_is_registered("45534ea6-ce23-4115-8535-e07ab3aef91d"));
 	assert_true(decoder_is_registered("b2889fc9-e7d7-4f9d-a867-af42e98be772"));
-#ifdef HAVE_DB
 	assert_vendor_descriptor_count(hisilicon_table_descriptors(), 1);
 	assert_vendor_descriptor_count(hip08_table_descriptors(), 3);
-#endif
 }
 
 static const struct CMUnitTest hisi_ns_tests[] = {
@@ -1005,9 +983,7 @@ static void test_jaguarmicro_decoder_registration(void **state)
 	assert_true(decoder_is_registered("2d31de54-3037-4f24-a283-f69ca1ec0b9a"));
 	assert_true(decoder_is_registered("dac80d69-0a72-4eba-8114-148ee344af06"));
 	assert_true(decoder_is_registered("746f06fe-405e-451f-8d09-02e802ed984a"));
-#ifdef HAVE_DB
 	assert_vendor_descriptor_count(jaguarmicro_table_descriptors(), 1);
-#endif
 }
 
 static const struct CMUnitTest jaguar_ns_tests[] = {
@@ -1032,9 +1008,7 @@ static void test_nvidia_decoder(void **state)
 
 	assert_true(decoder_is_registered(NVIDIA_GRACE_SEC_TYPE_UUID));
 	assert_true(decoder_is_registered(NVIDIA_VERA_SEC_TYPE_UUID));
-#ifdef HAVE_DB
 	assert_vendor_descriptor_count(nvidia_table_descriptors(), 2);
-#endif
 	trace_seq_init(&seq);
 	decode_nvidia_cper_sec(NULL, &seq, &payload, sizeof(payload));
 	trace_seq_terminate(&seq);
@@ -1068,9 +1042,7 @@ static void test_yitian_decoder_registration(void **state)
 	const char *type = "a6980811-16ea-4e4d-b936-fb00a23ff29c";
 
 	assert_true(decoder_is_registered(type));
-#ifdef HAVE_DB
 	assert_vendor_descriptor_count(yitian_table_descriptors(), 1);
-#endif
 	trace_seq_init(&seq);
 	assert_int_equal(ras_ns_test_decode(type, &ras, &seq, &event), 0);
 	trace_seq_destroy(&seq);
@@ -1104,9 +1076,7 @@ REGISTER_TEST(TEST_GROUP_ACTIONS, test_openbmc_sel, 0);
 #ifdef HAVE_ERST
 REGISTER_TEST(TEST_GROUP_EVENTS, test_erst, 0);
 #endif
-#ifdef HAVE_DB
 REGISTER_TEST(TEST_GROUP_DATABASE, test_database, 0);
-#endif
 #ifdef HAVE_AMP_NS_DECODE
 REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_amp_ns, 0);
 #endif

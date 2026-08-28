@@ -70,9 +70,7 @@ int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 		return -1;
 
 	ns_ev_decoder->next = NULL;
-#ifdef HAVE_DB
 	ns_ev_decoder->stmt_dec_record = NULL;
-#endif
 	if (!ras_ns_ev_dec_list) {
 		ras_ns_ev_dec_list = ns_ev_decoder;
 		ras_ns_ev_dec_list->ref_count = 0;
@@ -91,7 +89,6 @@ int ras_ns_add_vendor_tables(struct ras_events *ras)
 	struct ras_ns_ev_decoder *ns_ev_decoder;
 	int error = 0;
 
-#ifdef HAVE_DB
 	if (!ras)
 		return -1;
 
@@ -109,7 +106,6 @@ int ras_ns_add_vendor_tables(struct ras_events *ras)
 
 	if (error)
 		return -1;
-#endif
 
 	return 0;
 }
@@ -172,7 +168,6 @@ int ras_ns_test_decode(const char *type, struct ras_events *ras,
 
 void ras_ns_finalize_vendor_tables(void)
 {
-#ifdef HAVE_DB
 	struct ras_ns_ev_decoder *ns_ev_decoder = ras_ns_ev_dec_list;
 
 	if (!ras_ns_ev_dec_list)
@@ -192,17 +187,14 @@ void ras_ns_finalize_vendor_tables(void)
 		}
 		ns_ev_decoder = ns_ev_decoder->next;
 	}
-#endif
 }
 
 static void unregister_ns_ev_decoder(void)
 {
-#ifdef HAVE_DB
 	if (!ras_ns_ev_dec_list)
 		return;
 	ras_ns_ev_dec_list->ref_count = 1;
 	ras_ns_finalize_vendor_tables();
-#endif
 	ras_ns_ev_dec_list = NULL;
 }
 

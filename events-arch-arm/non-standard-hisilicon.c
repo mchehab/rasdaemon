@@ -84,7 +84,6 @@ struct hisi_event {
 	char reg_msg[HISI_BUF_LEN];
 };
 
-#ifdef HAVE_DB
 void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
 			enum db_field_type data_type,
 			       int id, int64_t data, const char *text)
@@ -111,17 +110,6 @@ int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
 
 	return db_eval_stmt(ev_decoder->stmt_dec_record, name);
 }
-#else
-void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
-			enum db_field_type data_type,
-			int id, int64_t data, const char *text)
-{ }
-
-int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name)
-{
-	return 0;
-}
-#endif
 
 static const struct db_fields hisi_common_section_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
@@ -142,13 +130,11 @@ static const struct db_fields hisi_common_section_fields[] = {
 	{ .name = "regs_dump",		.type = DB_TYPE_TEXT },
 };
 
-#ifdef HAVE_DB
 static const struct db_table_descriptor hisi_common_section_tab = {
 	.name = "hisi_common_section_v2",
 	.fields = hisi_common_section_fields,
 	.num_fields = ARRAY_SIZE(hisi_common_section_fields),
 };
-#endif
 
 static const char * const soc_desc[] = {
 	"Kunpeng916",
@@ -329,7 +315,6 @@ static void decode_hisi_common_section_hdr(struct ras_ns_ev_decoder *ev_decoder,
 static int add_hisi_common_table(struct ras_events *ras,
 				 struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_DB
 	if (ras->record_events &&
 	    !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
@@ -338,7 +323,6 @@ static int add_hisi_common_table(struct ras_events *ras,
 			return -1;
 		}
 	}
-#endif
 
 	return 0;
 }
@@ -417,7 +401,7 @@ static void __attribute__((constructor)) hisi_ns_register(void)
 		log(TERM, LOG_ERR, "Failed to register HiSilicon module: %d\n", rc);
 }
 
-#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+#ifdef HAVE_UNITTEST
 struct db_table_descriptor_list hisilicon_table_descriptors(void)
 {
 	static const struct db_table_descriptor * const tables[] = {

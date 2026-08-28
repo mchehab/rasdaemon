@@ -32,8 +32,6 @@ static void nvidia_format_timestamp(char *timestamp, size_t len)
 		snprintf(timestamp, len, "unknown");
 }
 
-#ifdef HAVE_DB
-
 static int nvidia_add_vendor_table(struct ras_events *ras,
 				   struct ras_ns_ev_decoder *ev_decoder,
 				   const struct db_table_descriptor *table,
@@ -48,8 +46,6 @@ static int nvidia_add_vendor_table(struct ras_events *ras,
 
 	return rc;
 }
-
-#endif  /* HAVE_DB */
 
 static const char * const nvidia_reg_names[] = {
 	[NVIDIA_FIELD_SIGNATURE]     = "Signature:",
@@ -506,8 +502,6 @@ static int nvidia_decode_vera_cper_sec(const void *buf, size_t len,
 	return 0;
 }
 
-#ifdef HAVE_DB
-
 static const struct db_fields nvidia_ns_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP},
@@ -681,22 +675,16 @@ static int nvidia_vera_ns_decode(struct ras_events *ras,
 	return 0;
 }
 
-#endif  /* HAVE_DB */
-
 struct ras_ns_ev_decoder nvidia_ns_ev_decoder = {
 	.sec_type = NVIDIA_GRACE_SEC_TYPE_UUID,
-#ifdef HAVE_DB
 	.add_table = nvidia_ns_add_table,
 	.decode = nvidia_ns_decode,
-#endif
 };
 
 static struct ras_ns_ev_decoder nvidia_vera_ns_ev_decoder = {
 	.sec_type = NVIDIA_VERA_SEC_TYPE_UUID,
-#ifdef HAVE_DB
 	.add_table = nvidia_vera_ns_add_table,
 	.decode = nvidia_vera_ns_decode,
-#endif
 };
 
 static int nvidia_init(struct ras_module_ctx *ctx)
@@ -724,7 +712,7 @@ static void __attribute__((constructor)) nvidia_register(void)
 		log(TERM, LOG_ERR, "Failed to register NVIDIA module: %d\n", rc);
 }
 
-#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+#ifdef HAVE_UNITTEST
 struct db_table_descriptor_list nvidia_table_descriptors(void)
 {
 	static const struct db_table_descriptor * const tables[] = {

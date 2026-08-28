@@ -74,11 +74,9 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 		args->cfg_file = arg;
 		return 0;
 
-#ifdef HAVE_DB
 	case 'r':
 		args->record_events++;
 		break;
-#endif
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
 	case 'i':
 		args->enable_ipmitool++;
@@ -172,9 +170,7 @@ int main(int argc, char *argv[])
 		{"config",     'c', "FNAME", 0, "config file with env vars", 0},
 		{"foreground", 'f', 0,       0, "run foreground, not daemonize", 0},
 
-#ifdef HAVE_DB
 		{"record",     'r', 0,       0, "record events at the SQL backend", 0},
-#endif
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
 		{"ipmitool",   'i', 0,       0, "enable ipmitool logging", 0},
 #endif

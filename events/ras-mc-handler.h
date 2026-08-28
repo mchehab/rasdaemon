@@ -26,15 +26,8 @@ struct ras_mc_event {
 	int erst;
 };
 
-#ifdef HAVE_DB
 int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras);
 int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras);
-#else
-static inline int ras_mc_event_opendb(unsigned int cpu,
-				      struct ras_events *ras) { return 0; }
-static inline int ras_mc_event_closedb(unsigned int cpu,
-				       struct ras_events *ras) { return 0; }
-#endif
 
 
 #endif

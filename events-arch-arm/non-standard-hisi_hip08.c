@@ -477,7 +477,6 @@ static const char *pcie_local_sub_module_name(uint8_t id)
 	return "unknown";
 }
 
-#ifdef HAVE_DB
 static const struct db_fields hip08_oem_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",          .type = DB_TYPE_TIMESTAMP},
@@ -523,7 +522,6 @@ static const struct db_table_descriptor hip08_pcie_local_event_tab = {
 	.fields = hip08_pcie_local_event_fields,
 	.num_fields = ARRAY_SIZE(hip08_pcie_local_event_fields),
 };
-#endif
 
 #define IN_RANGE(p, start, end) ((p) >= (start) && (p) < (end))
 static void decode_oem_type1_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
@@ -654,7 +652,6 @@ static void decode_oem_type1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 static int add_hip08_oem_type1_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &hip08_oem_type1_event_tab) != 0) {
@@ -662,7 +659,6 @@ static int add_hip08_oem_type1_table(struct ras_events *ras, struct ras_ns_ev_de
 			return -1;
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -830,7 +826,6 @@ static void decode_oem_type2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 static int add_hip08_oem_type2_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &hip08_oem_type2_event_tab) != 0) {
@@ -838,7 +833,6 @@ static int add_hip08_oem_type2_table(struct ras_events *ras, struct ras_ns_ev_de
 			return -1;
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -984,7 +978,6 @@ static void decode_pcie_local_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 static int add_hip08_pcie_local_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &hip08_pcie_local_event_tab) != 0) {
@@ -992,7 +985,6 @@ static int add_hip08_pcie_local_table(struct ras_events *ras, struct ras_ns_ev_d
 			return -1;
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -1067,7 +1059,7 @@ static void __attribute__((constructor)) hip08_register(void)
 		log(TERM, LOG_ERR, "Failed to register HIP08 module: %d\n", rc);
 }
 
-#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+#ifdef HAVE_UNITTEST
 struct db_table_descriptor_list hip08_table_descriptors(void)
 {
 	static const struct db_table_descriptor * const tables[] = {

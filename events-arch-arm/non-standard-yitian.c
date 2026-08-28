@@ -92,7 +92,6 @@ static const struct yitian_ras_type_info yitian_payload_error_type[] = {
 	}
 };
 
-#ifdef HAVE_DB
 static const struct db_fields yitian_ddr_payload_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP},
@@ -120,7 +119,6 @@ int record_yitian_ddr_reg_dump_event(struct ras_ns_ev_decoder *ev_decoder,
 
 	return db_eval_stmt(ev_decoder->stmt_dec_record, "yitian_ddr_reg_dump_event");
 }
-#endif
 
 static const char *oem_type_name(const struct yitian_ras_type_info *info,
 				 uint8_t type_id)
@@ -211,15 +209,12 @@ void decode_yitian_ddr_payload_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	end = NULL;
 	trace_seq_printf(s, "%s\n", buf);
 
-#ifdef HAVE_DB
 	record_yitian_ddr_reg_dump_event(ev_decoder, &ev);
-#endif
 }
 
 static int add_yitian_common_table(struct ras_events *ras,
 				   struct ras_ns_ev_decoder *ev_decoder)
 {
-#ifdef HAVE_DB
 	if (ras->record_events && !ev_decoder->stmt_dec_record) {
 		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
 					    &yitian_ddr_payload_section_tab) != 0) {
@@ -228,7 +223,6 @@ static int add_yitian_common_table(struct ras_events *ras,
 			return -1;
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -295,7 +289,7 @@ static void __attribute__((constructor)) yitian_ns_register(void)
 		log(TERM, LOG_ERR, "Failed to register Yitian module: %d\n", rc);
 }
 
-#if defined(HAVE_DB) && defined(HAVE_UNITTEST)
+#ifdef HAVE_UNITTEST
 struct db_table_descriptor_list yitian_table_descriptors(void)
 {
 	static const struct db_table_descriptor * const tables[] = {
