@@ -92,6 +92,7 @@ dependencies = [
 #
 lib_sources = [
     'core/bitfield.c',
+    'core/event-consumer.c',
     'core/modules.c',
     'core/ras-logger.c',
     'core/ras-env.c',

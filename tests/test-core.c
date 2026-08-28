@@ -258,6 +258,92 @@ static void test_disabled_event_selection(void **state)
 	choices_disable = saved;
 }
 
+static int consumer_calls;
+static int consumer_order[3];
+static void *consumer_data;
+
+static int test_consumer_a(struct ras_events *ras, int event, void *data)
+{
+	assert_int_equal(event, EXTLOG_EVENT);
+	consumer_order[consumer_calls++] = 1;
+	consumer_data = data;
+	return 0;
+}
+
+static int test_consumer_z(struct ras_events *ras, int event, void *data)
+{
+	assert_int_equal(event, EXTLOG_EVENT);
+	consumer_order[consumer_calls++] = 2;
+	consumer_data = data;
+	return 0;
+}
+
+static int test_consumer_error(struct ras_events *ras, int event, void *data)
+{
+	assert_int_equal(event, EXTLOG_EVENT);
+	consumer_order[consumer_calls++] = 3;
+	consumer_data = data;
+	return -EIO;
+}
+
+static void test_event_consumers(void **state)
+{
+	static const struct ras_event_consumer z_consumer = {
+		.name = "test-z-consumer",
+		.priority = PRI_CPU_ISOLATION,
+		.events = BIT_ULL(EXTLOG_EVENT),
+		.consume = test_consumer_z,
+	};
+	static const struct ras_event_consumer error_consumer = {
+		.name = "test-error-consumer",
+		.priority = PRI_NORMAL,
+		.events = BIT_ULL(EXTLOG_EVENT),
+		.consume = test_consumer_error,
+	};
+	static const struct ras_event_consumer a_consumer = {
+		.name = "test-a-consumer",
+		.priority = PRI_CPU_ISOLATION,
+		.events = BIT_ULL(EXTLOG_EVENT),
+		.consume = test_consumer_a,
+	};
+	static const struct ras_event_consumer duplicate_consumer = {
+		.name = "test-error-consumer",
+		.priority = PRI_DB_RECORD,
+		.events = BIT_ULL(MC_EVENT),
+		.consume = test_consumer_a,
+	};
+	static const struct ras_event_consumer no_priority_consumer = {
+		.name = "test-no-priority-consumer",
+		.events = BIT_ULL(MC_EVENT),
+		.consume = test_consumer_a,
+	};
+	struct ras_events ras = { 0 };
+	int data;
+
+	/* Deliberately register these out of execution order. */
+	assert_int_equal(ras_event_consumer_register(&z_consumer), 0);
+	assert_int_equal(ras_event_consumer_register(&error_consumer), 0);
+	assert_int_equal(ras_event_consumer_register(&a_consumer), 0);
+	assert_int_equal(ras_event_consumer_register(&error_consumer), -EEXIST);
+	assert_int_equal(ras_event_consumer_register(&duplicate_consumer),
+			 -EEXIST);
+	assert_int_equal(ras_event_consumer_register(&no_priority_consumer),
+			 -EINVAL);
+	assert_int_equal(ras_event_consumer_register(NULL), -EINVAL);
+
+	consumer_calls = 0;
+	consumer_data = NULL;
+	assert_int_equal(ras_event_publish(&ras, EXTLOG_EVENT, &data), -EIO);
+	assert_int_equal(consumer_calls, 3);
+	assert_int_equal(consumer_order[0], 1);
+	assert_int_equal(consumer_order[1], 2);
+	assert_int_equal(consumer_order[2], 3);
+	assert_ptr_equal(consumer_data, &data);
+	assert_int_equal(ras_event_publish(&ras, NR_EVENTS, &data), -EINVAL);
+	assert_int_equal(ras_event_publish(NULL, EXTLOG_EVENT, &data), -EINVAL);
+	assert_int_equal(ras_event_publish(&ras, EXTLOG_EVENT, NULL), -EINVAL);
+}
+
 static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_string_helpers),
 	cmocka_unit_test(test_bitfield_message),
@@ -273,6 +359,7 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_mock_logger),
 	cmocka_unit_test(test_warn_once),
 	cmocka_unit_test(test_disabled_event_selection),
+	cmocka_unit_test(test_event_consumers),
 };
 
 int test_core(void)
