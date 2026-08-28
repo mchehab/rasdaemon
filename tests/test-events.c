@@ -1131,8 +1131,20 @@ static void test_database_registry_and_environment(void **state)
 	unsetenv("RAS_TEST_DB_INT");
 }
 
+static void test_database_requires_backend(void **state)
+{
+	struct ras_events ras = { 0 };
+
+	if (!modules_have_sql_backend())
+		skip();
+
+	assert_int_equal(db_open(NULL, 0, NULL, 0), -EINVAL);
+	assert_int_equal(db_open(NULL, 0, &ras, 0), -EINVAL);
+}
+
 static const struct CMUnitTest database_tests[] = {
 	cmocka_unit_test(test_database_registry_and_environment),
+	cmocka_unit_test(test_database_requires_backend),
 	cmocka_unit_test(test_db_table_registry),
 };
 

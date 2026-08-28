@@ -220,6 +220,16 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 	void *db_priv;
 	int rc;
 
+	if (!ras)
+		return -EINVAL;
+
+	if (backend)
+		backend_name = backend->name;
+	else
+		backend_name = selected_backend;
+	if (!backend_name)
+		return -EINVAL;
+
 	ras->db_ref_count++;
 	if (ras->db_ref_count > 1) {
 		log(TERM, LOG_INFO,
@@ -234,11 +244,6 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		ras->db_ref_count--;
 		return -ENOMEM;
 	}
-
-	if (backend && backend->name)
-		backend_name = backend->name;
-	else
-		backend_name = selected_backend;
 
 	LIST_FOREACH(registered, &ras_db_backends, node) {
 		entry = registered->entry;
