@@ -40,7 +40,6 @@
 #include "actions/ras-page-isolation.h"
 #include "actions/ras-poison-page-stat.h"
 #include "actions/abrt-report.h"
-#include "actions/unified-sel.h"
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
 
@@ -977,19 +976,18 @@ static void test_openbmc_sel_commands(void **state)
 	struct ras_events ras = { .enable_ipmitool = true };
 
 	system_mock_start(0);
-	assert_int_equal(openbmc_unified_sel_log(HW_EVENT_AER_CORRECTED,
-						 "0000:02:03.1", BIT_ULL(0)), 0);
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(system_mock_call_count(), 1);
 	assert_non_null(strstr(system_mock_last_command(), "0x19 0x02"));
 	assert_non_null(strstr(system_mock_last_command(), "0x00"));
-	assert_int_equal(openbmc_unified_sel_log(HW_EVENT_AER_CORRECTED,
-						 "invalid", 1), -1);
+	event.dev_name = "invalid";
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), -1);
+	event.dev_name = "0000:02:03.1";
 	system_mock_start(1);
-	assert_int_equal(openbmc_unified_sel_log(HW_EVENT_AER_CORRECTED,
-						 "0000:02:03.1", 1), -1);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), -1);
 	system_mock_start(0);
-	modules_cleanup_type(ACTIONS_MODULE);
-	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(system_mock_call_count(), 1);
 	modules_cleanup_type(ACTIONS_MODULE);

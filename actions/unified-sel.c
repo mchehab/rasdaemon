@@ -11,7 +11,6 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/ras-events.h"
-#include "actions/unified-sel.h"
 #include "events/ras-aer-handler.h"
 
 /* CPU Root Port Error ID corresponding to each status bit set */
@@ -91,7 +90,8 @@ static int verify_id_log_sel(uint64_t status,
 	return 0;
 }
 
-int openbmc_unified_sel_log(uint64_t severity, const char *dev_name, uint64_t status)
+static int openbmc_unified_sel_log(uint64_t severity, const char *dev_name,
+				   uint64_t status)
 {
 	int bus, dev, dev_fn, fn;
 
