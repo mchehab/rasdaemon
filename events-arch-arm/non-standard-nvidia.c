@@ -453,10 +453,11 @@ static int nvidia_decode_vera_cper_sec(const void *buf, size_t len,
 			return -EINVAL;
 		if (data_format_type > 4)
 			return -EOPNOTSUPP;
-		if (data_size > SIZE_MAX - sizeof(*context))
+
+		data_end_advance = sizeof(*context) + (size_t)data_size;
+		if (data_end_advance < (size_t)data_size)
 			return -EOVERFLOW;
 
-		data_end_advance = sizeof(*context) + data_size;
 		if (data_end_advance > len - offset)
 			return -ENODATA;
 
