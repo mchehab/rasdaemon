@@ -12,7 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Remove label on PR update
-        uses: actions-ecosystem/action-remove-labels@v1
-        with:
-          labels: waiting new revision
-          fail_on_error: true
+        if: contains(github.event.pull_request.labels.*.name, 'waiting new revision')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh api --method DELETE \
+            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/labels/waiting%20new%20revision"
