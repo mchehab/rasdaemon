@@ -320,8 +320,6 @@ static void test_event_consumers(void **state)
 	struct ras_events ras = { 0 };
 	int data;
 
-	module_cleanup("abrt-report");
-
 	/* Deliberately register these out of execution order. */
 	assert_int_equal(ras_event_consumer_register(&z_consumer), 0);
 	assert_int_equal(ras_event_consumer_register(&error_consumer), 0);
@@ -350,6 +348,12 @@ static void test_event_consumers(void **state)
 	assert_int_equal(ras_event_consumer_unregister(&error_consumer), 0);
 }
 
+static int consumer_test_setup(void **state)
+{
+	modules_cleanup_type(ACTIONS_MODULE);
+	return 0;
+}
+
 static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_string_helpers),
 	cmocka_unit_test(test_bitfield_message),
@@ -365,7 +369,7 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_mock_logger),
 	cmocka_unit_test(test_warn_once),
 	cmocka_unit_test(test_disabled_event_selection),
-	cmocka_unit_test(test_event_consumers),
+	cmocka_unit_test_setup(test_event_consumers, consumer_test_setup),
 };
 
 int test_core(void)

@@ -107,23 +107,28 @@ bool modules_have_sql_backend(void)
 	return false;
 }
 
-static void cleanup_modules(void)
+void modules_cleanup_type(enum init_level level)
 {
 	struct ras_module_entry_runtime *entry;
+
+	LIST_FOREACH(entry, &ras_modules, node) {
+		if (entry->ctx.entry->level != level || !entry->is_enabled)
+			continue;
+
+		if (entry->ctx.entry->cleanup)
+			entry->ctx.entry->cleanup(&entry->ctx);
+		entry->ctx.priv = NULL;
+		entry->ctx.ras = NULL;
+		entry->is_enabled = false;
+	}
+}
+
+static void cleanup_modules(void)
+{
 	int level;
 
-	for (level = MAX_LEVELS - 1; level >= 0; level--) {
-		LIST_FOREACH(entry, &ras_modules, node) {
-			if (entry->ctx.entry->level != level || !entry->is_enabled)
-				continue;
-
-			if (entry->ctx.entry->cleanup)
-				entry->ctx.entry->cleanup(&entry->ctx);
-			entry->ctx.priv = NULL;
-			entry->ctx.ras = NULL;
-			entry->is_enabled = false;
-		}
-	}
+	for (level = MAX_LEVELS - 1; level >= 0; level--)
+		modules_cleanup_type(level);
 }
 
 int module_init(struct ras_events *ras, const char *name)

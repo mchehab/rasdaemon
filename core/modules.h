@@ -46,6 +46,7 @@ int module_init(struct ras_events *ras, const char *name);
 int module_cleanup(const char *name);
 
 int modules_init(struct ras_events *ras);
+void modules_cleanup_type(enum init_level level);
 void modules_unregister(void);
 
 /*

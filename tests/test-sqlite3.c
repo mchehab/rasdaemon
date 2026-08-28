@@ -934,7 +934,7 @@ static const struct CMUnitTest tests[] = {
 
 static int group_setup(void **state)
 {
-	module_cleanup("abrt-report");
+	modules_cleanup_type(ACTIONS_MODULE);
 	return db_backend_enable("sqlite3");
 }
 
