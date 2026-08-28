@@ -468,11 +468,9 @@ static int tests_setup(void **state)
 
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
-	if (mock_output) {
-		rc = db_exec_sql(ras.db,
-				 "SET client_min_messages TO WARNING");
-		assert_int_equal(rc, 0);
-	}
+	rc = db_exec_sql(ras.db,
+			 "SET client_min_messages TO WARNING");
+	assert_int_equal(rc, 0);
 
 	db_exec_sql(ras.db, "DROP TABLE IF EXISTS test_tbl");
 	return rc;
@@ -516,6 +514,10 @@ static const struct CMUnitTest tests[] = {
 static int group_setup(void **state)
 {
 	const char *port;
+
+	/* db_open() creates the production tables before tests_setup() runs. */
+	if (setenv("PGOPTIONS", "-c client_min_messages=warning", 1))
+		return -1;
 
 	conn_parms.host = env_or("RAS_PG_HOST", conn_parms.host);
 	if (!conn_parms.host || !conn_parms.host[0])
