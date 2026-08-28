@@ -1,6 +1,0 @@
-#!/bin/bash
-#make
-#make install
-
-PYTHONPATH=$(pwd)/$(find install -name "*-packages")/:${PYTHONPATH} \
-    python3 util/ras-mc-ctl.py $@
