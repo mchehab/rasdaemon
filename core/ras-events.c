@@ -23,7 +23,6 @@
 
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "events/ras-mc-handler.h"
 #include "modules/ras-cpu-isolation.h"
 #include "modules/ras-page-isolation.h"
 
@@ -544,13 +543,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	}
 
 	log(TERM, LOG_INFO, "Listening to events for cpus 0 to %d\n", n_cpus - 1);
-	if (pdata[0].ras->record_events) {
-		if (ras_mc_event_opendb(pdata[0].cpu, pdata[0].ras)) {
-			log(TERM, LOG_ERR, "Failed to open SQL database\n");
-			goto error;
-		}
-	}
-
 	do {
 		ready = poll(fds, (n_cpus + 1), -1);
 		if (ready < 0)
@@ -629,10 +621,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	    "Old kernel detected. Stop listening and fall back to pthread way.\n");
 
 cleanup:
-	if (pdata[0].ras->record_events) {
-		ras_mc_event_closedb(pdata[0].cpu, pdata[0].ras);
-	}
-
 error:
 	kbuffer_free(kbuf);
 	free(page);
@@ -699,7 +687,6 @@ struct reader_cleanup {
 	struct kbuffer *kbuf;
 	void *page;
 	int fd;
-	bool db_opened;
 };
 
 static void cleanup_ras_events_cpu(void *arg)
@@ -709,11 +696,6 @@ static void cleanup_ras_events_cpu(void *arg)
 
 	/* Cleanup itself must not be interrupted while owning the mutex. */
 	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
-	if (cleanup->db_opened) {
-		pthread_mutex_lock(&cleanup->pdata->ras->db_lock);
-		ras_mc_event_closedb(cleanup->pdata->cpu, cleanup->pdata->ras);
-		pthread_mutex_unlock(&cleanup->pdata->ras->db_lock);
-	}
 	if (cleanup->fd >= 0)
 		close(cleanup->fd);
 	if (cleanup->kbuf)
@@ -756,22 +738,6 @@ static void *handle_ras_events_cpu(void *priv)
 	}
 
 	log(TERM, LOG_INFO, "Listening to events on cpu %d\n", pdata->cpu);
-	if (pdata->ras->record_events) {
-		int oldstate;
-
-		pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
-		pthread_mutex_lock(&pdata->ras->db_lock);
-		if (ras_mc_event_opendb(pdata->cpu, pdata->ras)) {
-			pthread_mutex_unlock(&pdata->ras->db_lock);
-			pthread_setcancelstate(oldstate, NULL);
-			log(TERM, LOG_ERR, "Can't open database\n");
-			goto out;
-		}
-		cleanup.db_opened = true;
-		pthread_mutex_unlock(&pdata->ras->db_lock);
-		pthread_setcancelstate(oldstate, NULL);
-	}
-
 	read_ras_event(cleanup.fd, pdata, cleanup.kbuf, cleanup.page);
 
 out:

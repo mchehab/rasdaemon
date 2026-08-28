@@ -286,9 +286,10 @@ int db_cpu_finalize(unsigned int cpu, struct ras_stmt *stmt, const char *name);
 
 /**
  * db_open - Open and initialize a database connection
+ * @backend: Explicit backend for tests, or NULL for the selected backend
  * @cpu:	Logical CPU number for per-CPU bookkeeping (opaque)
  * @ras:	RAS events context (opaque)
- * @size_priv:	Private memory size to allocate for the database handle
+ * @size_priv:	Optional private allocation size; zero allocates no private data
  *
  * Returns:
  * 0 on success or a negative errno value on failure.

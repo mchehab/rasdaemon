@@ -136,6 +136,7 @@ int main(int argc, char *argv[])
 	struct ras_events *ras;
 	struct arguments args;
 	int idx = -1;
+	int rc = EXIT_SUCCESS;
 
 	/* Handle arguments before anything else */
 
@@ -272,9 +273,20 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	if (args.record_events && db_open(NULL, 0, ras, 0)) {
+		log(TERM, LOG_ERR, "Failed to open SQL database\n");
+		modules_unregister();
+		free(ras);
+		return EXIT_FAILURE;
+	}
+
 	handle_ras_events(ras);
+	if (args.record_events && db_close(0, ras)) {
+		log(TERM, LOG_ERR, "Failed to close SQL database\n");
+		rc = EXIT_FAILURE;
+	}
 	modules_unregister();
 	free(ras);
 
-	return 0;
+	return rc;
 }

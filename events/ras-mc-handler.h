@@ -26,8 +26,4 @@ struct ras_mc_event {
 	int erst;
 };
 
-int ras_mc_event_opendb(unsigned int cpu, struct ras_events *ras);
-int ras_mc_event_closedb(unsigned int cpu, struct ras_events *ras);
-
-
 #endif

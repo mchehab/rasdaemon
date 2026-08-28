@@ -44,7 +44,9 @@ const char *rasdaemon_hostname = "";
 
 static bool add_hostname = false;
 
-static void db_tables_open(struct ras_events *ras)
+static int db_tables_close(unsigned int cpu);
+
+static int db_tables_open(struct ras_events *ras, unsigned int cpu)
 {
 	struct ras_db_table_runtime *table;
 	int rc;
@@ -57,19 +59,29 @@ static void db_tables_open(struct ras_events *ras)
 		if (rc)
 			log(TERM, LOG_ERR, "Failed to open table %s: %d\n",
 			    table->entry->desc->name, rc);
+		if (rc) {
+			db_tables_close(cpu);
+			return rc;
+		}
 	}
+
+	return 0;
 }
 
-static void db_tables_close(unsigned int cpu)
+static int db_tables_close(unsigned int cpu)
 {
 	struct ras_db_table_runtime *table;
+	int rc = 0;
 
 	LIST_FOREACH(table, &ras_db_tables, node) {
-		if (table->entry->stmt)
-			db_cpu_finalize(cpu, table->entry->stmt,
-					table->entry->desc->name);
+		if (table->entry->stmt &&
+		    db_cpu_finalize(cpu, table->entry->stmt,
+				    table->entry->desc->name))
+			rc = -1;
 		table->entry->stmt = NULL;
 	}
+
+	return rc;
 }
 
 int ras_db_table_register(struct ras_module_ctx *ctx,
@@ -285,8 +297,8 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		return 0;
 	}
 
-	db_priv = calloc(1, size_priv);
-	if (!db_priv) {
+	db_priv = size_priv ? calloc(1, size_priv) : NULL;
+	if (size_priv && !db_priv) {
 		log(TERM, LOG_ERR,
 		    "Failed to allocate memory for backend\n");
 		ras->db_ref_count--;
@@ -322,7 +334,16 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		if (!rc) {
 			ras->db_priv = db_priv;
 			ras_db_ops = entry->ops;
-			db_tables_open(ras);
+			rc = db_tables_open(ras, cpu);
+			if (rc) {
+				entry->ops->close(ras->db, cpu);
+				ras_db_ops = NULL;
+				ras->db = NULL;
+				ras->db_priv = NULL;
+				free(db_priv);
+				ras->db_ref_count--;
+				return rc;
+			}
 			log(TERM, LOG_INFO,
 			    "Database backend started: %s.\n", entry->name);
 
@@ -338,7 +359,7 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 
 int db_close(unsigned int cpu, struct ras_events *ras)
 {
-	int rc;
+	int rc, table_rc;
 
 	if (unlikely(!ras_db_ops))
 		return 0;
@@ -350,13 +371,14 @@ int db_close(unsigned int cpu, struct ras_events *ras)
 	if (ras->db_ref_count > 0)
 		return 0;
 
-	db_tables_close(cpu);
+	table_rc = db_tables_close(cpu);
 	rc = ras_db_ops->close(ras->db, cpu);
 	ras_db_ops = NULL;
 	free(ras->db_priv);
 	ras->db = NULL;
+	ras->db_priv = NULL;
 
-	return rc;
+	return rc ? rc : table_rc;
 }
 
 const char *db_get_sql_type(enum db_field_type type, bool is_pk)

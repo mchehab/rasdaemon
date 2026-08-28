@@ -716,9 +716,9 @@ static void test_mc_event_recording(void **state)
 	assert_int_equal(setenv("RAS_SQLITE3_DATABASE", database, 1), 0);
 	unlink(database);
 
-	rc = ras_mc_event_opendb(0, &ras);
+	rc = db_open(NULL, 0, &ras, 0);
 	assert_int_equal(rc, 0);
-	assert_non_null(ras.db_priv);
+	assert_non_null(ras.db);
 
 	rc = ras_event_test_record("ras", "mc_event", &ras, &mc);
 	assert_int_equal(rc, 0);
@@ -828,7 +828,7 @@ static void test_mc_event_recording(void **state)
 #undef RECORD_AND_CHECK
 
 	test_ras_mc_ctl_types("sqlite3", &ras);
-	rc = ras_mc_event_closedb(0, &ras);
+	rc = db_close(0, &ras);
 	assert_int_equal(rc, 0);
 	test_ras_mc_ctl_count("sqlite3", "mc_event", 1);
 
@@ -877,8 +877,44 @@ static void test_db_open_registered_tables(void **state)
 	ras_db_table_unregister(&ctx);
 }
 
+static void test_db_reference_count(void **state)
+{
+	char database[128];
+	const char *current = getenv("RAS_SQLITE3_DATABASE");
+	char *saved = current ? strdup(current) : NULL;
+	struct ras_events test_ras = { 0 };
+
+	snprintf(database, sizeof(database),
+		 "/tmp/rasdaemon-session-test-%ld.db", (long)getpid());
+	assert_int_equal(setenv("RAS_SQLITE3_DATABASE", database, 1), 0);
+	unlink(database);
+
+	assert_int_equal(db_open(NULL, 0, &test_ras, 0), 0);
+	assert_int_equal(test_ras.db_ref_count, 1);
+	assert_non_null(test_ras.db);
+	assert_null(test_ras.db_priv);
+	assert_int_equal(db_open(NULL, 1, &test_ras, 0), 0);
+	assert_int_equal(test_ras.db_ref_count, 2);
+	assert_int_equal(db_close(0, &test_ras), 0);
+	assert_int_equal(test_ras.db_ref_count, 1);
+	assert_non_null(test_ras.db);
+	assert_int_equal(db_close(1, &test_ras), 0);
+	assert_int_equal(test_ras.db_ref_count, 0);
+	assert_null(test_ras.db);
+	assert_null(test_ras.db_priv);
+
+	unlink(database);
+	if (saved) {
+		assert_int_equal(setenv("RAS_SQLITE3_DATABASE", saved, 1), 0);
+		free(saved);
+	} else {
+		assert_int_equal(unsetenv("RAS_SQLITE3_DATABASE"), 0);
+	}
+}
+
 static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_db_open_registered_tables),
+	cmocka_unit_test(test_db_reference_count),
 	cmocka_unit_test(test_database_environment),
 	cmocka_unit_test(test_mc_event_recording),
 
