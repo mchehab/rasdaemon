@@ -65,7 +65,7 @@ const char *log_color(int color);
 	static atomic_flag __warned = ATOMIC_FLAG_INIT;			\
 	bool __condition = !!(condition);				\
 									\
-	if (__condition &&						\
+	if (unlikely(__condition) &&					\
 	    !atomic_flag_test_and_set_explicit(&__warned,		\
 					       memory_order_relaxed))	\
 		log(where, level, fmt, ##args);				\
