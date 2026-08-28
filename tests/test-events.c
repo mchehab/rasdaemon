@@ -731,6 +731,13 @@ static void test_row_pfa_parser_and_accounting(void **state)
 {
 	static const char detail[] =
 		"APEI location node:0 card:1 module:2 rank:3 device:4 bank:5 row:6";
+	struct ras_mc_event event = {
+		.error_count = 0,
+		.error_type = "Corrected",
+		.driver_detail = detail,
+		.address = 0x1000,
+	};
+	struct ras_events ras = { 0 };
 	struct row_record record;
 	unsigned long value;
 
@@ -747,10 +754,14 @@ static void test_row_pfa_parser_and_accounting(void **state)
 	setenv("ROW_CE_ACTION", "account", 1);
 	setenv("ROW_CE_THRESHOLD", "2", 1);
 	setenv("ROW_CE_REFRESH_CYCLE", "10s", 1);
-	ras_row_account_init(NULL);
-	ras_record_row_error(detail, 1, 10, 0x1000);
-	ras_record_row_error(detail, 1, 11, 0x2000);
-	row_record_infos_free(NULL);
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "row-isolation"), 0);
+	assert_int_equal(ras_event_publish(&ras, MC_EVENT, &event), 0);
+	assert_int_equal(ras_page_isolation_test_row_record_count(), 1);
+	event.address = 0x2000;
+	assert_int_equal(ras_event_publish(&ras, MC_EVENT, &event), 0);
+	assert_int_equal(ras_page_isolation_test_row_record_count(), 1);
+	modules_cleanup_type(ACTIONS_MODULE);
 	unsetenv("ROW_CE_ACTION");
 	unsetenv("ROW_CE_THRESHOLD");
 	unsetenv("ROW_CE_REFRESH_CYCLE");

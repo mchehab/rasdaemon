@@ -106,6 +106,9 @@ LIST_HEAD(row_listhead, row_record) row_head;
 #ifdef HAVE_MEMORY_CE_PFA
 static const struct ras_event_consumer page_isolation_consumer;
 #endif
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+static const struct ras_event_consumer row_isolation_consumer;
+#endif
 
 static void page_offline_init(void)
 {
@@ -305,11 +308,23 @@ static void row_isolation_init(void)
 
 int ras_row_account_init(struct ras_module_ctx *ctx)
 {
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	int rc;
+#endif
+
 	(void)ctx;
 	row_offline_init();
 	row_isolation_init();
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	rc = ras_event_consumer_register(&row_isolation_consumer);
+	if (rc)
+		log(TERM, LOG_ERR,
+		    "Failed to register row isolation consumer: %d\n", rc);
 
+	return rc;
+#else
 	return 0;
+#endif
 }
 
 int ras_page_account_init(struct ras_module_ctx *ctx)
@@ -749,6 +764,11 @@ size_t ras_page_isolation_test_record_count(void)
 	return page_record_count;
 }
 
+size_t ras_page_isolation_test_row_record_count(void)
+{
+	return row_record_count;
+}
+
 int ras_page_isolation_test_parse_row(const char *detail,
 				      struct row_record *record)
 {
@@ -1006,6 +1026,9 @@ void row_record_infos_free(struct ras_module_ctx *ctx)
 	struct page_addr *page_addr = NULL, *tmp_page_addr = NULL;
 
 	(void)ctx;
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+	ras_event_consumer_unregister(&row_isolation_consumer);
+#endif
 	row_record = LIST_FIRST(&row_head);
 	while (row_record) {
 		page_addr = LIST_FIRST(&row_record->page_head);
@@ -1078,6 +1101,31 @@ static void __attribute__((constructor)) page_isolation_register(void)
 #endif
 
 #ifdef HAVE_MEMORY_ROW_CE_PFA
+static int row_isolation_consume(struct ras_events *ras, int event, void *data)
+{
+	struct ras_mc_event *mc = data;
+	struct timespec ts;
+	unsigned int count;
+
+	if (event != MC_EVENT || strcmp(mc->error_type, "Corrected"))
+		return 0;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts))
+		return 0;
+
+	/* Some firmware incorrectly reports a zero error count. */
+	count = mc->error_count ? mc->error_count : 1;
+	ras_record_row_error(mc->driver_detail, count, ts.tv_sec, mc->address);
+
+	return 0;
+}
+
+static const struct ras_event_consumer row_isolation_consumer = {
+	.name = "row-isolation",
+	.priority = PRI_MEM_ISOLATION,
+	.events = BIT_ULL(MC_EVENT),
+	.consume = row_isolation_consume,
+};
+
 static const struct ras_module_entry row_isolation_module = {
 	.name = "row-isolation",
 	.level = ACTIONS_MODULE,

@@ -42,7 +42,6 @@ static const struct ras_event_entry ras_mc_event = {
 };
 
 REGISTER_RAS_EVENT(ras_mc_event);
-#include "actions/ras-page-isolation.h"
 
 #define MAX_ENV 30
 static const char *mc_ce_trigger = NULL;
@@ -404,21 +403,6 @@ static int ras_mc_event_handler(struct trace_seq *s,
 	trace_seq_puts(s, ")");
 
 	ras_mc_event_stat(now, &ev);
-
-#ifdef HAVE_MEMORY_ROW_CE_PFA
-	/* Account row corrected errors */
-	struct timespec ts;
-	clockid_t clk_id = CLOCK_MONOTONIC;
-	// A fault occurs, but the fault error_count BIOS reports sometimes is 0.
-	// This is a bug in the BIOS.
-	// We set the value to 1
-	// even if the error_count is reported 0.
-	if (ev.error_count == 0)
-		ev.error_count = 1;
-	if (clock_gettime(clk_id, &ts) == 0 && !strcmp(ev.error_type, "Corrected"))
-		ras_record_row_error(ev.driver_detail, ev.error_count,
-				     ts.tv_sec, ev.address);
-#endif
 
 	ras_event_publish(ras, MC_EVENT, &ev);
 

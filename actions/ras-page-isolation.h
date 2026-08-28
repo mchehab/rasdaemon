@@ -132,6 +132,7 @@ int ras_page_isolation_test_parse_row(const char *detail,
 int ras_page_isolation_test_parse_value(const char *text, bool row,
 					unsigned long *value);
 size_t ras_page_isolation_test_record_count(void);
+size_t ras_page_isolation_test_row_record_count(void);
 #endif
 
 #endif
