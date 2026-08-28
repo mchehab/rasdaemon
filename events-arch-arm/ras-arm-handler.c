@@ -13,6 +13,7 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/ras-arm-handler.h"
 
@@ -36,7 +37,6 @@ static const struct ras_event_entry ras_arm_event_entry = {
 REGISTER_RAS_EVENT(ras_arm_event_entry);
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "actions/ras-cpu-isolation.h"
-#include "actions/ras-report.h"
 
 #define ARM_ERR_VALID_ERROR_COUNT BIT(0)
 #define ARM_ERR_VALID_FLAGS BIT(1)
@@ -659,14 +659,7 @@ static int ras_arm_event_handler(struct trace_seq *s,
 #endif
 	}
 
-	/* Insert data into the SGBD */
-	db_arm_record(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_arm_event(ras, &ev);
-#endif
+	ras_event_publish(ras, ARM_EVENT, &ev);
 
 	return 0;
 }

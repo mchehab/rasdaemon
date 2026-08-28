@@ -13,6 +13,7 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events/ras-diskerror-handler.h"
 
 int ras_diskerror_event_handler(struct trace_seq *s,
@@ -47,7 +48,6 @@ static const struct ras_event_entry ras_diskerror_event = {
 	.record = db_diskerror_event,
 };
 REGISTER_RAS_EVENT(ras_diskerror_event);
-#include "actions/ras-report.h"
 
 static const struct {
 	int             error;
@@ -144,14 +144,7 @@ int ras_diskerror_event_handler(struct trace_seq *s,
 	if (!ev.cmd)
 		return -1;
 
-	/* Insert data into the SGBD */
-	db_diskerror_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_diskerror_event(ras, &ev);
-#endif
+	ras_event_publish(ras, DISKERROR_EVENT, &ev);
 	free(ev.dev);
 	return 0;
 }

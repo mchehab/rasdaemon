@@ -81,9 +81,7 @@ int ras_event_consumer_register(const struct ras_event_consumer *consumer)
 	return 0;
 }
 
-#ifdef HAVE_UNITTEST
-int ras_event_consumer_test_unregister(
-		const struct ras_event_consumer *consumer)
+int ras_event_consumer_unregister(const struct ras_event_consumer *consumer)
 {
 	struct ras_event_consumer_runtime *entry;
 
@@ -101,7 +99,6 @@ int ras_event_consumer_test_unregister(
 
 	return -ENOENT;
 }
-#endif
 
 int ras_event_publish(struct ras_events *ras, int event, void *data)
 {

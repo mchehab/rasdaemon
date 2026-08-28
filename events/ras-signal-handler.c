@@ -24,6 +24,7 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events/ras-signal-handler.h"
 
 int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
@@ -54,7 +55,6 @@ static const struct ras_event_entry ras_signal_event = {
 	.record = db_signal_event,
 };
 REGISTER_RAS_EVENT(ras_signal_event);
-#include "actions/ras-report.h"
 
 enum {
 	TRACE_SIGNAL_DELIVERED,
@@ -172,14 +172,7 @@ int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
 
 	report_ras_signal_event(s, &ev);
 
-	/* Store data into SQL DB */
-	db_signal_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_signal_event(ras, &ev);
-#endif
+	ras_event_publish(ras, SIGNAL_EVENT, &ev);
 
 	return 0;
 }

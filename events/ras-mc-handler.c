@@ -43,7 +43,6 @@ static const struct ras_event_entry ras_mc_event = {
 
 REGISTER_RAS_EVENT(ras_mc_event);
 #include "actions/ras-page-isolation.h"
-#include "actions/ras-report.h"
 
 #define MAX_ENV 30
 static const char *mc_ce_trigger = NULL;
@@ -404,10 +403,6 @@ static int ras_mc_event_handler(struct trace_seq *s,
 	}
 	trace_seq_puts(s, ")");
 
-	/* Insert data into the SGBD */
-
-	db_mc_event(ras, &ev);
-
 	ras_mc_event_stat(now, &ev);
 
 #ifdef HAVE_MEMORY_CE_PFA
@@ -431,10 +426,7 @@ static int ras_mc_event_handler(struct trace_seq *s,
 				     ts.tv_sec, ev.address);
 #endif
 
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_mc_event(ras, &ev);
-#endif
+	ras_event_publish(ras, MC_EVENT, &ev);
 
 	if (mc_ce_trigger && !strcmp(ev.error_type, "Corrected"))
 		run_mc_trigger(&ev, mc_ce_trigger);

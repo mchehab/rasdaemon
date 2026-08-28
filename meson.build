@@ -220,7 +220,7 @@ if not get_option('disable-all')
 
     if not get_option('abrt-report').disabled()
         enable_abrt_report = true
-        lib_sources += 'actions/ras-report.c'
+        lib_sources += 'actions/abrt-report.c'
     endif
 
     if arch_arm and not get_option('amp-ns-decode').disabled()

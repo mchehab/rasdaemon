@@ -13,9 +13,28 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 
+#include "actions/abrt-report.h"
+#include "core/modules.h"
 #include "core/ras-logger.h"
-#include "actions/ras-report.h"
+#include "events-arch-arm/ras-arm-handler.h"
+#include "events-arch-arm/ras-non-standard-handler.h"
+#include "events-arch-riscv/ras-reri-handler.h"
+#include "events-arch-x86/ras-mce-handler.h"
+#include "events/ras-aer-handler.h"
+#include "events/ras-cxl-handler.h"
+#include "events/ras-devlink-handler.h"
+#include "events/ras-diskerror-handler.h"
+#include "events/ras-memory-failure-handler.h"
+#include "events/ras-mc-handler.h"
+#include "events/ras-signal-handler.h"
 
+/* ABRT's local problem-reporting socket and protocol buffer limits. */
+#define ABRT_SOCKET "/var/run/abrt/abrt.socket"
+#define MAX_BACKTRACE_SIZE (1024 * 1024)
+#define MAX_MESSAGE_SIZE (4 * MAX_BACKTRACE_SIZE)
+#define INPUT_BUFFER_SIZE (8 * 1024)
+
+/* Open one connection per report; ABRT treats each connection as a problem. */
 static int setup_report_socket(void)
 {
 	int sockfd = -1;
@@ -63,9 +82,7 @@ static int commit_report_basic(int sockfd)
 		return rc;
 	}
 
-	/*
-	 * ABRT server protocol
-	 */
+	/* Start ABRT's NUL-delimited PUT request and attach common fields. */
 	snprintf(buf, INPUT_BUFFER_SIZE, "PUT / HTTP/1.1\r\n\r\n");
 	rc = write(sockfd, buf, strlen(buf));
 	if (rc < strlen(buf)) {
@@ -855,7 +872,7 @@ static int format_report_backtrace(char *buf, int type, void *ev)
 }
 
 #ifdef HAVE_UNITTEST
-int ras_report_test_format(int type, void *event, char *output, size_t size)
+int abrt_report_test_format(int type, void *event, char *output, size_t size)
 {
 	char *buf;
 	int rc;
@@ -965,138 +982,94 @@ fail:
 	return done ? 0 : -1;
 }
 
-int ras_report_mc_event(struct ras_events *ras, struct ras_mc_event *ev)
+struct report_description {
+	const char *analyzer;
+	const char *reason;
+};
+
+static const struct report_description report_descriptions[NR_EVENTS] = {
+	[MC_EVENT] = { "rasdaemon-mc", "EDAC driver report problem" },
+	[MCE_EVENT] = { "rasdaemon-mce",
+			"Machine Check driver report problem" },
+	[AER_EVENT] = { "rasdaemon-aer", "PCIe AER driver report problem" },
+	[NON_STANDARD_EVENT] = { "rasdaemon-non-standard",
+				 "Unknown CPER section problem" },
+	[ARM_EVENT] = { "rasdaemon-arm", "ARM CPU report problem" },
+	[DEVLINK_EVENT] = { "rasdaemon-devlink",
+			    "devlink health report problem" },
+	[DISKERROR_EVENT] = { "rasdaemon-diskerror", "disk I/O error" },
+	[MF_EVENT] = { "rasdaemon-memory_failure", "memory failure problem" },
+	[SIGNAL_EVENT] = { "rasdaemon-signal_event",
+			   "SIGBUS for Hardware error" },
+	[CXL_POISON_EVENT] = { "rasdaemon-cxl-poison", "CXL poison" },
+	[CXL_AER_UE_EVENT] = { "rasdaemon-cxl-aer-uncorrectable-error",
+			       "CXL AER uncorrectable error" },
+	[CXL_AER_CE_EVENT] = { "rasdaemon-cxl-aer-correctable-error",
+			       "CXL AER correctable error" },
+	[CXL_OVERFLOW_EVENT] = { "rasdaemon-cxl-overflow", "CXL overflow" },
+	[CXL_GENERIC_EVENT] = { "rasdaemon-cxl_generic_event",
+				"CXL Generic Event " },
+	[CXL_GENERAL_MEDIA_EVENT] = { "rasdaemon-cxl_general_media_event",
+				      "CXL General Media Event" },
+	[CXL_DRAM_EVENT] = { "rasdaemon-cxl_dram_event", "CXL DRAM Event" },
+	[CXL_MEMORY_MODULE_EVENT] = { "rasdaemon-cxl_memory_module_event",
+				       "CXL Memory Module Event" },
+	[RERI_EVENT] = { "rasdaemon-reri", "RISC-V RERI error report" },
+};
+
+static int abrt_report_event(struct ras_events *ras, int event, void *data)
 {
-	return commit_report_common(ras, MC_EVENT, ev,
-				    "rasdaemon-mc",
-				    "EDAC driver report problem");
+	const struct report_description *description = &report_descriptions[event];
+
+	if (event == RERI_EVENT) {
+		struct ras_reri_event *reri = data;
+
+		if (!ras->record_events || reri->severity < RERI_SEV_RECOVERABLE)
+			return 0;
+	}
+
+	return commit_report_common(ras, event, data, description->analyzer,
+				    description->reason);
 }
 
-int ras_report_aer_event(struct ras_events *ras, struct ras_aer_event *ev)
+#define REPORT_EVENT_MASK (BIT_ULL(MC_EVENT) | BIT_ULL(MCE_EVENT) | \
+	BIT_ULL(AER_EVENT) | BIT_ULL(NON_STANDARD_EVENT) | BIT_ULL(ARM_EVENT) | \
+	BIT_ULL(DEVLINK_EVENT) | BIT_ULL(DISKERROR_EVENT) | BIT_ULL(MF_EVENT) | \
+	BIT_ULL(SIGNAL_EVENT) | BIT_ULL(CXL_POISON_EVENT) | \
+	BIT_ULL(CXL_AER_UE_EVENT) | BIT_ULL(CXL_AER_CE_EVENT) | \
+	BIT_ULL(CXL_OVERFLOW_EVENT) | BIT_ULL(CXL_GENERIC_EVENT) | \
+	BIT_ULL(CXL_GENERAL_MEDIA_EVENT) | BIT_ULL(CXL_DRAM_EVENT) | \
+	BIT_ULL(CXL_MEMORY_MODULE_EVENT) | BIT_ULL(RERI_EVENT))
+
+/* Meson source selection controls whether this consumer is registered. */
+static const struct ras_event_consumer abrt_report_consumer = {
+	.name = "abrt-report",
+	.priority = PRI_REPORTING,
+	.events = REPORT_EVENT_MASK,
+	.consume = abrt_report_event,
+};
+
+static int abrt_report_init(struct ras_module_ctx *ctx)
 {
-	return commit_report_common(ras, AER_EVENT, ev,
-				    "rasdaemon-aer",
-				    "PCIe AER driver report problem");
+	return ras_event_consumer_register(&abrt_report_consumer);
 }
 
-int ras_report_non_standard_event(struct ras_events *ras,
-				  struct ras_non_standard_event *ev)
+static void abrt_report_cleanup(struct ras_module_ctx *ctx)
 {
-	return commit_report_common(ras, NON_STANDARD_EVENT, ev,
-				    "rasdaemon-non-standard",
-				    "Unknown CPER section problem");
+	ras_event_consumer_unregister(&abrt_report_consumer);
 }
 
-int ras_report_arm_event(struct ras_events *ras, struct ras_arm_event *ev)
-{
-	return commit_report_common(ras, ARM_EVENT, ev,
-				    "rasdaemon-arm",
-				    "ARM CPU report problem");
-}
+static const struct ras_module_entry abrt_report_module = {
+	.name = "abrt-report",
+	.level = ACTIONS_MODULE,
+	.init = abrt_report_init,
+	.cleanup = abrt_report_cleanup,
+};
 
-int ras_report_mce_event(struct ras_events *ras, struct mce_event *ev)
+static void __attribute__((constructor)) abrt_report_register(void)
 {
-	return commit_report_common(ras, MCE_EVENT, ev,
-				    "rasdaemon-mce",
-				    "Machine Check driver report problem");
-}
+	int rc = module_register(&abrt_report_module);
 
-int ras_report_devlink_event(struct ras_events *ras, struct devlink_event *ev)
-{
-	return commit_report_common(ras, DEVLINK_EVENT, ev,
-				    "rasdaemon-devlink",
-				    "devlink health report problem");
-}
-
-int ras_report_diskerror_event(struct ras_events *ras, struct diskerror_event *ev)
-{
-	return commit_report_common(ras, DISKERROR_EVENT, ev,
-				    "rasdaemon-diskerror",
-				    "disk I/O error");
-}
-
-int ras_report_mf_event(struct ras_events *ras, struct ras_mf_event *ev)
-{
-	return commit_report_common(ras, MF_EVENT, ev,
-				    "rasdaemon-memory_failure",
-				    "memory failure problem");
-}
-
-int ras_report_cxl_poison_event(struct ras_events *ras,
-				struct ras_cxl_poison_event *ev)
-{
-	return commit_report_common(ras, CXL_POISON_EVENT, ev,
-				    "rasdaemon-cxl-poison",
-				    "CXL poison");
-}
-
-int ras_report_cxl_aer_ue_event(struct ras_events *ras,
-				struct ras_cxl_aer_ue_event *ev)
-{
-	return commit_report_common(ras, CXL_AER_UE_EVENT, ev,
-				    "rasdaemon-cxl-aer-uncorrectable-error",
-				    "CXL AER uncorrectable error");
-}
-
-int ras_report_cxl_aer_ce_event(struct ras_events *ras,
-				struct ras_cxl_aer_ce_event *ev)
-{
-	return commit_report_common(ras, CXL_AER_CE_EVENT, ev,
-				    "rasdaemon-cxl-aer-correctable-error",
-				    "CXL AER correctable error");
-}
-
-int ras_report_cxl_overflow_event(struct ras_events *ras,
-				  struct ras_cxl_overflow_event *ev)
-{
-	return commit_report_common(ras, CXL_OVERFLOW_EVENT, ev,
-				    "rasdaemon-cxl-overflow",
-				    "CXL overflow");
-}
-
-int ras_report_cxl_generic_event(struct ras_events *ras,
-				 struct ras_cxl_generic_event *ev)
-{
-	return commit_report_common(ras, CXL_GENERIC_EVENT, ev,
-				    "rasdaemon-cxl_generic_event",
-				    "CXL Generic Event ");
-}
-
-int ras_report_cxl_general_media_event(struct ras_events *ras,
-				       struct ras_cxl_general_media_event *ev)
-{
-	return commit_report_common(ras, CXL_GENERAL_MEDIA_EVENT, ev,
-				    "rasdaemon-cxl_general_media_event",
-				    "CXL General Media Event");
-}
-
-int ras_report_cxl_dram_event(struct ras_events *ras,
-			      struct ras_cxl_dram_event *ev)
-{
-	return commit_report_common(ras, CXL_DRAM_EVENT, ev,
-				    "rasdaemon-cxl_dram_event",
-				    "CXL DRAM Event");
-}
-
-int ras_report_cxl_memory_module_event(struct ras_events *ras,
-				       struct ras_cxl_memory_module_event *ev)
-{
-	return commit_report_common(ras, CXL_MEMORY_MODULE_EVENT, ev,
-				    "rasdaemon-cxl_memory_module_event",
-				    "CXL Memory Module Event");
-}
-
-int ras_report_signal_event(struct ras_events *ras,
-			    struct ras_signal_event *ev)
-{
-	return commit_report_common(ras, SIGNAL_EVENT, ev,
-				    "rasdaemon-signal_event",
-				    "SIGBUS for Hardware error");
-}
-
-int ras_report_reri_event(struct ras_events *ras, struct ras_reri_event *ev)
-{
-	return commit_report_common(ras, RERI_EVENT, ev,
-				    "rasdaemon-reri",
-				    "RISC-V RERI error report");
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register ABRT module: %d\n", rc);
 }

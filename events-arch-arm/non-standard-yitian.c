@@ -15,7 +15,6 @@
 #include "core/types.h"
 #include "events-arch-arm/non-standard-yitian.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
-#include "actions/ras-report.h"
 
 static bool append_text(char **cursor, char *end, const char *fmt, ...)
 {

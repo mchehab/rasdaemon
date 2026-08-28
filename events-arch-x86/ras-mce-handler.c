@@ -16,6 +16,7 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events-arch-x86/ras-mce-handler.h"
 
 static int register_mce_handler(struct ras_events *ras, unsigned int ncpus);
@@ -52,7 +53,6 @@ static const struct ras_event_entry ras_mce_event = {
 	.record = db_mce_record,
 };
 REGISTER_RAS_EVENT(ras_mce_event);
-#include "actions/ras-report.h"
 
 /*
  * The code below were adapted from Andi Kleen/Intel/SUSE mcelog code,
@@ -665,13 +665,7 @@ static int ras_mce_event_handler(struct trace_seq *s,
 
 	report_mce_event(ras, record, s, &e);
 
-	db_mce_record(ras, &e);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_mce_event(ras, &e);
-#endif
+	ras_event_publish(ras, MCE_EVENT, &e);
 
 	return 0;
 }

@@ -525,6 +525,7 @@ static int group_setup(void **state)
 	if (conn_parms.socket && setenv("RAS_MYSQL_SOCKET", conn_parms.socket, 1))
 		return -1;
 
+	module_cleanup("abrt-report");
 	return db_backend_enable("mysql");
 }
 

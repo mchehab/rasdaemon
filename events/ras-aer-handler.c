@@ -17,6 +17,7 @@
 #include "core/ras-logger.h"
 #include "core/trigger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events/ras-aer-handler.h"
 
 int ras_aer_event_handler(struct trace_seq *s, struct tep_record *record,
@@ -45,7 +46,6 @@ static const struct ras_event_entry ras_aer_event = {
 	.record = db_aer_event,
 };
 REGISTER_RAS_EVENT(ras_aer_event);
-#include "actions/ras-report.h"
 #include "actions/unified-sel.h"
 
 /* bit field meaning for correctable error */
@@ -324,14 +324,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 	}
 	trace_seq_puts(s, ev.error_type);
 
-	/* Insert data into the SGBD */
-	db_aer_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_aer_event(ras, &ev);
-#endif
+	ras_event_publish(ras, AER_EVENT, &ev);
 
 #ifdef HAVE_AMP_NS_DECODE
 	/*

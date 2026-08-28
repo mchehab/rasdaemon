@@ -100,7 +100,6 @@ CXL_EVENT_ENTRY(ras_cxl_sparing_entry, "cxl_memory_sparing",
 		ras_cxl_memory_sparing_event_handler, NULL,
 		CXL_MEMORY_SPARING_EVENT);
 #include "actions/ras-page-isolation.h"
-#include "actions/ras-report.h"
 
 /* Common Functions */
 static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size)
@@ -340,14 +339,7 @@ int ras_cxl_poison_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "overflow timestamp:%s\n", ev.overflow_ts) <= 0)
 		return -1;
 
-	/* Insert data into the SGBD */
-	db_cxl_poison_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_cxl_poison_event(ras, &ev);
-#endif
+	ras_event_publish(ras, CXL_POISON_EVENT, &ev);
 
 	return 0;
 }
@@ -500,14 +492,7 @@ int ras_cxl_aer_ue_event_handler(struct trace_seq *s,
 	if (i < CXL_HEADERLOG_SIZE_U32)
 		return -1;
 
-	/* Insert data into the SGBD */
-	db_cxl_aer_ue_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_cxl_aer_ue_event(ras, &ev);
-#endif
+	ras_event_publish(ras, CXL_AER_UE_EVENT, &ev);
 
 	return 0;
 }
@@ -555,14 +540,7 @@ int ras_cxl_aer_ce_event_handler(struct trace_seq *s,
 				    cxl_aer_ce, ARRAY_SIZE(cxl_aer_ce)) < 0)
 		return -1;
 
-	/* Insert data into the SGBD */
-	db_cxl_aer_ce_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_cxl_aer_ce_event(ras, &ev);
-#endif
+	ras_event_publish(ras, CXL_AER_CE_EVENT, &ev);
 
 	return 0;
 }
@@ -670,14 +648,7 @@ int ras_cxl_overflow_event_handler(struct trace_seq *s,
 				     ev.count, ev.first_ts, ev.last_ts) <= 0)
 			return -1;
 	}
-	/* Insert data into the SGBD */
-	db_cxl_overflow_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_cxl_overflow_event(ras, &ev);
-#endif
+	ras_event_publish(ras, CXL_OVERFLOW_EVENT, &ev);
 
 	return 0;
 }
@@ -888,14 +859,7 @@ int ras_cxl_generic_event_handler(struct trace_seq *s,
 			break;
 	}
 
-	/* Insert data into the SGBD */
-	db_cxl_generic_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_cxl_generic_event(ras, &ev);
-#endif
+	ras_event_publish(ras, CXL_GENERIC_EVENT, &ev);
 
 	return 0;
 }
@@ -1132,14 +1096,7 @@ int ras_cxl_general_media_event_handler(struct trace_seq *s,
 			return -1;
 	}
 
-	/* Insert data into the SGBD */
-	db_cxl_general_media_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_cxl_general_media_event(ras, &ev);
-#endif
+	ras_event_publish(ras, CXL_GENERAL_MEDIA_EVENT, &ev);
 
 	return 0;
 }
@@ -1368,14 +1325,7 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 		}
 	}
 
-	/* Insert data into the SGBD */
-	db_cxl_dram_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_cxl_dram_event(ras, &ev);
-#endif
+	ras_event_publish(ras, CXL_DRAM_EVENT, &ev);
 
 	return 0;
 }
@@ -1583,14 +1533,7 @@ int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 				return rc;
 		}
 	}
-	/* Insert data into the SGBD */
-	db_cxl_memory_module_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_cxl_memory_module_event(ras, &ev);
-#endif
+	ras_event_publish(ras, CXL_MEMORY_MODULE_EVENT, &ev);
 
 	return 0;
 }

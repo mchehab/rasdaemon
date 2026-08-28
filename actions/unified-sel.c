@@ -9,7 +9,7 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
-#include "actions/ras-report.h"
+#include "core/ras-events.h"
 #include "actions/unified-sel.h"
 
 /* CPU Root Port Error ID corresponding to each status bit set */

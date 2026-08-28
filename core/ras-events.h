@@ -163,6 +163,7 @@ int ras_event_record(struct ras_events *ras, int event, void *data);
  * then name. Duplicate names are rejected.
  */
 int ras_event_consumer_register(const struct ras_event_consumer *consumer);
+int ras_event_consumer_unregister(const struct ras_event_consumer *consumer);
 
 /*
  * Synchronously publish decoded event data to each interested consumer.
@@ -177,8 +178,6 @@ int ras_events_prepare(struct ras_events *ras, int record_events,
 int handle_ras_events(struct ras_events *ras);
 #ifdef HAVE_UNITTEST
 bool ras_events_test_is_disabled(const char *group, const char *event);
-int ras_event_consumer_test_unregister(
-		const struct ras_event_consumer *consumer);
 #endif
 
 #define REGISTER_RAS_EVENT(entry) \

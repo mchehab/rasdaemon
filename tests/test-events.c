@@ -36,7 +36,7 @@
 #include "events/ras-signal-handler.h"
 #include "actions/ras-cpu-isolation.h"
 #include "actions/ras-page-isolation.h"
-#include "actions/ras-report.h"
+#include "actions/abrt-report.h"
 #include "actions/unified-sel.h"
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
@@ -212,7 +212,7 @@ int test_mc(void)
 }
 
 #ifdef HAVE_ABRT_REPORT
-static void test_report_formats_mc_event(void **state)
+static void test_abrt_report_formats_mc_event(void **state)
 {
 	struct ras_mc_event event = {
 		.error_count = 2,
@@ -229,27 +229,28 @@ static void test_report_formats_mc_event(void **state)
 		.driver_detail = "detail",
 	};
 	char output[2048];
+	int rc;
 
 	strscpy(event.timestamp, "2026-08-25 00:00:00 +0000",
 		sizeof(event.timestamp));
-	assert_int_equal(ras_report_test_format(MC_EVENT, &event, output,
-						sizeof(output)), 0);
+	rc = abrt_report_test_format(MC_EVENT, &event, output, sizeof(output));
+	assert_int_equal(rc, 0);
 	assert_non_null(strstr(output, "BACKTRACE=timestamp=2026-08-25"));
 	assert_non_null(strstr(output, "error_type=Corrected"));
 	assert_non_null(strstr(output, "address=4096"));
-	assert_int_equal(ras_report_test_format(NR_EVENTS, &event, output,
-						sizeof(output)), -1);
-	assert_int_equal(ras_report_test_format(MC_EVENT, NULL, output,
-						sizeof(output)), -1);
+	rc = abrt_report_test_format(NR_EVENTS, &event, output, sizeof(output));
+	assert_int_equal(rc, -1);
+	rc = abrt_report_test_format(MC_EVENT, NULL, output, sizeof(output));
+	assert_int_equal(rc, -1);
 }
 
-static const struct CMUnitTest report_tests[] = {
-	cmocka_unit_test(test_report_formats_mc_event),
+static const struct CMUnitTest abrt_report_tests[] = {
+	cmocka_unit_test(test_abrt_report_formats_mc_event),
 };
 
-int test_report(void)
+int test_abrt_report(void)
 {
-	return RUN_FEATURE_GROUP("ABRT report formatting", report_tests);
+	return RUN_FEATURE_GROUP("ABRT report formatting", abrt_report_tests);
 }
 #endif
 
@@ -1079,7 +1080,7 @@ int test_yitian_ns(void)
 #endif
 
 #ifdef HAVE_ABRT_REPORT
-REGISTER_TEST(TEST_GROUP_ACTIONS, test_report, 0);
+REGISTER_TEST(TEST_GROUP_ACTIONS, test_abrt_report, 0);
 #endif
 #ifdef HAVE_CPU_FAULT_ISOLATION
 REGISTER_TEST(TEST_GROUP_ACTIONS, test_cpu_isolation, 0);

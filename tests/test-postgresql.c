@@ -545,6 +545,7 @@ static int group_setup(void **state)
 	if (conn_parms.host && setenv("RAS_PG_HOST", conn_parms.host, 1))
 		return -1;
 
+	module_cleanup("abrt-report");
 	return db_backend_enable("postgresql");
 }
 

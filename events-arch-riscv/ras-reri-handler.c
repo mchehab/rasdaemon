@@ -38,7 +38,6 @@ static const struct ras_event_entry ras_reri_event_entry = {
 };
 REGISTER_RAS_EVENT(ras_reri_event_entry);
 #include "actions/ras-cpu-isolation.h"
-#include "actions/ras-report.h"
 
 #define RERI_GET_FIELD(val, offset, mask)	(((val) >> (offset)) & (mask))
 
@@ -366,9 +365,6 @@ int ras_reri_event_handler(struct trace_seq *s,
 
 	trace_seq_puts(s, "\n");
 
-	db_reri_event(ras, &ev);
-
-
 #ifdef HAVE_CPU_FAULT_ISOLATION
 	if (ev.source_type == RERI_SOURCE_TYPE_CPU && hart_id_valid &&
 	    (ev.severity == RERI_SEV_FATAL ||
@@ -383,10 +379,7 @@ int ras_reri_event_handler(struct trace_seq *s,
 	}
 #endif
 
-#ifdef HAVE_ABRT_REPORT
-	if (ras->record_events && ev.severity >= RERI_SEV_RECOVERABLE)
-		ras_report_reri_event(ras, &ev);
-#endif
+	ras_event_publish(ras, RERI_EVENT, &ev);
 
 	return 0;
 }

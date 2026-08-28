@@ -13,6 +13,7 @@
 #include "core/ras-logger.h"
 #include "core/trigger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events/ras-memory-failure-handler.h"
 
 int ras_memory_failure_event_handler(struct trace_seq *s,
@@ -36,7 +37,6 @@ static const struct ras_event_entry ras_memory_failure_event = {
 };
 REGISTER_RAS_EVENT(ras_memory_failure_event);
 #include "actions/ras-poison-page-stat.h"
-#include "actions/ras-report.h"
 
 /* Memory failure - various types of pages */
 enum mf_action_page_type {
@@ -247,14 +247,7 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 	ras_poison_page_stat();
 #endif
 
-	/* Store data into SQL DB */
-	db_mf_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_mf_event(ras, &ev);
-#endif
+	ras_event_publish(ras, MF_EVENT, &ev);
 	run_mf_trigger(&ev);
 
 	return 0;

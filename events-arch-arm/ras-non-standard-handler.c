@@ -15,6 +15,7 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 
 static int ras_non_standard_event_handler(struct trace_seq *s,
@@ -28,7 +29,6 @@ static const struct ras_event_entry ras_non_standard_event_entry = {
 	.trigger = true, .record = db_non_standard_record,
 };
 REGISTER_RAS_EVENT(ras_non_standard_event_entry);
-#include "actions/ras-report.h"
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 
@@ -270,14 +270,7 @@ static int ras_non_standard_event_handler(struct trace_seq *s,
 		}
 	}
 
-	/* Insert data into the SGBD */
-	db_non_standard_record(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_non_standard_event(ras, &ev);
-#endif
+	ras_event_publish(ras, NON_STANDARD_EVENT, &ev);
 
 	return 0;
 }

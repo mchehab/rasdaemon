@@ -13,6 +13,7 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events/ras-devlink-handler.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
@@ -63,7 +64,6 @@ static const struct ras_event_entry ras_devlink_event = {
 	.record = db_devlink_event,
 };
 REGISTER_RAS_EVENT(ras_devlink_event);
-#include "actions/ras-report.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
 				 struct tep_record *record,
@@ -105,14 +105,7 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 	if (asprintf(&ev.msg, "TX timeout on queue: %d\n", (int)val) < 0)
 		return -1;
 
-	/* Insert data into the SGBD */
-	db_devlink_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_devlink_event(ras, &ev);
-#endif
+	ras_event_publish(ras, DEVLINK_EVENT, &ev);
 
 	free(ev.msg);
 	return 0;
@@ -177,14 +170,7 @@ int ras_devlink_event_handler(struct trace_seq *s,
 	if (!ev.msg)
 		return -1;
 
-	/* Insert data into the SGBD */
-	db_devlink_event(ras, &ev);
-
-
-#ifdef HAVE_ABRT_REPORT
-	/* Report event to ABRT */
-	ras_report_devlink_event(ras, &ev);
-#endif
+	ras_event_publish(ras, DEVLINK_EVENT, &ev);
 
 	return 0;
 }

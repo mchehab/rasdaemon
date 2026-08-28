@@ -17,6 +17,7 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events/ras-extlog-handler.h"
 
 static int ras_extlog_mem_event_handler(struct trace_seq *s,
@@ -46,7 +47,6 @@ static const struct ras_event_entry ras_extlog_event = {
 	.record = db_extlog_mem_record,
 };
 REGISTER_RAS_EVENT(ras_extlog_event);
-#include "actions/ras-report.h"
 
 static char *err_type(int etype)
 {
