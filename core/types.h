@@ -16,6 +16,9 @@
 
 /* Please keep the macros as much as possible alined with Linux Kernel ones */
 
+#define likely(x)	__builtin_expect(!!(x), 1)
+#define unlikely(x)	__builtin_expect(!!(x), 0)
+
 /*
  * Force a compilation error if condition is true, but also produce a
  * result (of value 0 and type int), so the expression can be used
