@@ -34,6 +34,7 @@ static const struct ras_event_entry ras_mc_event = {
 	.group = "ras",
 	.event = "mc_event",
 	.handler = ras_mc_event_handler,
+	.trigger_setup = mc_event_trigger_setup,
 	.id = MC_EVENT,
 	.trigger = true,
 #ifdef HAVE_UNITTEST

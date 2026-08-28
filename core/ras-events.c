@@ -23,7 +23,6 @@
 
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "core/trigger.h"
 #include "events/ras-mc-handler.h"
 #include "modules/ras-cpu-isolation.h"
 #include "modules/ras-page-isolation.h"
@@ -68,15 +67,15 @@
 char *choices_disable;
 long user_hz;
 
-static const struct event_trigger event_triggers[] = {
-	{ "mc_event", &mc_event_trigger_setup },
-#ifdef HAVE_AER
-	{ "aer_event", &aer_event_trigger_setup },
-#endif
-#ifdef HAVE_MEMORY_FAILURE
-	{ "memory_failure_event", &mem_fail_event_trigger_setup },
-#endif
+struct ras_event_runtime {
+	const struct ras_event_entry *entry;
+	LIST_ENTRY(ras_event_runtime) node;
 };
+
+LIST_HEAD(ras_event_list, ras_event_runtime);
+
+static struct ras_event_list ras_event_handlers =
+	LIST_HEAD_INITIALIZER(ras_event_handlers);
 
 static int get_mountdir_by_type(char *mount_type, char *tracing_dir, size_t len)
 {
@@ -306,6 +305,7 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 
 int toggle_ras_mc_event(int enable)
 {
+	struct ras_event_runtime *event;
 	struct ras_events *ras;
 	int rc = 0;
 
@@ -321,63 +321,9 @@ int toggle_ras_mc_event(int enable)
 		goto free_ras;
 	}
 
-	rc = __toggle_ras_mc_event(ras, "ras", "mc_event", enable);
-
-#ifdef HAVE_AER
-	rc |= __toggle_ras_mc_event(ras, "ras", "aer_event", enable);
-#endif
-
-#ifdef HAVE_MCE
-	rc |= __toggle_ras_mc_event(ras, "mce", "mce_record", enable);
-#endif
-
-#ifdef HAVE_EXTLOG
-	rc |= __toggle_ras_mc_event(ras, "ras", "extlog_mem_event", enable);
-#endif
-
-#ifdef HAVE_NON_STANDARD
-	rc |= __toggle_ras_mc_event(ras, "ras", "non_standard_event", enable);
-#endif
-
-#ifdef HAVE_ARM
-	rc |= __toggle_ras_mc_event(ras, "ras", "arm_event", enable);
-#endif
-
-#ifdef HAVE_DEVLINK
-	rc |= __toggle_ras_mc_event(ras, "devlink", "devlink_health_report", enable);
-#endif
-
-#ifdef HAVE_DISKERROR
-#ifdef HAVE_BLK_RQ_ERROR
-	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_error", enable);
-#else
-	rc |= __toggle_ras_mc_event(ras, "block", "block_rq_complete", enable);
-#endif
-#endif
-
-#ifdef HAVE_MEMORY_FAILURE
-	rc |= __toggle_ras_mc_event(ras, "ras", "memory_failure_event", enable);
-#endif
-
-#ifdef HAVE_CXL
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_poison", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_aer_uncorrectable_error", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_aer_correctable_error", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_overflow", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_generic_event", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_general_media", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_dram", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_module", enable);
-	rc |= __toggle_ras_mc_event(ras, "cxl", "cxl_memory_sparing", enable);
-#endif
-
-#ifdef HAVE_SIGNAL
-	rc |= __toggle_ras_mc_event(ras, "signal", "signal_generate", enable);
-#endif
-
-#ifdef HAVE_RERI
-	rc |= __toggle_ras_mc_event(ras, "ras", "reri_event", enable);
-#endif
+	LIST_FOREACH(event, &ras_event_handlers, node)
+		rc |= __toggle_ras_mc_event(ras, event->entry->group,
+					    event->entry->event, enable);
 
 free_ras:
 	free(ras);
@@ -387,19 +333,6 @@ free_ras:
 	return 0;
 }
 
-static void setup_event_trigger(const char *event)
-{
-	struct event_trigger trigger;
-
-	for (int i = 0; i < ARRAY_SIZE(event_triggers); i++) {
-		trigger = event_triggers[i];
-		if (!strcmp(event, trigger.name))
-			trigger.setup();
-	}
-}
-
-#if (defined(HAVE_DISKERROR) && !defined(HAVE_BLK_RQ_ERROR)) || \
-    defined(HAVE_SIGNAL)
 /*
  * Set kernel filter. libtrace doesn't provide an API for setting filters
  * in kernel, we have to implement it here.
@@ -432,17 +365,11 @@ static int filter_ras_mc_event(struct ras_events *ras, const char *group,
 
 	return 0;
 }
-#endif
 
 int ras_event_filter(struct ras_events *ras, const char *group,
 		     const char *event, const char *filter)
 {
-#if (defined(HAVE_DISKERROR) && !defined(HAVE_BLK_RQ_ERROR)) || \
-    defined(HAVE_SIGNAL)
 	return filter_ras_mc_event(ras, group, event, filter);
-#else
-	return -EOPNOTSUPP;
-#endif
 }
 
 /*
@@ -947,16 +874,6 @@ static bool check_event_exist(struct ras_events *ras, const char *group,
 
 #define EVENT_DISABLED	1
 
-struct ras_event_runtime {
-	const struct ras_event_entry *entry;
-	LIST_ENTRY(ras_event_runtime) node;
-};
-
-LIST_HEAD(ras_event_list, ras_event_runtime);
-
-static struct ras_event_list ras_event_handlers =
-	LIST_HEAD_INITIALIZER(ras_event_handlers);
-
 static void ras_events_unregister(void)
 {
 	struct ras_event_runtime *event;
@@ -1191,9 +1108,6 @@ static int add_event_handler(struct ras_events *ras,
 		return -EINVAL;
 	}
 
-	if (trigger)
-		setup_event_trigger(event);
-
 	log(ALL, LOG_INFO, "Enabled event %s:%s\n", group, event);
 
 	return 0;
@@ -1245,6 +1159,8 @@ int ras_events_prepare(struct ras_events *ras, int record_events,
 				       filter, entry->id, entry->trigger);
 		if (!rc) {
 			ras->num_events++;
+			if (entry->trigger_setup)
+				entry->trigger_setup();
 			if (entry->enabled)
 				entry->enabled(ras);
 			continue;

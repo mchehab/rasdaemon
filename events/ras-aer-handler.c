@@ -37,6 +37,7 @@ static int ras_aer_prepare(struct ras_events *ras)
 static const struct ras_event_entry ras_aer_event = {
 	.group = "ras", .event = "aer_event",
 	.handler = ras_aer_event_handler, .id = AER_EVENT, .trigger = true,
+	.trigger_setup = aer_event_trigger_setup,
 	.prepare = ras_aer_prepare,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_aer,

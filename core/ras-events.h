@@ -57,6 +57,7 @@ struct ras_event_entry {
 	const char *(*filter_cb)(struct ras_events *ras);
 	int (*prepare)(struct ras_events *ras);
 	void (*enabled)(struct ras_events *ras);
+	void (*trigger_setup)(void);
 	int id;
 	int order;
 	bool trigger;

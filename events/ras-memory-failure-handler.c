@@ -27,6 +27,7 @@ int test_memory_failure(void) __attribute__((weak));
 static const struct ras_event_entry ras_memory_failure_event = {
 	.group = "ras", .event = "memory_failure_event",
 	.handler = ras_memory_failure_event_handler, .id = MF_EVENT,
+	.trigger_setup = mem_fail_event_trigger_setup,
 	.trigger = true,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_memory_failure,
