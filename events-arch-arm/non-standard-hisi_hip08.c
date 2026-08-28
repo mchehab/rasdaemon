@@ -523,9 +523,26 @@ static const struct db_table_descriptor hip08_pcie_local_event_tab = {
 	.num_fields = ARRAY_SIZE(hip08_pcie_local_event_fields),
 };
 
+static struct db_desc_and_stmt hip08_oem_type1_event_db = {
+	.desc = &hip08_oem_type1_event_tab,
+};
+
+static struct db_desc_and_stmt hip08_oem_type2_event_db = {
+	.desc = &hip08_oem_type2_event_tab,
+};
+
+static struct db_desc_and_stmt hip08_pcie_local_event_db = {
+	.desc = &hip08_pcie_local_event_tab,
+};
+
+static struct db_desc_and_stmt * const hip08_event_dbs[] = {
+	&hip08_oem_type1_event_db,
+	&hip08_oem_type2_event_db,
+	&hip08_pcie_local_event_db,
+};
+
 #define IN_RANGE(p, start, end) ((p) >= (start) && (p) < (end))
-static void decode_oem_type1_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
-				     struct trace_seq *s,
+static void decode_oem_type1_err_hdr(struct ras_stmt *stmt, struct trace_seq *s,
 				     const struct hisi_oem_type1_err_sec *err)
 {
 	char buf[HISI_BUF_LEN];
@@ -533,59 +550,58 @@ static void decode_oem_type1_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
 	char *end = buf + HISI_BUF_LEN;
 
 	p += snprintf(p, end - p, "[ table_version=%d ", err->version);
-	record_vendor_data(ev_decoder, DB_TYPE_INT32,
-			   HIP08_OEM_TYPE1_FIELD_VERSION, err->version, NULL);
+	db_bind(&hip08_oem_type1_event_tab, stmt,
+		HIP08_OEM_TYPE1_FIELD_VERSION, err->version, -1);
 
 	if (err->val_bits & HISI_OEM_VALID_SOC_ID && IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "SOC_ID=%d ", err->soc_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_OEM_TYPE1_FIELD_SOC_ID,
-				   err->soc_id, NULL);
+		db_bind(&hip08_oem_type1_event_tab, stmt,
+			HIP08_OEM_TYPE1_FIELD_SOC_ID, err->soc_id, -1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_SOCKET_ID && IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "socket_ID=%d ", err->socket_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_OEM_TYPE1_FIELD_SOCKET_ID,
-				   err->socket_id, NULL);
+		db_bind(&hip08_oem_type1_event_tab, stmt,
+			HIP08_OEM_TYPE1_FIELD_SOCKET_ID, err->socket_id,
+			-1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_NIMBUS_ID && IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "nimbus_ID=%d ", err->nimbus_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_OEM_TYPE1_FIELD_NIMBUS_ID,
-				   err->nimbus_id, NULL);
+		db_bind(&hip08_oem_type1_event_tab, stmt,
+			HIP08_OEM_TYPE1_FIELD_NIMBUS_ID, err->nimbus_id,
+			-1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_MODULE_ID && IN_RANGE(p, buf, end)) {
-		const char *str = oem_module_name(hisi_oem_type1_module,
-						  err->module_id);
+		const char *str =
+		    oem_module_name(hisi_oem_type1_module, err->module_id);
 
 		p += snprintf(p, end - p, "module=%s ", str);
-		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-				   HIP08_OEM_TYPE1_FIELD_MODULE_ID,
-				   0, str);
+		db_bind(&hip08_oem_type1_event_tab, stmt,
+			HIP08_OEM_TYPE1_FIELD_MODULE_ID, (uint64_t)str,
+			-1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_SUB_MODULE_ID &&
 	    IN_RANGE(p, buf, end)) {
 		const char *str = oem_submodule_name(hisi_oem_type1_module,
-						     err->module_id,
-						     err->sub_module_id);
+					     err->module_id,
+					     err->sub_module_id);
 
 		p += snprintf(p, end - p, "submodule=%s ", str);
-		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-				   HIP08_OEM_TYPE1_FIELD_SUB_MODULE_ID,
-				   0, str);
+		db_bind(&hip08_oem_type1_event_tab, stmt,
+			HIP08_OEM_TYPE1_FIELD_SUB_MODULE_ID,
+			(uint64_t)str, -1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_ERR_SEVERITY &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "error_severity=%s ",
-			     err_severity(err->err_severity));
-		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-				   HIP08_OEM_TYPE1_FIELD_ERR_SEV,
-				   0, err_severity(err->err_severity));
+			      err_severity(err->err_severity));
+		db_bind(&hip08_oem_type1_event_tab, stmt,
+			HIP08_OEM_TYPE1_FIELD_ERR_SEV,
+			(uint64_t)err_severity(err->err_severity), -1);
 	}
 
 	if (IN_RANGE(p, buf, end))
@@ -594,7 +610,7 @@ static void decode_oem_type1_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-static void decode_oem_type1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_oem_type1_err_regs(struct ras_stmt *stmt,
 				      struct trace_seq *s,
 				      const struct hisi_oem_type1_err_sec *err)
 {
@@ -637,7 +653,7 @@ static void decode_oem_type1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		trace_seq_printf(s, "ERR_ADDR=0x%llx\n",
 				 (unsigned long long)err->err_addr);
 		p += snprintf(p, end - p, "ERR_ADDR=0x%llx ",
-			     (unsigned long long)err->err_addr);
+			      (unsigned long long)err->err_addr);
 	}
 
 	if (p > buf && p < end) {
@@ -645,21 +661,9 @@ static void decode_oem_type1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		*p = '\0';
 	}
 
-	record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-			   HIP08_OEM_TYPE1_FIELD_REGS_DUMP, 0, buf);
-	step_vendor_data_tab(ev_decoder, "hip08_oem_type1_event_tab");
-}
-
-static int add_hip08_oem_type1_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
-{
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
-					    &hip08_oem_type1_event_tab) != 0) {
-			log(TERM, LOG_WARNING, "Failed to create sql hip08_oem_type1_event_tab\n");
-			return -1;
-		}
-	}
-	return 0;
+	db_bind(&hip08_oem_type1_event_tab, stmt,
+		HIP08_OEM_TYPE1_FIELD_REGS_DUMP, (uint64_t)buf, -1);
+	db_eval_stmt(stmt, "hip08_oem_type1_event_tab");
 }
 
 /* error data decoding functions */
@@ -669,7 +673,13 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 					struct ras_non_standard_event *event)
 {
 	const struct hisi_oem_type1_err_sec *err =
-			(struct hisi_oem_type1_err_sec *)event->error;
+	    (struct hisi_oem_type1_err_sec *)event->error;
+	struct ras_stmt *stmt = hip08_oem_type1_event_db.stmt;
+
+	if (ras->record_events)
+		WARN_ONCE(!stmt, ALL, LOG_WARNING,
+			  "Can't insert into table %s: no statement\n",
+			  hip08_oem_type1_event_db.desc->name);
 
 	if (err->val_bits == 0) {
 		trace_seq_printf(s, "%s: no valid error information\n",
@@ -677,19 +687,18 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 		return -1;
 	}
 
-	record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-			   HIP08_OEM_TYPE1_FIELD_TIMESTAMP,
-			   0, event->timestamp);
+	db_bind(&hip08_oem_type1_event_tab, stmt,
+		HIP08_OEM_TYPE1_FIELD_TIMESTAMP,
+		(uint64_t)event->timestamp, -1);
 
 	trace_seq_printf(s, "\nHISI HIP08: OEM Type-1 Error\n");
-	decode_oem_type1_err_hdr(ev_decoder, s, err);
-	decode_oem_type1_err_regs(ev_decoder, s, err);
+	decode_oem_type1_err_hdr(stmt, s, err);
+	decode_oem_type1_err_regs(stmt, s, err);
 
 	return 0;
 }
 
-static void decode_oem_type2_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
-				     struct trace_seq *s,
+static void decode_oem_type2_err_hdr(struct ras_stmt *stmt, struct trace_seq *s,
 				     const struct hisi_oem_type2_err_sec *err)
 {
 	char buf[HISI_BUF_LEN];
@@ -697,59 +706,58 @@ static void decode_oem_type2_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
 	char *end = buf + HISI_BUF_LEN;
 
 	p += snprintf(p, end - p, "[ table_version=%d ", err->version);
-	record_vendor_data(ev_decoder, DB_TYPE_INT32,
-			   HIP08_OEM_TYPE2_FIELD_VERSION, err->version, NULL);
+	db_bind(&hip08_oem_type2_event_tab, stmt,
+		HIP08_OEM_TYPE2_FIELD_VERSION, err->version, -1);
 
 	if (err->val_bits & HISI_OEM_VALID_SOC_ID && IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "SOC_ID=%d ", err->soc_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_OEM_TYPE2_FIELD_SOC_ID,
-				   err->soc_id, NULL);
+		db_bind(&hip08_oem_type2_event_tab, stmt,
+			HIP08_OEM_TYPE2_FIELD_SOC_ID, err->soc_id, -1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_SOCKET_ID && IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "socket_ID=%d ", err->socket_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_OEM_TYPE2_FIELD_SOCKET_ID,
-				   err->socket_id, NULL);
+		db_bind(&hip08_oem_type2_event_tab, stmt,
+			HIP08_OEM_TYPE2_FIELD_SOCKET_ID, err->socket_id,
+			-1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_NIMBUS_ID && IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "nimbus_ID=%d ", err->nimbus_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_OEM_TYPE2_FIELD_NIMBUS_ID,
-				   err->nimbus_id, NULL);
+		db_bind(&hip08_oem_type2_event_tab, stmt,
+			HIP08_OEM_TYPE2_FIELD_NIMBUS_ID, err->nimbus_id,
+			-1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_MODULE_ID && IN_RANGE(p, buf, end)) {
-		const char *str = oem_module_name(hisi_oem_type2_module,
-						  err->module_id);
+		const char *str =
+		    oem_module_name(hisi_oem_type2_module, err->module_id);
 
 		p += snprintf(p, end - p, "module=%s ", str);
-		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-				   HIP08_OEM_TYPE2_FIELD_MODULE_ID,
-				   0, str);
+		db_bind(&hip08_oem_type2_event_tab, stmt,
+			HIP08_OEM_TYPE2_FIELD_MODULE_ID, (uint64_t)str,
+			-1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_SUB_MODULE_ID &&
 	    IN_RANGE(p, buf, end)) {
 		const char *str = oem_submodule_name(hisi_oem_type2_module,
-						     err->module_id,
-						     err->sub_module_id);
+					     err->module_id,
+					     err->sub_module_id);
 
 		p += snprintf(p, end - p, "submodule=%s ", str);
-		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-				   HIP08_OEM_TYPE2_FIELD_SUB_MODULE_ID,
-				   0, str);
+		db_bind(&hip08_oem_type2_event_tab, stmt,
+			HIP08_OEM_TYPE2_FIELD_SUB_MODULE_ID,
+			(uint64_t)str, -1);
 	}
 
 	if (err->val_bits & HISI_OEM_VALID_ERR_SEVERITY &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "error_severity=%s ",
-			     err_severity(err->err_severity));
-		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-				   HIP08_OEM_TYPE2_FIELD_ERR_SEV,
-				   0, err_severity(err->err_severity));
+			      err_severity(err->err_severity));
+		db_bind(&hip08_oem_type2_event_tab, stmt,
+			HIP08_OEM_TYPE2_FIELD_ERR_SEV,
+			(uint64_t)err_severity(err->err_severity), -1);
 	}
 
 	if (IN_RANGE(p, buf, end))
@@ -758,7 +766,7 @@ static void decode_oem_type2_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-static void decode_oem_type2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_oem_type2_err_regs(struct ras_stmt *stmt,
 				      struct trace_seq *s,
 				      const struct hisi_oem_type2_err_sec *err)
 {
@@ -771,7 +779,7 @@ static void decode_oem_type2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		trace_seq_printf(s, "ERR_FR_0=0x%x\n", err->err_fr_0);
 		trace_seq_printf(s, "ERR_FR_1=0x%x\n", err->err_fr_1);
 		p += snprintf(p, end - p, "ERR_FR_0=0x%x ERR_FR_1=0x%x ",
-			     err->err_fr_0, err->err_fr_1);
+			      err->err_fr_0, err->err_fr_1);
 	}
 
 	if (err->val_bits & HISI_OEM_TYPE2_VALID_ERR_CTRL &&
@@ -786,8 +794,9 @@ static void decode_oem_type2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	    IN_RANGE(p, buf, end)) {
 		trace_seq_printf(s, "ERR_STATUS_0=0x%x\n", err->err_status_0);
 		trace_seq_printf(s, "ERR_STATUS_1=0x%x\n", err->err_status_1);
-		p += snprintf(p, end - p, "ERR_STATUS_0=0x%x ERR_STATUS_1=0x%x ",
-			      err->err_status_0, err->err_status_1);
+		p +=
+		    snprintf(p, end - p, "ERR_STATUS_0=0x%x ERR_STATUS_1=0x%x ",
+			     err->err_status_0, err->err_status_1);
 	}
 
 	if (err->val_bits & HISI_OEM_TYPE2_VALID_ERR_ADDR &&
@@ -819,21 +828,9 @@ static void decode_oem_type2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		*p = '\0';
 	}
 
-	record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-			   HIP08_OEM_TYPE2_FIELD_REGS_DUMP, 0, buf);
-	step_vendor_data_tab(ev_decoder, "hip08_oem_type2_event_tab");
-}
-
-static int add_hip08_oem_type2_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
-{
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
-					    &hip08_oem_type2_event_tab) != 0) {
-			log(TERM, LOG_WARNING, "Failed to create sql hip08_oem_type2_event_tab\n");
-			return -1;
-		}
-	}
-	return 0;
+	db_bind(&hip08_oem_type2_event_tab, stmt,
+		HIP08_OEM_TYPE2_FIELD_REGS_DUMP, (uint64_t)buf, -1);
+	db_eval_stmt(stmt, "hip08_oem_type2_event_tab");
 }
 
 static int decode_hip08_oem_type2_error(struct ras_events *ras,
@@ -842,7 +839,13 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 					struct ras_non_standard_event *event)
 {
 	const struct hisi_oem_type2_err_sec *err =
-			(struct hisi_oem_type2_err_sec *)event->error;
+	    (struct hisi_oem_type2_err_sec *)event->error;
+	struct ras_stmt *stmt = hip08_oem_type2_event_db.stmt;
+
+	if (ras->record_events)
+		WARN_ONCE(!stmt, ALL, LOG_WARNING,
+			  "Can't insert into table %s: no statement\n",
+			  hip08_oem_type2_event_db.desc->name);
 
 	if (err->val_bits == 0) {
 		trace_seq_printf(s, "%s: no valid error information\n",
@@ -850,18 +853,18 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 		return -1;
 	}
 
-	record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-			   HIP08_OEM_TYPE2_FIELD_TIMESTAMP,
-			   0, event->timestamp);
+	db_bind(&hip08_oem_type2_event_tab, stmt,
+		HIP08_OEM_TYPE2_FIELD_TIMESTAMP,
+		(uint64_t)event->timestamp, -1);
 
 	trace_seq_printf(s, "\nHISI HIP08: OEM Type-2 Error\n");
-	decode_oem_type2_err_hdr(ev_decoder, s, err);
-	decode_oem_type2_err_regs(ev_decoder, s, err);
+	decode_oem_type2_err_hdr(stmt, s, err);
+	decode_oem_type2_err_regs(stmt, s, err);
 
 	return 0;
 }
 
-static void decode_pcie_local_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_pcie_local_err_hdr(struct ras_stmt *stmt,
 				      struct trace_seq *s,
 				      const struct hisi_pcie_local_err_sec *err)
 {
@@ -870,74 +873,73 @@ static void decode_pcie_local_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
 	char *end = buf + HISI_BUF_LEN;
 
 	p += snprintf(p, end - p, "[ table_version=%d ", err->version);
-	record_vendor_data(ev_decoder, DB_TYPE_INT32,
-			   HIP08_PCIE_LOCAL_FIELD_VERSION,
-			   err->version, NULL);
+	db_bind(&hip08_pcie_local_event_tab, stmt,
+		HIP08_PCIE_LOCAL_FIELD_VERSION, err->version, -1);
 
 	if (err->val_bits & HISI_PCIE_LOCAL_VALID_SOC_ID &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "SOC_ID=%d ", err->soc_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_PCIE_LOCAL_FIELD_SOC_ID,
-				   err->soc_id, NULL);
+		db_bind(&hip08_pcie_local_event_tab, stmt,
+			HIP08_PCIE_LOCAL_FIELD_SOC_ID, err->soc_id, -1);
 	}
 
 	if (err->val_bits & HISI_PCIE_LOCAL_VALID_SOCKET_ID &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "socket_ID=%d ", err->socket_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_PCIE_LOCAL_FIELD_SOCKET_ID,
-				   err->socket_id, NULL);
+		db_bind(&hip08_pcie_local_event_tab, stmt,
+			HIP08_PCIE_LOCAL_FIELD_SOCKET_ID,
+			err->socket_id, -1);
 	}
 
 	if (err->val_bits & HISI_PCIE_LOCAL_VALID_NIMBUS_ID &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "nimbus_ID=%d ", err->nimbus_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_PCIE_LOCAL_FIELD_NIMBUS_ID,
-				   err->nimbus_id, NULL);
+		db_bind(&hip08_pcie_local_event_tab, stmt,
+			HIP08_PCIE_LOCAL_FIELD_NIMBUS_ID,
+			err->nimbus_id, -1);
 	}
 
 	if (err->val_bits & HISI_PCIE_LOCAL_VALID_SUB_MODULE_ID &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "submodule=%s ",
 			      pcie_local_sub_module_name(err->sub_module_id));
-		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-				   HIP08_PCIE_LOCAL_FIELD_SUB_MODULE_ID,
-				   0, pcie_local_sub_module_name(err->sub_module_id));
+		db_bind(&hip08_pcie_local_event_tab, stmt,
+			HIP08_PCIE_LOCAL_FIELD_SUB_MODULE_ID,
+			(uint64_t)pcie_local_sub_module_name(err->sub_module_id),
+			-1);
 	}
 
 	if (err->val_bits & HISI_PCIE_LOCAL_VALID_CORE_ID &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "core_ID=core%d ", err->core_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_PCIE_LOCAL_FIELD_CORE_ID,
-				   err->core_id, NULL);
+		db_bind(&hip08_pcie_local_event_tab, stmt,
+			HIP08_PCIE_LOCAL_FIELD_CORE_ID, err->core_id,
+			-1);
 	}
 
 	if (err->val_bits & HISI_PCIE_LOCAL_VALID_PORT_ID &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "port_ID=port%d ", err->port_id);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_PCIE_LOCAL_FIELD_PORT_ID,
-				   err->port_id, NULL);
+		db_bind(&hip08_pcie_local_event_tab, stmt,
+			HIP08_PCIE_LOCAL_FIELD_PORT_ID, err->port_id,
+			-1);
 	}
 
 	if (err->val_bits & HISI_PCIE_LOCAL_VALID_ERR_SEVERITY &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "error_severity=%s ",
 			      err_severity(err->err_severity));
-		record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-				   HIP08_PCIE_LOCAL_FIELD_ERR_SEV,
-				   0, err_severity(err->err_severity));
+		db_bind(&hip08_pcie_local_event_tab, stmt,
+			HIP08_PCIE_LOCAL_FIELD_ERR_SEV,
+			(uint64_t)err_severity(err->err_severity), -1);
 	}
 
 	if (err->val_bits & HISI_PCIE_LOCAL_VALID_ERR_TYPE &&
 	    IN_RANGE(p, buf, end)) {
 		p += snprintf(p, end - p, "error_type=0x%x ", err->err_type);
-		record_vendor_data(ev_decoder, DB_TYPE_INT32,
-				   HIP08_PCIE_LOCAL_FIELD_ERR_TYPE,
-				   err->err_type, NULL);
+		db_bind(&hip08_pcie_local_event_tab, stmt,
+			HIP08_PCIE_LOCAL_FIELD_ERR_TYPE, err->err_type,
+			-1);
 	}
 
 	if (IN_RANGE(p, buf, end))
@@ -946,9 +948,9 @@ static void decode_pcie_local_err_hdr(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-static void decode_pcie_local_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				       struct trace_seq *s,
-				       const struct hisi_pcie_local_err_sec *err)
+static void
+decode_pcie_local_err_regs(struct ras_stmt *stmt, struct trace_seq *s,
+			   const struct hisi_pcie_local_err_sec *err)
 {
 	char buf[HISI_BUF_LEN];
 	char *p = buf;
@@ -961,8 +963,8 @@ static void decode_pcie_local_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		    IN_RANGE(p, buf, end)) {
 			trace_seq_printf(s, "ERR_MISC_%d=0x%x\n", i,
 					 err->err_misc[i]);
-			p += snprintf(p, end - p, "ERR_MISC_%d=0x%x ",
-				      i, err->err_misc[i]);
+			p += snprintf(p, end - p, "ERR_MISC_%d=0x%x ", i,
+				      err->err_misc[i]);
 		}
 	}
 
@@ -971,21 +973,9 @@ static void decode_pcie_local_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		*p = '\0';
 	}
 
-	record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-			   HIP08_PCIE_LOCAL_FIELD_REGS_DUMP, 0, buf);
-	step_vendor_data_tab(ev_decoder, "hip08_pcie_local_event_tab");
-}
-
-static int add_hip08_pcie_local_table(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder)
-{
-	if (ras->record_events && !ev_decoder->stmt_dec_record) {
-		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
-					    &hip08_pcie_local_event_tab) != 0) {
-			log(TERM, LOG_WARNING, "Failed to create sql hip08_pcie_local_event_tab\n");
-			return -1;
-		}
-	}
-	return 0;
+	db_bind(&hip08_pcie_local_event_tab, stmt,
+		HIP08_PCIE_LOCAL_FIELD_REGS_DUMP, (uint64_t)buf, -1);
+	db_eval_stmt(stmt, "hip08_pcie_local_event_tab");
 }
 
 static int decode_hip08_pcie_local_error(struct ras_events *ras,
@@ -994,7 +984,13 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 					 struct ras_non_standard_event *event)
 {
 	const struct hisi_pcie_local_err_sec *err =
-			(struct hisi_pcie_local_err_sec *)event->error;
+	    (struct hisi_pcie_local_err_sec *)event->error;
+	struct ras_stmt *stmt = hip08_pcie_local_event_db.stmt;
+
+	if (ras->record_events)
+		WARN_ONCE(!stmt, ALL, LOG_WARNING,
+			  "Can't insert into table %s: no statement\n",
+			  hip08_pcie_local_event_db.desc->name);
 
 	if (err->val_bits == 0) {
 		trace_seq_printf(s, "%s: no valid error information\n",
@@ -1002,13 +998,13 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 		return -1;
 	}
 
-	record_vendor_data(ev_decoder, DB_TYPE_TEXT,
-			   HIP08_PCIE_LOCAL_FIELD_TIMESTAMP,
-			   0, event->timestamp);
+	db_bind(&hip08_pcie_local_event_tab, stmt,
+		HIP08_PCIE_LOCAL_FIELD_TIMESTAMP,
+		(uint64_t)event->timestamp, -1);
 
 	trace_seq_printf(s, "\nHISI HIP08: PCIe local error\n");
-	decode_pcie_local_err_hdr(ev_decoder, s, err);
-	decode_pcie_local_err_regs(ev_decoder, s, err);
+	decode_pcie_local_err_hdr(stmt, s, err);
+	decode_pcie_local_err_regs(stmt, s, err);
 
 	return 0;
 }
@@ -1016,17 +1012,14 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 static struct ras_ns_ev_decoder hip08_ns_ev_decoder[] = {
 	{
 		.sec_type = "1f8161e1-55d6-41e6-bd10-7afd1dc5f7c5",
-		.add_table = add_hip08_oem_type1_table,
 		.decode = decode_hip08_oem_type1_error,
 	},
 	{
 		.sec_type = "45534ea6-ce23-4115-8535-e07ab3aef91d",
-		.add_table = add_hip08_oem_type2_table,
 		.decode = decode_hip08_oem_type2_error,
 	},
 	{
 		.sec_type = "b2889fc9-e7d7-4f9d-a867-af42e98be772",
-		.add_table = add_hip08_pcie_local_table,
 		.decode = decode_hip08_pcie_local_error,
 	},
 };
@@ -1036,19 +1029,35 @@ static int hip08_init(struct ras_module_ctx *ctx)
 	unsigned int i;
 	int rc;
 
+	for (i = 0; i < ARRAY_SIZE(hip08_event_dbs); i++) {
+		rc = ras_db_table_register(ctx, hip08_event_dbs[i]);
+		if (rc) {
+			ras_db_table_unregister(ctx);
+			return rc;
+		}
+	}
+
 	for (i = 0; i < ARRAY_SIZE(hip08_ns_ev_decoder); i++) {
 		rc = register_ns_ev_decoder(&hip08_ns_ev_decoder[i]);
-		if (rc)
+		if (rc) {
+			ras_db_table_unregister(ctx);
 			return rc;
+		}
 	}
 
 	return 0;
+}
+
+static void hip08_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
 }
 
 static const struct ras_module_entry hip08_module = {
 	.name = "non-standard-hip08",
 	.level = SUB_EVENT_MODULE,
 	.init = hip08_init,
+	.cleanup = hip08_cleanup,
 };
 
 static void __attribute__((constructor)) hip08_register(void)

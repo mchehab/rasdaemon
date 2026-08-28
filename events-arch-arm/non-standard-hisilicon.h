@@ -32,9 +32,4 @@ static inline const char *err_severity(uint8_t err_sev)
 	return "unknown";
 }
 
-void record_vendor_data(struct ras_ns_ev_decoder *ev_decoder,
-			enum db_field_type data_type,
-			int id, int64_t data, const char *text);
-int step_vendor_data_tab(struct ras_ns_ev_decoder *ev_decoder, const char *name);
-
 #endif
