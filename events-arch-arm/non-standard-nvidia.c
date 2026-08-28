@@ -32,21 +32,6 @@ static void nvidia_format_timestamp(char *timestamp, size_t len)
 		snprintf(timestamp, len, "unknown");
 }
 
-static int nvidia_add_vendor_table(struct ras_events *ras,
-				   struct ras_ns_ev_decoder *ev_decoder,
-				   const struct db_table_descriptor *table,
-				   const char *label)
-{
-	int rc;
-
-	rc = db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record, table);
-	if (rc != 0)
-		log(TERM, LOG_ERR, "Failed to create/prepare %s table: %d\n",
-		    label, rc);
-
-	return rc;
-}
-
 static const char * const nvidia_reg_names[] = {
 	[NVIDIA_FIELD_SIGNATURE]     = "Signature:",
 	[NVIDIA_FIELD_ERROR_TYPE]    = "Error Type:",
@@ -522,12 +507,9 @@ static const struct db_table_descriptor nvidia_ns_table = {
 	.num_fields = ARRAY_SIZE(nvidia_ns_fields),
 };
 
-static int nvidia_ns_add_table(struct ras_events *ras,
-			       struct ras_ns_ev_decoder *ev_decoder)
-{
-	return nvidia_add_vendor_table(ras, ev_decoder, &nvidia_ns_table,
-				       "NVIDIA");
-}
+static struct db_desc_and_stmt nvidia_ns_db = {
+	.desc = &nvidia_ns_table,
+};
 
 static int nvidia_ns_decode(struct ras_events *ras,
 			    struct ras_ns_ev_decoder *ev_decoder,
@@ -550,30 +532,41 @@ static int nvidia_ns_decode(struct ras_events *ras,
 	nvidia_format_timestamp(timestamp, sizeof(timestamp));
 
 	decode_nvidia_cper_sec(ev_decoder, s, err, event->length);
+	WARN_ONCE(ras->record_events && !nvidia_ns_db.stmt, ALL, LOG_WARNING,
+		  "Can't insert into table %s: no statement\n",
+		  nvidia_ns_db.desc->name);
 
-	if (ev_decoder->stmt_dec_record) {
-		reg_data_len = event->length - sizeof(struct nvidia_cper_sec);
+	reg_data_len = event->length - sizeof(struct nvidia_cper_sec);
 
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)timestamp, -1);
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)err->signature, sizeof(err->signature));
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, err->error_type, -1);
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, err->error_instance, -1);
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, err->severity, -1);
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, err->socket, -1);
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, err->number_regs, -1);
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, err->instance_base, -1);
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++, (uint64_t)timestamp,
+		-1);
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++,
+		(uint64_t)err->signature, sizeof(err->signature));
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++, err->error_type,
+		-1);
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++, err->error_instance,
+		-1);
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++, err->severity, -1);
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++, err->socket, -1);
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++, err->number_regs,
+		-1);
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++, err->instance_base,
+		-1);
 
-		if (reg_data_len > 0) {
-			const uint8_t *reg_data = (const uint8_t *)err + sizeof(struct nvidia_cper_sec);
+	if (reg_data_len > 0) {
+		const uint8_t *reg_data =
+		    (const uint8_t *)err + sizeof(struct nvidia_cper_sec);
 
-			db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)reg_data, reg_data_len);
-		} else {
-			db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)NULL, -1);
-		}
-
-		db_bind(&nvidia_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)event->error, event->length);
-		db_eval_stmt(ev_decoder->stmt_dec_record, "NVIDIA");
+		db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++,
+			(uint64_t)reg_data, reg_data_len);
+	} else {
+		db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++,
+			(uint64_t)NULL, -1);
 	}
+
+	db_bind(&nvidia_ns_table, nvidia_ns_db.stmt, pos++,
+		(uint64_t)event->error, event->length);
+	db_eval_stmt(nvidia_ns_db.stmt, "NVIDIA");
 
 	return 0;
 }
@@ -600,12 +593,14 @@ static const struct db_table_descriptor nvidia_vera_ns_table = {
 	.num_fields = ARRAY_SIZE(nvidia_vera_ns_fields),
 };
 
-static int nvidia_vera_ns_add_table(struct ras_events *ras,
-				    struct ras_ns_ev_decoder *ev_decoder)
-{
-	return nvidia_add_vendor_table(ras, ev_decoder, &nvidia_vera_ns_table,
-				       "NVIDIA Vera");
-}
+static struct db_desc_and_stmt nvidia_vera_ns_db = {
+	.desc = &nvidia_vera_ns_table,
+};
+
+static struct db_desc_and_stmt * const nvidia_tables[] = {
+	&nvidia_ns_db,
+	&nvidia_vera_ns_db,
+};
 
 static int nvidia_vera_ns_decode(struct ras_events *ras,
 				 struct ras_ns_ev_decoder *ev_decoder,
@@ -641,7 +636,8 @@ static int nvidia_vera_ns_decode(struct ras_events *ras,
 	trace_seq_printf(s, "event_sub_type: %u\n", decoded.event_sub_type);
 	trace_seq_printf(s, "event_link_id: 0x%016llx\n",
 			 (unsigned long long)decoded.event_link_id);
-	trace_seq_printf(s, "source_device_type: %u\n", decoded.source_device_type);
+	trace_seq_printf(s, "source_device_type: %u\n",
+			 decoded.source_device_type);
 	trace_seq_printf(s, "socket: %u\n", decoded.socket);
 	trace_seq_printf(s, "architecture: 0x%x\n", decoded.architecture);
 	trace_seq_printf(s, "chip_serial_number: ");
@@ -650,58 +646,92 @@ static int nvidia_vera_ns_decode(struct ras_events *ras,
 	trace_seq_printf(s, "\n");
 	trace_seq_printf(s, "instance_base: 0x%016llx\n",
 			 (unsigned long long)decoded.instance_base);
-	trace_seq_printf(s, "event_context_count: %u\n", decoded.event_context_count);
+	trace_seq_printf(s, "event_context_count: %u\n",
+			 decoded.event_context_count);
 
 	for (i = 0; i < decoded.event_context_count; i++)
 		nvidia_vera_print_context(s, &decoded.contexts[i], i);
+	WARN_ONCE(ras->record_events && !nvidia_vera_ns_db.stmt, ALL,
+		  LOG_WARNING, "Can't insert into table %s: no statement\n",
+		  nvidia_vera_ns_db.desc->name);
 
-	if (ev_decoder->stmt_dec_record) {
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)timestamp, -1);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.signature, sizeof(decoded.signature) - 1);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.event_type, 4);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.event_sub_type, 4);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.event_link_id, 4);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.source_device_type, 4);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.event_context_count, 4);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.socket, 4);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.architecture, 4);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.chip_serial_number, sizeof(decoded.chip_serial_number));
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)decoded.instance_base, 4);
-		db_bind(&nvidia_vera_ns_table, ev_decoder->stmt_dec_record, pos++, (uint64_t)event->error, event->length);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)timestamp, -1);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.signature, sizeof(decoded.signature) - 1);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.event_type, 4);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.event_sub_type, 4);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.event_link_id, 4);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.source_device_type, 4);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.event_context_count, 4);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.socket, 4);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.architecture, 4);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.chip_serial_number,
+		sizeof(decoded.chip_serial_number));
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)decoded.instance_base, 4);
+	db_bind(&nvidia_vera_ns_table, nvidia_vera_ns_db.stmt, pos++,
+		(uint64_t)event->error, event->length);
 
-		db_eval_stmt(ev_decoder->stmt_dec_record, "NVIDIA Vera");
-	}
+	db_eval_stmt(nvidia_vera_ns_db.stmt, "NVIDIA Vera");
 
 	return 0;
 }
 
 struct ras_ns_ev_decoder nvidia_ns_ev_decoder = {
 	.sec_type = NVIDIA_GRACE_SEC_TYPE_UUID,
-	.add_table = nvidia_ns_add_table,
 	.decode = nvidia_ns_decode,
 };
 
 static struct ras_ns_ev_decoder nvidia_vera_ns_ev_decoder = {
 	.sec_type = NVIDIA_VERA_SEC_TYPE_UUID,
-	.add_table = nvidia_vera_ns_add_table,
 	.decode = nvidia_vera_ns_decode,
 };
 
 static int nvidia_init(struct ras_module_ctx *ctx)
 {
+	size_t i;
 	int rc;
 
-	rc = register_ns_ev_decoder(&nvidia_ns_ev_decoder);
-	if (rc)
-		return rc;
+	for (i = 0; i < ARRAY_SIZE(nvidia_tables); i++) {
+		rc = ras_db_table_register(ctx, nvidia_tables[i]);
+		if (rc) {
+			ras_db_table_unregister(ctx);
+			return rc;
+		}
+	}
 
-	return register_ns_ev_decoder(&nvidia_vera_ns_ev_decoder);
+	rc = register_ns_ev_decoder(&nvidia_ns_ev_decoder);
+	if (rc) {
+		ras_db_table_unregister(ctx);
+		return rc;
+	}
+
+	rc = register_ns_ev_decoder(&nvidia_vera_ns_ev_decoder);
+	if (rc)
+		ras_db_table_unregister(ctx);
+
+	return rc;
+}
+
+static void nvidia_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
 }
 
 static const struct ras_module_entry nvidia_module = {
 	.name = "non-standard-nvidia",
 	.level = SUB_EVENT_MODULE,
 	.init = nvidia_init,
+	.cleanup = nvidia_cleanup,
 };
 
 static void __attribute__((constructor)) nvidia_register(void)
