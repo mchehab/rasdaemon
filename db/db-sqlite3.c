@@ -327,8 +327,6 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 	int col_count;
 	int i, j, rc, found;
 
-	(void)__stmt;
-
 	snprintf(p, end - p, "SELECT * FROM %s", db_tab->name);
 	rc = sqlite3_prepare_v2(db, sql, -1, &schema_stmt, NULL);
 	if (rc != SQLITE_OK) {

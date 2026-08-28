@@ -312,7 +312,6 @@ int ras_row_account_init(struct ras_module_ctx *ctx)
 	int rc;
 #endif
 
-	(void)ctx;
 	row_offline_init();
 	row_isolation_init();
 #ifdef HAVE_MEMORY_ROW_CE_PFA
@@ -333,7 +332,6 @@ int ras_page_account_init(struct ras_module_ctx *ctx)
 	int rc;
 #endif
 
-	(void)ctx;
 	page_offline_init();
 	page_isolation_init();
 #ifdef HAVE_MEMORY_CE_PFA
@@ -466,7 +464,6 @@ void page_record_infos_free(struct ras_module_ctx *ctx)
 {
 	struct rb_node *node = rb_first(&page_records);
 
-	(void)ctx;
 #ifdef HAVE_MEMORY_CE_PFA
 	ras_event_consumer_unregister(&page_isolation_consumer);
 #endif
@@ -1023,7 +1020,6 @@ void row_record_infos_free(struct ras_module_ctx *ctx)
 	struct row_record *row_record = NULL, *tmp_row_record = NULL;
 	struct page_addr *page_addr = NULL, *tmp_page_addr = NULL;
 
-	(void)ctx;
 #ifdef HAVE_MEMORY_ROW_CE_PFA
 	ras_event_consumer_unregister(&row_isolation_consumer);
 #endif

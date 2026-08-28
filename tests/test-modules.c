@@ -47,7 +47,6 @@ static void test_register_duplicate_module(void **state)
 		.level = DB_MODULE,
 	};
 
-	(void)state;
 	assert_int_equal(module_register(&first), 0);
 	assert_int_equal(module_register(&second), -EEXIST);
 	assert_true(module_is_registered("duplicate"));
@@ -349,7 +348,6 @@ static void test_context_helpers(void **state)
 
 static void test_test_registry(void **state)
 {
-	(void)state;
 	assert_true(module_test_group_is_registered(TEST_GROUP_CORE));
 	assert_true(module_test_group_is_registered(TEST_GROUP_MODULES));
 	assert_int_equal(module_test_register(TEST_GROUP_MAX, test_modules, 0),
