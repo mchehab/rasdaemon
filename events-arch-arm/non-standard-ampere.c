@@ -211,13 +211,6 @@ static const char * const err_bert_sub_type[] = {
 	"PMPRO Fatal",
 };
 
-static char *table_list[] = {
-	"amp_payload0_event_tab",
-	"amp_payload1_event_tab",
-	"amp_payload2_event_tab",
-	"amp_payload3_event_tab",
-};
-
 struct amp_ras_type_info {
 	int id;
 	const char *name;
@@ -449,196 +442,155 @@ static const struct db_table_descriptor amp_payload3_event_tab = {
 	.num_fields = ARRAY_SIZE(amp_payload3_event_fields),
 };
 
-/* Save data with different type into DB */
-static void record_amp_data(struct ras_ns_ev_decoder *ev_decoder,
-			    enum db_field_type data_type,
-			    int id, int64_t data, const char *text)
-{
-	switch (data_type) {
-		case DB_TYPE_TEXT:
-			db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT64,
-					    id, (uint64_t)text, -1);
-			break;
-		default:
-			db_bind_type(ev_decoder->stmt_dec_record, DB_TYPE_INT32,
-					    id, data, -1);
-			break;
-	}
-}
+static struct db_desc_and_stmt amp_payload0_event_db = {
+	.desc = &amp_payload0_event_tab,
+};
+
+static struct db_desc_and_stmt amp_payload1_event_db = {
+	.desc = &amp_payload1_event_tab,
+};
+
+static struct db_desc_and_stmt amp_payload2_event_db = {
+	.desc = &amp_payload2_event_tab,
+};
+
+static struct db_desc_and_stmt amp_payload3_event_db = {
+	.desc = &amp_payload3_event_tab,
+};
+
+static struct db_desc_and_stmt * const amp_payload_event_dbs[] = {
+	&amp_payload0_event_db,
+	&amp_payload1_event_db,
+	&amp_payload2_event_db,
+	&amp_payload3_event_db,
+};
 
 /* save all Ampere Specific Error Payload type 0 to database */
-static void record_amp_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				const struct amp_payload0_type_sec *err)
+static void record_amp_payload0_err(struct ras_stmt *stmt, const char *type_str,
+				    const char *subtype_str,
+				    const struct amp_payload0_type_sec *err)
 {
-	if (ev_decoder) {
-		record_amp_data(ev_decoder, DB_TYPE_TEXT,
-				AMP_PAYLOAD0_FIELD_TYPE, 0, type_str);
-		record_amp_data(ev_decoder, DB_TYPE_TEXT,
-				AMP_PAYLOAD0_FIELD_SUB_TYPE, 0, subtype_str);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_TYPE,
+		(uint64_t)type_str, -1);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_SUB_TYPE,
+		(uint64_t)subtype_str, -1);
 
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD0_FIELD_INS, INSTANCE(err->instance), NULL);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_INS,
+		INSTANCE(err->instance), -1);
 
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD0_FIELD_SOCKET_NUM,
-			SOCKET_NUM(err->instance), NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD0_FIELD_STATUS_REG, err->err_status, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD0_FIELD_ADDR_REG,
-			err->err_addr, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD0_FIELD_MISC0,
-			err->err_misc_0, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD0_FIELD_MISC1,
-			err->err_misc_1, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD0_FIELD_MISC2,
-			err->err_misc_2, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD0_FIELD_MISC3,
-			err->err_misc_3, NULL);
-		db_eval_stmt(ev_decoder->stmt_dec_record,
-				    "amp_payload0_event_tab");
-	}
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_SOCKET_NUM,
+		SOCKET_NUM(err->instance), -1);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_STATUS_REG,
+		err->err_status, -1);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_ADDR_REG,
+		err->err_addr, -1);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_MISC0,
+		err->err_misc_0, -1);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_MISC1,
+		err->err_misc_1, -1);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_MISC2,
+		err->err_misc_2, -1);
+	db_bind(&amp_payload0_event_tab, stmt, AMP_PAYLOAD0_FIELD_MISC3,
+		err->err_misc_3, -1);
+	db_eval_stmt(stmt, "amp_payload0_event_tab");
 }
 
 /* save all Ampere Specific Error Payload type 1 to database */
-static void record_amp_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				const struct amp_payload1_type_sec *err)
+static void record_amp_payload1_err(struct ras_stmt *stmt, const char *type_str,
+				    const char *subtype_str,
+				    const struct amp_payload1_type_sec *err)
 {
-	if (ev_decoder) {
-		record_amp_data(ev_decoder, DB_TYPE_TEXT,
-				AMP_PAYLOAD1_FIELD_TYPE, 0, type_str);
-		record_amp_data(ev_decoder, DB_TYPE_TEXT,
-				AMP_PAYLOAD1_FIELD_SUB_TYPE, 0, subtype_str);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_INS,
-				INSTANCE(err->instance), NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_SOCKET_NUM,
-				SOCKET_NUM(err->instance), NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_UNCORE_ERR_STATUS,
-				err->uncore_status, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_UNCORE_ERR_MASK,
-				err->uncore_mask, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_UNCORE_ERR_SEV,
-				err->uncore_sev, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_CORE_ERR_STATUS,
-				err->core_status, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_CORE_ERR_MASK,
-				err->core_mask, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_ROOT_ERR_CMD,
-				err->root_err_cmd, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_ROOT_ERR_STATUS,
-				err->root_status, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_SRC_ID,
-				err->src_id, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD1_FIELD_RESERVED1,
-				err->reserved1, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD1_FIELD_RESERVED2,
-				err->reserved2, NULL);
-		db_eval_stmt(ev_decoder->stmt_dec_record,
-				    "amp_payload1_event_tab");
-	}
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_TYPE,
+		(uint64_t)type_str, -1);
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_SUB_TYPE,
+		(uint64_t)subtype_str, -1);
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_INS,
+		INSTANCE(err->instance), -1);
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_SOCKET_NUM,
+		SOCKET_NUM(err->instance), -1);
+	db_bind(&amp_payload1_event_tab, stmt,
+		AMP_PAYLOAD1_FIELD_UNCORE_ERR_STATUS, err->uncore_status, -1);
+	db_bind(&amp_payload1_event_tab, stmt,
+		AMP_PAYLOAD1_FIELD_UNCORE_ERR_MASK, err->uncore_mask, -1);
+	db_bind(&amp_payload1_event_tab, stmt,
+		AMP_PAYLOAD1_FIELD_UNCORE_ERR_SEV, err->uncore_sev, -1);
+	db_bind(&amp_payload1_event_tab, stmt,
+		AMP_PAYLOAD1_FIELD_CORE_ERR_STATUS, err->core_status, -1);
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_CORE_ERR_MASK,
+		err->core_mask, -1);
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_ROOT_ERR_CMD,
+		err->root_err_cmd, -1);
+	db_bind(&amp_payload1_event_tab, stmt,
+		AMP_PAYLOAD1_FIELD_ROOT_ERR_STATUS, err->root_status, -1);
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_SRC_ID,
+		err->src_id, -1);
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_RESERVED1,
+		err->reserved1, -1);
+	db_bind(&amp_payload1_event_tab, stmt, AMP_PAYLOAD1_FIELD_RESERVED2,
+		err->reserved2, -1);
+	db_eval_stmt(stmt, "amp_payload1_event_tab");
 }
 
 /* save all Ampere Specific Error Payload type 2 to database */
-static void record_amp_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
+static void record_amp_payload2_err(struct ras_stmt *stmt, const char *type_str,
+				    const char *subtype_str,
 				    const struct amp_payload2_type_sec *err)
 {
-	if (ev_decoder) {
-		record_amp_data(ev_decoder, DB_TYPE_TEXT,
-				AMP_PAYLOAD2_FIELD_TYPE, 0, type_str);
-		record_amp_data(ev_decoder, DB_TYPE_TEXT,
-				AMP_PAYLOAD2_FIELD_SUB_TYPE, 0, subtype_str);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_INS, INSTANCE(err->instance), NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_SOCKET_NUM,
-			SOCKET_NUM(err->instance), NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_CE_REPORT_REG,
-			err->ce_register, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_CE_LOACATION,
-			err->ce_location, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_CE_ADDR,
-			err->ce_addr, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_UE_REPORT_REG,
-			err->ue_register, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_UE_LOCATION,
-			err->ue_location, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_UE_ADDR,
-			err->ue_addr, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD2_FIELD_RESERVED1,
-			err->reserved1, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD2_FIELD_RESERVED2,
-			err->reserved2, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD2_FIELD_RESERVED3,
-			err->reserved3, NULL);
-		db_eval_stmt(ev_decoder->stmt_dec_record,
-				    "amp_payload2_event_tab");
-	}
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_TYPE,
+		(uint64_t)type_str, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_SUB_TYPE,
+		(uint64_t)subtype_str, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_INS,
+		INSTANCE(err->instance), -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_SOCKET_NUM,
+		SOCKET_NUM(err->instance), -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_CE_REPORT_REG,
+		err->ce_register, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_CE_LOACATION,
+		err->ce_location, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_CE_ADDR,
+		err->ce_addr, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_UE_REPORT_REG,
+		err->ue_register, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_UE_LOCATION,
+		err->ue_location, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_UE_ADDR,
+		err->ue_addr, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_RESERVED1,
+		err->reserved1, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_RESERVED2,
+		err->reserved2, -1);
+	db_bind(&amp_payload2_event_tab, stmt, AMP_PAYLOAD2_FIELD_RESERVED3,
+		err->reserved3, -1);
+	db_eval_stmt(stmt, "amp_payload2_event_tab");
 }
 
 /* save all Ampere Specific Error Payload type 3 to database */
-static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				const struct amp_payload3_type_sec *err)
+static void record_amp_payload3_err(struct ras_stmt *stmt, const char *type_str,
+				    const char *subtype_str,
+				    const struct amp_payload3_type_sec *err)
 {
-	if (ev_decoder) {
-		record_amp_data(ev_decoder, DB_TYPE_TEXT,
-				AMP_PAYLOAD3_FIELD_TYPE, 0, type_str);
-		record_amp_data(ev_decoder, DB_TYPE_TEXT,
-				AMP_PAYLOAD3_FIELD_SUB_TYPE, 0, subtype_str);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD3_FIELD_INS, INSTANCE(err->instance), NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD3_FIELD_SOCKET_NUM,
-			SOCKET_NUM(err->instance), NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT32,
-				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA0,
-			err->fw_speci_data0, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA1,
-			err->fw_speci_data1, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA2,
-			err->fw_speci_data2, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA3,
-			err->fw_speci_data3, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA4,
-			err->fw_speci_data4, NULL);
-		record_amp_data(ev_decoder, DB_TYPE_INT64,
-				AMP_PAYLOAD3_FIELD_FW_SPEC_DATA5,
-			err->fw_speci_data5, NULL);
-		db_eval_stmt(ev_decoder->stmt_dec_record,
-				    "amp_payload3_event_tab");
-	}
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_TYPE,
+		(uint64_t)type_str, -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_SUB_TYPE,
+		(uint64_t)subtype_str, -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_INS,
+		INSTANCE(err->instance), -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_SOCKET_NUM,
+		SOCKET_NUM(err->instance), -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_FW_SPEC_DATA0,
+		err->fw_speci_data0, -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_FW_SPEC_DATA1,
+		err->fw_speci_data1, -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_FW_SPEC_DATA2,
+		err->fw_speci_data2, -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_FW_SPEC_DATA3,
+		err->fw_speci_data3, -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_FW_SPEC_DATA4,
+		err->fw_speci_data4, -1);
+	db_bind(&amp_payload3_event_tab, stmt, AMP_PAYLOAD3_FIELD_FW_SPEC_DATA5,
+		err->fw_speci_data5, -1);
+	db_eval_stmt(stmt, "amp_payload3_event_tab");
 }
 
 /*
@@ -647,7 +599,7 @@ static void record_amp_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
  */
 void decode_amp_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				  struct trace_seq *s,
-				const struct amp_payload0_type_sec *err)
+				  const struct amp_payload0_type_sec *err)
 {
 	char buf[AMP_PAYLOAD0_BUF_LEN];
 	char *p = buf;
@@ -723,7 +675,8 @@ void decode_amp_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		*p = '\0';
 	}
 
-	record_amp_payload0_err(ev_decoder, type_str, subtype_str, err);
+	record_amp_payload0_err(amp_payload0_event_db.stmt, type_str,
+				subtype_str, err);
 	i = 0;
 	p = NULL;
 	end = NULL;
@@ -807,7 +760,8 @@ static void decode_amp_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		*p = '\0';
 	}
 
-	record_amp_payload1_err(ev_decoder, type_str, subtype_str, err);
+	record_amp_payload1_err(amp_payload1_event_db.stmt, type_str,
+				subtype_str, err);
 	i = 0;
 	p = NULL;
 	end = NULL;
@@ -892,7 +846,8 @@ static void decode_amp_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		*p = '\0';
 	}
 
-	record_amp_payload2_err(ev_decoder, type_str, subtype_str, err);
+	record_amp_payload2_err(amp_payload2_event_db.stmt, type_str,
+				subtype_str, err);
 	i = 0;
 	p = NULL;
 	end = NULL;
@@ -964,7 +919,8 @@ static void decode_amp_payload3_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 		*p = '\0';
 	}
 
-	record_amp_payload3_err(ev_decoder, type_str, subtype_str, err);
+	record_amp_payload3_err(amp_payload3_event_db.stmt, type_str,
+				subtype_str, err);
 	i = 0;
 	p = NULL;
 	end = NULL;
@@ -977,60 +933,72 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 				     struct trace_seq *s,
 				     struct ras_non_standard_event *event)
 {
+	struct db_desc_and_stmt *db;
 	int payload_type = PAYLOAD_TYPE(event->error[0]);
-
-	struct db_table_descriptor db_tab;
 	int id = 0;
 
-	if (payload_type == PAYLOAD_TYPE_0) {
-		db_tab = amp_payload0_event_tab;
+	switch (payload_type) {
+	case PAYLOAD_TYPE_0:
+		db = &amp_payload0_event_db;
+		WARN_ONCE(ras->record_events && !db->stmt, ALL, LOG_WARNING,
+			  "Can't insert into table %s: no statement\n",
+			  db->desc->name);
 		id = AMP_PAYLOAD0_FIELD_TIMESTAMP;
-	} else if (payload_type == PAYLOAD_TYPE_1) {
-		db_tab = amp_payload1_event_tab;
+		break;
+	case PAYLOAD_TYPE_1:
+		db = &amp_payload1_event_db;
+		WARN_ONCE(ras->record_events && !db->stmt, ALL, LOG_WARNING,
+			  "Can't insert into table %s: no statement\n",
+			  db->desc->name);
 		id = AMP_PAYLOAD1_FIELD_TIMESTAMP;
-	} else if (payload_type == PAYLOAD_TYPE_2) {
-		db_tab = amp_payload2_event_tab;
+		break;
+	case PAYLOAD_TYPE_2:
+		db = &amp_payload2_event_db;
+		WARN_ONCE(ras->record_events && !db->stmt, ALL, LOG_WARNING,
+			  "Can't insert into table %s: no statement\n",
+			  db->desc->name);
 		id = AMP_PAYLOAD2_FIELD_TIMESTAMP;
-	} else if (payload_type == PAYLOAD_TYPE_3) {
-		db_tab = amp_payload3_event_tab;
+		break;
+	case PAYLOAD_TYPE_3:
+		db = &amp_payload3_event_db;
+		WARN_ONCE(ras->record_events && !db->stmt, ALL, LOG_WARNING,
+			  "Can't insert into table %s: no statement\n",
+			  db->desc->name);
 		id = AMP_PAYLOAD3_FIELD_TIMESTAMP;
-	} else {
+		break;
+	default:
 		return -1;
 	}
 
-	if (!ev_decoder->stmt_dec_record) {
-		if (db_create_table_prep_stmt(ras, &ev_decoder->stmt_dec_record,
-					    &db_tab) != 0) {
-			trace_seq_printf(s,
-					 "create sql %s fail\n",
-					 table_list[payload_type]);
-			return -1;
-		}
-	}
-	record_amp_data(ev_decoder, DB_TYPE_TEXT,
-			id, 0, event->timestamp);
+	db_bind(db->desc, db->stmt, id, (uint64_t)event->timestamp, -1);
 
-	if (payload_type == PAYLOAD_TYPE_0) {
+	switch (payload_type) {
+	case PAYLOAD_TYPE_0: {
 		const struct amp_payload0_type_sec *err =
-			(struct amp_payload0_type_sec *)event->error;
+		    (struct amp_payload0_type_sec *)event->error;
 		decode_amp_payload0_err_regs(ev_decoder, s, err);
-
-	} else if (payload_type == PAYLOAD_TYPE_1) {
+		break;
+	}
+	case PAYLOAD_TYPE_1: {
 		const struct amp_payload1_type_sec *err =
 			(struct amp_payload1_type_sec *)event->error;
 		decode_amp_payload1_err_regs(ev_decoder, s, err);
-	} else if (payload_type == PAYLOAD_TYPE_2) {
+		break;
+	}
+	case PAYLOAD_TYPE_2: {
 		const struct amp_payload2_type_sec *err =
 			(struct amp_payload2_type_sec *)event->error;
 		decode_amp_payload2_err_regs(ev_decoder, s, err);
-	} else if (payload_type == PAYLOAD_TYPE_3) {
+		break;
+	}
+	case PAYLOAD_TYPE_3: {
 		const struct amp_payload3_type_sec *err =
 			(struct amp_payload3_type_sec *)event->error;
 		decode_amp_payload3_err_regs(ev_decoder, s, err);
-	} else {
-		trace_seq_printf(s, "%s: wrong payload type\n", __func__);
-		return -1;
+		break;
 	}
+	}
+
 	return 0;
 }
 
@@ -1043,13 +1011,34 @@ struct ras_ns_ev_decoder amp_ns_oem_decoder[] = {
 
 static int amp_init(struct ras_module_ctx *ctx)
 {
-	return register_ns_ev_decoder(amp_ns_oem_decoder);
+	size_t i;
+	int rc;
+
+	for (i = 0; i < ARRAY_SIZE(amp_payload_event_dbs); i++) {
+		rc = ras_db_table_register(ctx, amp_payload_event_dbs[i]);
+		if (rc) {
+			ras_db_table_unregister(ctx);
+			return rc;
+		}
+	}
+
+	rc = register_ns_ev_decoder(amp_ns_oem_decoder);
+	if (rc)
+		ras_db_table_unregister(ctx);
+
+	return rc;
+}
+
+static void amp_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_db_table_unregister(ctx);
 }
 
 static const struct ras_module_entry amp_module = {
 	.name = "non-standard-ampere",
 	.level = SUB_EVENT_MODULE,
 	.init = amp_init,
+	.cleanup = amp_cleanup,
 };
 
 static void __attribute__((constructor)) amp_register(void)
