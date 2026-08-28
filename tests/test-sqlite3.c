@@ -720,7 +720,8 @@ static void test_mc_event_recording(void **state)
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
 
-	rc = ras_event_test_record("ras", "mc_event", &ras, &mc);
+	ras.record_events = true;
+	rc = ras_event_publish(&ras, MC_EVENT, &mc);
 	assert_int_equal(rc, 0);
 
 	db = (sqlite3 *)ras.db;
@@ -733,95 +734,83 @@ static void test_mc_event_recording(void **state)
 
 #ifdef HAVE_AER
 	strscpy(aer.timestamp, mc.timestamp, sizeof(aer.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("ras", "aer_event", &ras, &aer),
+	RECORD_AND_CHECK(ras_event_publish(&ras, AER_EVENT, &aer),
 			 "aer_event");
 #endif
 #ifdef HAVE_MCE
 	strscpy(mce.timestamp, mc.timestamp, sizeof(mce.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("mce", "mce_record", &ras,
-					       &mce), "mce_record");
+	RECORD_AND_CHECK(ras_event_publish(&ras, MCE_EVENT, &mce), "mce_record");
 #endif
 #ifdef HAVE_EXTLOG
 	strscpy(extlog.timestamp, mc.timestamp, sizeof(extlog.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("ras", "extlog_mem_event", &ras,
-					       &extlog), "extlog_event");
+	RECORD_AND_CHECK(ras_event_publish(&ras, EXTLOG_EVENT, &extlog),
+			 "extlog_event");
 #endif
 #ifdef HAVE_NON_STANDARD
 	strscpy(non_standard.timestamp, mc.timestamp,
 		sizeof(non_standard.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("ras", "non_standard_event", &ras,
-					       &non_standard),
+	RECORD_AND_CHECK(ras_event_publish(&ras, NON_STANDARD_EVENT,
+					   &non_standard),
 			 "non_standard_event");
 #endif
 #ifdef HAVE_ARM
 	strscpy(arm.timestamp, mc.timestamp, sizeof(arm.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("ras", "arm_event", &ras, &arm),
+	RECORD_AND_CHECK(ras_event_publish(&ras, ARM_EVENT, &arm),
 			 "arm_event");
 #endif
 #ifdef HAVE_DEVLINK
 	strscpy(devlink.timestamp, mc.timestamp, sizeof(devlink.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("devlink",
-					       "devlink_health_report", &ras,
-					       &devlink), "devlink_event");
+	RECORD_AND_CHECK(ras_event_publish(&ras, DEVLINK_EVENT, &devlink),
+			 "devlink_event");
 #endif
 #ifdef HAVE_DISKERROR
 	strscpy(disk.timestamp, mc.timestamp, sizeof(disk.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("block", DISKERROR_TRACE_EVENT, &ras,
-					       &disk), "disk_errors");
+	RECORD_AND_CHECK(ras_event_publish(&ras, DISKERROR_EVENT, &disk),
+			 "disk_errors");
 #endif
 #ifdef HAVE_MEMORY_FAILURE
 	strscpy(memory_failure.timestamp, mc.timestamp,
 		sizeof(memory_failure.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("ras", "memory_failure_event",
-					       &ras, &memory_failure),
+	RECORD_AND_CHECK(ras_event_publish(&ras, MF_EVENT, &memory_failure),
 			 "memory_failure_event");
 #endif
 #ifdef HAVE_CXL
 	strscpy(poison.timestamp, mc.timestamp, sizeof(poison.timestamp));
 	strscpy(poison.overflow_ts, mc.timestamp, sizeof(poison.overflow_ts));
-	RECORD_AND_CHECK(ras_event_test_record("cxl", "cxl_poison", &ras,
-					       &poison),
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_POISON_EVENT, &poison),
 			 "cxl_poison_event");
 	strscpy(cxl_ue.timestamp, mc.timestamp, sizeof(cxl_ue.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("cxl",
-					       "cxl_aer_uncorrectable_error",
-					       &ras, &cxl_ue),
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_AER_UE_EVENT, &cxl_ue),
 			 "cxl_aer_ue_event");
 	strscpy(cxl_ce.timestamp, mc.timestamp, sizeof(cxl_ce.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("cxl",
-					       "cxl_aer_correctable_error",
-					       &ras, &cxl_ce),
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_AER_CE_EVENT, &cxl_ce),
 			 "cxl_aer_ce_event");
 	strscpy(overflow.timestamp, mc.timestamp, sizeof(overflow.timestamp));
 	strscpy(overflow.first_ts, mc.timestamp, sizeof(overflow.first_ts));
 	strscpy(overflow.last_ts, mc.timestamp, sizeof(overflow.last_ts));
-	RECORD_AND_CHECK(ras_event_test_record("cxl", "cxl_overflow", &ras,
-					       &overflow),
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_OVERFLOW_EVENT, &overflow),
 			 "cxl_overflow_event");
 	init_cxl_header(&generic.hdr);
-	RECORD_AND_CHECK(ras_event_test_record("cxl", "cxl_generic_event", &ras,
-					       &generic),
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_GENERIC_EVENT, &generic),
 			 "cxl_generic_event");
 	init_cxl_header(&media.hdr);
-	RECORD_AND_CHECK(ras_event_test_record("cxl", "cxl_general_media", &ras,
-					       &media),
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_GENERAL_MEDIA_EVENT, &media),
 			 "cxl_general_media_event");
 	init_cxl_header(&dram.hdr);
-	RECORD_AND_CHECK(ras_event_test_record("cxl", "cxl_dram", &ras, &dram),
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_DRAM_EVENT, &dram),
 			 "cxl_dram_event");
 	init_cxl_header(&module.hdr);
-	RECORD_AND_CHECK(ras_event_test_record("cxl", "cxl_memory_module", &ras,
-					       &module),
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_MEMORY_MODULE_EVENT, &module),
 			 "cxl_memory_module_event");
 #endif
 #ifdef HAVE_SIGNAL
 	strscpy(signal.timestamp, mc.timestamp, sizeof(signal.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("signal", "signal_generate", &ras,
-					       &signal), "signal_event");
+	RECORD_AND_CHECK(ras_event_publish(&ras, SIGNAL_EVENT, &signal),
+			 "signal_event");
 #endif
 #ifdef HAVE_RERI
 	strscpy(reri.timestamp, mc.timestamp, sizeof(reri.timestamp));
-	RECORD_AND_CHECK(ras_event_test_record("ras", "reri_event", &ras, &reri),
+	RECORD_AND_CHECK(ras_event_publish(&ras, RERI_EVENT, &reri),
 			 "reri_event");
 #endif
 
@@ -830,6 +819,7 @@ static void test_mc_event_recording(void **state)
 	test_ras_mc_ctl_types("sqlite3", &ras);
 	rc = db_close(0, &ras);
 	assert_int_equal(rc, 0);
+	ras.record_events = false;
 	test_ras_mc_ctl_count("sqlite3", "mc_event", 1);
 
 	unlink(database);

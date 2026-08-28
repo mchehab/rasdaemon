@@ -81,6 +81,28 @@ int ras_event_consumer_register(const struct ras_event_consumer *consumer)
 	return 0;
 }
 
+#ifdef HAVE_UNITTEST
+int ras_event_consumer_test_unregister(
+		const struct ras_event_consumer *consumer)
+{
+	struct ras_event_consumer_runtime *entry;
+
+	if (!consumer)
+		return -EINVAL;
+
+	LIST_FOREACH(entry, &event_consumers, node) {
+		if (entry->consumer != consumer)
+			continue;
+
+		LIST_REMOVE(entry, node);
+		free(entry);
+		return 0;
+	}
+
+	return -ENOENT;
+}
+#endif
+
 int ras_event_publish(struct ras_events *ras, int event, void *data)
 {
 	struct ras_event_consumer_runtime *entry;

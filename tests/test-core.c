@@ -342,6 +342,10 @@ static void test_event_consumers(void **state)
 	assert_int_equal(ras_event_publish(&ras, NR_EVENTS, &data), -EINVAL);
 	assert_int_equal(ras_event_publish(NULL, EXTLOG_EVENT, &data), -EINVAL);
 	assert_int_equal(ras_event_publish(&ras, EXTLOG_EVENT, NULL), -EINVAL);
+
+	assert_int_equal(ras_event_consumer_test_unregister(&a_consumer), 0);
+	assert_int_equal(ras_event_consumer_test_unregister(&z_consumer), 0);
+	assert_int_equal(ras_event_consumer_test_unregister(&error_consumer), 0);
 }
 
 static const struct CMUnitTest tests[] = {

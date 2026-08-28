@@ -364,6 +364,7 @@ endif
 
 if enable_db
     lib_sources += [
+        'actions/db-store.c',
         'db/ras-db.c',
     ]
     unittest_sources += 'tests/test-databases.c'

@@ -156,6 +156,7 @@ int toggle_ras_mc_event(int enable);
 int ras_offline_mce_event(struct ras_mc_offline_event *event);
 
 int ras_event_register(const struct ras_event_entry *entry);
+int ras_event_record(struct ras_events *ras, int event, void *data);
 
 /*
  * Register a static consumer descriptor. Consumers run by ascending priority,
@@ -176,6 +177,8 @@ int ras_events_prepare(struct ras_events *ras, int record_events,
 int handle_ras_events(struct ras_events *ras);
 #ifdef HAVE_UNITTEST
 bool ras_events_test_is_disabled(const char *group, const char *event);
+int ras_event_consumer_test_unregister(
+		const struct ras_event_consumer *consumer);
 #endif
 
 #define REGISTER_RAS_EVENT(entry) \

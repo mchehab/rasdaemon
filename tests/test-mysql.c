@@ -424,11 +424,13 @@ static void test_ras_mc_ctl_record(void **state)
 	assert_int_equal(rc, 0);
 	rc = db_exec_sql(ras.db, "DELETE FROM mc_event");
 	assert_int_equal(rc, 0);
-	rc = ras_event_test_record("ras", "mc_event", &ras, &event);
+	ras.record_events = true;
+	rc = ras_event_publish(&ras, MC_EVENT, &event);
 	assert_int_equal(rc, 0);
 	test_ras_mc_ctl_types("mysql", &ras);
 	rc = db_close(0, &ras);
 	assert_int_equal(rc, 0);
+	ras.record_events = false;
 	test_ras_mc_ctl_count("mysql", "mc_event", 1);
 }
 

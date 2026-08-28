@@ -834,6 +834,26 @@ static void ras_events_unregister(void)
 	}
 }
 
+int ras_event_record(struct ras_events *ras, int event_id, void *data)
+{
+	struct ras_event_runtime *event;
+	bool found = false;
+
+	if (!ras || !data || event_id < 0 || event_id >= NR_EVENTS)
+		return -EINVAL;
+
+	LIST_FOREACH(event, &ras_event_handlers, node) {
+		if (event->entry->id != event_id)
+			continue;
+
+		found = true;
+		if (event->entry->record)
+			return event->entry->record(ras, data);
+	}
+
+	return found ? 0 : -ENOENT;
+}
+
 #ifdef HAVE_UNITTEST
 static const struct ras_event_entry *ras_event_test_find(const char *group,
 							 const char *name)
