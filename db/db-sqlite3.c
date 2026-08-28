@@ -212,6 +212,8 @@ static int db_sqlite3_bind_type(struct ras_stmt *__stmt,
 		case DB_TYPE_BLOB:
 			if (!value)
 				return sqlite3_bind_null(stmt, pos);
+			if (len < 0)
+				len = strlen((const char *)value);
 
 			return sqlite3_bind_blob(stmt, pos, (const char *)value,
 						 len, SQLITE_TRANSIENT);

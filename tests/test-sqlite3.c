@@ -854,6 +854,7 @@ static void test_db_open_registered_tables(void **state)
 	struct ras_events test_ras = { 0 };
 	struct ras_module_ctx ctx = { 0 };
 	struct db_values values[2];
+	struct ras_stmt *select_stmt;
 	int rc;
 
 	for (size_t i = 0; i < ARRAY_SIZE(tables); i++)
@@ -864,10 +865,10 @@ static void test_db_open_registered_tables(void **state)
 		values[1] = (struct db_values) { .type = DB_TYPE_INT32, .value = i + 1 };
 		assert_int_equal(db_bind(&desc[i], tables[i].stmt, 1, values[1].value, -1), 0);
 		assert_int_equal(db_eval_stmt(tables[i].stmt, desc[i].name), 0);
-		rc = sqlite3_check_values(state, test_ras.db, &tables[i].stmt,
+		select_stmt = NULL;
+		rc = sqlite3_check_values(state, test_ras.db, &select_stmt,
 					  &desc[i], values, ARRAY_SIZE(values));
 		assert_int_equal(rc, 0);
-		tables[i].stmt = NULL;
 	}
 	assert_int_equal(db_close(0, &test_ras), 0);
 	ras_db_table_unregister(&ctx);
