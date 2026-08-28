@@ -365,6 +365,8 @@ static int hisi_ns_init(struct ras_module_ctx *ctx)
 	for (i = 0; i < ARRAY_SIZE(hisi_section_ns_ev_decoder); i++) {
 		rc = register_ns_ev_decoder(&hisi_section_ns_ev_decoder[i]);
 		if (rc) {
+			while (i--)
+				unregister_ns_ev_decoder(&hisi_section_ns_ev_decoder[i]);
 			ras_db_table_unregister(ctx);
 			return rc;
 		}
@@ -375,6 +377,10 @@ static int hisi_ns_init(struct ras_module_ctx *ctx)
 
 static void hisi_ns_cleanup(struct ras_module_ctx *ctx)
 {
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(hisi_section_ns_ev_decoder); i++)
+		unregister_ns_ev_decoder(&hisi_section_ns_ev_decoder[i]);
 	ras_db_table_unregister(ctx);
 }
 

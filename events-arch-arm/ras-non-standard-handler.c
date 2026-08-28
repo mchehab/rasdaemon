@@ -4,6 +4,7 @@
  * Copyright (c) 2016, The Linux Foundation. All rights reserved.
  */
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,48 +67,43 @@ int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 {
 	struct ras_ns_ev_decoder *list;
 
-	if (!ns_ev_decoder)
-		return -1;
+	if (!ns_ev_decoder || !ns_ev_decoder->sec_type)
+		return -EINVAL;
 
-	ns_ev_decoder->next = NULL;
-	ns_ev_decoder->stmt_dec_record = NULL;
 	if (!ras_ns_ev_dec_list) {
+		ns_ev_decoder->next = NULL;
 		ras_ns_ev_dec_list = ns_ev_decoder;
-		ras_ns_ev_dec_list->ref_count = 0;
 	} else {
 		list = ras_ns_ev_dec_list;
-		while (list->next)
+		while (list) {
+			if (list == ns_ev_decoder ||
+			    !strcmp(list->sec_type, ns_ev_decoder->sec_type))
+				return -EEXIST;
+			if (!list->next)
+				break;
 			list = list->next;
+		}
+		ns_ev_decoder->next = NULL;
 		list->next = ns_ev_decoder;
 	}
 
 	return 0;
 }
 
-int ras_ns_add_vendor_tables(struct ras_events *ras)
+void unregister_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 {
-	struct ras_ns_ev_decoder *ns_ev_decoder;
-	int error = 0;
+	struct ras_ns_ev_decoder **link = &ras_ns_ev_dec_list;
 
-	if (!ras)
-		return -1;
+	if (!ns_ev_decoder)
+		return;
 
-	ns_ev_decoder = ras_ns_ev_dec_list;
-	if (ras_ns_ev_dec_list)
-		ras_ns_ev_dec_list->ref_count++;
-	while (ns_ev_decoder) {
-		if (ns_ev_decoder->add_table && !ns_ev_decoder->stmt_dec_record) {
-			error = ns_ev_decoder->add_table(ras, ns_ev_decoder);
-			if (error)
-				break;
-		}
-		ns_ev_decoder = ns_ev_decoder->next;
-	}
+	while (*link && *link != ns_ev_decoder)
+		link = &(*link)->next;
+	if (!*link)
+		return;
 
-	if (error)
-		return -1;
-
-	return 0;
+	*link = ns_ev_decoder->next;
+	ns_ev_decoder->next = NULL;
 }
 
 static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p_ns_ev_dec)
@@ -165,38 +161,6 @@ int ras_ns_test_decode(const char *type, struct ras_events *ras,
 	return -1;
 }
 #endif
-
-void ras_ns_finalize_vendor_tables(void)
-{
-	struct ras_ns_ev_decoder *ns_ev_decoder = ras_ns_ev_dec_list;
-
-	if (!ras_ns_ev_dec_list)
-		return;
-
-	if (ras_ns_ev_dec_list->ref_count > 0)
-		ras_ns_ev_dec_list->ref_count--;
-	else
-		return;
-	if (ras_ns_ev_dec_list->ref_count > 0)
-		return;
-
-	while (ns_ev_decoder) {
-		if (ns_ev_decoder->stmt_dec_record) {
-			db_finalize(ns_ev_decoder->stmt_dec_record);
-			ns_ev_decoder->stmt_dec_record = NULL;
-		}
-		ns_ev_decoder = ns_ev_decoder->next;
-	}
-}
-
-static void unregister_ns_ev_decoder(void)
-{
-	if (!ras_ns_ev_dec_list)
-		return;
-	ras_ns_ev_dec_list->ref_count = 1;
-	ras_ns_finalize_vendor_tables();
-	ras_ns_ev_dec_list = NULL;
-}
 
 static int ras_non_standard_event_handler(struct trace_seq *s,
 				   struct tep_record *record,
@@ -318,11 +282,6 @@ static int ras_non_standard_event_handler(struct trace_seq *s,
 	return 0;
 }
 
-__attribute__((destructor))
-static void ns_exit(void)
-{
-	unregister_ns_ev_decoder();
-}
 static const struct db_fields non_standard_event_fields[] = {
 		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

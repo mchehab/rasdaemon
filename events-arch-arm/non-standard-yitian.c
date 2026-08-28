@@ -266,6 +266,8 @@ static int yitian_ns_init(struct ras_module_ctx *ctx)
 	for (i = 0; i < ARRAY_SIZE(yitian_ns_oem_decoder); i++) {
 		rc = register_ns_ev_decoder(&yitian_ns_oem_decoder[i]);
 		if (rc) {
+			while (i--)
+				unregister_ns_ev_decoder(&yitian_ns_oem_decoder[i]);
 			ras_db_table_unregister(ctx);
 			return rc;
 		}
@@ -276,6 +278,10 @@ static int yitian_ns_init(struct ras_module_ctx *ctx)
 
 static void yitian_ns_cleanup(struct ras_module_ctx *ctx)
 {
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(yitian_ns_oem_decoder); i++)
+		unregister_ns_ev_decoder(&yitian_ns_oem_decoder[i]);
 	ras_db_table_unregister(ctx);
 }
 

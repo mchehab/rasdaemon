@@ -1040,6 +1040,8 @@ static int hip08_init(struct ras_module_ctx *ctx)
 	for (i = 0; i < ARRAY_SIZE(hip08_ns_ev_decoder); i++) {
 		rc = register_ns_ev_decoder(&hip08_ns_ev_decoder[i]);
 		if (rc) {
+			while (i--)
+				unregister_ns_ev_decoder(&hip08_ns_ev_decoder[i]);
 			ras_db_table_unregister(ctx);
 			return rc;
 		}
@@ -1050,6 +1052,10 @@ static int hip08_init(struct ras_module_ctx *ctx)
 
 static void hip08_cleanup(struct ras_module_ctx *ctx)
 {
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(hip08_ns_ev_decoder); i++)
+		unregister_ns_ev_decoder(&hip08_ns_ev_decoder[i]);
 	ras_db_table_unregister(ctx);
 }
 

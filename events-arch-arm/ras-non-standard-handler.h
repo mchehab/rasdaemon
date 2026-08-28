@@ -16,19 +16,15 @@ struct ras_non_standard_event;
 
 struct ras_ns_ev_decoder {
 	struct ras_ns_ev_decoder *next;
-	uint16_t ref_count;
 	const char *sec_type;
-	int (*add_table)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder);
 	int (*decode)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder,
 		      struct trace_seq *s, struct ras_non_standard_event *event);
-	struct ras_stmt *stmt_dec_record;
 };
 
 void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index);
 
 int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder);
-int ras_ns_add_vendor_tables(struct ras_events *ras);
-void ras_ns_finalize_vendor_tables(void);
+void unregister_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder);
 
 struct ras_non_standard_event {
 	char timestamp[64];

@@ -1031,6 +1031,7 @@ static int amp_init(struct ras_module_ctx *ctx)
 
 static void amp_cleanup(struct ras_module_ctx *ctx)
 {
+	unregister_ns_ev_decoder(amp_ns_oem_decoder);
 	ras_db_table_unregister(ctx);
 }
 

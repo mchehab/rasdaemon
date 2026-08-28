@@ -108,6 +108,38 @@ static bool decoder_is_registered(const char *type)
 	}
 	return false;
 }
+
+static void test_non_standard_decoder_registry(void **state)
+{
+	struct ras_ns_ev_decoder decoder = {
+		.sec_type = "00000000-0000-0000-0000-000000000001",
+	};
+	struct ras_ns_ev_decoder duplicate_type = {
+		.sec_type = decoder.sec_type,
+	};
+	size_t count = ras_ns_test_decoder_count();
+
+	assert_int_equal(register_ns_ev_decoder(NULL), -EINVAL);
+	assert_int_equal(register_ns_ev_decoder(&decoder), 0);
+	assert_int_equal(ras_ns_test_decoder_count(), count + 1);
+	assert_int_equal(register_ns_ev_decoder(&decoder), -EEXIST);
+	assert_int_equal(register_ns_ev_decoder(&duplicate_type), -EEXIST);
+	unregister_ns_ev_decoder(&decoder);
+	assert_int_equal(ras_ns_test_decoder_count(), count);
+	assert_int_equal(register_ns_ev_decoder(&decoder), 0);
+	assert_int_equal(ras_ns_test_decoder_count(), count + 1);
+	unregister_ns_ev_decoder(&decoder);
+	assert_int_equal(ras_ns_test_decoder_count(), count);
+}
+
+static const struct CMUnitTest non_standard_tests[] = {
+	cmocka_unit_test(test_non_standard_decoder_registry),
+};
+
+static int test_non_standard(void)
+{
+	return RUN_FEATURE_GROUP("non-standard CPER", non_standard_tests);
+}
 #endif
 
 static void test_mc_complete_record(void **state)
@@ -1077,6 +1109,9 @@ REGISTER_TEST(TEST_GROUP_ACTIONS, test_openbmc_sel, 0);
 REGISTER_TEST(TEST_GROUP_EVENTS, test_erst, 0);
 #endif
 REGISTER_TEST(TEST_GROUP_DATABASE, test_database, 0);
+#ifdef HAVE_NON_STANDARD
+REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_non_standard, 0);
+#endif
 #ifdef HAVE_AMP_NS_DECODE
 REGISTER_TEST(TEST_GROUP_ARM_EVENTS, test_amp_ns, 0);
 #endif

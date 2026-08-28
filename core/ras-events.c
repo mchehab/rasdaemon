@@ -549,10 +549,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			log(TERM, LOG_ERR, "Failed to open SQL database\n");
 			goto error;
 		}
-#ifdef HAVE_NON_STANDARD
-		if (ras_ns_add_vendor_tables(pdata[0].ras))
-			log(TERM, LOG_ERR, "Can't add vendor table\n");
-#endif
 	}
 
 	do {
@@ -634,9 +630,6 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 
 cleanup:
 	if (pdata[0].ras->record_events) {
-#ifdef HAVE_NON_STANDARD
-		ras_ns_finalize_vendor_tables();
-#endif
 		ras_mc_event_closedb(pdata[0].cpu, pdata[0].ras);
 	}
 
@@ -718,9 +711,6 @@ static void cleanup_ras_events_cpu(void *arg)
 	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
 	if (cleanup->db_opened) {
 		pthread_mutex_lock(&cleanup->pdata->ras->db_lock);
-#ifdef HAVE_NON_STANDARD
-		ras_ns_finalize_vendor_tables();
-#endif
 		ras_mc_event_closedb(cleanup->pdata->cpu, cleanup->pdata->ras);
 		pthread_mutex_unlock(&cleanup->pdata->ras->db_lock);
 	}
@@ -778,10 +768,6 @@ static void *handle_ras_events_cpu(void *priv)
 			goto out;
 		}
 		cleanup.db_opened = true;
-#ifdef HAVE_NON_STANDARD
-		if (ras_ns_add_vendor_tables(pdata->ras))
-			log(TERM, LOG_ERR, "Can't add vendor table\n");
-#endif
 		pthread_mutex_unlock(&pdata->ras->db_lock);
 		pthread_setcancelstate(oldstate, NULL);
 	}

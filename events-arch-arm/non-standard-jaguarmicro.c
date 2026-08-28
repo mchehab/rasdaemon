@@ -1064,6 +1064,8 @@ static int jm_init(struct ras_module_ctx *ctx)
 	for (i = 0; i < ARRAY_SIZE(jm_ns_oem_type_decoder); i++) {
 		rc = register_ns_ev_decoder(&jm_ns_oem_type_decoder[i]);
 		if (rc) {
+			while (i--)
+				unregister_ns_ev_decoder(&jm_ns_oem_type_decoder[i]);
 			ras_db_table_unregister(ctx);
 			return rc;
 		}
@@ -1074,6 +1076,10 @@ static int jm_init(struct ras_module_ctx *ctx)
 
 static void jm_cleanup(struct ras_module_ctx *ctx)
 {
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(jm_ns_oem_type_decoder); i++)
+		unregister_ns_ev_decoder(&jm_ns_oem_type_decoder[i]);
 	ras_db_table_unregister(ctx);
 }
 

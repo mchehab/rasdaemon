@@ -716,14 +716,18 @@ static int nvidia_init(struct ras_module_ctx *ctx)
 	}
 
 	rc = register_ns_ev_decoder(&nvidia_vera_ns_ev_decoder);
-	if (rc)
+	if (rc) {
+		unregister_ns_ev_decoder(&nvidia_ns_ev_decoder);
 		ras_db_table_unregister(ctx);
+	}
 
 	return rc;
 }
 
 static void nvidia_cleanup(struct ras_module_ctx *ctx)
 {
+	unregister_ns_ev_decoder(&nvidia_vera_ns_ev_decoder);
+	unregister_ns_ev_decoder(&nvidia_ns_ev_decoder);
 	ras_db_table_unregister(ctx);
 }
 
