@@ -21,7 +21,7 @@
 static int ras_non_standard_event_handler(struct trace_seq *s,
 					  struct tep_record *record,
 					  struct tep_event *event, void *context);
-int db_non_standard_record(struct ras_events *ras, void *priv);
+static int db_non_standard_record(struct ras_events *ras, void *priv);
 
 static const struct ras_event_entry ras_non_standard_event_entry = {
 	.group = "ras", .event = "non_standard_event",
@@ -32,7 +32,7 @@ REGISTER_RAS_EVENT(ras_non_standard_event_entry);
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 
-void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index)
+static void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index)
 {
 	trace_seq_printf(s, "%02x%02x%02x%02x",
 			 buf[index + 3], buf[index + 2],
@@ -285,7 +285,7 @@ static const struct db_fields non_standard_event_fields[] = {
 		{ .name = "error",		.type = DB_TYPE_BLOB },
 };
 
-const struct db_table_descriptor non_standard_event_tab = {
+static const struct db_table_descriptor non_standard_event_tab = {
 	.name = "non_standard_event",
 	.fields = non_standard_event_fields,
 	.num_fields = ARRAY_SIZE(non_standard_event_fields),
@@ -295,7 +295,7 @@ static struct db_desc_and_stmt non_standard_event_db = {
 	.desc = &non_standard_event_tab,
 };
 
-int db_non_standard_record(struct ras_events *ras, void *priv)
+static int db_non_standard_record(struct ras_events *ras, void *priv)
 {
 	struct ras_non_standard_event *ev = priv;
 	int rc, pos = 1;

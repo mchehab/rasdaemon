@@ -16,10 +16,10 @@
 #include "db/ras-db.h"
 #include "events/ras-diskerror-handler.h"
 
-int ras_diskerror_event_handler(struct trace_seq *s,
-				struct tep_record *record,
-				struct tep_event *event, void *context);
-int db_diskerror_event(struct ras_events *ras, void *priv);
+static int ras_diskerror_event_handler(struct trace_seq *s,
+				       struct tep_record *record,
+				       struct tep_event *event, void *context);
+static int db_diskerror_event(struct ras_events *ras, void *priv);
 
 #ifdef HAVE_UNITTEST
 int test_diskerror(void) __attribute__((weak));
@@ -84,9 +84,9 @@ const char *ras_diskerror_test_error(int err)
 }
 #endif
 
-int ras_diskerror_event_handler(struct trace_seq *s,
-				struct tep_record *record,
-				struct tep_event *event, void *context)
+static int ras_diskerror_event_handler(struct trace_seq *s,
+				       struct tep_record *record,
+				       struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	int len;
@@ -158,7 +158,7 @@ static const struct db_fields diskerror_event_fields[] = {
 	{ .name = "cmd",		.type = DB_TYPE_TEXT },
 };
 
-const struct db_table_descriptor diskerror_event_tab = {
+static const struct db_table_descriptor diskerror_event_tab = {
 	.name = "disk_errors",
 	.fields = diskerror_event_fields,
 	.num_fields = ARRAY_SIZE(diskerror_event_fields),
@@ -168,7 +168,7 @@ static struct db_desc_and_stmt diskerror_event_db = {
 	.desc = &diskerror_event_tab,
 };
 
-int db_diskerror_event(struct ras_events *ras, void *priv)
+static int db_diskerror_event(struct ras_events *ras, void *priv)
 {
 	struct diskerror_event *ev = priv;
 	int rc, pos = 1;

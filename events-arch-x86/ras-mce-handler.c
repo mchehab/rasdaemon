@@ -23,7 +23,7 @@ static int register_mce_handler(struct ras_events *ras, unsigned int ncpus);
 static int ras_mce_event_handler(struct trace_seq *s,
 				 struct tep_record *record,
 				 struct tep_event *event, void *context);
-int db_mce_record(struct ras_events *ras, void *priv);
+static int db_mce_record(struct ras_events *ras, void *priv);
 
 #ifdef HAVE_UNITTEST
 int test_mce(void) __attribute__((weak));
@@ -702,7 +702,7 @@ static const struct db_fields mce_record_fields[] = {
 	{ .name = "mc_location",	.type = DB_TYPE_TEXT },
 };
 
-const struct db_table_descriptor mce_record_tab = {
+static const struct db_table_descriptor mce_record_tab = {
 	.name = "mce_record",
 	.fields = mce_record_fields,
 	.num_fields = ARRAY_SIZE(mce_record_fields),
@@ -712,7 +712,7 @@ static struct db_desc_and_stmt mce_record_db = {
 	.desc = &mce_record_tab,
 };
 
-int db_mce_record(struct ras_events *ras, void *priv)
+static int db_mce_record(struct ras_events *ras, void *priv)
 {
 	struct mce_event *ev = priv;
 	int rc, pos = 1;

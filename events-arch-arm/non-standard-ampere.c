@@ -12,6 +12,7 @@
 #include "core/ras-logger.h"
 #include "core/modules.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/ras-arm-vendor-data.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
@@ -597,9 +598,9 @@ static void record_amp_payload3_err(struct ras_stmt *stmt, const char *type_str,
  * decode ampere specific error payload type 0, the CPU's data is save
  * to SQL DB by ras-arm-handler, others are saved by this function.
  */
-void decode_amp_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				  struct trace_seq *s,
-				  const struct amp_payload0_type_sec *err)
+static void decode_amp_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+					 struct trace_seq *s,
+					 const struct amp_payload0_type_sec *err)
 {
 	char buf[AMP_PAYLOAD0_BUF_LEN];
 	char *p = buf;
@@ -1002,7 +1003,7 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 	return 0;
 }
 
-struct ras_ns_ev_decoder amp_ns_oem_decoder[] = {
+static struct ras_ns_ev_decoder amp_ns_oem_decoder[] = {
 	{
 		.sec_type = "e8ed898d-df16-43cc-8ecc-54f060ef157f",
 		.decode = decode_amp_oem_type_error,

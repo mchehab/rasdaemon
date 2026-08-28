@@ -34,9 +34,6 @@ struct ras_arm_err_info {
 
 #pragma pack()
 
-void display_raw_data(struct trace_seq *s,
-		      const uint8_t *buf,
-		      uint32_t datalen);
 struct ras_arm_event {
 	char timestamp[64];
 #ifdef HAVE_CPU_FAULT_ISOLATION

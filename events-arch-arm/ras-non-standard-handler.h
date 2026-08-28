@@ -10,7 +10,6 @@
 #include <traceevent/event-parse.h>
 
 #include "core/ras-events.h"
-#include "db/ras-db.h"
 
 struct ras_non_standard_event;
 
@@ -20,8 +19,6 @@ struct ras_ns_ev_decoder {
 	int (*decode)(struct ras_events *ras, struct ras_ns_ev_decoder *ev_decoder,
 		      struct trace_seq *s, struct ras_non_standard_event *event);
 };
-
-void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index);
 
 int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder);
 void unregister_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder);

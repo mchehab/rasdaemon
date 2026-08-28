@@ -13,6 +13,7 @@
 #include "core/ras-logger.h"
 #include "core/modules.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events-arch-arm/non-standard-yitian.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 
@@ -246,7 +247,7 @@ static int decode_yitian710_ns_error(struct ras_events *ras,
 	return 0;
 }
 
-struct ras_ns_ev_decoder yitian_ns_oem_decoder[] = {
+static struct ras_ns_ev_decoder yitian_ns_oem_decoder[] = {
 	{
 		.sec_type = "a6980811-16ea-4e4d-b936-fb00a23ff29c",
 		.decode = decode_yitian710_ns_error,

@@ -16,12 +16,13 @@
 #include "db/ras-db.h"
 #include "events/ras-devlink-handler.h"
 
-int ras_net_xmit_timeout_handler(struct trace_seq *s,
-				 struct tep_record *record,
-				 struct tep_event *event, void *context);
-int ras_devlink_event_handler(struct trace_seq *s, struct tep_record *record,
-			      struct tep_event *event, void *context);
-int db_devlink_event(struct ras_events *ras, void *priv);
+static int ras_net_xmit_timeout_handler(struct trace_seq *s,
+					struct tep_record *record,
+					struct tep_event *event, void *context);
+static int ras_devlink_event_handler(struct trace_seq *s,
+				     struct tep_record *record,
+				     struct tep_event *event, void *context);
+static int db_devlink_event(struct ras_events *ras, void *priv);
 
 static bool net_timeout_enabled;
 
@@ -65,9 +66,9 @@ static const struct ras_event_entry ras_devlink_event = {
 };
 REGISTER_RAS_EVENT(ras_devlink_event);
 
-int ras_net_xmit_timeout_handler(struct trace_seq *s,
-				 struct tep_record *record,
-				 struct tep_event *event, void *context)
+static int ras_net_xmit_timeout_handler(struct trace_seq *s,
+					struct tep_record *record,
+					struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	int len;
@@ -111,9 +112,9 @@ int ras_net_xmit_timeout_handler(struct trace_seq *s,
 	return 0;
 }
 
-int ras_devlink_event_handler(struct trace_seq *s,
-			      struct tep_record *record,
-			      struct tep_event *event, void *context)
+static int ras_devlink_event_handler(struct trace_seq *s,
+				     struct tep_record *record,
+				     struct tep_event *event, void *context)
 {
 	int len;
 	struct ras_events *ras = context;
@@ -184,7 +185,7 @@ static const struct db_fields devlink_event_fields[] = {
 	{ .name = "msg",		.type = DB_TYPE_TEXT },
 };
 
-const struct db_table_descriptor devlink_event_tab = {
+static const struct db_table_descriptor devlink_event_tab = {
 	.name = "devlink_event",
 	.fields = devlink_event_fields,
 	.num_fields = ARRAY_SIZE(devlink_event_fields),
@@ -194,7 +195,7 @@ static struct db_desc_and_stmt devlink_event_db = {
 	.desc = &devlink_event_tab,
 };
 
-int db_devlink_event(struct ras_events *ras, void *priv)
+static int db_devlink_event(struct ras_events *ras, void *priv)
 {
 	struct devlink_event *ev = priv;
 	int rc, pos = 1;

@@ -1462,7 +1462,7 @@ static const struct db_fields cxl_poison_event_fields[] = {
 	{ .name = "hpa_alias0",		.type = DB_TYPE_INT64},
 };
 
-const struct db_table_descriptor cxl_poison_event_tab = {
+static const struct db_table_descriptor cxl_poison_event_tab = {
 	.name = "cxl_poison_event",
 	.fields = cxl_poison_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_poison_event_fields),
@@ -1517,7 +1517,7 @@ static const struct db_fields cxl_aer_ue_event_fields[] = {
 	{ .name = "header_log",		.type = DB_TYPE_BLOB },
 };
 
-const struct db_table_descriptor cxl_aer_ue_event_tab = {
+static const struct db_table_descriptor cxl_aer_ue_event_tab = {
 	.name = "cxl_aer_ue_event",
 	.fields = cxl_aer_ue_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_aer_ue_event_fields),
@@ -1563,7 +1563,7 @@ static const struct db_fields cxl_aer_ce_event_fields[] = {
 	{ .name = "error_status",	.type = DB_TYPE_INT32 },
 };
 
-const struct db_table_descriptor cxl_aer_ce_event_tab = {
+static const struct db_table_descriptor cxl_aer_ce_event_tab = {
 	.name = "cxl_aer_ce_event",
 	.fields = cxl_aer_ce_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_aer_ce_event_fields),
@@ -1610,7 +1610,7 @@ static const struct db_fields cxl_overflow_event_fields[] = {
 	{ .name = "last_ts",		.type = DB_TYPE_TEXT },
 };
 
-const struct db_table_descriptor cxl_overflow_event_tab = {
+static const struct db_table_descriptor cxl_overflow_event_tab = {
 	.name = "cxl_overflow_event",
 	.fields = cxl_overflow_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_overflow_event_fields),
@@ -1696,7 +1696,7 @@ static const struct db_fields cxl_generic_event_fields[] = {
 	{ .name = "data",			.type = DB_TYPE_BLOB },
 };
 
-const struct db_table_descriptor cxl_generic_event_tab = {
+static const struct db_table_descriptor cxl_generic_event_tab = {
 	.name = "cxl_generic_event",
 	.fields = cxl_generic_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_generic_event_fields),
@@ -1772,7 +1772,7 @@ static const struct db_fields cxl_general_media_event_fields[] = {
 	{ .name = "hpa_alias0",			.type = DB_TYPE_INT64 },
 };
 
-const struct db_table_descriptor cxl_general_media_event_tab = {
+static const struct db_table_descriptor cxl_general_media_event_tab = {
 	.name = "cxl_general_media_event",
 	.fields = cxl_general_media_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_general_media_event_fields),
@@ -1870,7 +1870,7 @@ static const struct db_fields cxl_dram_event_fields[] = {
 	{ .name = "hpa_alias0",			.type = DB_TYPE_INT64 },
 };
 
-const struct db_table_descriptor cxl_dram_event_tab = {
+static const struct db_table_descriptor cxl_dram_event_tab = {
 	.name = "cxl_dram_event",
 	.fields = cxl_dram_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_dram_event_fields),
@@ -1964,7 +1964,7 @@ static const struct db_fields cxl_memory_module_event_fields[] = {
 	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
 };
 
-const struct db_table_descriptor cxl_memory_module_event_tab = {
+static const struct db_table_descriptor cxl_memory_module_event_tab = {
 	.name = "cxl_memory_module_event",
 	.fields = cxl_memory_module_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_memory_module_event_fields),
@@ -2049,7 +2049,7 @@ static const struct db_fields cxl_memory_sparing_event_fields[] = {
 	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
 };
 
-const struct db_table_descriptor cxl_memory_sparing_event_tab = {
+static const struct db_table_descriptor cxl_memory_sparing_event_tab = {
 	.name = "cxl_memory_sparing_event",
 	.fields = cxl_memory_sparing_event_fields,
 	.num_fields = ARRAY_SIZE(cxl_memory_sparing_event_fields),

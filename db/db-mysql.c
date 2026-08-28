@@ -23,7 +23,7 @@
 
 //#define DEBUG_SQL
 
-void *db_mysql_get_conn_parms(void)
+static void *db_mysql_get_conn_parms(void)
 {
 	static struct db_mysql_conn_params cp;
 
@@ -650,14 +650,14 @@ static void mysql_module_cleanup(struct ras_module_ctx *ctx)
 		    "Failed to cleanup MySQL backend: %d\n", ret);
 }
 
-const struct ras_module_entry db_mysql_module = {
+static const struct ras_module_entry db_mysql_module = {
 	.name = "db-mysql",
 	.init = mysql_module_init,
 	.cleanup = mysql_module_cleanup,
 	.level = DB_MODULE,
 };
 
-__attribute__((constructor)) void mysql_register(void)
+static void __attribute__((constructor)) mysql_register(void)
 {
 	int ret;
 

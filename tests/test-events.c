@@ -1238,12 +1238,18 @@ static void test_nvidia_decoder(void **state)
 		.error_type = 1,
 		.number_regs = 0,
 	};
+	struct ras_non_standard_event event = {
+		.error = (const uint8_t *)&payload,
+		.length = sizeof(payload),
+	};
+	struct ras_events ras = { 0 };
 	struct trace_seq seq;
 
 	assert_true(decoder_is_registered(NVIDIA_GRACE_SEC_TYPE_UUID));
 	assert_true(decoder_is_registered(NVIDIA_VERA_SEC_TYPE_UUID));
 	trace_seq_init(&seq);
-	decode_nvidia_cper_sec(NULL, &seq, &payload, sizeof(payload));
+	assert_int_equal(ras_ns_test_decode(NVIDIA_GRACE_SEC_TYPE_UUID, &ras,
+					    &seq, &event), 0);
 	trace_seq_terminate(&seq);
 	assert_non_null(strstr(seq.buffer, "NVIDIA"));
 	trace_seq_destroy(&seq);

@@ -167,8 +167,4 @@ enum {
 	AMP_PAYLOAD3_FIELD_FW_SPEC_DATA5
 };
 
-void decode_amp_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				  struct trace_seq *s,
-				  const struct amp_payload0_type_sec *err);
-
 #endif

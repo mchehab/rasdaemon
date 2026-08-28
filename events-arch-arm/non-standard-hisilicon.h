@@ -7,7 +7,6 @@
 #ifndef __NON_STANDARD_HISILICON_H
 #define __NON_STANDARD_HISILICON_H
 
-#include "db/ras-db.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "events/ras-mc-handler.h"
 

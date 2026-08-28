@@ -23,7 +23,7 @@
 static int ras_extlog_mem_event_handler(struct trace_seq *s,
 					struct tep_record *record,
 					struct tep_event *event, void *context);
-int db_extlog_mem_record(struct ras_events *ras, void *priv);
+static int db_extlog_mem_record(struct ras_events *ras, void *priv);
 
 #ifdef HAVE_UNITTEST
 int test_extlog(void) __attribute__((weak));
@@ -357,7 +357,7 @@ static const struct db_fields extlog_event_fields[] = {
 	{ .name = "cper_data",		.type = DB_TYPE_BLOB },
 };
 
-const struct db_table_descriptor extlog_event_tab = {
+static const struct db_table_descriptor extlog_event_tab = {
 	.name = "extlog_event",
 	.fields = extlog_event_fields,
 	.num_fields = ARRAY_SIZE(extlog_event_fields),
@@ -367,7 +367,7 @@ static struct db_desc_and_stmt extlog_event_db = {
 	.desc = &extlog_event_tab,
 };
 
-int db_extlog_mem_record(struct ras_events *ras, void *priv)
+static int db_extlog_mem_record(struct ras_events *ras, void *priv)
 {
 	struct ras_extlog_event *ev = priv;
 	int rc, pos = 1;

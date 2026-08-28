@@ -20,9 +20,10 @@
 #include "db/ras-db.h"
 #include "events/ras-aer-handler.h"
 
-int ras_aer_event_handler(struct trace_seq *s, struct tep_record *record,
-			  struct tep_event *event, void *context);
-int db_aer_event(struct ras_events *ras, void *priv);
+static int ras_aer_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context);
+static int db_aer_event(struct ras_events *ras, void *priv);
 static void aer_event_trigger_setup(void);
 
 #ifdef HAVE_UNITTEST
@@ -183,9 +184,9 @@ free:
 		free(env[i]);
 }
 
-int ras_aer_event_handler(struct trace_seq *s,
-			  struct tep_record *record,
-			  struct tep_event *event, void *context)
+static int ras_aer_event_handler(struct trace_seq *s,
+				 struct tep_record *record,
+				 struct tep_event *event, void *context)
 {
 	int len;
 	unsigned long long severity_val;
@@ -310,7 +311,7 @@ static const struct db_fields aer_event_fields[] = {
 	{ .name = "err_msg",		.type = DB_TYPE_TEXT },
 };
 
-const struct db_table_descriptor aer_event_tab = {
+static const struct db_table_descriptor aer_event_tab = {
 	.name = "aer_event",
 	.fields = aer_event_fields,
 	.num_fields = ARRAY_SIZE(aer_event_fields),
@@ -320,7 +321,7 @@ static struct db_desc_and_stmt aer_event_db = {
 	.desc = &aer_event_tab,
 };
 
-int db_aer_event(struct ras_events *ras, void *priv)
+static int db_aer_event(struct ras_events *ras, void *priv)
 {
 	struct ras_aer_event *ev = priv;
 	int rc, pos = 1;

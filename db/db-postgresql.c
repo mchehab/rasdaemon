@@ -793,14 +793,14 @@ static void pg_cleanup(struct ras_module_ctx *ctx)
 		    "Failed to cleanup PostgreSQL backend: %d\n", ret);
 }
 
-const struct ras_module_entry db_postgresql_module = {
+static const struct ras_module_entry db_postgresql_module = {
 	.name = "db-postgresql",
 	.init = pg_init,
 	.cleanup = pg_cleanup,
 	.level = DB_MODULE,
 };
 
-__attribute__((constructor)) void pg_register(void)
+static void __attribute__((constructor)) pg_register(void)
 {
 	int ret;
 

@@ -538,7 +538,7 @@ static void sqlite3_cleanup(struct ras_module_ctx *ctx)
  * Module auto-register data and code
  */
 
-const struct ras_module_entry db_sqlite3_module = {
+static const struct ras_module_entry db_sqlite3_module = {
 	.name = "db-sqlite3",
 	.init = sqlite3_init,
 	.cleanup = sqlite3_cleanup,
@@ -549,7 +549,7 @@ const struct ras_module_entry db_sqlite3_module = {
  * Automatically register the module.
  */
 
-__attribute__((constructor)) void sqlite3_register(void)
+static void __attribute__((constructor)) sqlite3_register(void)
 {
 	int ret;
 

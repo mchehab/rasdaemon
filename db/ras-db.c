@@ -16,8 +16,8 @@
 #include "db/ras-db-backend.h"
 #include "db/ras-db.h"
 
-const char *selected_backend = NULL;
-const struct ras_db_backend_ops *ras_db_ops = NULL;
+static const char *selected_backend = NULL;
+static const struct ras_db_backend_ops *ras_db_ops = NULL;
 
 struct ras_db_backend_runtime {
 	const struct ras_db_backend_entry *entry;

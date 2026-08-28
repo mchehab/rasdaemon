@@ -47,24 +47,24 @@ static char *dnt_int_error[0xf] = {
 	[0x5] = "Quiet cycle timeout error (correctable)",
 };
 
-struct field dnt_int_status[] = {
+static struct field dnt_int_status[] = {
 	FIELD(8, dnt_int_error),
 	{}
 };
 
-struct field dnt_front_status[] = {
+static struct field dnt_front_status[] = {
 	FIELD(0, dnt_front_error),
 	{}
 };
 
-struct field dnt_cecc[] = {
+static struct field dnt_cecc[] = {
 	SBITFIELD(1, "Correctable ECC event on outgoing core 0 data"),
 	SBITFIELD(2, "Correctable ECC event on outgoing core 1 data"),
 	SBITFIELD(3, "Correctable ECC event on outgoing core 2 data"),
 	{}
 };
 
-struct field dnt_uecc[] = {
+static struct field dnt_uecc[] = {
 	SBITFIELD(1, "Uncorrectable ECC event on outgoing core 0 data"),
 	SBITFIELD(2, "Uncorrectable ECC event on outgoing core 1 data"),
 	SBITFIELD(3, "Uncorrectable ECC event on outgoing core 2 data"),
@@ -99,4 +99,3 @@ void dunnington_decode_model(struct mce_event *e)
 	else if ((status & 0xffff) == (1 << 10))
 		dunnington_decode_internal(e, status);
 }
-

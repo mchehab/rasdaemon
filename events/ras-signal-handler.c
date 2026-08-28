@@ -27,9 +27,10 @@
 #include "db/ras-db.h"
 #include "events/ras-signal-handler.h"
 
-int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
-			     struct tep_event *event, void *context);
-int db_signal_event(struct ras_events *ras, void *priv);
+static int ras_signal_event_handler(struct trace_seq *s,
+				    struct tep_record *record,
+				    struct tep_event *event, void *context);
+static int db_signal_event(struct ras_events *ras, void *priv);
 
 #ifdef HAVE_UNITTEST
 int test_signal(void) __attribute__((weak));
@@ -113,8 +114,9 @@ static void report_ras_signal_event(struct trace_seq *s, struct ras_signal_event
 			 result, message);
 }
 
-int ras_signal_event_handler(struct trace_seq *s, struct tep_record *record,
-			     struct tep_event *event, void *context)
+static int ras_signal_event_handler(struct trace_seq *s,
+				    struct tep_record *record,
+				    struct tep_event *event, void *context)
 {
 	int len;
 	unsigned long long val;
@@ -188,7 +190,7 @@ static const struct db_fields signal_event_fields[] = {
 	{ .name = "res",	.type = DB_TYPE_INT32 },
 };
 
-const struct db_table_descriptor signal_event_tab = {
+static const struct db_table_descriptor signal_event_tab = {
 	.name = "signal_event",
 	.fields = signal_event_fields,
 	.num_fields = ARRAY_SIZE(signal_event_fields),
@@ -198,7 +200,7 @@ static struct db_desc_and_stmt signal_event_db = {
 	.desc = &signal_event_tab,
 };
 
-int db_signal_event(struct ras_events *ras, void *priv)
+static int db_signal_event(struct ras_events *ras, void *priv)
 {
 	struct ras_signal_event *ev = priv;
 	int rc, pos = 1;

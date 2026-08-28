@@ -58,7 +58,7 @@ const char *log_color(int color)
 	return codes[color];
 }
 
-__attribute__((constructor(200))) void ras_logger_init(void)
+static void __attribute__((constructor(200))) ras_logger_init(void)
 {
 	stdout_is_vt = isatty(fileno(stdout));
 

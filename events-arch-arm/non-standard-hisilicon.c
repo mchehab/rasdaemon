@@ -11,6 +11,7 @@
 #include "core/ras-logger.h"
 #include "core/modules.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events-arch-arm/non-standard-hisilicon.h"
 #include "events-arch-x86/ras-mce-handler.h"
 

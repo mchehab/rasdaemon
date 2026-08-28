@@ -168,7 +168,7 @@ static const struct db_fields mc_event_fields[] = {
 	{ .name = "driver_detail",	.type = DB_TYPE_TEXT },
 };
 
-const struct db_table_descriptor mc_event_tab = {
+static const struct db_table_descriptor mc_event_tab = {
 	.name = "mc_event",
 	.fields = mc_event_fields,
 	.num_fields = ARRAY_SIZE(mc_event_fields),

@@ -12,6 +12,7 @@
 #include "core/ras-logger.h"
 #include "core/modules.h"
 #include "core/types.h"
+#include "db/ras-db.h"
 #include "events-arch-arm/non-standard-jaguarmicro.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "events-arch-x86/ras-mce-handler.h"
@@ -1028,7 +1029,7 @@ static int decode_jm_oem_type6_error(struct ras_events *ras,
 	return decode_jm_oem_type_error(ras, ev_decoder, s, event, PAYLOAD_TYPE_6);
 }
 
-struct ras_ns_ev_decoder jm_ns_oem_type_decoder[] = {
+static struct ras_ns_ev_decoder jm_ns_oem_type_decoder[] = {
 	{
 		.sec_type = "82d78ba3-fa14-407a-ba0e-f3ba8170013c",
 		.decode = decode_jm_oem_type0_error,

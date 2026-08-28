@@ -46,9 +46,4 @@ enum {
 	NVIDIA_FIELD_REG_DATA,
 };
 
-void decode_nvidia_cper_sec(struct ras_ns_ev_decoder *ev_decoder,
-			    struct trace_seq *s,
-			    const struct nvidia_cper_sec *err,
-			    uint32_t len);
-
 #endif

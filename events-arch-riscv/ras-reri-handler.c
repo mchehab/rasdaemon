@@ -20,9 +20,10 @@
 #include "db/ras-db.h"
 #include "events-arch-riscv/ras-reri-handler.h"
 
-int ras_reri_event_handler(struct trace_seq *s, struct tep_record *record,
-			   struct tep_event *event, void *context);
-int db_reri_event(struct ras_events *ras, void *priv);
+static int ras_reri_event_handler(struct trace_seq *s,
+				  struct tep_record *record,
+				  struct tep_event *event, void *context);
+static int db_reri_event(struct ras_events *ras, void *priv);
 
 #ifdef HAVE_UNITTEST
 int test_reri(void) __attribute__((weak));
@@ -240,10 +241,10 @@ const char *ras_reri_test_category(uint8_t value)
 }
 #endif
 
-int ras_reri_event_handler(struct trace_seq *s,
-			   struct tep_record *record,
-			   struct tep_event *event,
-			   void *context)
+static int ras_reri_event_handler(struct trace_seq *s,
+				  struct tep_record *record,
+				  struct tep_event *event,
+				  void *context)
 {
 	unsigned long long val;
 	struct ras_events *ras = context;
@@ -383,7 +384,7 @@ static const struct db_fields reri_event_fields[] = {
 	{ .name = "timestamp_val",	.type = DB_TYPE_INT64 },
 };
 
-const struct db_table_descriptor reri_event_tab = {
+static const struct db_table_descriptor reri_event_tab = {
 	.name = "reri_event",
 	.fields = reri_event_fields,
 	.num_fields = ARRAY_SIZE(reri_event_fields),
@@ -393,7 +394,7 @@ static struct db_desc_and_stmt reri_event_db = {
 	.desc = &reri_event_tab,
 };
 
-int db_reri_event(struct ras_events *ras, void *priv)
+static int db_reri_event(struct ras_events *ras, void *priv)
 {
 	struct ras_reri_event *ev = priv;
 	int rc, pos = 1;

@@ -61,24 +61,24 @@ static char *tls_int_error[0xf] = {
 		"or disabled ways in a set overflow",
 };
 
-struct field tls_int_status[] = {
+static struct field tls_int_status[] = {
 	FIELD(8, tls_int_error),
 	{}
 };
 
-struct field tls_front_status[] = {
+static struct field tls_front_status[] = {
 	FIELD(0, tls_front_error),
 	{}
 };
 
-struct field tls_cecc[] = {
+static struct field tls_cecc[] = {
 	SBITFIELD(0, "Correctable ECC event on outgoing FSB data"),
 	SBITFIELD(1, "Correctable ECC event on outgoing core 0 data"),
 	SBITFIELD(2, "Correctable ECC event on outgoing core 1 data"),
 	{}
 };
 
-struct field tls_uecc[] = {
+static struct field tls_uecc[] = {
 	SBITFIELD(0, "Uncorrectable ECC event on outgoing FSB data"),
 	SBITFIELD(1, "Uncorrectable ECC event on outgoing core 0 data"),
 	SBITFIELD(2, "Uncorrectable ECC event on outgoing core 1 data"),

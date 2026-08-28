@@ -16,10 +16,11 @@
 #include "db/ras-db.h"
 #include "events/ras-memory-failure-handler.h"
 
-int ras_memory_failure_event_handler(struct trace_seq *s,
-				     struct tep_record *record,
-				     struct tep_event *event, void *context);
-int db_mf_event(struct ras_events *ras, void *priv);
+static int ras_memory_failure_event_handler(struct trace_seq *s,
+					    struct tep_record *record,
+					    struct tep_event *event,
+					    void *context);
+static int db_mf_event(struct ras_events *ras, void *priv);
 static void mem_fail_event_trigger_setup(void);
 
 #ifdef HAVE_UNITTEST
@@ -194,9 +195,10 @@ const char *ras_memory_failure_test_action_result(int result)
 }
 #endif
 
-int ras_memory_failure_event_handler(struct trace_seq *s,
-				     struct tep_record *record,
-				     struct tep_event *event, void *context)
+static int ras_memory_failure_event_handler(struct trace_seq *s,
+					    struct tep_record *record,
+					    struct tep_event *event,
+					    void *context)
 {
 	unsigned long long val;
 	struct ras_events *ras = context;
@@ -255,7 +257,7 @@ static const struct db_fields mf_event_fields[] = {
 	{ .name = "action_result",	.type = DB_TYPE_TEXT },
 };
 
-const struct db_table_descriptor mf_event_tab = {
+static const struct db_table_descriptor mf_event_tab = {
 	.name = "memory_failure_event",
 	.fields = mf_event_fields,
 	.num_fields = ARRAY_SIZE(mf_event_fields),
@@ -265,7 +267,7 @@ static struct db_desc_and_stmt mf_event_db = {
 	.desc = &mf_event_tab,
 };
 
-int db_mf_event(struct ras_events *ras, void *priv)
+static int db_mf_event(struct ras_events *ras, void *priv)
 {
 	struct ras_mf_event *ev = priv;
 	int rc, pos = 1;

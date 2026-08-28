@@ -13,6 +13,7 @@
 
 #include "core/ras-logger.h"
 #include "core/modules.h"
+#include "db/ras-db.h"
 #include "events-arch-arm/non-standard-nvidia.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 
@@ -43,10 +44,10 @@ static const char * const nvidia_reg_names[] = {
 	[NVIDIA_FIELD_REG_DATA]      = "Register Data:",
 };
 
-void decode_nvidia_cper_sec(struct ras_ns_ev_decoder *ev_decoder,
-			    struct trace_seq *s,
-			    const struct nvidia_cper_sec *err,
-			    uint32_t len)
+static void decode_nvidia_cper_sec(struct ras_ns_ev_decoder *ev_decoder,
+				   struct trace_seq *s,
+				   const struct nvidia_cper_sec *err,
+				   uint32_t len)
 {
 	uint32_t i, reg_data_len;
 	const struct nvidia_reg_pair *regs;
@@ -686,7 +687,7 @@ static int nvidia_vera_ns_decode(struct ras_events *ras,
 	return 0;
 }
 
-struct ras_ns_ev_decoder nvidia_ns_ev_decoder = {
+static struct ras_ns_ev_decoder nvidia_ns_ev_decoder = {
 	.sec_type = NVIDIA_GRACE_SEC_TYPE_UUID,
 	.decode = nvidia_ns_decode,
 };

@@ -20,7 +20,7 @@
 static int ras_arm_event_handler(struct trace_seq *s,
 				 struct tep_record *record,
 				 struct tep_event *event, void *context);
-int db_arm_record(struct ras_events *ras, void *priv);
+static int db_arm_record(struct ras_events *ras, void *priv);
 
 #ifdef HAVE_UNITTEST
 int test_arm(void) __attribute__((weak));
@@ -94,9 +94,8 @@ REGISTER_RAS_EVENT(ras_arm_event_entry);
 #define ARM_ERR_ACCESS_MODE_SHIFT		43
 #define ARM_ERR_ACCESS_MODE_MASK		GENMASK(0, 0)
 
-void display_raw_data(struct trace_seq *s,
-		      const uint8_t *buf,
-		      uint32_t datalen)
+static void display_raw_data(struct trace_seq *s, const uint8_t *buf,
+			     uint32_t datalen)
 {
 	int i = 0, line_count = 0;
 
@@ -609,7 +608,7 @@ static const struct db_fields arm_event_fields[] = {
 		{ .name = "phy_fault_addr",	.type = DB_TYPE_INT64 },
 };
 
-const struct db_table_descriptor arm_event_tab = {
+static const struct db_table_descriptor arm_event_tab = {
 	.name = "arm_event",
 	.fields = arm_event_fields,
 	.num_fields = ARRAY_SIZE(arm_event_fields),
@@ -619,7 +618,7 @@ static struct db_desc_and_stmt arm_event_db = {
 	.desc = &arm_event_tab,
 };
 
-int db_arm_record(struct ras_events *ras, void *priv)
+static int db_arm_record(struct ras_events *ras, void *priv)
 {
 	struct ras_arm_event *ev = priv;
 	int rc, pos = 1;
