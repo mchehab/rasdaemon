@@ -234,6 +234,7 @@ static void test_module_cleanup(struct ras_module_ctx *ctx)
 
 static int failing_module_init(struct ras_module_ctx *ctx)
 {
+	ctx->priv = ctx->ras;
 	return -EINVAL;
 }
 
@@ -263,18 +264,31 @@ static void test_named_module_lifecycle(void **state)
 	modules_unregister();
 }
 
-static void test_failed_init_rollback(void **state)
+static void test_failed_init_isolation(void **state)
 {
 	struct ras_events ras = { 0 };
+	struct ras_module_ctx *ctx;
 	const struct ras_module_entry failed = {
 		.name = "failed",
 		.init = failing_module_init,
 		.level = ACTIONS_MODULE,
 	};
-	const char *names[1] = { 0 };
-	const char *cleanup_names[1] = { 0 };
+	const char *names[3] = { 0 };
+	const char *cleanup_names[3] = { 0 };
 	const struct ras_module_entry initialized = {
 		.name = "alpha",
+		.init = test_module_init,
+		.cleanup = test_module_cleanup,
+		.level = ACTIONS_MODULE,
+	};
+	const struct ras_module_entry following = {
+		.name = "omega",
+		.init = test_module_init,
+		.cleanup = test_module_cleanup,
+		.level = ACTIONS_MODULE,
+	};
+	const struct ras_module_entry preserved = {
+		.name = "preserved",
 		.init = test_module_init,
 		.cleanup = test_module_cleanup,
 		.level = ACTIONS_MODULE,
@@ -284,14 +298,28 @@ static void test_failed_init_rollback(void **state)
 	ras.cleanup_name = cleanup_names;
 	assert_int_equal(module_register(&initialized), 0);
 	assert_int_equal(module_register(&failed), 0);
+	assert_int_equal(module_register(&following), 0);
+	assert_int_equal(module_register(&preserved), 0);
 	assert_int_equal(module_init(&ras, "failed"), -EINVAL);
 	assert_false(module_is_enabled("failed"));
-	assert_int_equal(modules_init(&ras), -EINVAL);
-	assert_int_equal(ras.cleanup_count, 1);
-	assert_string_equal(ras.cleanup_name[0], "alpha");
-	assert_false(module_is_enabled("alpha"));
+	ctx = module_test_context("failed");
+	assert_non_null(ctx);
+	assert_null(ctx->ras);
+	assert_null(ctx->priv);
+	assert_int_equal(module_init(&ras, "preserved"), 0);
+	assert_int_equal(modules_init(&ras), 0);
+	assert_int_equal(ras.cleanup_count, 0);
+	assert_true(module_is_enabled("alpha"));
 	assert_false(module_is_enabled("failed"));
+	assert_true(module_is_enabled("omega"));
+	assert_true(module_is_enabled("preserved"));
+	assert_null(ctx->ras);
+	assert_null(ctx->priv);
 	modules_unregister();
+	assert_int_equal(ras.cleanup_count, 3);
+	assert_string_equal(ras.cleanup_name[0], "alpha");
+	assert_string_equal(ras.cleanup_name[1], "omega");
+	assert_string_equal(ras.cleanup_name[2], "preserved");
 }
 
 static void test_sql_backend_state(void **state)
@@ -441,7 +469,7 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_register_mixed_order),
 	cmocka_unit_test(test_register_muptiple_levels),
 	cmocka_unit_test(test_named_module_lifecycle),
-	cmocka_unit_test(test_failed_init_rollback),
+	cmocka_unit_test(test_failed_init_isolation),
 	cmocka_unit_test(test_sql_backend_state),
 	cmocka_unit_test(test_context_helpers),
 	cmocka_unit_test(test_test_registry),

@@ -151,6 +151,8 @@ int module_init(struct ras_events *ras, const char *name)
 		if (rc) {
 			log(ALL, LOG_ERR, "module %s init failed: %d\n",
 			    entry->ctx.entry->name, rc);
+			entry->ctx.priv = NULL;
+			entry->ctx.ras = NULL;
 			return rc;
 		}
 
@@ -198,8 +200,9 @@ int modules_init(struct ras_events *ras)
 			if (rc) {
 				log(ALL, LOG_ERR, "module %s init failed: %d\n",
 				    entry->ctx.entry->name, rc);
-				cleanup_modules();
-				return rc;
+				entry->ctx.priv = NULL;
+				entry->ctx.ras = NULL;
+				continue;
 			}
 			entry->is_enabled = true;
 		}
