@@ -153,12 +153,7 @@ static void test_mc_complete_record(void **state)
 	struct ras_events ras;
 	const char *output;
 
-#ifdef HAVE_MEMORY_CE_PFA
-	assert_int_equal(module_init(&ras, "page-isolation"), 0);
-	assert_int_equal(module_cleanup("page-isolation"), 0);
-	setenv("PAGE_CE_ACTION", "account", 1);
-	setenv("PAGE_CE_THRESHOLD", "50", 1);
-#endif
+	modules_cleanup_type(ACTIONS_MODULE);
 	init_trace(&seq, &record, &ras);
 	trace_mock_add_value("error_type", HW_EVENT_ERR_CORRECTED);
 	trace_mock_add_value("error_count", 2);
@@ -181,11 +176,6 @@ static void test_mc_complete_record(void **state)
 	assert_non_null(strstr(output, "location: 0:1:2"));
 	assert_non_null(strstr(output, "address: 0x12345000"));
 	trace_seq_destroy(&seq);
-#ifdef HAVE_MEMORY_CE_PFA
-	assert_int_equal(module_cleanup("page-isolation"), 0);
-	unsetenv("PAGE_CE_ACTION");
-	unsetenv("PAGE_CE_THRESHOLD");
-#endif
 }
 
 static void test_mc_missing_field_is_reported(void **state)

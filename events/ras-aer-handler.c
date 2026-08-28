@@ -23,6 +23,7 @@
 int ras_aer_event_handler(struct trace_seq *s, struct tep_record *record,
 			  struct tep_event *event, void *context);
 int db_aer_event(struct ras_events *ras, void *priv);
+static void aer_event_trigger_setup(void);
 
 #ifdef HAVE_UNITTEST
 int test_aer(void) __attribute__((weak));
@@ -78,7 +79,7 @@ static const char *aer_uncor_errors[32] = {
 static const char *aer_ce_trigger = NULL;
 static const char *aer_ue_trigger = NULL;
 
-void aer_event_trigger_setup(void)
+static void aer_event_trigger_setup(void)
 {
 	const char *trigger;
 

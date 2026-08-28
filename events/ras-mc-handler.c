@@ -22,6 +22,7 @@
 static int ras_mc_event_handler(struct trace_seq *s, struct tep_record *record,
 				struct tep_event *event, void *context);
 static int db_mc_event(struct ras_events *ras, void *priv);
+static void mc_event_trigger_setup(void);
 
 #ifdef HAVE_UNITTEST
 int test_mc(void) __attribute__((weak));
@@ -46,7 +47,7 @@ REGISTER_RAS_EVENT(ras_mc_event);
 static const char *mc_ce_trigger = NULL;
 static const char *mc_ue_trigger = NULL;
 
-void mc_event_trigger_setup(void)
+static void mc_event_trigger_setup(void)
 {
 	const char *trigger;
 

@@ -20,6 +20,7 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 				     struct tep_record *record,
 				     struct tep_event *event, void *context);
 int db_mf_event(struct ras_events *ras, void *priv);
+static void mem_fail_event_trigger_setup(void);
 
 #ifdef HAVE_UNITTEST
 int test_memory_failure(void) __attribute__((weak));
@@ -109,7 +110,7 @@ static const struct {
 #define MAX_ENV 6
 static const char *mf_trigger = NULL;
 
-void mem_fail_event_trigger_setup(void)
+static void mem_fail_event_trigger_setup(void)
 {
 	const char *trigger;
 

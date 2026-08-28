@@ -13,8 +13,6 @@
 
 extern unsigned long long mc_ce_stat_threshold;
 
-void mc_event_trigger_setup(void);
-
 struct ras_mc_event {
 	char timestamp[64];
 	int error_count;

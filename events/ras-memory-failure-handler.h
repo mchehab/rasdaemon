@@ -11,8 +11,6 @@
 
 #include "core/ras-events.h"
 
-void mem_fail_event_trigger_setup(void);
-
 struct ras_mf_event {
 	char timestamp[64];
 	char pfn[30];

@@ -11,7 +11,6 @@
 
 #include "core/ras-events.h"
 
-void aer_event_trigger_setup(void);
 struct ras_aer_event {
 	char timestamp[64];
 	const char *error_type;
