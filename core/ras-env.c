@@ -10,6 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "ras-env.h"
 #include "ras-logger.h"
 
 /* Maximum number of environment variables to load */
