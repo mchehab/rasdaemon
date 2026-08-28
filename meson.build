@@ -134,6 +134,7 @@ enable_abrt_report = false
 enable_aer = false
 enable_amp_ns_decode = false
 enable_arm = false
+enable_arm_vendor_data = false
 enable_cpu_fault_isolation = false
 enable_cxl = false
 enable_db = false
@@ -225,6 +226,7 @@ if not get_option('disable-all')
 
     if arch_arm and not get_option('amp-ns-decode').disabled()
         enable_amp_ns_decode = true
+        enable_arm_vendor_data = true
         enable_non_standard = true
         lib_sources += [
             'actions/ampere-oem-action.c',
@@ -234,6 +236,7 @@ if not get_option('disable-all')
 
     if arch_arm and not get_option('arm').disabled()
         enable_arm = true
+        enable_arm_vendor_data = true
         lib_sources += 'events-arch-arm/ras-arm-handler.c'
     endif
 
@@ -335,6 +338,14 @@ if not get_option('disable-all')
         lib_sources += 'events-arch-riscv/ras-reri-handler.c'
     endif
 
+endif
+
+#
+# ARM processor event vendor data
+#
+
+if enable_arm_vendor_data
+    lib_sources += 'events-arch-arm/ras-arm-vendor-data.c'
 endif
 
 #

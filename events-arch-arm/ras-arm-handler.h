@@ -15,27 +15,6 @@
 
 struct ras_arm_event;
 
-struct ras_arm_vendor_decoder {
-	const char *name;
-	void (*decode)(struct trace_seq *s, const uint8_t *buf, uint32_t length);
-};
-
-#ifdef HAVE_ARM
-int ras_arm_vendor_decoder_register(const struct ras_arm_vendor_decoder *decoder);
-void ras_arm_vendor_decoder_unregister(const struct ras_arm_vendor_decoder *decoder);
-#else
-static inline int
-ras_arm_vendor_decoder_register(const struct ras_arm_vendor_decoder *decoder)
-{
-	return 0;
-}
-
-static inline void
-ras_arm_vendor_decoder_unregister(const struct ras_arm_vendor_decoder *decoder)
-{
-}
-#endif
-
 /*
  * ARM Processor Error Information Structure, According to
  * UEFI_2_9 specification chapter N2.4.4.

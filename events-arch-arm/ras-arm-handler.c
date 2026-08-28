@@ -15,30 +15,12 @@
 #include "core/types.h"
 #include "db/ras-db.h"
 #include "events-arch-arm/ras-arm-handler.h"
+#include "events-arch-arm/ras-arm-vendor-data.h"
 
 static int ras_arm_event_handler(struct trace_seq *s,
 				 struct tep_record *record,
 				 struct tep_event *event, void *context);
 int db_arm_record(struct ras_events *ras, void *priv);
-
-static const struct ras_arm_vendor_decoder *ras_arm_vendor_decoder;
-
-int ras_arm_vendor_decoder_register(const struct ras_arm_vendor_decoder *decoder)
-{
-	if (!decoder || !decoder->name || !decoder->decode)
-		return -EINVAL;
-	if (ras_arm_vendor_decoder)
-		return -EEXIST;
-
-	ras_arm_vendor_decoder = decoder;
-	return 0;
-}
-
-void ras_arm_vendor_decoder_unregister(const struct ras_arm_vendor_decoder *decoder)
-{
-	if (ras_arm_vendor_decoder == decoder)
-		ras_arm_vendor_decoder = NULL;
-}
 
 #ifdef HAVE_UNITTEST
 int test_arm(void) __attribute__((weak));
@@ -594,10 +576,8 @@ static int ras_arm_event_handler(struct trace_seq *s,
 			return -1;
 		}
 
-		if (ras_arm_vendor_decoder)
-			ras_arm_vendor_decoder->decode(s, ev.vsei_error,
-						       ev.oem_len);
-		else
+		if (!ras_arm_vendor_data_decode(ev.midr, s, ev.vsei_error,
+						ev.oem_len))
 			display_raw_data(s, ev.vsei_error, ev.oem_len);
 #ifdef HAVE_CPU_FAULT_ISOLATION
 		if (ras_decode_cpu_isolation(s, record, event, &ev) < 0)

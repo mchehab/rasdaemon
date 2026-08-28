@@ -22,6 +22,7 @@
 #include "events-arch-arm/non-standard-nvidia.h"
 #include "events-arch-arm/non-standard-yitian.h"
 #include "events-arch-arm/ras-arm-handler.h"
+#include "events-arch-arm/ras-arm-vendor-data.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "events-arch-riscv/ras-reri-handler.h"
 #include "events-arch-x86/ras-erst.h"
@@ -367,6 +368,50 @@ int test_aer(void)
 #endif
 
 #ifdef HAVE_ARM
+static int arm_vendor_data_decode_count;
+
+static void test_arm_vendor_data_decode(struct trace_seq *s,
+					const uint8_t *buf, uint32_t length)
+{
+	arm_vendor_data_decode_count++;
+}
+
+static void test_arm_vendor_data_registry(void **state)
+{
+	const struct ras_arm_vendor_data_handler handler = {
+		.name = "test-arm-vendor-data",
+		.midr = 0x410fd0c0,
+		.decode = test_arm_vendor_data_decode,
+	};
+	const struct ras_arm_vendor_data_handler duplicate = {
+		.name = "test-arm-vendor-data-duplicate",
+		.midr = 0x410fd0c0,
+		.decode = test_arm_vendor_data_decode,
+	};
+	const struct ras_arm_vendor_data_handler invalid = {
+		.name = "test-arm-vendor-data-invalid",
+		.midr = -2,
+		.decode = test_arm_vendor_data_decode,
+	};
+	struct trace_seq seq;
+	uint8_t data = 0;
+
+	assert_int_equal(ras_arm_vendor_data_register(NULL), -EINVAL);
+	assert_int_equal(ras_arm_vendor_data_register(&invalid), -EINVAL);
+	assert_int_equal(ras_arm_vendor_data_register(&handler), 0);
+	assert_int_equal(ras_arm_vendor_data_register(&handler), -EEXIST);
+	assert_int_equal(ras_arm_vendor_data_register(&duplicate), -EEXIST);
+
+	trace_seq_init(&seq);
+	arm_vendor_data_decode_count = 0;
+	assert_true(ras_arm_vendor_data_decode(handler.midr, &seq, &data,
+					       sizeof(data)));
+	assert_int_equal(arm_vendor_data_decode_count, 1);
+	trace_seq_destroy(&seq);
+
+	ras_arm_vendor_data_unregister(&handler);
+}
+
 static void test_arm_processor_payload(void **state)
 {
 	struct ras_arm_err_info info = {
@@ -399,6 +444,7 @@ static void test_arm_processor_payload(void **state)
 }
 
 static const struct CMUnitTest arm_tests[] = {
+	cmocka_unit_test(test_arm_vendor_data_registry),
 	cmocka_unit_test(test_arm_processor_payload),
 };
 
@@ -1085,6 +1131,11 @@ static void test_ampere_decoder_registration(void **state)
 	assert_int_equal(ras_ns_test_decode(
 		"e8ed898d-df16-43cc-8ecc-54f060ef157f",
 		&ras, &seq, &event), 0);
+	trace_seq_destroy(&seq);
+	trace_seq_init(&seq);
+	assert_true(ras_arm_vendor_data_decode(0x410fd0c0, &seq,
+					       (const uint8_t *)&payload,
+					       sizeof(payload)));
 	trace_seq_destroy(&seq);
 
 	system_mock_start(0);
