@@ -123,6 +123,7 @@ struct mce_priv {
 
 /* register and handling routines */
 int init_mce_priv(struct ras_events *ras);
+void free_mce_priv(struct ras_events *ras);
 
 /* enables intel iMC logs */
 int set_intel_imc_log(enum cputype cputype, unsigned int ncpus);

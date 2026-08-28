@@ -290,10 +290,33 @@ ret:
 	return ret;
 }
 
+static void free_mce_data(struct mce_priv *mce)
+{
+	if (!mce)
+		return;
+
+	free(mce->processor_flags);
+	free(mce);
+}
+
+void free_mce_priv(struct ras_events *ras)
+{
+	if (!ras)
+		return;
+
+	free_mce_data(ras->mce_priv);
+	ras->mce_priv = NULL;
+}
+
 int init_mce_priv(struct ras_events *ras)
 {
 	int rc;
 	struct mce_priv *mce;
+
+	if (!ras)
+		return -EINVAL;
+	if (ras->mce_priv)
+		return 0;
 
 	ras->mce_priv = calloc(1, sizeof(struct mce_priv));
 	if (!ras->mce_priv) {
@@ -305,10 +328,7 @@ int init_mce_priv(struct ras_events *ras)
 
 	rc = detect_cpu(mce);
 	if (rc) {
-		if (mce->processor_flags)
-			free(mce->processor_flags);
-		free(ras->mce_priv);
-		ras->mce_priv = NULL;
+		free_mce_priv(ras);
 		return rc;
 	}
 
@@ -557,7 +577,7 @@ int ras_offline_mce_event(struct ras_mc_offline_event *event)
 	trace_seq_destroy(&s);
 
 free_mce:
-	free(priv);
+	free_mce_data(priv);
 	free(mce);
 	return rc;
 }
@@ -755,21 +775,22 @@ static int db_mce_record(struct ras_events *ras, void *priv)
 	return rc;
 }
 
-static int ras_mce_db_init(struct ras_module_ctx *ctx)
+static int ras_mce_init(struct ras_module_ctx *ctx)
 {
 	return ras_db_table_register(ctx, &mce_record_db);
 }
 
-static void ras_mce_db_cleanup(struct ras_module_ctx *ctx)
+static void ras_mce_cleanup(struct ras_module_ctx *ctx)
 {
+	free_mce_priv(ctx->ras);
 	ras_db_table_unregister(ctx);
 }
 
 static const struct ras_module_entry ras_mce_module = {
 	.name = "x86-mce-event",
 	.level = BASE_EVENT_MODULE,
-	.init = ras_mce_db_init,
-	.cleanup = ras_mce_db_cleanup,
+	.init = ras_mce_init,
+	.cleanup = ras_mce_cleanup,
 };
 
 REGISTER_RAS_MODULE(ras_mce_module);

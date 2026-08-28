@@ -1005,6 +1005,21 @@ int test_openbmc_sel(void)
 #endif
 
 #ifdef HAVE_MCE
+static void test_mce_priv_cleanup(void **state)
+{
+	struct ras_events ras = { 0 };
+
+	assert_int_equal(init_mce_priv(NULL), -EINVAL);
+	ras.mce_priv = calloc(1, sizeof(*ras.mce_priv));
+	assert_non_null(ras.mce_priv);
+	ras.mce_priv->processor_flags = strdup("mce flags");
+	assert_non_null(ras.mce_priv->processor_flags);
+
+	free_mce_priv(&ras);
+	assert_null(ras.mce_priv);
+	free_mce_priv(&ras);
+}
+
 static void test_mce_vendor_decoders(void **state)
 {
 	struct mce_event event = {
@@ -1030,6 +1045,7 @@ static void test_mce_vendor_decoders(void **state)
 }
 
 static const struct CMUnitTest mce_tests[] = {
+	cmocka_unit_test(test_mce_priv_cleanup),
 	cmocka_unit_test(test_mce_vendor_decoders),
 };
 

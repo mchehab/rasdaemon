@@ -167,7 +167,7 @@ static void handle_erst_mce(void)
 	dir = opendir(ERST_PATH);
 	if (!dir) {
 		log(ALL, LOG_INFO, "Failed to open %s directory\n", ERST_PATH);
-		return;
+		goto free_mce;
 	}
 
 	while ((entry = readdir(dir)) != NULL) {
@@ -193,6 +193,8 @@ static void handle_erst_mce(void)
 	}
 
 	closedir(dir);
+free_mce:
+	free_mce_priv(&ras);
 }
 #endif
 /* ERST just support mce now */
