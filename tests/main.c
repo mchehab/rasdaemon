@@ -169,6 +169,9 @@ static const char *const codes[] = {
 	[RESET]  = "\033[0m"
 };
 
+static char running_test[256];
+static bool running_line_open;
+
 static const char *get_color(enum ansi_color color)
 {
 	if (!stdout_is_vt || color > ANSI_MAX_COLORS)
@@ -177,9 +180,53 @@ static const char *get_color(enum ansi_color color)
 	return codes[color];
 }
 
+static void save_test_name(const char *message)
+{
+	const char *name = &message[12];
+	size_t len;
+
+	while (*name == ' ')
+		name++;
+
+	len = strcspn(name, "\r\n");
+	if (len >= sizeof(running_test))
+		len = sizeof(running_test) - 1;
+
+	memcpy(running_test, name, len);
+	running_test[len] = '\0';
+}
+
+static bool is_running_test(const char *message)
+{
+	const char *name = &message[12];
+	size_t len;
+
+	while (*name == ' ')
+		name++;
+
+	len = strcspn(name, "\r\n");
+	return strlen(running_test) == len &&
+	       !strncmp(running_test, name, len);
+}
+
+static bool is_test_result(const char *message)
+{
+	return !strncmp(message, "[       OK ]", 12) ||
+	       !strncmp(message, "[  FAILED  ]", 12) ||
+	       !strncmp(message, "[  SKIPPED ]", 12);
+}
+
 static void filter_output(const char *format, va_list args)
 {
+	char *message;
 	const char *color = NULL;
+	size_t len;
+	bool keep_line_open = false;
+	int rc;
+
+	rc = vasprintf(&message, format, args);
+	if (rc < 0)
+		return;
 
 	/*
 	 * NOTE: This is a poor man approach, as it assumes that formats
@@ -189,34 +236,45 @@ static void filter_output(const char *format, va_list args)
 	 *	 won't use colors, which is not the end of times.
 	 */
 
-	if (!(*format == '[') || strlen(format) < 12 || !(format[10] != ']')) {
-		vfprintf(stdout, format, args);
+	if (running_line_open) {
+		if (is_test_result(message) && is_running_test(message)) {
+			fputs("\r\033[2K", stdout);
+		} else {
+			fputc('\n', stdout);
+		}
+		running_line_open = false;
+		running_test[0] = '\0';
+	}
+
+	if (!(*message == '[') || strlen(message) < 12 || message[11] != ']') {
+		fputs(message, stdout);
+		free(message);
 		return;
 	}
 
-#if 0 /* we should add a flag to optionally drop it */
-	if (!strncmp(format, "[ RUN      ]", 12)) {
-		return;
-	}
-#endif
-
-	if (!strncmp(format, "[       OK ]", 12) ||
-            !strncmp(format, "[  PASSED  ]", 12))
+	if (!strncmp(message, "[       OK ]", 12) ||
+	    !strncmp(message, "[  PASSED  ]", 12))
 		color = get_color(GREEN);
-	else if (!strncmp(format, "[  FAILED  ]", 12) ||
-		 !strncmp(format, "[   LINE   ]", 12) ||
-		 !strncmp(format, "[  ERROR   ]", 12))
+	else if (!strncmp(message, "[  FAILED  ]", 12) ||
+		 !strncmp(message, "[   LINE   ]", 12) ||
+		 !strncmp(message, "[  ERROR   ]", 12))
 		color = get_color(RED);
-	else if (!strncmp(format, "[  SKIPPED ]", 12))
+	else if (!strncmp(message, "[  SKIPPED ]", 12))
 		color = get_color(YELLOW);
+
+	if (stdout_is_vt && !strncmp(message, "[ RUN      ]", 12)) {
+		save_test_name(message);
+		running_line_open = true;
+		keep_line_open = true;
+	}
 
 	fputc('[', stdout);
 
 	if (color)
 		fputs(color, stdout);
 
-	for (int i=1; i < 11; i++)
-		fputc(format[i], stdout);
+	for (int i = 1; i < 11; i++)
+		fputc(message[i], stdout);
 
 	color = get_color(RESET);
 	if (color)
@@ -224,7 +282,13 @@ static void filter_output(const char *format, va_list args)
 
 	fputc(']', stdout);
 
-	vfprintf(stdout, &format[12], args);
+	len = strlen(&message[12]);
+	if (keep_line_open)
+		len = strcspn(&message[12], "\r\n");
+	fwrite(&message[12], 1, len, stdout);
+	if (keep_line_open)
+		fflush(stdout);
+	free(message);
 }
 
 const struct CMCallbacks callbacks = {
