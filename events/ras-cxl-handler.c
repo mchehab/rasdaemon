@@ -101,7 +101,6 @@ CXL_EVENT_ENTRY(ras_cxl_sparing_entry, "cxl_memory_sparing",
 		ras_cxl_memory_sparing_event_handler,
 		db_cxl_memory_sparing_event,
 		CXL_MEMORY_SPARING_EVENT);
-#include "actions/ras-page-isolation.h"
 
 /* Common Functions */
 static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size)
@@ -901,10 +900,6 @@ static const struct cxl_event_flags cxl_cme_threshold_ev_flags[] = {
  * General Media Event Record - GMER
  * CXL rev 3.1 Section 8.2.9.2.1.1; Table 8-45
  */
-#define CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT		BIT(0)
-#define CXL_GMER_EVT_DESC_THRESHOLD_EVENT		BIT(1)
-#define CXL_GMER_EVT_DESC_POISON_LIST_OVERFLOW		BIT(2)
-
 static const struct cxl_event_flags cxl_gmer_event_desc_flags[] = {
 	{ .bit = CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT, .flag = "UNCORRECTABLE EVENT" },
 	{ .bit = CXL_GMER_EVT_DESC_THRESHOLD_EVENT, .flag = "THRESHOLD EVENT" },
@@ -1286,14 +1281,6 @@ int ras_cxl_dram_event_handler(struct trace_seq *s,
 				trace_seq_printf(s, "%02x ", ev.cor_mask[i]);
 		}
 	}
-
-#ifdef HAVE_MEMORY_CE_PFA
-	/* Page offline for CE threshold events - only if HPA is valid */
-	if (ev.hpa &&
-	    !(ev.descriptor & CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT) &&
-	    (ev.descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT))
-		ras_hw_threshold_pageoffline(ev.hpa);
-#endif
 
 	if (ev.validity_flags & CXL_DER_VALID_COMPONENT_ID) {
 		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);

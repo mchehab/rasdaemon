@@ -405,12 +405,6 @@ static int ras_mc_event_handler(struct trace_seq *s,
 
 	ras_mc_event_stat(now, &ev);
 
-#ifdef HAVE_MEMORY_CE_PFA
-	/* Account page corrected errors */
-	if (!strcmp(ev.error_type, "Corrected"))
-		ras_record_page_error(ev.address, ev.error_count, now);
-#endif
-
 #ifdef HAVE_MEMORY_ROW_CE_PFA
 	/* Account row corrected errors */
 	struct timespec ts;

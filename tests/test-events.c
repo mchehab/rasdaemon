@@ -677,6 +677,18 @@ int test_memory_failure(void)
 #ifdef HAVE_MEMORY_CE_PFA
 static void test_page_pfa_configuration_and_accounting(void **state)
 {
+	struct ras_mc_event event = {
+		.error_count = 1,
+		.error_type = "Corrected",
+		.address = 0x1234,
+	};
+	struct ras_events ras = { 0 };
+#ifdef HAVE_CXL
+	struct ras_cxl_dram_event dram = {
+		.hpa = 0x3000,
+		.descriptor = CXL_GMER_EVT_DESC_THRESHOLD_EVENT,
+	};
+#endif
 	unsigned long value;
 
 	assert_true(module_is_registered("page-isolation"));
@@ -687,10 +699,18 @@ static void test_page_pfa_configuration_and_accounting(void **state)
 	setenv("PAGE_CE_ACTION", "account", 1);
 	setenv("PAGE_CE_THRESHOLD", "2", 1);
 	setenv("PAGE_CE_REFRESH_CYCLE", "10s", 1);
-	ras_page_account_init(NULL);
-	ras_record_page_error(0x1234, 1, 10);
-	ras_record_page_error(0x1fff, 1, 11);
-	page_record_infos_free(NULL);
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "page-isolation"), 0);
+	assert_int_equal(ras_event_publish(&ras, MC_EVENT, &event), 0);
+	assert_int_equal(ras_page_isolation_test_record_count(), 1);
+	event.address = 0x1fff;
+	assert_int_equal(ras_event_publish(&ras, MC_EVENT, &event), 0);
+	assert_int_equal(ras_page_isolation_test_record_count(), 1);
+#ifdef HAVE_CXL
+	assert_int_equal(ras_event_publish(&ras, CXL_DRAM_EVENT, &dram), 0);
+	assert_int_equal(ras_page_isolation_test_record_count(), 2);
+#endif
+	modules_cleanup_type(ACTIONS_MODULE);
 	unsetenv("PAGE_CE_ACTION");
 	unsetenv("PAGE_CE_THRESHOLD");
 	unsetenv("PAGE_CE_REFRESH_CYCLE");

@@ -21,6 +21,8 @@
 #include "core/types.h"
 #include "actions/ras-page-isolation.h"
 #include "actions/ras-poison-page-stat.h"
+#include "events/ras-cxl-handler.h"
+#include "events/ras-mc-handler.h"
 
 #define PARSED_ENV_LEN 50
 #define ROW_ID_MAX_LEN 200
@@ -100,6 +102,10 @@ static size_t page_record_count;
 static size_t row_record_count;
 static size_t row_page_record_count;
 LIST_HEAD(row_listhead, row_record) row_head;
+
+#ifdef HAVE_MEMORY_CE_PFA
+static const struct ras_event_consumer page_isolation_consumer;
+#endif
 
 static void page_offline_init(void)
 {
@@ -308,11 +314,23 @@ int ras_row_account_init(struct ras_module_ctx *ctx)
 
 int ras_page_account_init(struct ras_module_ctx *ctx)
 {
+#ifdef HAVE_MEMORY_CE_PFA
+	int rc;
+#endif
+
 	(void)ctx;
 	page_offline_init();
 	page_isolation_init();
+#ifdef HAVE_MEMORY_CE_PFA
+	rc = ras_event_consumer_register(&page_isolation_consumer);
+	if (rc)
+		log(TERM, LOG_ERR,
+		    "Failed to register page isolation consumer: %d\n", rc);
 
+	return rc;
+#else
 	return 0;
+#endif
 }
 
 static int do_page_offline(unsigned long long addr, enum otype type)
@@ -436,6 +454,9 @@ void page_record_infos_free(struct ras_module_ctx *ctx)
 	struct rb_node *node = rb_first(&page_records);
 
 	(void)ctx;
+#ifdef HAVE_MEMORY_CE_PFA
+	ras_event_consumer_unregister(&page_isolation_consumer);
+#endif
 	while (node) {
 		struct rb_node *next = rb_next(node);
 		struct page_record *pr = rb_entry(node, struct page_record, entry);
@@ -723,6 +744,11 @@ static int parse_row_info(const char *detail, struct row_record *r)
 }
 
 #ifdef HAVE_UNITTEST
+size_t ras_page_isolation_test_record_count(void)
+{
+	return page_record_count;
+}
+
 int ras_page_isolation_test_parse_row(const char *detail,
 				      struct row_record *record)
 {
@@ -1002,6 +1028,38 @@ void row_record_infos_free(struct ras_module_ctx *ctx)
 /* memory row CE threshold policy ends */
 
 #ifdef HAVE_MEMORY_CE_PFA
+static int page_isolation_consume(struct ras_events *ras, int event,
+				  void *data)
+{
+	if (event == MC_EVENT) {
+		struct ras_mc_event *mc = data;
+
+		if (!strcmp(mc->error_type, "Corrected"))
+			ras_record_page_error(mc->address, mc->error_count,
+					      time(NULL));
+		return 0;
+	}
+
+	if (event == CXL_DRAM_EVENT) {
+		struct ras_cxl_dram_event *dram = data;
+
+		if (dram->hpa &&
+		    !(dram->descriptor &
+		      CXL_GMER_EVT_DESC_UNCORRECTABLE_EVENT) &&
+		    (dram->descriptor & CXL_GMER_EVT_DESC_THRESHOLD_EVENT))
+			ras_hw_threshold_pageoffline(dram->hpa);
+	}
+
+	return 0;
+}
+
+static const struct ras_event_consumer page_isolation_consumer = {
+	.name = "page-isolation",
+	.priority = PRI_MEM_ISOLATION,
+	.events = BIT_ULL(MC_EVENT) | BIT_ULL(CXL_DRAM_EVENT),
+	.consume = page_isolation_consume,
+};
+
 static const struct ras_module_entry page_isolation_module = {
 	.name = "page-isolation",
 	.level = ACTIONS_MODULE,
