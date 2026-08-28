@@ -65,11 +65,4 @@ static const struct ras_module_entry amp_oem_action_module = {
 	.cleanup = amp_oem_action_cleanup,
 };
 
-static void __attribute__((constructor)) amp_oem_action_register(void)
-{
-	int rc = module_register(&amp_oem_action_module);
-
-	if (rc)
-		log(TERM, LOG_ERR,
-		    "Failed to register Ampere OEM action module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(amp_oem_action_module);

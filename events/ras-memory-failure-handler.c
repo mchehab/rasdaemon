@@ -305,10 +305,4 @@ static const struct ras_module_entry ras_memory_failure_module = {
 	.cleanup = ras_memory_failure_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_memory_failure_register(void)
-{
-	int rc = module_register(&ras_memory_failure_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register memory-failure module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_memory_failure_module);

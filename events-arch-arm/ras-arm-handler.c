@@ -666,10 +666,4 @@ static const struct ras_module_entry ras_arm_module = {
 	.cleanup = ras_arm_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_arm_register(void)
-{
-	int rc = module_register(&ras_arm_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register ARM module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_arm_module);

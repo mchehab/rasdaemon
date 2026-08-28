@@ -335,10 +335,4 @@ static const struct ras_module_entry ras_non_standard_module = {
 	.cleanup = ras_non_standard_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_non_standard_register(void)
-{
-	int rc = module_register(&ras_non_standard_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register non-standard module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_non_standard_module);

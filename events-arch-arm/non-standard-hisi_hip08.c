@@ -1066,10 +1066,4 @@ static const struct ras_module_entry hip08_module = {
 	.cleanup = hip08_cleanup,
 };
 
-static void __attribute__((constructor)) hip08_register(void)
-{
-	int rc = module_register(&hip08_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register HIP08 module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(hip08_module);

@@ -800,12 +800,4 @@ static const struct ras_module_entry db_postgresql_module = {
 	.level = DB_MODULE,
 };
 
-static void __attribute__((constructor)) pg_register(void)
-{
-	int ret;
-
-	ret = module_register(&db_postgresql_module);
-	if (ret != 0)
-		log(TERM, LOG_ERR,
-		    "Failed to register PostgreSQL module: %d\n", ret);
-}
+REGISTER_RAS_MODULE(db_postgresql_module);

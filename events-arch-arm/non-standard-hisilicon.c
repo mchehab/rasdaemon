@@ -392,10 +392,4 @@ static const struct ras_module_entry hisi_ns_module = {
 	.cleanup = hisi_ns_cleanup,
 };
 
-static void __attribute__((constructor)) hisi_ns_register(void)
-{
-	int rc = module_register(&hisi_ns_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register HiSilicon module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(hisi_ns_module);

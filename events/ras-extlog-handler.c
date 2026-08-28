@@ -409,10 +409,4 @@ static const struct ras_module_entry ras_extlog_module = {
 	.cleanup = ras_extlog_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_extlog_register(void)
-{
-	int rc = module_register(&ras_extlog_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register EXTLOG module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_extlog_module);

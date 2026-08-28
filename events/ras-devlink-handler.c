@@ -235,10 +235,4 @@ static const struct ras_module_entry ras_devlink_module = {
 	.cleanup = ras_devlink_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_devlink_register(void)
-{
-	int rc = module_register(&ras_devlink_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register devlink module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_devlink_module);

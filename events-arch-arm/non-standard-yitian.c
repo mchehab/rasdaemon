@@ -292,10 +292,4 @@ static const struct ras_module_entry yitian_ns_module = {
 	.cleanup = yitian_ns_cleanup,
 };
 
-static void __attribute__((constructor)) yitian_ns_register(void)
-{
-	int rc = module_register(&yitian_ns_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register Yitian module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(yitian_ns_module);

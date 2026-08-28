@@ -42,6 +42,12 @@ struct ras_module_ctx {
  */
 int module_register(const struct ras_module_entry *entry);
 
+#define REGISTER_RAS_MODULE(entry) \
+	static void __attribute__((constructor)) register_##entry(void) \
+	{ \
+		module_register(&(entry)); \
+	}
+
 int module_init(struct ras_events *ras, const char *name);
 int module_cleanup(const char *name);
 

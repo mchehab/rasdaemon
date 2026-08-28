@@ -1180,10 +1180,4 @@ static const struct ras_module_entry abrt_report_module = {
 	.cleanup = abrt_report_cleanup,
 };
 
-static void __attribute__((constructor)) abrt_report_register(void)
-{
-	int rc = module_register(&abrt_report_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register ABRT module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(abrt_report_module);

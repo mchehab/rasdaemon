@@ -574,14 +574,7 @@ static const struct ras_module_entry page_isolation_module = {
 	.cleanup = page_record_infos_free,
 };
 
-static void __attribute__((constructor)) page_isolation_register(void)
-{
-	int rc = module_register(&page_isolation_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register page isolation module: %d\n",
-		    rc);
-}
+REGISTER_RAS_MODULE(page_isolation_module);
 #endif /* HAVE_MEMORY_CE_PFA */
 
 /* memory page CE threshold policy ends */
@@ -1140,12 +1133,5 @@ static const struct ras_module_entry row_isolation_module = {
 	.cleanup = row_record_infos_free,
 };
 
-static void __attribute__((constructor)) row_isolation_register(void)
-{
-	int rc = module_register(&row_isolation_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register row isolation module: %d\n",
-		    rc);
-}
+REGISTER_RAS_MODULE(row_isolation_module);
 #endif /* HAVE_MEMORY_ROW_CE_PFA */

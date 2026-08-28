@@ -2156,13 +2156,7 @@ static const struct ras_module_entry ras_cxl_module = {
 	.cleanup = ras_cxl_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_cxl_register(void)
-{
-	int rc = module_register(&ras_cxl_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register CXL module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_cxl_module);
 
 /*
  * Memory Sparing Event Record - MSER

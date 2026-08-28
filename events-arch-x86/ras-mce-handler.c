@@ -772,10 +772,4 @@ static const struct ras_module_entry ras_mce_module = {
 	.cleanup = ras_mce_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_mce_register(void)
-{
-	int rc = module_register(&ras_mce_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register MCE module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_mce_module);

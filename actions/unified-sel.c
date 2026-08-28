@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "core/modules.h"
-#include "core/ras-logger.h"
 #include "core/ras-events.h"
 #include "events/ras-aer-handler.h"
 
@@ -150,11 +149,4 @@ static const struct ras_module_entry openbmc_unified_sel_module = {
 	.cleanup = openbmc_unified_sel_cleanup,
 };
 
-static void __attribute__((constructor)) openbmc_unified_sel_register(void)
-{
-	int rc = module_register(&openbmc_unified_sel_module);
-
-	if (rc)
-		log(TERM, LOG_ERR,
-		    "Failed to register OpenBMC unified SEL module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(openbmc_unified_sel_module);

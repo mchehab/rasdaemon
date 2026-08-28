@@ -739,10 +739,4 @@ static const struct ras_module_entry nvidia_module = {
 	.cleanup = nvidia_cleanup,
 };
 
-static void __attribute__((constructor)) nvidia_register(void)
-{
-	int rc = module_register(&nvidia_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register NVIDIA module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(nvidia_module);

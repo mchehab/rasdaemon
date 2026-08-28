@@ -657,12 +657,4 @@ static const struct ras_module_entry db_mysql_module = {
 	.level = DB_MODULE,
 };
 
-static void __attribute__((constructor)) mysql_register(void)
-{
-	int ret;
-
-	ret = module_register(&db_mysql_module);
-	if (ret != 0)
-		log(TERM, LOG_ERR, "Failed to register MySQL module: %d\n",
-		    ret);
-}
+REGISTER_RAS_MODULE(db_mysql_module);

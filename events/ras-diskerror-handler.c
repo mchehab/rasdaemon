@@ -209,10 +209,4 @@ static const struct ras_module_entry ras_diskerror_module = {
 	.cleanup = ras_diskerror_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_diskerror_register(void)
-{
-	int rc = module_register(&ras_diskerror_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register disk-error module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_diskerror_module);

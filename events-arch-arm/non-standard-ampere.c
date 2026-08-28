@@ -1065,12 +1065,4 @@ static const struct ras_module_entry amp_module = {
 	.cleanup = amp_cleanup,
 };
 
-static void __attribute__((constructor)) amp_register(void)
-{
-	int rc;
-
-	rc = module_register(&amp_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register Ampere module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(amp_module);

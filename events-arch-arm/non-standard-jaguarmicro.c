@@ -1090,10 +1090,4 @@ static const struct ras_module_entry jm_module = {
 	.cleanup = jm_cleanup,
 };
 
-static void __attribute__((constructor)) jm_register(void)
-{
-	int rc = module_register(&jm_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register JaguarMicro module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(jm_module);

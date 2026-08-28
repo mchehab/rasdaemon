@@ -543,11 +543,4 @@ static const struct ras_module_entry cpu_isolation_module = {
 	.cleanup = cpu_infos_free,
 };
 
-static void __attribute__((constructor)) cpu_isolation_register(void)
-{
-	int rc = module_register(&cpu_isolation_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register CPU isolation module: %d\n",
-		    rc);
-}
+REGISTER_RAS_MODULE(cpu_isolation_module);

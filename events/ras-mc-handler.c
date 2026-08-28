@@ -220,13 +220,7 @@ static const struct ras_module_entry ras_mc_module = {
 	.cleanup = ras_db_table_unregister,
 };
 
-static void __attribute__((constructor)) ras_mc_module_register(void)
-{
-	int rc = module_register(&ras_mc_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register MC module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_mc_module);
 
 static int ras_mc_event_handler(struct trace_seq *s,
 				struct tep_record *record,

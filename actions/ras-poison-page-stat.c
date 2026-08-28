@@ -100,11 +100,4 @@ static const struct ras_module_entry poison_page_stat_module = {
 	.cleanup = poison_page_stat_cleanup,
 };
 
-static void __attribute__((constructor)) poison_page_stat_register(void)
-{
-	int rc = module_register(&poison_page_stat_module);
-
-	if (rc)
-		log(TERM, LOG_ERR,
-		    "Failed to register poison page statistics module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(poison_page_stat_module);

@@ -242,10 +242,4 @@ static const struct ras_module_entry ras_signal_module = {
 	.cleanup = ras_signal_db_cleanup,
 };
 
-static void __attribute__((constructor)) ras_signal_register(void)
-{
-	int rc = module_register(&ras_signal_module);
-
-	if (rc)
-		log(TERM, LOG_ERR, "Failed to register signal module: %d\n", rc);
-}
+REGISTER_RAS_MODULE(ras_signal_module);
