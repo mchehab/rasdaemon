@@ -7,8 +7,10 @@
 #ifndef __RAS_POISON_PAGE_STAT_H
 #define __RAS_POISON_PAGE_STAT_H
 
-extern unsigned long long poison_stat_threshold;
-
 int ras_poison_page_stat(void);
+
+#ifdef HAVE_UNITTEST
+unsigned int ras_poison_page_stat_test_calls(void);
+#endif
 
 #endif

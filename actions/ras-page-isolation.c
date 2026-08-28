@@ -403,9 +403,7 @@ static void page_offline(struct page_record *pr)
 	log(TERM, LOG_INFO, "%s Result of offlining page at %#llx: %s\n",
 	    loglevel_str[LOGLEVEL_ALERT], addr, page_state[pr->offlined]);
 
-#ifdef HAVE_POISON_PAGE_STAT
 	ras_poison_page_stat();
-#endif
 }
 
 static void page_record(struct page_record *pr, unsigned int count, time_t time)

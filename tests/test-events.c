@@ -36,6 +36,7 @@
 #include "events/ras-signal-handler.h"
 #include "actions/ras-cpu-isolation.h"
 #include "actions/ras-page-isolation.h"
+#include "actions/ras-poison-page-stat.h"
 #include "actions/abrt-report.h"
 #include "actions/unified-sel.h"
 #include "tests/trace-mock.h"
@@ -651,6 +652,8 @@ static void test_memory_failure_record(void **state)
 	assert_string_equal(ras_memory_failure_test_action_result(3),
 			    "Recovered");
 	assert_string_equal(ras_memory_failure_test_action_result(99), "unknown");
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "poison-page-stat"), 0);
 	init_trace(&seq, &record, &ras);
 	trace_mock_add_value("pfn", 0x123);
 	trace_mock_add_value("type", 4);
@@ -661,7 +664,9 @@ static void test_memory_failure_record(void **state)
 	assert_non_null(strstr(output, "pfn=0x123"));
 	assert_non_null(strstr(output, "page_type=huge page"));
 	assert_non_null(strstr(output, "action_result=Recovered"));
+	assert_int_equal(ras_poison_page_stat_test_calls(), 1);
 	trace_seq_destroy(&seq);
+	modules_cleanup_type(ACTIONS_MODULE);
 }
 
 static const struct CMUnitTest memory_failure_tests[] = {

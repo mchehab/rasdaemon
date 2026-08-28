@@ -36,7 +36,6 @@ static const struct ras_event_entry ras_memory_failure_event = {
 	.record = db_mf_event,
 };
 REGISTER_RAS_EVENT(ras_memory_failure_event);
-#include "actions/ras-poison-page-stat.h"
 
 /* Memory failure - various types of pages */
 enum mf_action_page_type {
@@ -242,10 +241,6 @@ int ras_memory_failure_event_handler(struct trace_seq *s,
 		return -1;
 	ev.action_result = get_action_result(val);
 	trace_seq_printf(s, "action_result=%s ", ev.action_result);
-
-#ifdef HAVE_POISON_PAGE_STAT
-	ras_poison_page_stat();
-#endif
 
 	ras_event_publish(ras, MF_EVENT, &ev);
 	run_mf_trigger(&ev);

@@ -19,7 +19,6 @@
 #include "events-arch-x86/ras-erst.h"
 #include "events-arch-x86/ras-mce-handler.h"
 #include "events/ras-mc-handler.h"
-#include "actions/ras-poison-page-stat.h"
 
 /*
  * Arguments(argp) handling logic and main
@@ -30,7 +29,6 @@
 #define ARGS_DOC "<options>"
 #define DISABLE "DISABLE"
 #define MC_CE_STAT_THRESHOLD "MC_CE_STAT_THRESHOLD"
-#define POISON_STAT_THRESHOLD "POISON_STAT_THRESHOLD"
 
 static const char *const rasdaemon_conf = RASDAEMON_ENV;
 
@@ -214,13 +212,6 @@ int main(int argc, char *argv[])
 		mc_ce_stat_threshold = strtoull(getenv(MC_CE_STAT_THRESHOLD), NULL, 0);
 	if (mc_ce_stat_threshold)
 		log(TERM, LOG_INFO, "Threshold of memory Corrected Errors statistics is %lld\n", mc_ce_stat_threshold);
-
-#ifdef HAVE_POISON_PAGE_STAT
-	if (getenv(POISON_STAT_THRESHOLD))
-		poison_stat_threshold = strtoull(getenv(POISON_STAT_THRESHOLD), NULL, 0);
-	if (poison_stat_threshold)
-		log(TERM, LOG_INFO, "Threshold of poison page statistics is %lld kB\n", poison_stat_threshold);
-#endif
 
 	if (args.enable_ras) {
 		int enable;

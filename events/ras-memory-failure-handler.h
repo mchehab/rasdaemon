@@ -11,8 +11,6 @@
 
 #include "core/ras-events.h"
 
-extern unsigned long long poison_stat_threshold;
-
 void mem_fail_event_trigger_setup(void);
 
 struct ras_mf_event {
