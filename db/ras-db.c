@@ -417,6 +417,9 @@ int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name)
 	if (!ras_db_ops)
 		return 0;
 
+	if (!stmt)
+		return -EINVAL;
+
 	return ras_db_ops->eval_stmt(stmt, tab_name);
 }
 
