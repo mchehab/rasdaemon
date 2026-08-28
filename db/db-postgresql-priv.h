@@ -18,6 +18,7 @@
 struct pg_conn_priv {
 	PGconn *conn;
 	const char *schema;
+	unsigned int next_stmt_id;
 };
 
 #endif /* DB_POSTGRESQL_PRIV_H */

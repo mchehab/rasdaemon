@@ -535,8 +535,9 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 			n_parms++;
 	}
 
-	/* unique statement name: "ins_<tabname>" */
-	snprintf(stmt_name, sizeof(stmt_name), "ins_%s", db_tab->name);
+	/* Statement names must be unique within a PostgreSQL connection. */
+	snprintf(stmt_name, sizeof(stmt_name), "rasdaemon_%u",
+		 conn_priv->next_stmt_id++);
 
 	p = sql;
 	p += snprintf(p, end - p, "INSERT INTO %s.%s (", schema, db_tab->name);
@@ -658,6 +659,30 @@ static void db_pg_free_stmt(struct pg_stmt_priv *priv)
 	}
 }
 
+static int db_pg_deallocate_stmt(struct pg_stmt_priv *priv)
+{
+	char sql[160];
+	PGresult *res;
+	int rc = 0;
+
+	if (PQstatus(priv->conn) != CONNECTION_OK)
+		return 0;
+
+	snprintf(sql, sizeof(sql), "DEALLOCATE %s", priv->stmt_name);
+	res = PQexec(priv->conn, sql);
+	if (!res)
+		return -1;
+
+	if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+		log(TERM, LOG_ERR, "Failed to deallocate %s: %s\n",
+		    priv->stmt_name, PQresultErrorMessage(res));
+		rc = -1;
+	}
+	PQclear(res);
+
+	return rc;
+}
+
 
 static int db_pg_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 {
@@ -703,10 +728,12 @@ static int db_pg_finalize(unsigned int cpu,
 			  struct ras_stmt *__stmt, const char *name)
 {
 	struct pg_stmt_priv *priv = (struct pg_stmt_priv *)__stmt;
+	int rc;
 
 	if (!priv)
 		return 0;
 
+	rc = db_pg_deallocate_stmt(priv);
 	db_pg_free_stmt(priv);
 	free(priv->stmt_name);
 	free(priv->values);
@@ -714,7 +741,7 @@ static int db_pg_finalize(unsigned int cpu,
 	free(priv->is_blob);
 	free(priv);
 
-	return 0;
+	return rc;
 }
 
 /*
