@@ -45,8 +45,8 @@ static const struct ras_event_entry ras_aer_event = {
 	.record = db_aer_event,
 };
 REGISTER_RAS_EVENT(ras_aer_event);
-#include "modules/ras-report.h"
-#include "modules/unified-sel.h"
+#include "actions/ras-report.h"
+#include "actions/unified-sel.h"
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {

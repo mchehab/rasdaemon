@@ -42,8 +42,8 @@ static const struct ras_event_entry ras_mc_event = {
 };
 
 REGISTER_RAS_EVENT(ras_mc_event);
-#include "modules/ras-page-isolation.h"
-#include "modules/ras-report.h"
+#include "actions/ras-page-isolation.h"
+#include "actions/ras-report.h"
 
 #define MAX_ENV 30
 static const char *mc_ce_trigger = NULL;

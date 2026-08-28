@@ -219,7 +219,7 @@ if not get_option('disable-all')
 
     if not get_option('abrt-report').disabled()
         enable_abrt_report = true
-        lib_sources += 'modules/ras-report.c'
+        lib_sources += 'actions/ras-report.c'
     endif
 
     if arch_arm and not get_option('amp-ns-decode').disabled()
@@ -236,7 +236,7 @@ if not get_option('disable-all')
     if not get_option('cpu-fault-isolation').disabled()
         enable_cpu_fault_isolation = true
         lib_sources += [
-            'modules/ras-cpu-isolation.c',
+            'actions/ras-cpu-isolation.c',
             'core/queue.c'
         ]
     endif
@@ -312,7 +312,7 @@ if not get_option('disable-all')
 
     if not get_option('openbmc-unified-sel').disabled()
         enable_openbmc_unified_sel = true
-        lib_sources += 'modules/unified-sel.c'
+        lib_sources += 'actions/unified-sel.c'
     endif
 
     if not get_option('signal').disabled()
@@ -349,12 +349,12 @@ endif
 if enable_page_isolation
     lib_sources += [
         'core/rbtree.c',
-        'modules/ras-page-isolation.c',
+        'actions/ras-page-isolation.c',
     ]
 endif
 
 if enable_poison_page_stat
-    lib_sources += 'modules/ras-poison-page-stat.c'
+    lib_sources += 'actions/ras-poison-page-stat.c'
 endif
 
 #

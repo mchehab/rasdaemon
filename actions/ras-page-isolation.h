@@ -15,6 +15,8 @@
 #include "core/rbtree.h"
 #include "core/types.h"
 
+struct ras_module_ctx;
+
 #define PAGE_SHIFT		12
 #define PAGE_SIZE		BIT(PAGE_SHIFT)
 #define PAGE_MASK		(~(PAGE_SIZE - 1))
@@ -114,15 +116,15 @@ struct isolation {
 	char			*unit;
 };
 
-void ras_page_account_init(void);
+int ras_page_account_init(struct ras_module_ctx *ctx);
 void ras_record_page_error(unsigned long long addr,
 			   unsigned int count, time_t time);
 void ras_hw_threshold_pageoffline(unsigned long long addr);
-void ras_row_account_init(void);
+int ras_row_account_init(struct ras_module_ctx *ctx);
 void ras_record_row_error(const char *detail, unsigned int count, time_t time,
 			  unsigned long long addr);
-void row_record_infos_free(void);
-void page_record_infos_free(void);
+void row_record_infos_free(struct ras_module_ctx *ctx);
+void page_record_infos_free(struct ras_module_ctx *ctx);
 
 #ifdef HAVE_UNITTEST
 int ras_page_isolation_test_parse_row(const char *detail,

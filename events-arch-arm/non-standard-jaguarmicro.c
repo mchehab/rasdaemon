@@ -15,7 +15,7 @@
 #include "events-arch-arm/non-standard-jaguarmicro.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 #include "events-arch-x86/ras-mce-handler.h"
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 #define JM_BUF_LEN	256
 #define JM_REG_BUF_LEN	2048

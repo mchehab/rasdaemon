@@ -19,7 +19,7 @@
 #include "events-arch-x86/ras-erst.h"
 #include "events-arch-x86/ras-mce-handler.h"
 #include "events/ras-mc-handler.h"
-#include "modules/ras-poison-page-stat.h"
+#include "actions/ras-poison-page-stat.h"
 
 /*
  * Arguments(argp) handling logic and main

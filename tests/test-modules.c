@@ -24,7 +24,7 @@ static void test_register_single_module(void **state)
 		.name   = "test-module",
 		.init   = NULL,
 		.cleanup = NULL,
-		.level  = CORE_MODULE,
+		.level  = ACTIONS_MODULE,
 	};
 
 	int rc = module_register(&entry);
@@ -40,7 +40,7 @@ static void test_register_duplicate_module(void **state)
 {
 	const struct ras_module_entry first = {
 		.name = "duplicate",
-		.level = CORE_MODULE,
+		.level = ACTIONS_MODULE,
 	};
 	const struct ras_module_entry second = {
 		.name = "duplicate",
@@ -63,32 +63,32 @@ static void test_register_modules_in_order(void **state)
 			.name   = "alpha",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "beta",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "charlie",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "delta",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "echo",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "foxtrot",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		},
 	};
 
@@ -115,32 +115,32 @@ static void test_register_mixed_order(void **state)
 			.name   = "beta",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "echo",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "charlie",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "delta",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "foxtrot",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "alpha",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		},
 	};
 	for (int i = 0; i < ARRAY_SIZE(mods); i++) {
@@ -165,7 +165,7 @@ static void test_register_muptiple_levels(void **state)
 			.name   = "bitfield",
 			.init   = NULL,
 			.cleanup = NULL,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "db-backend",
 			.init   = NULL,
@@ -246,7 +246,7 @@ static void test_named_module_lifecycle(void **state)
 		.name = "named",
 		.init = test_module_init,
 		.cleanup = test_module_cleanup,
-		.level = CORE_MODULE,
+		.level = ACTIONS_MODULE,
 	};
 
 	ras.name = names;
@@ -270,7 +270,7 @@ static void test_failed_init_rollback(void **state)
 	const struct ras_module_entry failed = {
 		.name = "failed",
 		.init = failing_module_init,
-		.level = CORE_MODULE,
+		.level = ACTIONS_MODULE,
 	};
 	const char *names[1] = { 0 };
 	const char *cleanup_names[1] = { 0 };
@@ -278,7 +278,7 @@ static void test_failed_init_rollback(void **state)
 		.name = "alpha",
 		.init = test_module_init,
 		.cleanup = test_module_cleanup,
-		.level = CORE_MODULE,
+		.level = ACTIONS_MODULE,
 	};
 
 	ras.name = names;
@@ -326,7 +326,7 @@ static void test_context_helpers(void **state)
 	const char *cleanup_names[1] = { 0 };
 	const struct ras_module_entry entry = {
 		.name = "context",
-		.level = CORE_MODULE,
+		.level = ACTIONS_MODULE,
 		.init = test_module_init,
 		.cleanup = test_module_cleanup,
 	};
@@ -362,10 +362,10 @@ static void test_init_cleanup(void **state)
 {
 	struct ras_events ras = { 0 };
 	static const char * const init_order[] = {
-		"alpha", "charlie", "foxtrot", "delta", "echo", "beta"
+		"delta", "echo", "beta", "alpha", "charlie", "foxtrot"
 	};
 	static const char * const cleanup_order[] = {
-		"beta", "echo", "delta", "alpha", "charlie", "foxtrot"
+		"alpha", "charlie", "foxtrot", "beta", "echo", "delta"
 	};
 	const char *cleanup_names[ARRAY_SIZE(init_order)] = { 0 };
 	int rc = 0;
@@ -385,7 +385,7 @@ static void test_init_cleanup(void **state)
 			.name   = "charlie",
 			.init   = test_module_init,
 			.cleanup = test_module_cleanup,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "delta",
 			.init   = test_module_init,
@@ -395,12 +395,12 @@ static void test_init_cleanup(void **state)
 			.name   = "foxtrot",
 			.init   = test_module_init,
 			.cleanup = test_module_cleanup,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		}, {
 			.name   = "alpha",
 			.init   = test_module_init,
 			.cleanup = test_module_cleanup,
-			.level  = CORE_MODULE,
+			.level  = ACTIONS_MODULE,
 		},
 	};
 

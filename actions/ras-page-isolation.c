@@ -14,10 +14,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "config.h"
+
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
-#include "modules/ras-page-isolation.h"
-#include "modules/ras-poison-page-stat.h"
+#include "actions/ras-page-isolation.h"
+#include "actions/ras-poison-page-stat.h"
 
 #define PARSED_ENV_LEN 50
 #define ROW_ID_MAX_LEN 200
@@ -294,16 +297,22 @@ static void row_isolation_init(void)
 	    threshold_string, cycle_string);
 }
 
-void ras_row_account_init(void)
+int ras_row_account_init(struct ras_module_ctx *ctx)
 {
+	(void)ctx;
 	row_offline_init();
 	row_isolation_init();
+
+	return 0;
 }
 
-void ras_page_account_init(void)
+int ras_page_account_init(struct ras_module_ctx *ctx)
 {
+	(void)ctx;
 	page_offline_init();
 	page_isolation_init();
+
+	return 0;
 }
 
 static int do_page_offline(unsigned long long addr, enum otype type)
@@ -422,10 +431,11 @@ static void page_records_expire(time_t now)
 	}
 }
 
-void page_record_infos_free(void)
+void page_record_infos_free(struct ras_module_ctx *ctx)
 {
 	struct rb_node *node = rb_first(&page_records);
 
+	(void)ctx;
 	while (node) {
 		struct rb_node *next = rb_next(node);
 		struct page_record *pr = rb_entry(node, struct page_record, entry);
@@ -964,11 +974,12 @@ void ras_record_row_error(const char *detail, unsigned int count, time_t time, u
 	row_record(pr, time);
 }
 
-void row_record_infos_free(void)
+void row_record_infos_free(struct ras_module_ctx *ctx)
 {
 	struct row_record *row_record = NULL, *tmp_row_record = NULL;
 	struct page_addr *page_addr = NULL, *tmp_page_addr = NULL;
 
+	(void)ctx;
 	row_record = LIST_FIRST(&row_head);
 	while (row_record) {
 		page_addr = LIST_FIRST(&row_record->page_head);
@@ -989,3 +1000,39 @@ void row_record_infos_free(void)
 }
 
 /* memory row CE threshold policy ends */
+
+#ifdef HAVE_MEMORY_CE_PFA
+static const struct ras_module_entry page_isolation_module = {
+	.name = "page-isolation",
+	.level = ACTIONS_MODULE,
+	.init = ras_page_account_init,
+	.cleanup = page_record_infos_free,
+};
+
+static void __attribute__((constructor)) page_isolation_register(void)
+{
+	int rc = module_register(&page_isolation_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register page isolation module: %d\n",
+		    rc);
+}
+#endif
+
+#ifdef HAVE_MEMORY_ROW_CE_PFA
+static const struct ras_module_entry row_isolation_module = {
+	.name = "row-isolation",
+	.level = ACTIONS_MODULE,
+	.init = ras_row_account_init,
+	.cleanup = row_record_infos_free,
+};
+
+static void __attribute__((constructor)) row_isolation_register(void)
+{
+	int rc = module_register(&row_isolation_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register row isolation module: %d\n",
+		    rc);
+}
+#endif

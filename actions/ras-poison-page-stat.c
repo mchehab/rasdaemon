@@ -11,7 +11,7 @@
 
 #include "core/ras-logger.h"
 #include "core/types.h"
-#include "modules/ras-poison-page-stat.h"
+#include "actions/ras-poison-page-stat.h"
 
 unsigned long long poison_stat_threshold;
 int ras_poison_page_stat(void)

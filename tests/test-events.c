@@ -34,10 +34,10 @@
 #include "events/ras-mc-handler.h"
 #include "events/ras-memory-failure-handler.h"
 #include "events/ras-signal-handler.h"
-#include "modules/ras-cpu-isolation.h"
-#include "modules/ras-page-isolation.h"
-#include "modules/ras-report.h"
-#include "modules/unified-sel.h"
+#include "actions/ras-cpu-isolation.h"
+#include "actions/ras-page-isolation.h"
+#include "actions/ras-report.h"
+#include "actions/unified-sel.h"
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
 
@@ -153,7 +153,7 @@ static void test_mc_complete_record(void **state)
 #ifdef HAVE_MEMORY_CE_PFA
 	setenv("PAGE_CE_ACTION", "account", 1);
 	setenv("PAGE_CE_THRESHOLD", "50", 1);
-	ras_page_account_init();
+	ras_page_account_init(NULL);
 #endif
 	init_trace(&seq, &record, &ras);
 	trace_mock_add_value("error_type", HW_EVENT_ERR_CORRECTED);
@@ -178,7 +178,7 @@ static void test_mc_complete_record(void **state)
 	assert_non_null(strstr(output, "address: 0x12345000"));
 	trace_seq_destroy(&seq);
 #ifdef HAVE_MEMORY_CE_PFA
-	page_record_infos_free();
+	page_record_infos_free(NULL);
 	unsetenv("PAGE_CE_ACTION");
 	unsetenv("PAGE_CE_THRESHOLD");
 #endif
@@ -347,6 +347,7 @@ static void test_cpu_isolation_configuration(void **state)
 {
 	unsigned long value;
 
+	assert_true(module_is_registered("cpu-isolation"));
 	assert_int_equal(ras_cpu_isolation_test_parse("18", false, &value), 0);
 	assert_int_equal(value, 18);
 	assert_int_equal(ras_cpu_isolation_test_parse("2h", true, &value), 0);
@@ -613,6 +614,7 @@ static void test_page_pfa_configuration_and_accounting(void **state)
 {
 	unsigned long value;
 
+	assert_true(module_is_registered("page-isolation"));
 	unsetenv("PAGE_CE_THRESHOLD");
 	assert_int_equal(ras_page_isolation_test_parse_value("50", false,
 							     &value), 0);
@@ -620,10 +622,10 @@ static void test_page_pfa_configuration_and_accounting(void **state)
 	setenv("PAGE_CE_ACTION", "account", 1);
 	setenv("PAGE_CE_THRESHOLD", "2", 1);
 	setenv("PAGE_CE_REFRESH_CYCLE", "10s", 1);
-	ras_page_account_init();
+	ras_page_account_init(NULL);
 	ras_record_page_error(0x1234, 1, 10);
 	ras_record_page_error(0x1fff, 1, 11);
-	page_record_infos_free();
+	page_record_infos_free(NULL);
 	unsetenv("PAGE_CE_ACTION");
 	unsetenv("PAGE_CE_THRESHOLD");
 	unsetenv("PAGE_CE_REFRESH_CYCLE");
@@ -647,6 +649,7 @@ static void test_row_pfa_parser_and_accounting(void **state)
 	struct row_record record;
 	unsigned long value;
 
+	assert_true(module_is_registered("row-isolation"));
 	assert_int_equal(ras_page_isolation_test_parse_row(detail, &record), 0);
 	assert_int_equal(record.type, GHES);
 	assert_int_equal(record.location_fields[APEI_ROW], 6);
@@ -659,10 +662,10 @@ static void test_row_pfa_parser_and_accounting(void **state)
 	setenv("ROW_CE_ACTION", "account", 1);
 	setenv("ROW_CE_THRESHOLD", "2", 1);
 	setenv("ROW_CE_REFRESH_CYCLE", "10s", 1);
-	ras_row_account_init();
+	ras_row_account_init(NULL);
 	ras_record_row_error(detail, 1, 10, 0x1000);
 	ras_record_row_error(detail, 1, 11, 0x2000);
-	row_record_infos_free();
+	row_record_infos_free(NULL);
 	unsetenv("ROW_CE_ACTION");
 	unsetenv("ROW_CE_THRESHOLD");
 	unsetenv("ROW_CE_REFRESH_CYCLE");

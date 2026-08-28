@@ -52,7 +52,7 @@ static const struct ras_event_entry ras_mce_event = {
 	.record = db_mce_record,
 };
 REGISTER_RAS_EVENT(ras_mce_event);
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 /*
  * The code below were adapted from Andi Kleen/Intel/SUSE mcelog code,

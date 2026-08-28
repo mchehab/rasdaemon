@@ -23,8 +23,6 @@
 
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
-#include "modules/ras-cpu-isolation.h"
-#include "modules/ras-page-isolation.h"
 
 #define TOOL_NAME "rasdaemon"
 
@@ -1138,21 +1136,7 @@ int handle_ras_events(struct ras_events *ras)
 
 	pevent = ras->pevent;
 	num_events = ras->num_events;
-
-#ifdef HAVE_MEMORY_ROW_CE_PFA
-	ras_row_account_init();
-#endif
-
-#ifdef HAVE_MEMORY_CE_PFA
-	/* FIXME: enable memory isolation unconditionally */
-	ras_page_account_init();
-#endif
-
 	cpus = get_num_cpus(ras);
-
-#ifdef HAVE_CPU_FAULT_ISOLATION
-	ras_cpu_isolation_init(sysconf(_SC_NPROCESSORS_CONF));
-#endif
 
 	if (!num_events) {
 		log(ALL, LOG_INFO,
@@ -1223,15 +1207,5 @@ err:
 				tep_filter_free(ras->filters[i]);
 		}
 	}
-#ifdef HAVE_CPU_FAULT_ISOLATION
-	cpu_infos_free();
-#endif
-
-#ifdef HAVE_MEMORY_ROW_CE_PFA
-	row_record_infos_free();
-#endif
-#ifdef HAVE_MEMORY_CE_PFA
-	page_record_infos_free();
-#endif
 	return rc;
 }

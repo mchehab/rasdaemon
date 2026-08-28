@@ -12,7 +12,7 @@
 #include "core/modules.h"
 #include "core/types.h"
 #include "events-arch-arm/non-standard-hisilicon.h"
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 #define HISI_BUF_LEN	2048
 #define HISI_PCIE_INFO_BUF_LEN	256

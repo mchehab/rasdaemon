@@ -99,8 +99,8 @@ CXL_EVENT_ENTRY(ras_cxl_module_entry, "cxl_memory_module",
 CXL_EVENT_ENTRY(ras_cxl_sparing_entry, "cxl_memory_sparing",
 		ras_cxl_memory_sparing_event_handler, NULL,
 		CXL_MEMORY_SPARING_EVENT);
-#include "modules/ras-page-isolation.h"
-#include "modules/ras-report.h"
+#include "actions/ras-page-isolation.h"
+#include "actions/ras-report.h"
 
 /* Common Functions */
 static void convert_timestamp(unsigned long long ts, char *ts_ptr, uint16_t size)

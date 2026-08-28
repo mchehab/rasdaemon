@@ -13,7 +13,7 @@
 #include "core/types.h"
 #include "events-arch-arm/non-standard-hisilicon.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 /* HISI OEM error definitions */
 /* HISI OEM format1 error definitions */

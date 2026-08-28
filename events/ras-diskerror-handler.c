@@ -47,7 +47,7 @@ static const struct ras_event_entry ras_diskerror_event = {
 	.record = db_diskerror_event,
 };
 REGISTER_RAS_EVENT(ras_diskerror_event);
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 static const struct {
 	int             error;

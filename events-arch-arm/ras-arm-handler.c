@@ -35,8 +35,8 @@ static const struct ras_event_entry ras_arm_event_entry = {
 };
 REGISTER_RAS_EVENT(ras_arm_event_entry);
 #include "events-arch-arm/ras-non-standard-handler.h"
-#include "modules/ras-cpu-isolation.h"
-#include "modules/ras-report.h"
+#include "actions/ras-cpu-isolation.h"
+#include "actions/ras-report.h"
 
 #define ARM_ERR_VALID_ERROR_COUNT BIT(0)
 #define ARM_ERR_VALID_FLAGS BIT(1)

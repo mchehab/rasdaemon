@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 #include "core/ras-logger.h"
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 static int setup_report_socket(void)
 {

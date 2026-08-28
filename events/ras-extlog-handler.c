@@ -46,7 +46,7 @@ static const struct ras_event_entry ras_extlog_event = {
 	.record = db_extlog_mem_record,
 };
 REGISTER_RAS_EVENT(ras_extlog_event);
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 static char *err_type(int etype)
 {

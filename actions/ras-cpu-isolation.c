@@ -13,8 +13,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
-#include "modules/ras-cpu-isolation.h"
+#include "actions/ras-cpu-isolation.h"
 
 #define SECOND_OF_MON (30 * 24 * 60 * 60)
 #define SECOND_OF_DAY (24 * 60 * 60)
@@ -220,22 +221,29 @@ static int check_config_status(void)
 	return 0;
 }
 
-void ras_cpu_isolation_init(unsigned int cpus)
+static int ras_cpu_isolation_init(struct ras_module_ctx *ctx)
 {
+	unsigned int cpus = sysconf(_SC_NPROCESSORS_CONF);
+
+	(void)ctx;
+	enabled = 1;
 	if (init_cpu_info(cpus) < 0 || check_config_status() < 0) {
 		enabled = 0;
 		log(TERM, LOG_WARNING, "Cpu fault isolation is disabled\n");
-		return;
+		return 0;
 	}
 
 	log(TERM, LOG_INFO, "Cpu fault isolation is enabled\n");
 	init_config(&threshold);
 	init_config(&cpu_limit);
 	init_config(&cycle);
+
+	return 0;
 }
 
-void cpu_infos_free(void)
+static void cpu_infos_free(struct ras_module_ctx *ctx)
 {
+	(void)ctx;
 	if (cpu_infos) {
 		for (int i = 0; i < ncores; ++i)
 			free_queue(cpu_infos[i].ce_queue);
@@ -244,6 +252,22 @@ void cpu_infos_free(void)
 		cpu_infos = NULL;
 		ncores = 0;
 	}
+}
+
+static const struct ras_module_entry cpu_isolation_module = {
+	.name = "cpu-isolation",
+	.level = ACTIONS_MODULE,
+	.init = ras_cpu_isolation_init,
+	.cleanup = cpu_infos_free,
+};
+
+static void __attribute__((constructor)) cpu_isolation_register(void)
+{
+	int rc = module_register(&cpu_isolation_module);
+
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to register CPU isolation module: %d\n",
+		    rc);
 }
 
 #ifdef HAVE_UNITTEST

@@ -28,7 +28,7 @@ static const struct ras_event_entry ras_non_standard_event_entry = {
 	.trigger = true, .record = db_non_standard_record,
 };
 REGISTER_RAS_EVENT(ras_non_standard_event_entry);
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
 

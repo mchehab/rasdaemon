@@ -63,7 +63,7 @@ static const struct ras_event_entry ras_devlink_event = {
 	.record = db_devlink_event,
 };
 REGISTER_RAS_EVENT(ras_devlink_event);
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 int ras_net_xmit_timeout_handler(struct trace_seq *s,
 				 struct tep_record *record,

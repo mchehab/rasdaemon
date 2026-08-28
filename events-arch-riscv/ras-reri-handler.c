@@ -37,8 +37,8 @@ static const struct ras_event_entry ras_reri_event_entry = {
 	.record = db_reri_event,
 };
 REGISTER_RAS_EVENT(ras_reri_event_entry);
-#include "modules/ras-cpu-isolation.h"
-#include "modules/ras-report.h"
+#include "actions/ras-cpu-isolation.h"
+#include "actions/ras-report.h"
 
 #define RERI_GET_FIELD(val, offset, mask)	(((val) >> (offset)) & (mask))
 

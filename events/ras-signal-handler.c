@@ -54,7 +54,7 @@ static const struct ras_event_entry ras_signal_event = {
 	.record = db_signal_event,
 };
 REGISTER_RAS_EVENT(ras_signal_event);
-#include "modules/ras-report.h"
+#include "actions/ras-report.h"
 
 enum {
 	TRACE_SIGNAL_DELIVERED,

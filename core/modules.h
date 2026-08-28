@@ -12,10 +12,10 @@ struct ras_events;
 struct ras_module_ctx;
 
 enum init_level {
-	CORE_MODULE,
 	DB_MODULE,
 	BASE_EVENT_MODULE,
 	SUB_EVENT_MODULE,
+	ACTIONS_MODULE,
 
 	/* Should be the last one */
 	MAX_LEVELS

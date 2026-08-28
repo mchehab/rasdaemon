@@ -9,8 +9,8 @@
 #include <string.h>
 
 #include "core/ras-logger.h"
-#include "modules/ras-report.h"
-#include "modules/unified-sel.h"
+#include "actions/ras-report.h"
+#include "actions/unified-sel.h"
 
 /* CPU Root Port Error ID corresponding to each status bit set */
 static const char *cor_error_ids[32] = {
