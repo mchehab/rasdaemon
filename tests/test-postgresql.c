@@ -275,7 +275,7 @@ static void test_db_alter_table(void **state)
 	pg_assert_index(new_tab.name, "timestamp");
 }
 
-static void test_db_bind_type(void **state)
+static void test_db_bind_types(void **state)
 {
 	struct ras_stmt *stmt = NULL;
 	int rc, pos = 1;
@@ -302,9 +302,12 @@ static void test_db_bind_type(void **state)
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
-	db_bind_type(stmt, vals[0].type, pos++, (uint64_t)vals[0].value, -1);
-	db_bind_type(stmt, vals[1].type, pos++, (uint64_t)vals[1].value, -1);
-	db_bind_type(stmt, vals[2].type, pos++, (uint64_t)vals[2].string, -1);
+	assert_int_equal(db_bind(&db_tab, stmt, pos++,
+				 (uint64_t)vals[0].value, -1), 0);
+	assert_int_equal(db_bind(&db_tab, stmt, pos++,
+				 (uint64_t)vals[1].value, -1), 0);
+	assert_int_equal(db_bind(&db_tab, stmt, pos++,
+				 (uint64_t)vals[2].string, -1), 0);
 
 	rc = db_eval_stmt(stmt, db_tab.name);
 	assert_int_equal(rc, 0);
@@ -496,7 +499,7 @@ static const struct CMUnitTest tests[] = {
 					tests_setup, tests_teardown),
 	cmocka_unit_test_setup_teardown(test_db_alter_table,
 					tests_setup, tests_teardown),
-	cmocka_unit_test_setup_teardown(test_db_bind_type,
+	cmocka_unit_test_setup_teardown(test_db_bind_types,
 					tests_setup, tests_teardown),
 	cmocka_unit_test_setup_teardown(test_db_bind,
 					tests_setup, tests_teardown),

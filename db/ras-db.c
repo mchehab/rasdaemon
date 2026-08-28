@@ -365,8 +365,8 @@ const char *db_get_sql_type(enum db_field_type type, bool is_pk)
 	return ras_db_ops->get_sql_type(type, is_pk);
 }
 
-int db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
-		  int pos, uint64_t value, int len)
+static int db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
+			int pos, uint64_t value, int len)
 {
 	if (unlikely(!ras_db_ops))
 		return 0;

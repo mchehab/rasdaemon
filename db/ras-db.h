@@ -183,19 +183,6 @@ int ras_db_table_register(struct ras_module_ctx *ctx,
 void ras_db_table_unregister(struct ras_module_ctx *ctx);
 
 /**
- * ops_bind_type - Bind a single value based on its type descriptor
- * @stmt:	Statement handle provided by the backend
- * @type:	The type of data being bound
- * @pos:	Parameter position (1-based index)
- * @value:	Raw 64-bit integer representation of the value
- * @len:	Length for text/blob types, -1 if null-terminated
- * Returns:
- * 0 on success or a negative errno value on failure.
- */
-int db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
-		 const int pos, uint64_t value, int len);
-
-/**
  * ops_bind - Bind fields from an event structure using fields definition
  * @db_tab:	Database table descriptor
  * @stmt:	Statement handle provided by the backend
@@ -352,13 +339,6 @@ static inline int ras_db_table_register(struct ras_module_ctx *ctx,
 
 static inline void ras_db_table_unregister(struct ras_module_ctx *ctx)
 {
-}
-
-static inline int db_bind_type(struct ras_stmt *stmt,
-			       const enum db_field_type type, const int pos,
-			       uint64_t value, int len)
-{
-	return 0;
 }
 
 static inline int db_bind(const struct db_table_descriptor *db_tab,
