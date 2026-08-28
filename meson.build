@@ -226,7 +226,10 @@ if not get_option('disable-all')
     if arch_arm and not get_option('amp-ns-decode').disabled()
         enable_amp_ns_decode = true
         enable_non_standard = true
-        lib_sources += 'events-arch-arm/non-standard-ampere.c'
+        lib_sources += [
+            'actions/ampere-oem-action.c',
+            'events-arch-arm/non-standard-ampere.c',
+        ]
     endif
 
     if arch_arm and not get_option('arm').disabled()

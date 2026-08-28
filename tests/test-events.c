@@ -1072,8 +1072,13 @@ static void test_ampere_decoder_registration(void **state)
 		.error = (const uint8_t *)&payload,
 		.length = sizeof(payload),
 	};
+	struct ras_aer_event aer = {
+		.severity = HW_EVENT_AER_CORRECTED,
+		.dev_name = "0000:02:03.1",
+	};
 	struct ras_events ras = { 0 };
 	struct trace_seq seq;
+	const char *command;
 
 	assert_true(decoder_is_registered("e8ed898d-df16-43cc-8ecc-54f060ef157f"));
 	trace_seq_init(&seq);
@@ -1081,6 +1086,16 @@ static void test_ampere_decoder_registration(void **state)
 		"e8ed898d-df16-43cc-8ecc-54f060ef157f",
 		&ras, &seq, &event), 0);
 	trace_seq_destroy(&seq);
+
+	system_mock_start(0);
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "ampere-oem-action"), 0);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
+	assert_int_equal(system_mock_call_count(), 1);
+	command = system_mock_last_command();
+	assert_non_null(strstr(command, "0xbf 0x00 0x00 0x02 0x19"));
+	modules_cleanup_type(ACTIONS_MODULE);
+	system_mock_stop();
 }
 
 static const struct CMUnitTest amp_ns_tests[] = {

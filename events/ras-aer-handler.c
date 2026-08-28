@@ -196,11 +196,6 @@ int ras_aer_event_handler(struct trace_seq *s,
 	struct ras_aer_event ev;
 	char buf[BUF_LEN] = { 0 };
 	uint16_t vendor_id = 0, device_id = 0;
-#ifdef HAVE_AMP_NS_DECODE
-	char ipmi_add_sel[105];
-	uint8_t sel_data[5];
-	int seg, bus, dev, fn, rc;
-#endif
 	const char *level;
 
 	if (tep_get_field_val(s, event, "severity", record, &severity_val, 1) < 0)
@@ -284,58 +279,19 @@ int ras_aer_event_handler(struct trace_seq *s,
 	switch (severity_val) {
 	case HW_EVENT_AER_UNCORRECTED_NON_FATAL:
 		ev.error_type = "Uncorrected (Non-Fatal)";
-#ifdef HAVE_AMP_NS_DECODE
-		sel_data[0] = 0xca;
-#endif
 		break;
 	case HW_EVENT_AER_UNCORRECTED_FATAL:
 		ev.error_type = "Uncorrected (Fatal)";
-#ifdef HAVE_AMP_NS_DECODE
-		sel_data[0] = 0xca;
-#endif
 		break;
 	case HW_EVENT_AER_CORRECTED:
 		ev.error_type = "Corrected";
-#ifdef HAVE_AMP_NS_DECODE
-		sel_data[0] = 0xbf;
-#endif
 		break;
 	default:
 		ev.error_type = "Unknown severity";
-#ifdef HAVE_AMP_NS_DECODE
-		sel_data[0] = 0xbf;
-#endif
 	}
 	trace_seq_puts(s, ev.error_type);
 
 	ras_event_publish(ras, AER_EVENT, &ev);
-
-#ifdef HAVE_AMP_NS_DECODE
-	/*
-	 * Get PCIe AER error source seg/bus/dev/fn and save it into
-	 * BMC OEM SEL, ipmitool raw 0x0a 0x44 is IPMI command-Add SEL
-	 * entry, please refer IPMI specification chapter 31.6. 0xcd3a
-	 * is manufactuer ID(ampere),byte 12 is sensor num(CE is 0xBF,
-	 * UE is 0xCA), byte 13~14 is segment number, byte 15 is bus
-	 * number, byte 16[7:3] is device number, byte 16[2:0] is
-	 * function number
-	 */
-	rc = sscanf(ev.dev_name, "%x:%x:%x.%x", &seg, &bus, &dev, &fn);
-	if (rc == 4) {
-		sel_data[1] = seg & 0xff;
-		sel_data[2] = (seg & 0xff00) >> 8;
-		sel_data[3] = bus;
-		sel_data[4] = (((dev & 0x1f) << 3) | (fn & 0x7));
-
-		snprintf(ipmi_add_sel, sizeof(ipmi_add_sel),
-			 "ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 0x00 0x3a 0xcd 0x00 0xc0 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x",
-			 sel_data[0], sel_data[1], sel_data[2], sel_data[3], sel_data[4]);
-
-		rc = system(ipmi_add_sel);
-	}
-	if (rc)
-		log(SYSLOG, LOG_WARNING, "Failed to execute ipmitool\n");
-#endif
 
 	if (aer_ce_trigger && !strcmp(ev.error_type, "Corrected"))
 		run_aer_trigger(&ev, aer_ce_trigger);
