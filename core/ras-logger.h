@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,6 +60,17 @@ const char *log_color(int color);
 		}							\
 	}								\
 } while (0)
+
+#define WARN_ONCE(condition, where, level, fmt, args...) ({		\
+	static atomic_flag __warned = ATOMIC_FLAG_INIT;			\
+	bool __condition = !!(condition);				\
+									\
+	if (__condition &&						\
+	    !atomic_flag_test_and_set_explicit(&__warned,		\
+					       memory_order_relaxed))	\
+		log(where, level, fmt, ##args);				\
+	__condition;							\
+})
 
 /* Ancillary routines to output logs when mock_output is true */
 
