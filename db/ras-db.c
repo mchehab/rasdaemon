@@ -338,7 +338,7 @@ int db_close(unsigned int cpu, struct ras_events *ras)
 {
 	int rc;
 
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 	if (ras->db_ref_count <= 0)
 		return -EINVAL;
@@ -359,7 +359,7 @@ int db_close(unsigned int cpu, struct ras_events *ras)
 
 const char *db_get_sql_type(enum db_field_type type, bool is_pk)
 {
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return "";
 
 	return ras_db_ops->get_sql_type(type, is_pk);
@@ -368,10 +368,10 @@ const char *db_get_sql_type(enum db_field_type type, bool is_pk)
 int db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 		  int pos, uint64_t value, int len)
 {
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 
-	if (!stmt)
+	if (unlikely(!stmt))
 		return -EINVAL;
 
 	return ras_db_ops->bind_type(stmt, type, pos, value, len);
@@ -383,7 +383,7 @@ int db_bind(const struct db_table_descriptor *db_tab,
 	const struct db_fields *fields = db_tab->fields;
 	int i, field_pos = 0;
 
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 
 	if (pos < 1) {
@@ -414,10 +414,10 @@ int db_bind(const struct db_table_descriptor *db_tab,
 
 int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name)
 {
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 
-	if (!stmt)
+	if (unlikely(!stmt))
 		return -EINVAL;
 
 	return ras_db_ops->eval_stmt(stmt, tab_name);
@@ -425,7 +425,7 @@ int db_eval_stmt(struct ras_stmt *stmt, const char *tab_name)
 
 int db_create_table(struct ras_db *db, const struct db_table_descriptor *db_tab)
 {
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 
 	return ras_db_ops->create_table(db, db_tab);
@@ -434,7 +434,7 @@ int db_create_table(struct ras_db *db, const struct db_table_descriptor *db_tab)
 int db_alter_table(struct ras_db *db, struct ras_stmt **stmt,
 		   const struct db_table_descriptor *db_tab)
 {
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 
 	return ras_db_ops->alter_table(db, stmt, db_tab);
@@ -443,7 +443,7 @@ int db_alter_table(struct ras_db *db, struct ras_stmt **stmt,
 int db_prepare_insert_stmt(struct ras_db *db, struct ras_stmt **stmt,
 			   const struct db_table_descriptor *db_tab)
 {
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 	return ras_db_ops->prepare_stmt(db, stmt, db_tab);
 }
@@ -453,7 +453,7 @@ int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
 {
 	int rc;
 
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 
 	rc = ras_db_ops->create_table(ras->db, db_tab);
@@ -465,7 +465,7 @@ int db_create_table_prep_stmt(struct ras_events *ras, struct ras_stmt **stmt,
 
 int db_exec_sql(struct ras_db *db, const char *sql)
 {
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 
 	return ras_db_ops->db_exec_sql(db, sql);
@@ -473,10 +473,10 @@ int db_exec_sql(struct ras_db *db, const char *sql)
 
 int db_finalize(struct ras_stmt *stmt)
 {
-	if (!ras_db_ops)
+	if (unlikely(!ras_db_ops))
 		return 0;
 
-	if (!stmt)
+	if (unlikely(!stmt))
 		return 0;
 
 	return ras_db_ops->finalize(-1, stmt, NULL);
@@ -484,7 +484,7 @@ int db_finalize(struct ras_stmt *stmt)
 
 int db_cpu_finalize(unsigned int cpu, struct ras_stmt *stmt, const char *name)
 {
-		if (!ras_db_ops)
+		if (unlikely(!ras_db_ops))
 			return 0;
 
 		return ras_db_ops->finalize(cpu, stmt, name);
