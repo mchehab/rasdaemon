@@ -14,13 +14,31 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "db/ras-db.h"
-#include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/ras-arm-handler.h"
 
 static int ras_arm_event_handler(struct trace_seq *s,
 				 struct tep_record *record,
 				 struct tep_event *event, void *context);
 int db_arm_record(struct ras_events *ras, void *priv);
+
+static const struct ras_arm_vendor_decoder *ras_arm_vendor_decoder;
+
+int ras_arm_vendor_decoder_register(const struct ras_arm_vendor_decoder *decoder)
+{
+	if (!decoder || !decoder->name || !decoder->decode)
+		return -EINVAL;
+	if (ras_arm_vendor_decoder)
+		return -EEXIST;
+
+	ras_arm_vendor_decoder = decoder;
+	return 0;
+}
+
+void ras_arm_vendor_decoder_unregister(const struct ras_arm_vendor_decoder *decoder)
+{
+	if (ras_arm_vendor_decoder == decoder)
+		ras_arm_vendor_decoder = NULL;
+}
 
 #ifdef HAVE_UNITTEST
 int test_arm(void) __attribute__((weak));
@@ -576,13 +594,11 @@ static int ras_arm_event_handler(struct trace_seq *s,
 			return -1;
 		}
 
-#ifdef HAVE_AMP_NS_DECODE
-		//decode ampere specific error
-		decode_amp_payload0_err_regs(NULL, s,
-					     (struct amp_payload0_type_sec *)ev.vsei_error);
-#else
-		display_raw_data(s, ev.vsei_error, ev.oem_len);
-#endif
+		if (ras_arm_vendor_decoder)
+			ras_arm_vendor_decoder->decode(s, ev.vsei_error,
+						       ev.oem_len);
+		else
+			display_raw_data(s, ev.vsei_error, ev.oem_len);
 #ifdef HAVE_CPU_FAULT_ISOLATION
 		if (ras_decode_cpu_isolation(s, record, event, &ev) < 0)
 			printf("Can't do CPU fault isolation!\n");

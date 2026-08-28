@@ -13,6 +13,7 @@
 #include "core/modules.h"
 #include "core/types.h"
 #include "events-arch-arm/non-standard-ampere.h"
+#include "events-arch-arm/ras-arm-handler.h"
 #include "events-arch-arm/ras-non-standard-handler.h"
 
 /*Armv8 RAS compicant Error Record(APEI and BMC Reporting) Payload Type 0*/
@@ -1008,6 +1009,18 @@ struct ras_ns_ev_decoder amp_ns_oem_decoder[] = {
 	},
 };
 
+static void decode_amp_arm_vendor_data(struct trace_seq *s,
+				       const uint8_t *buf, uint32_t length)
+{
+	decode_amp_payload0_err_regs(NULL, s,
+				     (const struct amp_payload0_type_sec *)buf);
+}
+
+static const struct ras_arm_vendor_decoder amp_arm_vendor_decoder = {
+	.name = "ampere",
+	.decode = decode_amp_arm_vendor_data,
+};
+
 static int amp_init(struct ras_module_ctx *ctx)
 {
 	size_t i;
@@ -1022,14 +1035,23 @@ static int amp_init(struct ras_module_ctx *ctx)
 	}
 
 	rc = register_ns_ev_decoder(amp_ns_oem_decoder);
-	if (rc)
+	if (rc) {
 		ras_db_table_unregister(ctx);
+		return rc;
+	}
+
+	rc = ras_arm_vendor_decoder_register(&amp_arm_vendor_decoder);
+	if (rc) {
+		unregister_ns_ev_decoder(amp_ns_oem_decoder);
+		ras_db_table_unregister(ctx);
+	}
 
 	return rc;
 }
 
 static void amp_cleanup(struct ras_module_ctx *ctx)
 {
+	ras_arm_vendor_decoder_unregister(&amp_arm_vendor_decoder);
 	unregister_ns_ev_decoder(amp_ns_oem_decoder);
 	ras_db_table_unregister(ctx);
 }
