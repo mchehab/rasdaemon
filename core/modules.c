@@ -53,6 +53,7 @@ static void module_tests_unregister(void)
 int module_register(const struct ras_module_entry *entry)
 {
 	struct ras_module_entry_runtime *new, *cur, *prev = NULL;
+	static bool cleanup_registered;
 	int cmp;
 
 	if (!entry || !entry->name) {
@@ -83,6 +84,14 @@ int module_register(const struct ras_module_entry *entry)
 			break;
 
 		prev = cur;
+	}
+
+	if (!cleanup_registered) {
+		if (atexit(modules_unregister)) {
+			free(new);
+			return -ENOMEM;
+		}
+		cleanup_registered = true;
 	}
 
 	if (cur)
