@@ -889,6 +889,13 @@ int test_reri(void)
 #ifdef HAVE_OPENBMC_UNIFIED_SEL
 static void test_openbmc_sel_commands(void **state)
 {
+	struct ras_aer_event event = {
+		.severity = HW_EVENT_AER_CORRECTED,
+		.status = BIT_ULL(0),
+		.dev_name = "0000:02:03.1",
+	};
+	struct ras_events ras = { .enable_ipmitool = true };
+
 	system_mock_start(0);
 	assert_int_equal(openbmc_unified_sel_log(HW_EVENT_AER_CORRECTED,
 						 "0000:02:03.1", BIT_ULL(0)), 0);
@@ -900,6 +907,12 @@ static void test_openbmc_sel_commands(void **state)
 	system_mock_start(1);
 	assert_int_equal(openbmc_unified_sel_log(HW_EVENT_AER_CORRECTED,
 						 "0000:02:03.1", 1), -1);
+	system_mock_start(0);
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
+	assert_int_equal(system_mock_call_count(), 1);
+	modules_cleanup_type(ACTIONS_MODULE);
 	system_mock_stop();
 }
 

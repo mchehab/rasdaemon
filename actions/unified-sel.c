@@ -8,9 +8,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "core/modules.h"
 #include "core/ras-logger.h"
 #include "core/ras-events.h"
 #include "actions/unified-sel.h"
+#include "events/ras-aer-handler.h"
 
 /* CPU Root Port Error ID corresponding to each status bit set */
 static const char *cor_error_ids[32] = {
@@ -110,4 +112,49 @@ int openbmc_unified_sel_log(uint64_t severity, const char *dev_name, uint64_t st
 			return -1;
 	}
 	return 0;
+}
+
+static int openbmc_unified_sel_consume(struct ras_events *ras, int event,
+				       void *data)
+{
+	struct ras_aer_event *aer = data;
+
+	if (!ras->enable_ipmitool)
+		return 0;
+
+	return openbmc_unified_sel_log(aer->severity, aer->dev_name,
+				       aer->status);
+}
+
+static const struct ras_event_consumer openbmc_unified_sel_consumer = {
+	.name = "openbmc-unified-sel",
+	.priority = PRI_PLATFORM_ACTION,
+	.events = BIT_ULL(AER_EVENT),
+	.consume = openbmc_unified_sel_consume,
+};
+
+static int openbmc_unified_sel_init(struct ras_module_ctx *ctx)
+{
+	return ras_event_consumer_register(&openbmc_unified_sel_consumer);
+}
+
+static void openbmc_unified_sel_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_event_consumer_unregister(&openbmc_unified_sel_consumer);
+}
+
+static const struct ras_module_entry openbmc_unified_sel_module = {
+	.name = "openbmc-unified-sel",
+	.level = ACTIONS_MODULE,
+	.init = openbmc_unified_sel_init,
+	.cleanup = openbmc_unified_sel_cleanup,
+};
+
+static void __attribute__((constructor)) openbmc_unified_sel_register(void)
+{
+	int rc = module_register(&openbmc_unified_sel_module);
+
+	if (rc)
+		log(TERM, LOG_ERR,
+		    "Failed to register OpenBMC unified SEL module: %d\n", rc);
 }

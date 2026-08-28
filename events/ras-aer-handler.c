@@ -23,30 +23,21 @@
 int ras_aer_event_handler(struct trace_seq *s, struct tep_record *record,
 			  struct tep_event *event, void *context);
 int db_aer_event(struct ras_events *ras, void *priv);
-static void ras_aer_handler_init(int enable_ipmitool);
 
 #ifdef HAVE_UNITTEST
 int test_aer(void) __attribute__((weak));
 #endif
 
-static int ras_aer_prepare(struct ras_events *ras)
-{
-	ras_aer_handler_init(ras->enable_ipmitool);
-	return 0;
-}
-
 static const struct ras_event_entry ras_aer_event = {
 	.group = "ras", .event = "aer_event",
 	.handler = ras_aer_event_handler, .id = AER_EVENT, .trigger = true,
 	.trigger_setup = aer_event_trigger_setup,
-	.prepare = ras_aer_prepare,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_aer,
 #endif
 	.record = db_aer_event,
 };
 REGISTER_RAS_EVENT(ras_aer_event);
-#include "actions/unified-sel.h"
 
 /* bit field meaning for correctable error */
 static const char *aer_cor_errors[32] = {
@@ -82,8 +73,6 @@ static const char *aer_uncor_errors[32] = {
 	[25] = "TLP Prefix Blocked",
 	[26] = "Poisoned TLP Egrees Blocked",
 };
-
-static bool use_ipmitool = false;
 
 #define MAX_ENV 30
 static const char *aer_ce_trigger = NULL;
@@ -124,13 +113,6 @@ void aer_event_trigger_setup(void)
 			    trigger);
 		}
 	}
-}
-
-static void ras_aer_handler_init(int enable_ipmitool)
-{
-#ifdef HAVE_OPENBMC_UNIFIED_SEL
-	use_ipmitool = (enable_ipmitool > 0) ? 1 : 0;
-#endif
 }
 
 #define BUF_LEN	1024
@@ -223,6 +205,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 
 	if (tep_get_field_val(s, event, "severity", record, &severity_val, 1) < 0)
 		return -1;
+	ev.severity = severity_val;
 	switch (severity_val) {
 	case HW_EVENT_AER_UNCORRECTED_NON_FATAL:
 		level = loglevel_str[LOGLEVEL_CRIT];
@@ -270,6 +253,7 @@ int ras_aer_event_handler(struct trace_seq *s,
 
 	if (tep_get_field_val(s,  event, "status", record, &status_val, 1) < 0)
 		return -1;
+	ev.status = status_val;
 
 	/* Fills the error buffer. If it is a correctable error then use the
 	 * aer_cor_errors bit field. Otherwise use aer_uncor_errors.
@@ -351,12 +335,6 @@ int ras_aer_event_handler(struct trace_seq *s,
 	}
 	if (rc)
 		log(SYSLOG, LOG_WARNING, "Failed to execute ipmitool\n");
-#endif
-
-#ifdef HAVE_OPENBMC_UNIFIED_SEL
-	if (use_ipmitool)
-		if (openbmc_unified_sel_log(severity_val, ev.dev_name, status_val) < 0)
-			return -1;
 #endif
 
 	if (aer_ce_trigger && !strcmp(ev.error_type, "Corrected"))
