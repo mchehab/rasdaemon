@@ -371,6 +371,9 @@ int db_bind_type(struct ras_stmt *stmt, const enum db_field_type type,
 	if (!ras_db_ops)
 		return 0;
 
+	if (!stmt)
+		return -EINVAL;
+
 	return ras_db_ops->bind_type(stmt, type, pos, value, len);
 }
 

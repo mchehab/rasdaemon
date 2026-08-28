@@ -230,6 +230,20 @@ static void test_mock_logger(void **state)
 	assert_int_equal(mock_log_len, 0);
 }
 
+static void test_warn_once(void **state)
+{
+	int i;
+
+	ras_logger_clean();
+	mock_output = true;
+	for (i = 0; i < 3; i++)
+		assert_int_equal(WARN_ONCE(i < 2, TERM, LOG_WARNING,
+					   "warning %d", i), i < 2);
+	assert_non_null(mock_log_buf);
+	assert_string_equal(mock_log_buf, "\twarning 0");
+	ras_logger_clean();
+}
+
 static void test_disabled_event_selection(void **state)
 {
 	char *saved = choices_disable;
@@ -257,6 +271,7 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_environment_file),
 	cmocka_unit_test(test_trigger_validation),
 	cmocka_unit_test(test_mock_logger),
+	cmocka_unit_test(test_warn_once),
 	cmocka_unit_test(test_disabled_event_selection),
 };
 
