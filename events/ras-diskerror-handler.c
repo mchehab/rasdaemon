@@ -7,7 +7,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <traceevent/kbuffer.h>
 
 #include "core/modules.h"
@@ -89,11 +88,11 @@ static int ras_diskerror_event_handler(struct trace_seq *s,
 				       struct tep_event *event, void *context)
 {
 	unsigned long long val;
-	int len;
+	int len, rc = -1;
 	struct ras_events *ras = context;
 	time_t now;
 	struct tm *tm;
-	struct diskerror_event ev;
+	struct diskerror_event ev = { .dev = NULL };
 	uint32_t dev;
 
 	trace_seq_printf(s, "%s ", loglevel_str[LOGLEVEL_ERR]);
@@ -121,31 +120,35 @@ static int ras_diskerror_event_handler(struct trace_seq *s,
 		return -1;
 	dev = (uint32_t)val;
 	if (asprintf(&ev.dev, "%u:%u", MAJOR(dev), MINOR(dev)) < 0)
-		return -1;
+		goto cleanup;
 
 	if (tep_get_field_val(s, event, "sector", record, &val, 1) < 0)
-		return -1;
+		goto cleanup;
 	ev.sector = val;
 
 	if (tep_get_field_val(s, event, "nr_sector", record, &val, 1) < 0)
-		return -1;
+		goto cleanup;
 	ev.nr_sector = (unsigned int)val;
 
 	if (tep_get_field_val(s, event, "error", record, &val, 1) < 0)
-		return -1;
+		goto cleanup;
 	ev.error = get_blk_error((int)val);
 
 	ev.rwbs = tep_get_field_raw(s, event, "rwbs", record, &len, 1);
 	if (!ev.rwbs)
-		return -1;
+		goto cleanup;
 
 	ev.cmd = tep_get_field_raw(s, event, "cmd", record, &len, 1);
 	if (!ev.cmd)
-		return -1;
+		goto cleanup;
 
 	ras_event_publish(ras, DISKERROR_EVENT, &ev);
-	free(ev.dev);
-	return 0;
+	rc = 0;
+
+cleanup:
+	if (ev.dev)
+		free(ev.dev);
+	return rc;
 }
 static const struct db_fields diskerror_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
