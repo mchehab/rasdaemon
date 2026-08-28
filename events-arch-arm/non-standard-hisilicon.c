@@ -398,14 +398,3 @@ static void __attribute__((constructor)) hisi_ns_register(void)
 	if (rc)
 		log(TERM, LOG_ERR, "Failed to register HiSilicon module: %d\n", rc);
 }
-
-#ifdef HAVE_UNITTEST
-struct db_table_descriptor_list hisilicon_table_descriptors(void)
-{
-	static const struct db_table_descriptor * const tables[] = {
-		&hisi_common_section_tab,
-	};
-
-	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
-}
-#endif

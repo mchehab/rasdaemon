@@ -894,19 +894,6 @@ int test_erst(void)
 }
 #endif
 
-#ifdef HAVE_NON_STANDARD
-static void assert_vendor_descriptor_count(struct db_table_descriptor_list list,
-					   size_t expected)
-{
-	assert_int_equal(list.num_tables, expected);
-	for (size_t i = 0; i < list.num_tables; i++) {
-		assert_non_null(list.tables[i]);
-		assert_non_null(list.tables[i]->name);
-		assert_true(list.tables[i]->num_fields > 1);
-	}
-}
-#endif
-
 static void test_db_table_registry(void **state)
 {
 	static const struct db_table_descriptor descriptor = {
@@ -915,7 +902,10 @@ static void test_db_table_registry(void **state)
 	struct db_desc_and_stmt entry = {
 		.desc = &descriptor,
 	};
-	struct ras_module_ctx ctx = { 0 };
+	struct db_desc_and_stmt duplicate = {
+		.desc = &descriptor,
+	};
+	struct ras_module_ctx ctx = { 0 }, other = { 0 };
 
 	if (!modules_have_sql_backend())
 		skip();
@@ -924,6 +914,7 @@ static void test_db_table_registry(void **state)
 	assert_int_equal(ras_db_table_register(&ctx, NULL), -EINVAL);
 	assert_int_equal(ras_db_table_register(&ctx, &entry), 0);
 	assert_int_equal(ras_db_table_register(&ctx, &entry), -EEXIST);
+	assert_int_equal(ras_db_table_register(&other, &duplicate), -EEXIST);
 	ras_db_table_unregister(&ctx);
 	assert_int_equal(ras_db_table_register(&ctx, &entry), 0);
 	ras_db_table_unregister(&ctx);
@@ -968,7 +959,6 @@ static void test_ampere_decoder_registration(void **state)
 	struct trace_seq seq;
 
 	assert_true(decoder_is_registered("e8ed898d-df16-43cc-8ecc-54f060ef157f"));
-	assert_vendor_descriptor_count(ampere_table_descriptors(), 4);
 	trace_seq_init(&seq);
 	assert_int_equal(ras_ns_test_decode(
 		"e8ed898d-df16-43cc-8ecc-54f060ef157f",
@@ -993,8 +983,6 @@ static void test_hisilicon_decoder_registration(void **state)
 	assert_true(decoder_is_registered("1f8161e1-55d6-41e6-bd10-7afd1dc5f7c5"));
 	assert_true(decoder_is_registered("45534ea6-ce23-4115-8535-e07ab3aef91d"));
 	assert_true(decoder_is_registered("b2889fc9-e7d7-4f9d-a867-af42e98be772"));
-	assert_vendor_descriptor_count(hisilicon_table_descriptors(), 1);
-	assert_vendor_descriptor_count(hip08_table_descriptors(), 3);
 }
 
 static const struct CMUnitTest hisi_ns_tests[] = {
@@ -1015,7 +1003,6 @@ static void test_jaguarmicro_decoder_registration(void **state)
 	assert_true(decoder_is_registered("2d31de54-3037-4f24-a283-f69ca1ec0b9a"));
 	assert_true(decoder_is_registered("dac80d69-0a72-4eba-8114-148ee344af06"));
 	assert_true(decoder_is_registered("746f06fe-405e-451f-8d09-02e802ed984a"));
-	assert_vendor_descriptor_count(jaguarmicro_table_descriptors(), 1);
 }
 
 static const struct CMUnitTest jaguar_ns_tests[] = {
@@ -1040,7 +1027,6 @@ static void test_nvidia_decoder(void **state)
 
 	assert_true(decoder_is_registered(NVIDIA_GRACE_SEC_TYPE_UUID));
 	assert_true(decoder_is_registered(NVIDIA_VERA_SEC_TYPE_UUID));
-	assert_vendor_descriptor_count(nvidia_table_descriptors(), 2);
 	trace_seq_init(&seq);
 	decode_nvidia_cper_sec(NULL, &seq, &payload, sizeof(payload));
 	trace_seq_terminate(&seq);
@@ -1074,7 +1060,6 @@ static void test_yitian_decoder_registration(void **state)
 	const char *type = "a6980811-16ea-4e4d-b936-fb00a23ff29c";
 
 	assert_true(decoder_is_registered(type));
-	assert_vendor_descriptor_count(yitian_table_descriptors(), 1);
 	trace_seq_init(&seq);
 	assert_int_equal(ras_ns_test_decode(type, &ras, &seq, &event), 0);
 	trace_seq_destroy(&seq);

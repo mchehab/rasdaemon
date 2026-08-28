@@ -1049,15 +1049,3 @@ static void __attribute__((constructor)) amp_register(void)
 	if (rc)
 		log(TERM, LOG_ERR, "Failed to register Ampere module: %d\n", rc);
 }
-
-#ifdef HAVE_UNITTEST
-struct db_table_descriptor_list ampere_table_descriptors(void)
-{
-	static const struct db_table_descriptor * const tables[] = {
-		&amp_payload0_event_tab, &amp_payload1_event_tab,
-		&amp_payload2_event_tab, &amp_payload3_event_tab,
-	};
-
-	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
-}
-#endif

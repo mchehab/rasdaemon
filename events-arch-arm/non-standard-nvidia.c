@@ -745,14 +745,3 @@ static void __attribute__((constructor)) nvidia_register(void)
 	if (rc)
 		log(TERM, LOG_ERR, "Failed to register NVIDIA module: %d\n", rc);
 }
-
-#ifdef HAVE_UNITTEST
-struct db_table_descriptor_list nvidia_table_descriptors(void)
-{
-	static const struct db_table_descriptor * const tables[] = {
-		&nvidia_ns_table, &nvidia_vera_ns_table,
-	};
-
-	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
-}
-#endif

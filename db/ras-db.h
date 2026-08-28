@@ -130,21 +130,6 @@ struct db_desc_and_stmt {
 	struct ras_stmt *stmt;
 };
 
-#ifdef HAVE_UNITTEST
-struct db_table_descriptor_list {
-	const struct db_table_descriptor * const *tables;
-	size_t num_tables;
-};
-
-struct db_table_descriptor_list ras_record_table_descriptors(void);
-struct db_table_descriptor_list ampere_table_descriptors(void);
-struct db_table_descriptor_list hip08_table_descriptors(void);
-struct db_table_descriptor_list hisilicon_table_descriptors(void);
-struct db_table_descriptor_list jaguarmicro_table_descriptors(void);
-struct db_table_descriptor_list nvidia_table_descriptors(void);
-struct db_table_descriptor_list yitian_table_descriptors(void);
-#endif
-
 /**
  * struct db_backend - Specify what DB backend will be used
  * @backend:	Name of backend driver
@@ -181,6 +166,13 @@ int ras_db_table_register(struct ras_module_ctx *ctx,
  * The owner must finalize its statements before calling this function.
  */
 void ras_db_table_unregister(struct ras_module_ctx *ctx);
+
+#ifdef HAVE_UNITTEST
+typedef int (*ras_db_table_test_callback)(const struct db_table_descriptor *desc,
+					  void *data);
+
+int ras_db_table_test_foreach(ras_db_table_test_callback callback, void *data);
+#endif
 
 /**
  * ops_bind - Bind fields from an event structure using fields definition
@@ -328,6 +320,17 @@ static inline int ras_db_table_register(struct ras_module_ctx *ctx,
 static inline void ras_db_table_unregister(struct ras_module_ctx *ctx)
 {
 }
+
+#ifdef HAVE_UNITTEST
+typedef int (*ras_db_table_test_callback)(const struct db_table_descriptor *desc,
+					  void *data);
+
+static inline int ras_db_table_test_foreach(ras_db_table_test_callback callback,
+					    void *data)
+{
+	return 0;
+}
+#endif
 
 static inline int db_bind(const struct db_table_descriptor *db_tab,
 			  struct ras_stmt *stmt, int pos, uint64_t value, int len)

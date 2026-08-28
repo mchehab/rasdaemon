@@ -1073,15 +1073,3 @@ static void __attribute__((constructor)) hip08_register(void)
 	if (rc)
 		log(TERM, LOG_ERR, "Failed to register HIP08 module: %d\n", rc);
 }
-
-#ifdef HAVE_UNITTEST
-struct db_table_descriptor_list hip08_table_descriptors(void)
-{
-	static const struct db_table_descriptor * const tables[] = {
-		&hip08_oem_type1_event_tab, &hip08_oem_type2_event_tab,
-		&hip08_pcie_local_event_tab,
-	};
-
-	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
-}
-#endif

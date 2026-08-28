@@ -93,7 +93,8 @@ int ras_db_table_register(struct ras_module_ctx *ctx,
 		return -EINVAL;
 
 	LIST_FOREACH(registered, &ras_db_tables, node) {
-		if (registered->ctx == ctx && registered->entry == entry)
+		if ((registered->ctx == ctx && registered->entry == entry) ||
+		    registered->entry->desc == entry->desc)
 			return -EEXIST;
 
 		prev = registered;
@@ -112,6 +113,25 @@ int ras_db_table_register(struct ras_module_ctx *ctx,
 
 	return 0;
 }
+
+#ifdef HAVE_UNITTEST
+int ras_db_table_test_foreach(ras_db_table_test_callback callback, void *data)
+{
+	const struct ras_db_table_runtime *table;
+	int rc;
+
+	if (!callback)
+		return -EINVAL;
+
+	LIST_FOREACH(table, &ras_db_tables, node) {
+		rc = callback(table->entry->desc, data);
+		if (rc)
+			return rc;
+	}
+
+	return 0;
+}
+#endif
 
 void ras_db_table_unregister(struct ras_module_ctx *ctx)
 {

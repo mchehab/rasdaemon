@@ -1097,14 +1097,3 @@ static void __attribute__((constructor)) jm_register(void)
 	if (rc)
 		log(TERM, LOG_ERR, "Failed to register JaguarMicro module: %d\n", rc);
 }
-
-#ifdef HAVE_UNITTEST
-struct db_table_descriptor_list jaguarmicro_table_descriptors(void)
-{
-	static const struct db_table_descriptor * const tables[] = {
-		&jm_payload0_event_tab,
-	};
-
-	return (struct db_table_descriptor_list) { tables, ARRAY_SIZE(tables) };
-}
-#endif
