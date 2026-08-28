@@ -1152,18 +1152,42 @@ int ras_events_prepare(struct ras_events *ras, int record_events,
 	return 0;
 }
 
+void ras_events_cleanup(struct ras_events *ras)
+{
+	int i;
+
+	if (!ras)
+		return;
+
+	if (ras->daemon_active_fd >= 0) {
+		close(ras->daemon_active_fd);
+		ras->daemon_active_fd = -1;
+	}
+
+	for (i = 0; i < NR_EVENTS; i++) {
+		if (!ras->filters[i])
+			continue;
+		tep_filter_free(ras->filters[i]);
+		ras->filters[i] = NULL;
+	}
+
+	if (ras->pevent) {
+		tep_free(ras->pevent);
+		ras->pevent = NULL;
+	}
+	ras->num_events = 0;
+}
+
 int handle_ras_events(struct ras_events *ras)
 {
 	int rc, i;
 	int num_events;
 	unsigned int cpus;
-	struct tep_handle *pevent;
 	struct pthread_data *data = NULL;
 
 	if (!ras || !ras->pevent)
 		return -EINVAL;
 
-	pevent = ras->pevent;
 	num_events = ras->num_events;
 	cpus = get_num_cpus(ras);
 
@@ -1175,8 +1199,10 @@ int handle_ras_events(struct ras_events *ras)
 	}
 
 	data = calloc(cpus, sizeof(*data));
-	if (!data)
+	if (!data) {
+		rc = -ENOMEM;
 		goto err;
+	}
 
 	for (i = 0; i < cpus; i++) {
 		data[i].ras = ras;
@@ -1186,8 +1212,10 @@ int handle_ras_events(struct ras_events *ras)
 
 	/* Poll doesn't work on this kernel. Fallback to pthread way */
 	if (rc == LEGACY_KERNEL) {
-		if (pthread_mutex_init(&ras->db_lock, NULL) != 0) {
+		rc = pthread_mutex_init(&ras->db_lock, NULL);
+		if (rc) {
 			log(SYSLOG, LOG_INFO, "SQL DB lock init has failed\n");
+			rc = -rc;
 			goto err;
 		}
 
@@ -1208,6 +1236,7 @@ int handle_ras_events(struct ras_events *ras)
 				for (i = 0; i < started; i++)
 					pthread_join(data[i].thread, NULL);
 				pthread_mutex_destroy(&ras->db_lock);
+				rc = -rc;
 				goto err;
 			}
 		}
@@ -1221,20 +1250,7 @@ int handle_ras_events(struct ras_events *ras)
 	log(SYSLOG, LOG_INFO, "Huh! something got wrong. Aborting.\n");
 
 err:
-	if (data)
-		free(data);
-
-	if (pevent)
-		tep_free(pevent);
-	ras->pevent = NULL;
-
-	if (ras) {
-		if (ras->daemon_active_fd >= 0)
-			close(ras->daemon_active_fd);
-		for (i = 0; i < NR_EVENTS; i++) {
-			if (ras->filters[i])
-				tep_filter_free(ras->filters[i]);
-		}
-	}
+	free(data);
+	ras_events_cleanup(ras);
 	return rc;
 }

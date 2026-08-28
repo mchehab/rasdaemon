@@ -174,6 +174,7 @@ int ras_event_filter(struct ras_events *ras, const char *group,
 		     const char *event, const char *filter);
 int ras_events_prepare(struct ras_events *ras, int record_events,
 		       int enable_ipmitool);
+void ras_events_cleanup(struct ras_events *ras);
 int handle_ras_events(struct ras_events *ras);
 #ifdef HAVE_UNITTEST
 bool ras_events_test_is_disabled(const char *group, const char *event);

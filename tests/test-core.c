@@ -258,6 +258,34 @@ static void test_disabled_event_selection(void **state)
 	choices_disable = saved;
 }
 
+static void test_ras_events_cleanup(void **state)
+{
+	struct ras_events ras = { .daemon_active_fd = -1 };
+	int pipefd[2];
+
+	assert_int_equal(pipe(pipefd), 0);
+	ras.pevent = tep_alloc();
+	assert_non_null(ras.pevent);
+	ras.filters[MC_EVENT] = tep_filter_alloc(ras.pevent);
+	assert_non_null(ras.filters[MC_EVENT]);
+	ras.daemon_active_fd = pipefd[0];
+	ras.num_events = 1;
+
+	ras_events_cleanup(&ras);
+	assert_null(ras.pevent);
+	assert_null(ras.filters[MC_EVENT]);
+	assert_int_equal(ras.daemon_active_fd, -1);
+	assert_int_equal(ras.num_events, 0);
+	errno = 0;
+	assert_int_equal(fcntl(pipefd[0], F_GETFD), -1);
+	assert_int_equal(errno, EBADF);
+
+	/* Cleanup is safe to repeat. */
+	ras_events_cleanup(&ras);
+	ras_events_cleanup(NULL);
+	close(pipefd[1]);
+}
+
 static int consumer_calls;
 static int consumer_order[3];
 static void *consumer_data;
@@ -369,6 +397,7 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_mock_logger),
 	cmocka_unit_test(test_warn_once),
 	cmocka_unit_test(test_disabled_event_selection),
+	cmocka_unit_test(test_ras_events_cleanup),
 	cmocka_unit_test_setup(test_event_consumers, consumer_test_setup),
 };
 

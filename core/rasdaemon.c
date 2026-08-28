@@ -266,6 +266,7 @@ int main(int argc, char *argv[])
 
 	if (args.record_events && db_open(NULL, 0, ras, 0)) {
 		log(TERM, LOG_ERR, "Failed to open SQL database\n");
+		ras_events_cleanup(ras);
 		modules_unregister();
 		free(ras);
 		return EXIT_FAILURE;
