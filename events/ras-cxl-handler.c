@@ -52,6 +52,7 @@ int db_cxl_generic_event(struct ras_events *ras, void *priv);
 int db_cxl_general_media_event(struct ras_events *ras, void *priv);
 int db_cxl_dram_event(struct ras_events *ras, void *priv);
 int db_cxl_memory_module_event(struct ras_events *ras, void *priv);
+int db_cxl_memory_sparing_event(struct ras_events *ras, void *priv);
 
 #ifdef HAVE_UNITTEST
 int test_cxl(void) __attribute__((weak));
@@ -97,7 +98,8 @@ CXL_EVENT_ENTRY(ras_cxl_module_entry, "cxl_memory_module",
 		ras_cxl_memory_module_event_handler, db_cxl_memory_module_event,
 		CXL_MEMORY_MODULE_EVENT);
 CXL_EVENT_ENTRY(ras_cxl_sparing_entry, "cxl_memory_sparing",
-		ras_cxl_memory_sparing_event_handler, NULL,
+		ras_cxl_memory_sparing_event_handler,
+		db_cxl_memory_sparing_event,
 		CXL_MEMORY_SPARING_EVENT);
 #include "actions/ras-page-isolation.h"
 
@@ -2107,6 +2109,112 @@ int db_cxl_memory_module_event(struct ras_events *ras, void *priv)
 	return rc;
 }
 
+/*
+ * Table and functions to handle cxl:cxl_memory_sparing
+ */
+static const struct db_fields cxl_memory_sparing_event_fields[] = {
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP, .create_index = true },
+	{ .name = "memdev",			.type = DB_TYPE_TEXT },
+	{ .name = "host",			.type = DB_TYPE_TEXT },
+	{ .name = "serial",			.type = DB_TYPE_INT64 },
+	{ .name = "log_type",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_uuid",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_flags",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_handle",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_related_handle",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ts",			.type = DB_TYPE_TEXT },
+	{ .name = "hdr_length",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_class",		.type = DB_TYPE_INT32 },
+	{ .name = "hdr_maint_op_sub_class",	.type = DB_TYPE_INT32 },
+	{ .name = "hdr_ld_id",			.type = DB_TYPE_INT32 },
+	{ .name = "hdr_head_id",		.type = DB_TYPE_INT32 },
+
+	{ .name = "flags",			.type = DB_TYPE_INT32 },
+	{ .name = "result",			.type = DB_TYPE_INT32 },
+	{ .name = "validity_flags",		.type = DB_TYPE_INT32 },
+	{ .name = "res_avail",			.type = DB_TYPE_INT32 },
+	{ .name = "channel",			.type = DB_TYPE_INT32 },
+	{ .name = "sub_channel",		.type = DB_TYPE_INT32 },
+	{ .name = "rank",			.type = DB_TYPE_INT32 },
+	{ .name = "nibble_mask",		.type = DB_TYPE_INT32 },
+	{ .name = "bank_group",			.type = DB_TYPE_INT32 },
+	{ .name = "bank",			.type = DB_TYPE_INT32 },
+	{ .name = "row",			.type = DB_TYPE_INT32 },
+	{ .name = "column",			.type = DB_TYPE_INT32 },
+	{ .name = "comp_id",			.type = DB_TYPE_BLOB },
+	{ .name = "pldm_entity_id",		.type = DB_TYPE_BLOB },
+	{ .name = "pldm_resource_id",		.type = DB_TYPE_BLOB },
+};
+
+const struct db_table_descriptor cxl_memory_sparing_event_tab = {
+	.name = "cxl_memory_sparing_event",
+	.fields = cxl_memory_sparing_event_fields,
+	.num_fields = ARRAY_SIZE(cxl_memory_sparing_event_fields),
+};
+
+static struct db_desc_and_stmt cxl_memory_sparing_event_db = {
+	.desc = &cxl_memory_sparing_event_tab,
+};
+
+int db_cxl_memory_sparing_event(struct ras_events *ras, void *priv)
+{
+	struct ras_cxl_memory_sparing_event *ev = priv;
+	int idx;
+	int rc;
+
+	if (!cxl_memory_sparing_event_db.stmt)
+		return -1;
+	log(TERM, LOG_INFO, "cxl_memory_sparing_event store: %p\n",
+	    cxl_memory_sparing_event_db.stmt);
+
+	idx = db_cxl_common_hdr(&cxl_memory_sparing_event_tab,
+				cxl_memory_sparing_event_db.stmt, &ev->hdr);
+	if (idx <= 0)
+		return -1;
+
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->flags, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->result, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->validity_flags, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->res_avail, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->channel, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->sub_channel, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->rank, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->nibble_mask, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->bank_group, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->bank, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->row, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++, ev->column, -1);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++,
+		(uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++,
+		(uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_memory_sparing_event_tab,
+		cxl_memory_sparing_event_db.stmt, idx++,
+		(uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+
+	rc = db_eval_stmt(cxl_memory_sparing_event_db.stmt,
+			  "cxl_memory_sparing_event");
+	if (!rc)
+		log(TERM, LOG_INFO, "register inserted at db\n");
+
+	return rc;
+}
+
 static struct db_desc_and_stmt * const ras_cxl_tables[] = {
 	&cxl_poison_event_db,
 	&cxl_aer_ue_event_db,
@@ -2116,6 +2224,7 @@ static struct db_desc_and_stmt * const ras_cxl_tables[] = {
 	&cxl_general_media_event_db,
 	&cxl_dram_event_db,
 	&cxl_memory_module_event_db,
+	&cxl_memory_sparing_event_db,
 };
 
 static int ras_cxl_db_init(struct ras_module_ctx *ctx)

@@ -698,6 +698,7 @@ static void test_mc_event_recording(void **state)
 		.comp_id = component_id, .region = "region0",
 		.region_uuid = "uuid" };
 	struct ras_cxl_memory_module_event module = { .comp_id = component_id };
+	struct ras_cxl_memory_sparing_event sparing = { .comp_id = component_id };
 #endif
 #ifdef HAVE_SIGNAL
 	struct ras_signal_event signal = { .sig = SIGBUS, .code = BUS_ADRERR,
@@ -802,6 +803,10 @@ static void test_mc_event_recording(void **state)
 	init_cxl_header(&module.hdr);
 	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_MEMORY_MODULE_EVENT, &module),
 			 "cxl_memory_module_event");
+	init_cxl_header(&sparing.hdr);
+	RECORD_AND_CHECK(ras_event_publish(&ras, CXL_MEMORY_SPARING_EVENT,
+					   &sparing),
+			 "cxl_memory_sparing_event");
 #endif
 #ifdef HAVE_SIGNAL
 	strscpy(signal.timestamp, mc.timestamp, sizeof(signal.timestamp));
