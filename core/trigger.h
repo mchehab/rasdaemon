@@ -3,6 +3,11 @@
 #ifndef __TRIGGER_H__
 #define __TRIGGER_H__
 
+/**
+ * struct event_trigger - event-specific external trigger setup
+ * @name: event name
+ * @setup: callback which configures the trigger
+ */
 struct event_trigger {
 	const char *name;
 	void (*setup)(void);

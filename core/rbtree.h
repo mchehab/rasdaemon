@@ -84,6 +84,12 @@
 
 #include <stddef.h>
 
+/**
+ * struct rb_node - intrusive red-black tree node
+ * @rb_parent_color: packed parent pointer and color bits
+ * @rb_right: right child
+ * @rb_left: left child
+ */
 struct rb_node {
 	unsigned long  rb_parent_color;
 #define	RB_RED		0
@@ -93,6 +99,10 @@ struct rb_node {
 } __attribute__((aligned(sizeof(long))));
     /* The alignment might seem pointless, but allegedly CRIS needs it */
 
+/**
+ * struct rb_root - red-black tree root
+ * @rb_node: root node, or NULL for an empty tree
+ */
 struct rb_root {
 	struct rb_node *rb_node;
 };
@@ -104,11 +114,21 @@ struct rb_root {
 #define rb_set_red(r)  do { (r)->rb_parent_color &= ~1; } while (0)
 #define rb_set_black(r)  do { (r)->rb_parent_color |= 1; } while (0)
 
+/**
+ * rb_set_parent - update a node's parent without changing its color
+ * @rb: node to update
+ * @p: new parent, or NULL
+ */
 static inline void rb_set_parent(struct rb_node *rb, struct rb_node *p)
 {
 	rb->rb_parent_color = (rb->rb_parent_color & 3) | (unsigned long)p;
 }
 
+/**
+ * rb_set_color - update a node's color without changing its parent
+ * @rb: node to update
+ * @color: @RB_RED or @RB_BLACK
+ */
 static inline void rb_set_color(struct rb_node *rb, int color)
 {
 	rb->rb_parent_color = (rb->rb_parent_color & ~1) | color;
@@ -133,6 +153,14 @@ struct rb_node *rb_last(const struct rb_root *rb_root);
 void rb_replace_node(struct rb_node *victim, struct rb_node *new,
 		     struct rb_root *root);
 
+/**
+ * rb_link_node - attach an unbalanced red-black tree leaf
+ * @node: detached node to initialize
+ * @parent: parent selected by the caller's ordered search
+ * @rb_link: child link in @parent, or root link, receiving @node
+ *
+ * Call rb_insert_color() after linking to restore tree invariants.
+ */
 static inline void rb_link_node(struct rb_node *node, struct rb_node *parent,
 				struct rb_node **rb_link)
 {

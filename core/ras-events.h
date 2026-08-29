@@ -22,7 +22,31 @@ extern long user_hz;
 struct mce_priv;
 struct ras_mc_offline_event;
 
-enum {
+/**
+ * enum ras_event_id - decoded event payload types
+ * @MC_EVENT: memory-controller event
+ * @MCE_EVENT: x86 machine-check event
+ * @AER_EVENT: PCIe AER event
+ * @NON_STANDARD_EVENT: non-standard CPER event
+ * @ARM_EVENT: Arm processor error event
+ * @EXTLOG_EVENT: extended machine-check log event
+ * @DEVLINK_EVENT: devlink health event
+ * @DISKERROR_EVENT: block I/O error event
+ * @MF_EVENT: memory-failure event
+ * @SIGNAL_EVENT: fatal-signal event
+ * @CXL_POISON_EVENT: CXL poison-list event
+ * @CXL_AER_UE_EVENT: CXL uncorrectable AER event
+ * @CXL_AER_CE_EVENT: CXL correctable AER event
+ * @CXL_OVERFLOW_EVENT: CXL overflow event
+ * @CXL_GENERIC_EVENT: generic CXL event
+ * @CXL_GENERAL_MEDIA_EVENT: CXL general-media event
+ * @CXL_DRAM_EVENT: CXL DRAM event
+ * @CXL_MEMORY_MODULE_EVENT: CXL memory-module event
+ * @CXL_MEMORY_SPARING_EVENT: CXL memory-sparing event
+ * @RERI_EVENT: RISC-V RERI event
+ * @NR_EVENTS: number of event identifiers
+ */
+enum ras_event_id {
 	MC_EVENT,
 	MCE_EVENT,
 	AER_EVENT,
@@ -48,8 +72,26 @@ enum {
 
 struct ras_db;
 
+/**
+ * typedef record_function - persist one decoded event
+ * @ras: event-loop and database context
+ * @event: concrete payload selected by the event descriptor
+ *
+ * Return:
+ * 0 on success or the recorder/backend-specific nonzero error on failure.
+ */
 typedef int (*record_function)(struct ras_events *ras, void *event);
 
+/**
+ * enum ras_event_consumer_priority - event-consumer delivery order
+ * @PRI_CPU_ISOLATION: CPU offlining/isolation actions
+ * @PRI_MEM_ISOLATION: page and row isolation actions
+ * @PRI_POISON_PAGE: poison-page accounting
+ * @PRI_PLATFORM_ACTION: platform-specific actions
+ * @PRI_REPORTING: external reporting
+ * @PRI_DB_RECORD: database persistence
+ * @PRI_NORMAL: consumers without ordering constraints
+ */
 enum ras_event_consumer_priority {
 	PRI_CPU_ISOLATION = 10,
 	PRI_MEM_ISOLATION = 20,
@@ -60,16 +102,40 @@ enum ras_event_consumer_priority {
 	PRI_NORMAL = 100,
 };
 
+/**
+ * struct ras_event_consumer - immutable decoded-event consumer
+ * @name: unique diagnostic name and equal-priority ordering key
+ * @priority: delivery priority
+ * @events: bitmap of accepted enum ras_event_id values
+ * @consume: synchronous callback; the publisher retains payload ownership
+ */
 struct ras_event_consumer {
-	/* Unique, diagnostic name used to order equal-priority consumers. */
 	const char *name;
 	enum ras_event_consumer_priority priority;
-	/* BIT_ULL(event ID) values accepted by consume(). */
 	uint64_t events;
-	/* Consume decoded event data synchronously; the publisher owns data. */
 	int (*consume)(struct ras_events *ras, int event, void *data);
 };
 
+/**
+ * struct ras_event_entry - immutable trace-event registration descriptor
+ * @group: trace-event subsystem name
+ * @event: trace-event name
+ * @handler: libtraceevent callback
+ * @filter: fixed kernel filter string, or NULL
+ * @filter_cb: optional callback producing a kernel filter string
+ * @prepare: optional per-event preparation callback
+ * @enabled: optional callback after successful event enablement
+ * @trigger_setup: optional trace-trigger configuration callback
+ * @id: decoded enum ras_event_id
+ * @order: ascending handler registration order
+ * @record: optional database recorder
+ * @test_group: unit-test family when unit tests are enabled
+ * @test: optional unit-test callback
+ * @test_priority: ascending test execution order
+ *
+ * Descriptors have static lifetime. Callback resources are owned by their
+ * module and must remain valid until ras_events_cleanup().
+ */
 struct ras_event_entry {
 	const char *group;
 	const char *event;
@@ -89,6 +155,25 @@ struct ras_event_entry {
 #endif
 };
 
+/**
+ * struct ras_events - process-wide tracing and database state
+ * @tracing: mounted tracefs/debugfs tracing directory
+ * @pevent: shared trace-event parser
+ * @page_size: kernel tracing page size
+ * @use_uptime: timestamps use uptime rather than wall clock
+ * @record_events: database recording is requested
+ * @enable_ipmitool: IPMI event reporting is requested
+ * @uptime_diff: wall-clock offset from monotonic uptime
+ * @db: active backend connection
+ * @db_priv: backend-private per-session data
+ * @db_ref_count: number of matching db_open() references
+ * @num_events: number of decoded events
+ * @db_lock: serializes legacy per-CPU database recorder access
+ * @mce_priv: x86 MCE decoder state
+ * @socketfd: ABRT reporting socket
+ * @daemon_active_fd: lock file descriptor proving daemon ownership
+ * @filters: installed filters indexed by enum ras_event_id
+ */
 struct ras_events {
 	char			tracing[MAX_PATH + 1];
 	struct tep_handle	*pevent;
@@ -119,6 +204,13 @@ struct ras_events {
 	struct tep_event_filter	*filters[NR_EVENTS];
 };
 
+/**
+ * struct pthread_data - state for one legacy per-CPU reader thread
+ * @thread: POSIX thread identifier
+ * @pevent: thread-local event parser
+ * @ras: shared process context
+ * @cpu: logical CPU read by this thread
+ */
 struct pthread_data {
 	pthread_t		thread;
 	struct tep_handle	*pevent;
@@ -126,7 +218,15 @@ struct pthread_data {
 	int			cpu;
 };
 
-/* Should match the code at Kernel's include/linux/edac.c */
+/* NOTE: Should match the code at Kernel's include/linux/edac.c */
+/**
+ * enum hw_event_mc_err_type - memory-controller error classifications
+ * @HW_EVENT_ERR_CORRECTED: corrected error
+ * @HW_EVENT_ERR_UNCORRECTED: uncorrected non-fatal error
+ * @HW_EVENT_ERR_DEFERRED: deferred error
+ * @HW_EVENT_ERR_FATAL: fatal error
+ * @HW_EVENT_ERR_INFO: informational event
+ */
 enum hw_event_mc_err_type {
 	HW_EVENT_ERR_CORRECTED,
 	HW_EVENT_ERR_UNCORRECTED,
@@ -135,14 +235,27 @@ enum hw_event_mc_err_type {
 	HW_EVENT_ERR_INFO,
 };
 
-/* Should match the code at Kernel's /drivers/pci/pcie/aer/aerdrv_errprint.c */
+/* NOTE: Should match the code at Kernel's /drivers/pci/pcie/aer/aerdrv_errprint.c */
+/**
+ * enum hw_event_aer_err_type - PCIe AER classifications
+ * @HW_EVENT_AER_UNCORRECTED_NON_FATAL: uncorrectable non-fatal event
+ * @HW_EVENT_AER_UNCORRECTED_FATAL: uncorrectable fatal event
+ * @HW_EVENT_AER_CORRECTED: corrected event
+ */
 enum hw_event_aer_err_type {
 	HW_EVENT_AER_UNCORRECTED_NON_FATAL,
 	HW_EVENT_AER_UNCORRECTED_FATAL,
 	HW_EVENT_AER_CORRECTED,
 };
 
-/* Should match the code at Kernel's include/acpi/ghes.h */
+/* NOTE: Should match the code at Kernel's include/acpi/ghes.h */
+/**
+ * enum ghes_severity - ACPI GHES severity values
+ * @GHES_SEV_NO: no severity
+ * @GHES_SEV_CORRECTED: corrected error
+ * @GHES_SEV_RECOVERABLE: recoverable error
+ * @GHES_SEV_PANIC: fatal error
+ */
 enum ghes_severity {
 	GHES_SEV_NO,
 	GHES_SEV_CORRECTED,

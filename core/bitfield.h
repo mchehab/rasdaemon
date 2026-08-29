@@ -8,12 +8,26 @@
 
 /* Generic bitfield decoder */
 
+/**
+ * struct field - decode an indexed bit field
+ * @start_bit: least-significant bit of the field
+ * @str: strings indexed by the decoded value
+ * @stringlen: number of entries in @str
+ */
 struct field {
 	unsigned int start_bit;
 	char **str;
 	unsigned int stringlen;
 };
 
+/**
+ * struct numfield - decode a numeric bit field
+ * @start: least-significant bit of the field
+ * @end: most-significant bit of the field
+ * @name: label written before the value
+ * @fmt: printf format for the value
+ * @force: emit the field even when its value is zero
+ */
 struct numfield {
 	unsigned int start, end;
 	char *name;
@@ -40,6 +54,14 @@ void decode_numfield(struct mce_event *e, uint64_t status,
 #define MASK(x) ((1ULL << (1 + (x))) - 1)
 #define EXTRACT(v, a, b) (((v) >> (a)) & MASK((b) - (a)))
 
+/**
+ * test_prefix - test whether a value has a unary prefix
+ * @nr: number of low-order bits below the prefix
+ * @value: value to inspect
+ *
+ * Return:
+ * nonzero when shifting @value by @nr produces one.
+ */
 static inline int test_prefix(int nr, uint32_t value)
 {
 	return ((value >> nr) == 1);

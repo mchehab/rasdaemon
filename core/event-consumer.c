@@ -11,6 +11,11 @@
 
 #include "core/ras-events.h"
 
+/**
+ * struct ras_event_consumer_runtime - registry wrapper for a consumer
+ * @consumer: static consumer descriptor
+ * @node: link in event_consumers
+ */
 struct ras_event_consumer_runtime {
 	const struct ras_event_consumer *consumer;
 
@@ -19,9 +24,15 @@ struct ras_event_consumer_runtime {
 
 LIST_HEAD(ras_event_consumer_list, ras_event_consumer_runtime);
 
+/**
+ * var event_consumers - consumers ordered by priority and name
+ */
 static struct ras_event_consumer_list event_consumers =
 	LIST_HEAD_INITIALIZER(event_consumers);
 
+/**
+ * ras_event_consumers_unregister - free registry wrappers at process exit
+ */
 static void ras_event_consumers_unregister(void)
 {
 	struct ras_event_consumer_runtime *consumer;
@@ -32,6 +43,19 @@ static void ras_event_consumers_unregister(void)
 	}
 }
 
+/**
+ * ras_event_consumer_register - register an immutable event consumer
+ * @consumer: static descriptor
+ *
+ * Registration occurs during constructors and is not thread-safe. Consumers
+ * are ordered by ascending priority and then name.
+ *
+ * Return:
+ * * 0 - the consumer was registered
+ * * -EINVAL - @consumer or one of its required fields is invalid
+ * * -EEXIST - its descriptor or name is already registered
+ * * -ENOMEM - wrapper allocation or exit-handler registration failed
+ */
 int ras_event_consumer_register(const struct ras_event_consumer *consumer)
 {
 	struct ras_event_consumer_runtime *entry, *new, *prev = NULL;
@@ -81,6 +105,15 @@ int ras_event_consumer_register(const struct ras_event_consumer *consumer)
 	return 0;
 }
 
+/**
+ * ras_event_consumer_unregister - remove a registered consumer
+ * @consumer: descriptor previously passed to ras_event_consumer_register()
+ *
+ * Return:
+ * * 0 - the consumer was unregistered
+ * * -EINVAL - @consumer is NULL
+ * * -ENOENT - @consumer is not registered
+ */
 int ras_event_consumer_unregister(const struct ras_event_consumer *consumer)
 {
 	struct ras_event_consumer_runtime *entry;
@@ -100,6 +133,21 @@ int ras_event_consumer_unregister(const struct ras_event_consumer *consumer)
 	return -ENOENT;
 }
 
+/**
+ * ras_event_publish - synchronously deliver a decoded event
+ * @ras: event-loop context
+ * @event: event identifier from enum ras_event_id
+ * @data: publisher-owned event payload
+ *
+ * Every interested consumer runs even if an earlier consumer fails. @data is
+ * valid only for the duration of this call. Callers must serialize publishing
+ * if a consumer requires it.
+ *
+ * Return:
+ * * 0 - every interested consumer succeeded
+ * * -EINVAL - @ras, @data, or @event is invalid
+ * * otherwise - the first consumer error in delivery order
+ */
 int ras_event_publish(struct ras_events *ras, int event, void *data)
 {
 	struct ras_event_consumer_runtime *entry;

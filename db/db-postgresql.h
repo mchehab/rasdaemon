@@ -16,6 +16,9 @@
  * @password:	Password (default NULL / empty).
  * @schema:	Schema to be used (default "rasdaemon").
  * @database:	Database name (default "rasdaemon").
+ * @connect_timeout: Connection timeout in seconds.
+ * @use_ssl:	Whether TLS is enabled for the connection.
+ * @sslmode:	libpq TLS policy string.
  */
 struct db_postgresql_conn_params {
 	const char *host;

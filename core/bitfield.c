@@ -12,6 +12,22 @@
 #include "core/bitfield.h"
 #include "events-arch-x86/ras-mce-handler.h"
 
+/**
+ * bitfield_msg - format the names of set bits
+ * @buf: destination buffer
+ * @len: size of @buf
+ * @bitarray: array mapping bit positions to names
+ * @array_len: number of entries in @bitarray
+ * @bit_offset: position of the first described bit in @status
+ * @ignore_bits: mask which suppresses output when any masked bit is set
+ * @status: value to decode
+ *
+ * Unknown set bits are formatted as ``BITn``. Output is truncated before a
+ * name which does not fit, and @buf is always terminated when @len is nonzero.
+ *
+ * Return:
+ * number of bytes written, excluding the terminating null byte.
+ */
 unsigned int bitfield_msg(char *buf, size_t len, const char * const *bitarray,
 			  unsigned int array_len,
 			  unsigned int bit_offset, unsigned int ignore_bits,
@@ -67,6 +83,13 @@ unsigned int bitfield_msg(char *buf, size_t len, const char * const *bitarray,
 	return p - buf;
 }
 
+/**
+ * bitmask - produce a mask covering a zero-based maximum value
+ * @i: maximum value to represent
+ *
+ * Return:
+ * the smallest all-ones mask greater than or equal to @i.
+ */
 static uint64_t bitmask(uint64_t i)
 {
 	uint64_t mask = 1;
@@ -76,6 +99,12 @@ static uint64_t bitmask(uint64_t i)
 	return mask;
 }
 
+/**
+ * decode_bitfield - append decoded symbolic fields to an MCE event
+ * @e: event receiving decoded messages
+ * @status: machine-check status value
+ * @fields: null-terminated field description array
+ */
 void decode_bitfield(struct mce_event *e, uint64_t status,
 		     struct field *fields)
 {
@@ -98,6 +127,12 @@ void decode_bitfield(struct mce_event *e, uint64_t status,
 	}
 }
 
+/**
+ * decode_numfield - append decoded numeric fields to an MCE event
+ * @e: event receiving decoded messages
+ * @status: machine-check status value
+ * @fields: null-terminated numeric field description array
+ */
 void decode_numfield(struct mce_event *e, uint64_t status,
 		     struct numfield *fields)
 {

@@ -11,6 +11,17 @@
 struct ras_events;
 struct ras_module_ctx;
 
+/**
+ * enum init_level - module initialization and cleanup order
+ * @DB_MODULE: database backends
+ * @BASE_EVENT_MODULE: base event decoders and table owners
+ * @SUB_EVENT_MODULE: decoders which depend on base event modules
+ * @ACTIONS_MODULE: consumers of decoded events
+ * @MAX_LEVELS: number of initialization levels
+ *
+ * Initialization proceeds from @DB_MODULE to @ACTIONS_MODULE. Process-wide
+ * cleanup visits the levels in reverse order.
+ */
 enum init_level {
 	DB_MODULE,
 	BASE_EVENT_MODULE,
@@ -21,6 +32,16 @@ enum init_level {
 	MAX_LEVELS
 };
 
+/**
+ * struct ras_module_entry - immutable module registration descriptor
+ * @name: unique module name
+ * @level: initialization level
+ * @init: optional initialization callback
+ * @cleanup: optional cleanup callback
+ *
+ * The descriptor must have static lifetime. On a successful @init, @cleanup
+ * receives the same context and must release all module-owned resources.
+ */
 struct ras_module_entry {
 	const char *name;
 	enum init_level level;
@@ -29,6 +50,12 @@ struct ras_module_entry {
 	void (*cleanup)(struct ras_module_ctx *ctx);
 };
 
+/**
+ * struct ras_module_ctx - runtime context owned by the module registry
+ * @entry: static module descriptor
+ * @ras: event-loop context supplied during initialization
+ * @priv: module-private state managed by the callbacks
+ */
 struct ras_module_ctx {
 	const struct ras_module_entry *entry;
 	struct ras_events *ras;
@@ -70,6 +97,21 @@ bool module_is_enabled(const char *name);
 bool module_is_registered(const char *name);
 
 #ifdef HAVE_UNITTEST
+/**
+ * enum test_group - independently selectable unit-test families
+ * @TEST_GROUP_CORE: generic core tests
+ * @TEST_GROUP_EVENTS: architecture-independent event tests
+ * @TEST_GROUP_X86_EVENTS: x86 event tests
+ * @TEST_GROUP_ARM_EVENTS: Arm event tests
+ * @TEST_GROUP_RISCV_EVENTS: RISC-V event tests
+ * @TEST_GROUP_ACTIONS: event-consumer tests
+ * @TEST_GROUP_DATABASE: generic database tests
+ * @TEST_GROUP_DB_SQLITE3: SQLite tests
+ * @TEST_GROUP_DB_MYSQL: MySQL/MariaDB tests
+ * @TEST_GROUP_DB_POSTGRESQL: PostgreSQL tests
+ * @TEST_GROUP_MODULES: module-registry tests
+ * @TEST_GROUP_MAX: number of test groups
+ */
 enum test_group {
 	TEST_GROUP_CORE,
 	TEST_GROUP_EVENTS,

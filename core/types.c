@@ -6,6 +6,9 @@
 
 #include "core/types.h"
 
+/**
+ * var loglevel_str - display labels indexed by rasdaemon log severity
+ */
 const char *loglevel_str[] = {
 	[LOGLEVEL_EMERG]	= "[EMERG]",
 	[LOGLEVEL_ALERT]	= "[ALERT]",

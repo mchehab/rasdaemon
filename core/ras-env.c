@@ -19,7 +19,9 @@
 #define MAX_LINE_LEN 1024
 
 /**
- * Trim leading and trailing whitespace in-place.
+ * ras_trim - trim leading and trailing whitespace in-place
+ * @s: string to trim
+ * @remove_commas: remove a pair of surrounding double quotes when true
  */
 static void ras_trim(char *s, bool remove_commas)
 {
@@ -44,17 +46,16 @@ static void ras_trim(char *s, bool remove_commas)
 }
 
 /**
- * Parse a configuration file and set environment variables.
+ * ras_set_env - parse a configuration file and set environment variables
+ * @fname: path to the configuration file
  *
- * Format:
- *   KEY=value
+ * The accepted format is ``KEY=value``. Empty lines and lines starting with
+ * ``#`` or ``;`` are ignored. Spaces and tabs are allowed around keys and
+ * values. Existing environment variables are left unchanged.
  *
- * Empty lines and lines starting with '#' or ';' are ignored.
- *
- * Spaces and tabs are allowed.
- *
- * @param fname   Path to the configuration file.
- * @return 0 on success, -1 on error.
+ * Return:
+ * * 0 - the configuration file was processed
+ * * -1 - the file could not be opened or a line had an empty key
  */
 int ras_set_env(const char *fname)
 {

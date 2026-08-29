@@ -8,6 +8,16 @@
 #include "core/ras-logger.h"
 #include "core/trigger.h"
 
+/**
+ * run_trigger - synchronously execute an external event reporter
+ * @trigger: executable path
+ * @argv: null-terminated argument vector
+ * @env: null-terminated environment vector
+ * @reporter: reporter name used in diagnostics
+ *
+ * The parent waits for the child. Fork and child-status failures are logged;
+ * they are not returned to the caller.
+ */
 void run_trigger(const char *trigger, char *argv[], char **env, const char *reporter)
 {
 	pid_t child;
@@ -36,6 +46,16 @@ void run_trigger(const char *trigger, char *argv[], char **env, const char *repo
 	}
 }
 
+/**
+ * trigger_check - resolve and validate a trigger executable
+ * @s: trigger name or path
+ *
+ * When ``TRIGGER_DIR`` is set, the returned path is newly allocated and lives
+ * for the remainder of the process. Otherwise the return value aliases @s.
+ *
+ * Return:
+ * an executable, readable path, or NULL if validation fails.
+ */
 const char *trigger_check(const char *s)
 {
 	char *name;

@@ -129,8 +129,9 @@
  * Copy string up to @dsize-1 characters. String will end with a '\0'
  * character at the end.
  *
- * Returns: number of characters at the destination buffer or -E2BIG if
- * the string was too big to fit.
+ * Return:
+ * * number of copied non-null characters - @src and its null byte fit in @dst
+ * * ``(size_t)-E2BIG`` - @src did not fit in @dsize bytes
  */
 static inline size_t strscpy(char *dst, const char *src, size_t dsize)
 {
@@ -159,8 +160,9 @@ static inline size_t strscpy(char *dst, const char *src, size_t dsize)
  * Append string until @dst is up to @dsize-1 characters. String will end
  * with a '\0' character at the end.
  *
- * Returns: number of characters at the destination buffer or -E2BIG if
- * the string was too big to fit.
+ * Return:
+ * * resulting string length - @src, including its null byte, fit in @dst
+ * * ``(size_t)-E2BIG`` - the concatenated string did not fit in @dsize bytes
  */
 static inline size_t strscat(char *dst, const char *src, size_t dsize)
 {

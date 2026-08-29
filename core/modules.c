@@ -10,6 +10,12 @@
 #include "core/modules.h"
 #include "core/ras-logger.h"
 
+/**
+ * struct ras_module_entry_runtime - mutable state for a registered module
+ * @ctx: callback context
+ * @is_enabled: whether initialization completed successfully
+ * @node: link in ras_modules
+ */
 struct ras_module_entry_runtime {
 	struct ras_module_ctx ctx;
 	bool is_enabled;
@@ -19,9 +25,19 @@ struct ras_module_entry_runtime {
 
 LIST_HEAD(module_list, ras_module_entry_runtime);
 
+/**
+ * var ras_modules - registered modules sorted by name
+ */
 static struct module_list ras_modules = LIST_HEAD_INITIALIZER(ras_modules);
 
 #ifdef HAVE_UNITTEST
+/**
+ * struct module_test_runtime - one registered unit-test callback
+ * @group: selectable test family
+ * @run: callback returning zero on success
+ * @priority: ascending execution order
+ * @node: link in module_tests
+ */
 struct module_test_runtime {
 	enum test_group group;
 	int (*run)(void);
@@ -32,9 +48,15 @@ struct module_test_runtime {
 
 LIST_HEAD(module_test_list, module_test_runtime);
 
+/**
+ * var module_tests - registered unit tests sorted by priority
+ */
 static struct module_test_list module_tests =
 	LIST_HEAD_INITIALIZER(module_tests);
 
+/**
+ * module_tests_unregister - release unit-test registry wrappers at exit
+ */
 static void module_tests_unregister(void)
 {
 	struct module_test_runtime *test;
@@ -50,6 +72,19 @@ static void module_tests_unregister(void)
  * Public functions
  */
 
+/**
+ * module_register - register a static module descriptor
+ * @entry: descriptor which remains valid for the process lifetime
+ *
+ * Registration is constructor-safe but not thread-safe. Entries are kept in
+ * name order, and duplicate names are rejected.
+ *
+ * Return:
+ * * 0 - the module was registered
+ * * -EINVAL - @entry or its name is NULL
+ * * -EEXIST - the module name is already registered
+ * * -ENOMEM - wrapper allocation or exit-handler registration failed
+ */
 int module_register(const struct ras_module_entry *entry)
 {
 	struct ras_module_entry_runtime *new, *cur, *prev = NULL;
@@ -104,6 +139,12 @@ int module_register(const struct ras_module_entry *entry)
 	return 0;
 }
 
+/**
+ * modules_have_sql_backend - test whether a database module is active
+ *
+ * Return:
+ * true if an enabled module has level @DB_MODULE.
+ */
 bool modules_have_sql_backend(void)
 {
 	struct ras_module_entry_runtime *entry;
@@ -116,6 +157,13 @@ bool modules_have_sql_backend(void)
 	return false;
 }
 
+/**
+ * modules_cleanup_type - clean all active modules at one level
+ * @level: level to clean
+ *
+ * Cleanup callbacks run in module-name order. Context pointers are cleared
+ * after each callback, allowing the module to be initialized again.
+ */
 void modules_cleanup_type(enum init_level level)
 {
 	struct ras_module_entry_runtime *entry;
@@ -132,6 +180,9 @@ void modules_cleanup_type(enum init_level level)
 	}
 }
 
+/**
+ * cleanup_modules - clean all module levels in reverse order
+ */
 static void cleanup_modules(void)
 {
 	int level;
@@ -140,6 +191,17 @@ static void cleanup_modules(void)
 		modules_cleanup_type(level);
 }
 
+/**
+ * module_init - initialize one named module
+ * @ras: event-loop context, possibly NULL in isolated tests
+ * @name: registered module name
+ *
+ * Return:
+ * * 0 - the module initialized successfully or was already active
+ * * -EINVAL - @name is NULL
+ * * -ENOENT - @name is not registered
+ * * otherwise - the module initialization callback's error
+ */
 int module_init(struct ras_events *ras, const char *name)
 {
 	struct ras_module_entry_runtime *entry;
@@ -172,6 +234,15 @@ int module_init(struct ras_events *ras, const char *name)
 	return -ENOENT;
 }
 
+/**
+ * module_cleanup - clean one active named module
+ * @name: registered module name
+ *
+ * Return:
+ * * 0 - the active module was cleaned
+ * * -EINVAL - @name is NULL
+ * * -ENOENT - no active module has @name
+ */
 int module_cleanup(const char *name)
 {
 	struct ras_module_entry_runtime *entry;
@@ -194,6 +265,16 @@ int module_cleanup(const char *name)
 	return -ENOENT;
 }
 
+/**
+ * modules_init - initialize every registered module in level order
+ * @ras: event-loop context shared with module callbacks
+ *
+ * A failing module is left disabled while initialization continues. Already
+ * active modules are skipped.
+ *
+ * Return:
+ * always 0; individual module failures are logged.
+ */
 int modules_init(struct ras_events *ras)
 {
 	struct ras_module_entry_runtime *entry;
@@ -220,6 +301,13 @@ int modules_init(struct ras_events *ras)
 	return 0;
 }
 
+/**
+ * module_is_enabled - query a module's runtime state
+ * @name: module name
+ *
+ * Return:
+ * true if the named module is registered and active.
+ */
 bool module_is_enabled(const char *name)
 {
 	struct ras_module_entry_runtime *entry;
@@ -232,6 +320,13 @@ bool module_is_enabled(const char *name)
 	return false;
 }
 
+/**
+ * module_is_registered - query whether a module name exists
+ * @name: module name
+ *
+ * Return:
+ * true if registered; false for NULL or an unknown name.
+ */
 bool module_is_registered(const char *name)
 {
 	struct ras_module_entry_runtime *entry;
@@ -246,6 +341,11 @@ bool module_is_registered(const char *name)
 	return false;
 }
 
+/**
+ * modules_unregister - clean modules and release registry wrappers
+ *
+ * Called automatically at process exit. Static descriptors are not freed.
+ */
 void modules_unregister(void)
 {
 	struct ras_module_entry_runtime *entry;
@@ -260,6 +360,18 @@ void modules_unregister(void)
 }
 
 #ifdef HAVE_UNITTEST
+/**
+ * module_test_register - add a unit-test callback
+ * @group: test family
+ * @run: callback returning zero on success
+ * @priority: ascending order within the registry
+ *
+ * Return:
+ * * 0 - the callback was registered
+ * * -EINVAL - @group or @run is invalid
+ * * -EEXIST - @run is already registered
+ * * -ENOMEM - exit-handler registration or wrapper allocation failed
+ */
 int module_test_register(enum test_group group, int (*run)(void),
 			 unsigned int priority)
 {
@@ -305,6 +417,13 @@ int module_test_register(enum test_group group, int (*run)(void),
 	return 0;
 }
 
+/**
+ * module_test_group_is_registered - test whether a group has callbacks
+ * @group: group to query
+ *
+ * Return:
+ * true when at least one callback belongs to @group.
+ */
 bool module_test_group_is_registered(enum test_group group)
 {
 	struct module_test_runtime *test;
@@ -317,6 +436,13 @@ bool module_test_group_is_registered(enum test_group group)
 	return false;
 }
 
+/**
+ * module_test_group_run - execute all callbacks in a test group
+ * @group: group to run
+ *
+ * Return:
+ * number of callbacks which reported failure.
+ */
 int module_test_group_run(enum test_group group)
 {
 	struct module_test_runtime *test;
@@ -330,6 +456,13 @@ int module_test_group_run(enum test_group group)
 	return failed;
 }
 
+/**
+ * module_test_context - expose a module context to unit tests
+ * @name: registered module name
+ *
+ * Return:
+ * registry-owned context, or NULL for NULL/unknown names.
+ */
 struct ras_module_ctx *module_test_context(const char *name)
 {
 	struct ras_module_entry_runtime *entry;

@@ -17,6 +17,8 @@
  * @database:	Database name (default "rasdaemon").
  * @socket:	Unix socket path for local connections
  *		(default "/var/lib/mysql/mysql.sock").
+ * @connect_timeout: Connection timeout in seconds.
+ * @use_ssl:	Whether TLS is enabled for the connection.
  */
 struct db_mysql_conn_params {
 	const char *host;

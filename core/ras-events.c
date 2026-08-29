@@ -61,9 +61,20 @@
 	#define ENDIAN TEP_BIG_ENDIAN
 #endif
 
+/**
+ * var choices_disable - comma/space-separated events disabled by config
+ */
 char *choices_disable;
+/**
+ * var user_hz - userspace clock ticks per second
+ */
 long user_hz;
 
+/**
+ * struct ras_event_runtime - registry wrapper for an event descriptor
+ * @entry: static event descriptor
+ * @node: link in ras_event_handlers
+ */
 struct ras_event_runtime {
 	const struct ras_event_entry *entry;
 	LIST_ENTRY(ras_event_runtime) node;
@@ -71,9 +82,23 @@ struct ras_event_runtime {
 
 LIST_HEAD(ras_event_list, ras_event_runtime);
 
+/**
+ * var ras_event_handlers - event descriptors in preparation order
+ */
 static struct ras_event_list ras_event_handlers =
 	LIST_HEAD_INITIALIZER(ras_event_handlers);
 
+/**
+ * get_mountdir_by_type - find a mounted filesystem by type
+ * @mount_type: filesystem type from /proc/mounts
+ * @tracing_dir: destination for the mount path
+ * @len: size of @tracing_dir
+ *
+ * Return:
+ * * 0 - a matching mount was found and copied to @tracing_dir
+ * * -ENOENT - no mount has @mount_type
+ * * otherwise - a negative errno value from opening /proc/mounts
+ */
 static int get_mountdir_by_type(char *mount_type, char *tracing_dir, size_t len)
 {
 	FILE *fp;
@@ -114,17 +139,42 @@ static int get_mountdir_by_type(char *mount_type, char *tracing_dir, size_t len)
 	return -ENOENT;
 }
 
+/**
+ * get_debugfs_dir - locate the debugfs mount
+ * @tracing_dir: destination path
+ * @len: destination size
+ *
+ * Return:
+ * 0 on success or a negative errno value from get_mountdir_by_type().
+ */
 static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
 	return get_mountdir_by_type("debugfs", tracing_dir, len);
 }
 
 
+/**
+ * get_tracefs_dir - locate the tracefs mount
+ * @tracing_dir: destination path
+ * @len: destination size
+ *
+ * Return:
+ * 0 on success or a negative errno value from get_mountdir_by_type().
+ */
 static int get_tracefs_dir(char *tracing_dir, size_t len)
 {
 	return get_mountdir_by_type("tracefs", tracing_dir, len);
 }
 
+/**
+ * wait_access - wait for a tracefs node to appear
+ * @path: node path
+ * @ms: maximum wait in milliseconds
+ *
+ * Return:
+ * * 0 - @path became accessible
+ * * -1 - the timeout expired
+ */
 static int wait_access(char *path, int ms)
 {
 	int i;
@@ -140,6 +190,18 @@ static int wait_access(char *path, int ms)
 	return -1;
 }
 
+/**
+ * open_trace - open a node relative to the tracing directory
+ * @ras: initialized tracing context
+ * @name: relative tracefs path
+ * @flags: open(2) flags
+ *
+ * Return:
+ * * nonnegative - an open file descriptor
+ * * -E2BIG - the constructed path did not fit
+ * * -1 - the trace node did not appear before the timeout
+ * * otherwise - a negative errno value from open(2)
+ */
 static int open_trace(struct ras_events *ras, char *name, int flags)
 {
 	char fname[MAX_PATH + 1];
@@ -168,6 +230,19 @@ static int open_trace(struct ras_events *ras, char *name, int flags)
 	return rc;
 }
 
+/**
+ * get_tracing_dir - locate or create rasdaemon's tracing instance
+ * @ras: context receiving the path
+ *
+ * Prefers tracefs and falls back to debugfs/tracing. When trace instances are
+ * supported, creates or reuses the ``rasdaemon`` instance.
+ *
+ * Return:
+ * * 0 - @ras->tracing contains the usable tracing directory
+ * * -E2BIG - the constructed path did not fit
+ * * -EINVAL - the directory could not be opened or the instance created
+ * * otherwise - a negative mount-discovery error
+ */
 static int get_tracing_dir(struct ras_events *ras)
 {
 	char		fname[MAX_PATH + 1];
@@ -222,6 +297,14 @@ static int get_tracing_dir(struct ras_events *ras)
 	return 0;
 }
 
+/**
+ * is_disabled_event - check the configured trace-event deny list
+ * @group: trace subsystem
+ * @event: trace event name
+ *
+ * Return:
+ * true if the exact ``group:event`` name is disabled.
+ */
 static bool is_disabled_event(const char *group, const char *event)
 {
 	char ras_event_name[MAX_PATH + 1];
@@ -249,6 +332,14 @@ static bool is_disabled_event(const char *group, const char *event)
 }
 
 #ifdef HAVE_UNITTEST
+/**
+ * ras_events_test_is_disabled - unit-test access to is_disabled_event()
+ * @group: trace subsystem
+ * @event: trace event name
+ *
+ * Return:
+ * true if disabled by choices_disable.
+ */
 bool ras_events_test_is_disabled(const char *group, const char *event)
 {
 	return is_disabled_event(group, event);
@@ -257,6 +348,18 @@ bool ras_events_test_is_disabled(const char *group, const char *event)
 
 /*
  * Tracing enable/disable code
+ */
+/**
+ * __toggle_ras_mc_event - enable or disable one kernel trace event
+ * @ras: tracing context
+ * @group: trace subsystem
+ * @event: trace event name
+ * @enable: nonzero to enable unless configured disabled
+ *
+ * Return:
+ * * 0 - the event state was written successfully
+ * * -EIO - write(2) reported that no bytes were written
+ * * otherwise - a negative/open failure or the write(2) failure value
  */
 static int __toggle_ras_mc_event(struct ras_events *ras,
 				 const char *group, const char *event, int enable)
@@ -297,6 +400,15 @@ static int __toggle_ras_mc_event(struct ras_events *ras,
 	return 0;
 }
 
+/**
+ * toggle_ras_mc_event - toggle every registered RAS trace event
+ * @enable: nonzero to enable events, zero to disable them
+ *
+ * Return:
+ * * 0 - every registered event was toggled
+ * * -EINVAL - tracing setup or at least one event toggle failed
+ * * otherwise - the negative allocation errno from calloc(3)
+ */
 int toggle_ras_mc_event(int enable)
 {
 	struct ras_event_runtime *event;
@@ -331,6 +443,18 @@ free_ras:
  * Set kernel filter. libtrace doesn't provide an API for setting filters
  * in kernel, we have to implement it here.
  */
+/**
+ * filter_ras_mc_event - install a kernel-side trace-event filter
+ * @ras: tracing context
+ * @group: trace subsystem
+ * @event: trace event name
+ * @filter_str: kernel filter expression
+ *
+ * Return:
+ * * 0 - the filter was written successfully
+ * * -EIO - write(2) reported that no bytes were written
+ * * otherwise - a negative/open failure or the write(2) failure value
+ */
 static int filter_ras_mc_event(struct ras_events *ras, const char *group,
 			       const char *event,
 			       const char *filter_str)
@@ -360,6 +484,16 @@ static int filter_ras_mc_event(struct ras_events *ras, const char *group,
 	return 0;
 }
 
+/**
+ * ras_event_filter - install a kernel filter for a registered event
+ * @ras: tracing context
+ * @group: trace subsystem
+ * @event: trace event name
+ * @filter: kernel filter expression
+ *
+ * Return:
+ * the result of installing @filter through filter_ras_mc_event().
+ */
 int ras_event_filter(struct ras_events *ras, const char *group,
 		     const char *event, const char *filter)
 {
@@ -370,6 +504,14 @@ int ras_event_filter(struct ras_events *ras, const char *group,
  * Tracing read code
  */
 
+/**
+ * get_pagesize - parse the trace ring-buffer page header
+ * @ras: tracing context
+ * @pevent: event parser receiving header metadata
+ *
+ * Return:
+ * 4096, after parsing the page header when it is available.
+ */
 static int get_pagesize(struct ras_events *ras, struct tep_handle *pevent)
 {
 	int fd, len, page_size = 4096;
@@ -390,6 +532,13 @@ error:
 	return page_size;
 }
 
+/**
+ * parse_ras_data - dispatch one raw ring-buffer record
+ * @pdata: reader state
+ * @kbuf: loaded kernel ring buffer
+ * @data: current record payload
+ * @time_stamp: record timestamp
+ */
 static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 			   void *data, unsigned long long time_stamp)
 {
@@ -420,6 +569,13 @@ static void parse_ras_data(struct pthread_data *pdata, struct kbuffer *kbuf,
 	trace_seq_destroy(&s);
 }
 
+/**
+ * get_num_cpus - obtain the number of online logical CPUs
+ * @ras: tracing context (unused)
+ *
+ * Return:
+ * the positive number of online logical CPUs. Failure triggers an assertion.
+ */
 static int get_num_cpus(struct ras_events *ras)
 {
 	int cpus;
@@ -429,6 +585,15 @@ static int get_num_cpus(struct ras_events *ras)
 	return cpus;
 }
 
+/**
+ * set_buffer_percent - configure the trace-buffer poll wake threshold
+ * @ras: tracing context
+ * @percent: percentage written to tracefs
+ *
+ * Return:
+ * * 0 - the percentage was written
+ * * -EINVAL - the node could not be opened or written
+ */
 static int set_buffer_percent(struct ras_events *ras, int percent)
 {
 	char buf[16];
@@ -465,6 +630,19 @@ static int set_buffer_percent(struct ras_events *ras, int percent)
  */
 #define LEGACY_KERNEL		255
 
+/**
+ * read_ras_event_all_cpus - poll all per-CPU trace pipes in one thread
+ * @pdata: array containing at least @n_cpus reader contexts
+ * @n_cpus: number of CPU pipes
+ *
+ * SIGINT, SIGTERM, SIGHUP, and SIGQUIT are blocked while polling and restored
+ * before return. All file descriptors and buffers are released on every path.
+ *
+ * Return:
+ * * @LEGACY_KERNEL - polling appears unsupported and callers should fall back
+ * * -ENOMEM - a page or kernel-buffer decoder could not be allocated
+ * * -EINVAL - signal-driven shutdown or any other polling/read failure
+ */
 static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				   unsigned int n_cpus)
 {
@@ -644,6 +822,18 @@ error:
 	return -EINVAL;
 }
 
+/**
+ * read_ras_event - read one legacy per-CPU trace pipe indefinitely
+ * @fd: trace_pipe_raw descriptor
+ * @pdata: CPU reader state
+ * @kbuf: reusable kernel-buffer decoder
+ * @page: reusable page-sized input buffer
+ *
+ * Cancellation is disabled while the shared database lock is held.
+ *
+ * Return:
+ * -EINVAL on read failure; otherwise the loop does not return.
+ */
 static int read_ras_event(int fd,
 			  struct pthread_data *pdata,
 			  struct kbuffer *kbuf,
@@ -689,6 +879,13 @@ static int read_ras_event(int fd,
 	} while (1);
 }
 
+/**
+ * struct reader_cleanup - cancellation-owned per-CPU reader resources
+ * @pdata: reader state
+ * @kbuf: kernel-buffer decoder
+ * @page: raw input allocation
+ * @fd: trace pipe descriptor
+ */
 struct reader_cleanup {
 	struct pthread_data *pdata;
 	struct kbuffer *kbuf;
@@ -696,6 +893,10 @@ struct reader_cleanup {
 	int fd;
 };
 
+/**
+ * cleanup_ras_events_cpu - pthread cleanup handler for a CPU reader
+ * @arg: struct reader_cleanup pointer
+ */
 static void cleanup_ras_events_cpu(void *arg)
 {
 	struct reader_cleanup *cleanup = arg;
@@ -711,6 +912,13 @@ static void cleanup_ras_events_cpu(void *arg)
 	pthread_setcancelstate(oldstate, NULL);
 }
 
+/**
+ * handle_ras_events_cpu - legacy reader thread entry point
+ * @priv: struct pthread_data pointer
+ *
+ * Return:
+ * always NULL after its cleanup handler releases reader resources.
+ */
 static void *handle_ras_events_cpu(void *priv)
 {
 	char pipe_raw[PATH_MAX];
@@ -754,6 +962,17 @@ out:
 
 #define UPTIME "uptime"
 
+/**
+ * select_tracing_timestamp - prefer the trace uptime clock
+ * @ras: context receiving clock-selection state
+ *
+ * Unsupported or unwritable uptime clocks are nonfatal and retain the kernel
+ * default. /proc/uptime is used to compute the wall-clock offset.
+ *
+ * Return:
+ * * 0 - uptime was selected or the kernel clock was retained as a fallback
+ * * -EINVAL - trace_clock could not be opened/read or clock data was malformed
+ */
 static int select_tracing_timestamp(struct ras_events *ras)
 {
 	FILE *fp;
@@ -824,6 +1043,15 @@ static int select_tracing_timestamp(struct ras_events *ras)
 	return 0;
 }
 
+/**
+ * check_event_exist - test for an event directory in tracefs
+ * @ras: tracing context
+ * @group: trace subsystem
+ * @event: trace event name
+ *
+ * Return:
+ * true when the directory exists.
+ */
 static bool check_event_exist(struct ras_events *ras, const char *group,
 			      const char *event)
 {
@@ -839,6 +1067,9 @@ static bool check_event_exist(struct ras_events *ras, const char *group,
 
 #define EVENT_DISABLED	1
 
+/**
+ * ras_events_unregister - release event-registry wrappers at process exit
+ */
 static void ras_events_unregister(void)
 {
 	struct ras_event_runtime *event;
@@ -849,6 +1080,18 @@ static void ras_events_unregister(void)
 	}
 }
 
+/**
+ * ras_event_record - invoke the recorder registered for an event type
+ * @ras: event/database context
+ * @event_id: enum ras_event_id
+ * @data: concrete event payload
+ *
+ * Return:
+ * * 0 - a matching event has no recorder or its recorder succeeded
+ * * -EINVAL - @ras, @data, or @event_id is invalid
+ * * -ENOENT - no registered descriptor has @event_id
+ * * otherwise - the matching recorder's error
+ */
 int ras_event_record(struct ras_events *ras, int event_id, void *data)
 {
 	struct ras_event_runtime *event;
@@ -870,6 +1113,14 @@ int ras_event_record(struct ras_events *ras, int event_id, void *data)
 }
 
 #ifdef HAVE_UNITTEST
+/**
+ * ras_event_test_find - locate an event descriptor for unit tests
+ * @group: trace subsystem
+ * @name: trace event name
+ *
+ * Return:
+ * registry-owned descriptor or NULL.
+ */
 static const struct ras_event_entry *ras_event_test_find(const char *group,
 							 const char *name)
 {
@@ -882,6 +1133,14 @@ static const struct ras_event_entry *ras_event_test_find(const char *group,
 	return NULL;
 }
 
+/**
+ * ras_event_test_handler - resolve a registered trace callback for tests
+ * @group: trace subsystem
+ * @event: trace event name
+ *
+ * Return:
+ * handler callback or NULL when not registered.
+ */
 tep_event_handler_func ras_event_test_handler(const char *group,
 					      const char *event)
 {
@@ -892,6 +1151,21 @@ tep_event_handler_func ras_event_test_handler(const char *group,
 
 #endif
 
+/**
+ * ras_event_register - register a static trace-event descriptor
+ * @entry: descriptor with process lifetime
+ *
+ * Entries are sorted by @ras_event_entry.order, group, and event. Registration
+ * is constructor-safe but not thread-safe. Associated tests are registered as
+ * part of the same operation.
+ *
+ * Return:
+ * * 0 - the event and any associated test were registered
+ * * -EINVAL - @entry or one of its required fields is invalid
+ * * -EEXIST - its trace pair or associated test callback is already registered
+ * * -ENOMEM - wrapper allocation or exit-handler registration failed
+ * * otherwise - the associated test-registration error
+ */
 int ras_event_register(const struct ras_event_entry *entry)
 {
 	struct ras_event_runtime *event, *new, *prev = NULL;
@@ -954,6 +1228,25 @@ int ras_event_register(const struct ras_event_entry *entry)
 	return 0;
 }
 
+/**
+ * add_event_handler - parse, register, filter, and enable one trace event
+ * @ras: tracing context
+ * @pevent: event parser
+ * @page_size: initial format-read allocation size
+ * @group: trace subsystem
+ * @event: trace event name
+ * @func: libtraceevent callback
+ * @filter_str: optional userspace filter expression
+ * @id: enum ras_event_id used to store the allocated filter
+ *
+ * Return:
+ * * 0 - the handler was registered and its trace event enabled
+ * * @EVENT_DISABLED - its format node is absent or it is configured off
+ * * -EOVERFLOW - the dynamically grown format buffer would overflow
+ * * otherwise - a negative discovery, I/O, parsing, filter, or enable error
+ *
+ * A filter stored in @ras is freed by ras_events_cleanup().
+ */
 static int add_event_handler(struct ras_events *ras,
 			     struct tep_handle *pevent,
 			     unsigned int page_size, const char *group,
@@ -1092,6 +1385,20 @@ static int add_event_handler(struct ras_events *ras,
 	return 0;
 }
 
+/**
+ * ras_events_prepare - initialize tracing and all registered event handlers
+ * @ras: zero-initialized process context
+ * @record_events: enable database recording consumers
+ * @enable_ipmitool: enable IPMI reporting
+ *
+ * The caller owns @ras and must call ras_events_cleanup() after a successful
+ * call, including if a later database/module initialization step fails.
+ * Individual unsupported events are logged and skipped.
+ *
+ * Return:
+ * * 0 - basic preparation completed; unsupported individual events were skipped
+ * * otherwise - a negative tracing-setup or parser-allocation error
+ */
 int ras_events_prepare(struct ras_events *ras, int record_events,
 		       int enable_ipmitool)
 {
@@ -1152,6 +1459,13 @@ int ras_events_prepare(struct ras_events *ras, int record_events,
 	return 0;
 }
 
+/**
+ * ras_events_cleanup - release resources allocated during event preparation
+ * @ras: process context, or NULL
+ *
+ * The operation is idempotent after initialization and clears owned pointers.
+ * It does not free @ras or clean module-owned resources.
+ */
 void ras_events_cleanup(struct ras_events *ras)
 {
 	int i;
@@ -1178,6 +1492,21 @@ void ras_events_cleanup(struct ras_events *ras)
 	ras->num_events = 0;
 }
 
+/**
+ * handle_ras_events - run the trace reader until shutdown or failure
+ * @ras: successfully prepared event context
+ *
+ * Modern kernels use a single polling reader. Kernels without working poll
+ * support fall back to one cancellable thread per CPU; handler/database access
+ * is serialized in that mode. This function always calls ras_events_cleanup()
+ * before returning.
+ *
+ * Return:
+ * * -EINVAL - @ras is invalid, no events were enabled, or polling stopped
+ * * -ENOMEM - per-CPU reader state could not be allocated
+ * * @LEGACY_KERNEL - all fallback reader threads exited without setup failure
+ * * otherwise - a negated pthread initialization or creation error
+ */
 int handle_ras_events(struct ras_events *ras)
 {
 	int rc, i;

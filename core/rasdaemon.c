@@ -30,11 +30,31 @@
 #define DISABLE "DISABLE"
 #define MC_CE_STAT_THRESHOLD "MC_CE_STAT_THRESHOLD"
 
+/**
+ * DOC: rasdaemon_conf
+ *
+ * ``rasdaemon_conf`` is the static default configuration file path.
+ */
 static const char *const rasdaemon_conf = RASDAEMON_ENV;
 
+/**
+ * var argp_program_version - version string exposed by argp
+ */
 const char *argp_program_version = PROG_NAME " " VERSION;
+/**
+ * var argp_program_bug_address - maintainer address exposed by argp
+ */
 const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.org>";
 
+/**
+ * struct arguments - parsed command-line state
+ * @record_events: database recording request count
+ * @enable_ras: positive to enable or negative to disable tracing
+ * @enable_ipmitool: IPMI reporting request count
+ * @foreground: nonzero to avoid daemonizing
+ * @offline: nonzero to decode a supplied offline MCE
+ * @cfg_file: explicit environment configuration path
+ */
 struct arguments {
 	int record_events;
 	int enable_ras;
@@ -44,6 +64,16 @@ struct arguments {
 	char *cfg_file;
 };
 
+/**
+ * enum OFFLINE_ARG_KEYS - argp keys for offline MCE fields
+ * @SMCA: enable AMD SMCA decoding
+ * @MODEL: CPU model
+ * @FAMILY: CPU family
+ * @BANK_NUM: machine-check bank
+ * @IPID_REG: SMCA IPID register
+ * @STATUS_REG: machine-check status register
+ * @SYNDROME_REG: SMCA syndrome register
+ */
 enum OFFLINE_ARG_KEYS {
 	SMCA = 0x100,
 	MODEL,
@@ -54,8 +84,21 @@ enum OFFLINE_ARG_KEYS {
 	SYNDROME_REG
 };
 
+/**
+ * var event - command-line offline MCE payload
+ */
 struct ras_mc_offline_event event;
 
+/**
+ * parse_opt - parse top-level rasdaemon options
+ * @k: argp option key
+ * @arg: optional argument text
+ * @state: argp parser state containing struct arguments
+ *
+ * Return:
+ * * 0 - the option was handled
+ * * @ARGP_ERR_UNKNOWN - @k is not a top-level option
+ */
 static error_t parse_opt(int k, char *arg, struct argp_state *state)
 {
 	struct arguments *args = state->input;
@@ -97,6 +140,16 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 }
 
 #ifdef HAVE_MCE
+/**
+ * parse_opt_offline - parse offline MCE register options
+ * @key: argp option key
+ * @arg: register value text
+ * @state: argp parser state (unused)
+ *
+ * Return:
+ * * 0 - the option was handled
+ * * @ARGP_ERR_UNKNOWN - @key is not an offline-MCE option
+ */
 static error_t parse_opt_offline(int key, char *arg,
 				 struct argp_state *state)
 {
@@ -129,6 +182,20 @@ static error_t parse_opt_offline(int key, char *arg,
 }
 #endif
 
+/**
+ * main - rasdaemon process entry point
+ * @argc: argument count
+ * @argv: argument vector
+ *
+ * Initializes modules, tracing, and the optional database session in ownership
+ * order. Cleanup reverses that order after event handling ends.
+ *
+ * Return:
+ * * @EXIT_SUCCESS - the requested operation completed
+ * * @EXIT_FAILURE - initialization or database setup/cleanup failed
+ * * -1 - argp did not produce a valid post-parse argument index
+ * * ``-errno`` - the main RAS context could not be allocated
+ */
 int main(int argc, char *argv[])
 {
 	struct ras_events *ras;

@@ -9,6 +9,11 @@
 
 #include "core/rbtree.h"
 
+/**
+ * __rb_rotate_left - rotate a subtree left during rebalancing
+ * @node: subtree root
+ * @root: tree root
+ */
 static void __rb_rotate_left(struct rb_node *node, struct rb_root *root)
 {
 	struct rb_node *right = node->rb_right;
@@ -32,6 +37,11 @@ static void __rb_rotate_left(struct rb_node *node, struct rb_root *root)
 	rb_set_parent(node, right);
 }
 
+/**
+ * __rb_rotate_right - rotate a subtree right during rebalancing
+ * @node: subtree root
+ * @root: tree root
+ */
 static void __rb_rotate_right(struct rb_node *node, struct rb_root *root)
 {
 	struct rb_node *left = node->rb_left;
@@ -55,6 +65,11 @@ static void __rb_rotate_right(struct rb_node *node, struct rb_root *root)
 	rb_set_parent(node, left);
 }
 
+/**
+ * rb_insert_color - rebalance a tree after insertion
+ * @node: node previously attached with rb_link_node()
+ * @root: tree root
+ */
 void rb_insert_color(struct rb_node *node, struct rb_root *root)
 {
 	struct rb_node *parent, *gparent;
@@ -114,6 +129,12 @@ void rb_insert_color(struct rb_node *node, struct rb_root *root)
 	rb_set_black(root->rb_node);
 }
 
+/**
+ * __rb_erase_color - restore red-black invariants after deletion
+ * @node: replacement child, possibly NULL
+ * @parent: parent of @node
+ * @root: tree root
+ */
 static void __rb_erase_color(struct rb_node *node, struct rb_node *parent,
 			     struct rb_root *root)
 {
@@ -180,6 +201,13 @@ static void __rb_erase_color(struct rb_node *node, struct rb_node *parent,
 		rb_set_black(node);
 }
 
+/**
+ * rb_erase - remove a node from a red-black tree
+ * @node: linked node to remove
+ * @root: tree root
+ *
+ * The caller retains ownership of @node.
+ */
 void rb_erase(struct rb_node *node, struct rb_root *root)
 {
 	struct rb_node *child, *parent;
@@ -246,8 +274,12 @@ void rb_erase(struct rb_node *node, struct rb_root *root)
 		__rb_erase_color(child, parent, root);
 }
 
-/*
- * This function returns the first node (in sort order) of the tree.
+/**
+ * rb_first - find the first node in sort order
+ * @root: tree root
+ *
+ * Return:
+ * first node, or NULL when empty.
  */
 struct rb_node *rb_first(const struct rb_root *root)
 {
@@ -261,6 +293,13 @@ struct rb_node *rb_first(const struct rb_root *root)
 	return n;
 }
 
+/**
+ * rb_last - find the last node in sort order
+ * @root: tree root
+ *
+ * Return:
+ * last node, or NULL when empty.
+ */
 struct rb_node *rb_last(const struct rb_root *root)
 {
 	struct rb_node	*n;
@@ -273,6 +312,13 @@ struct rb_node *rb_last(const struct rb_root *root)
 	return n;
 }
 
+/**
+ * rb_next - find a node's in-order successor
+ * @node: linked tree node
+ *
+ * Return:
+ * next node, or NULL at the end/detached marker.
+ */
 struct rb_node *rb_next(const struct rb_node *node)
 {
 	struct rb_node *parent;
@@ -305,6 +351,13 @@ struct rb_node *rb_next(const struct rb_node *node)
 	return parent;
 }
 
+/**
+ * rb_prev - find a node's in-order predecessor
+ * @node: linked tree node
+ *
+ * Return:
+ * previous node, or NULL at the beginning/detached marker.
+ */
 struct rb_node *rb_prev(const struct rb_node *node)
 {
 	struct rb_node *parent;
@@ -333,6 +386,14 @@ struct rb_node *rb_prev(const struct rb_node *node)
 	return parent;
 }
 
+/**
+ * rb_replace_node - replace a node without rebalancing
+ * @victim: linked node to replace
+ * @new: detached replacement node
+ * @root: tree root
+ *
+ * The replacement inherits all links and color. The caller retains @victim.
+ */
 void rb_replace_node(struct rb_node *victim, struct rb_node *new,
 		     struct rb_root *root)
 {
