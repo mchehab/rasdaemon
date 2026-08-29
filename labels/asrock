@@ -17,6 +17,12 @@
 #
 
 Vendor: ASRock
+  Model: X99M Killer
+    DDR4_A1: 0.0.0;
+    DDR4_B1: 0.0.1;
+    DDR4_C1: 0.0.2;
+    DDR4_D1: 0.0.3;
+
   Model: X370 Taichi
     DDR4_A1:  0.0.1, 0.1.1;    DDR4_A2:  0.2.1, 0.3.1;
     DDR4_B1:  0.0.0, 0.1.0;    DDR4_B2:  0.2.0, 0.3.0;
