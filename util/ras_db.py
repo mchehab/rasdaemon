@@ -6,10 +6,12 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import collections
 import datetime
 import fnmatch
 import hashlib
+import json
 import logging
 import os
 import re
@@ -374,6 +376,72 @@ class RasDatabase:
                 output.append(f"  {table}: {count} event(s)")
         return "\n".join(output) + ("\n" if output else "")
 
+    @staticmethod
+    def _json_default(value: Any) -> Any:
+        """Convert database scalar types which JSON cannot encode directly."""
+
+        if isinstance(value, (bytes, bytearray, memoryview)):
+            return {
+                "encoding": "base64",
+                "data": base64.b64encode(bytes(value)).decode("ascii"),
+            }
+        if isinstance(value, (datetime.date, datetime.datetime,
+                              datetime.time)):
+            return value.isoformat()
+        # Some database drivers return Decimal or backend-specific scalar
+        # classes.  Their string representation is lossless and portable.
+        return str(value)
+
+    @classmethod
+    def format_json(cls, mode: str, data: Any) -> str:
+        """Format one versioned, machine-readable database result."""
+
+        document = {"format_version": 1, "mode": mode}
+        document.update(data)
+        return json.dumps(
+            document, default=cls._json_default, ensure_ascii=False,
+            sort_keys=True,
+        ) + "\n"
+
+    @classmethod
+    def format_records_json(
+            cls, groups: Mapping[str, Iterable[DatabaseEvent]],
+            select_fields: Iterable[str] = ()) -> str:
+        """Format detailed records as a versioned JSON document."""
+
+        select_fields = tuple(select_fields)
+        records = []
+        for hostname, events in groups.items():
+            for event in events:
+                if select_fields:
+                    fields = {
+                        field: RasDatabaseQuery.event_value(event, field)
+                        for field in select_fields
+                        if field not in ("hostname", "timestamp", "table")
+                    }
+                else:
+                    fields = {
+                        key: value for key, value in event.values.items()
+                        if key not in ("hostname", "timestamp")
+                    }
+                records.append({
+                    "hostname": hostname,
+                    "timestamp": event.timestamp,
+                    "table": event.table,
+                    "fields": fields,
+                })
+        return cls.format_json("errors", {"records": records})
+
+    @classmethod
+    def format_counts_json(cls, mode: str,
+                           counts: Iterable[DatabaseCount]) -> str:
+        """Format aggregate database results as a versioned JSON document."""
+
+        return cls.format_json(mode, {"groups": [
+            {"values": dict(item.values), "count": item.count}
+            for item in counts
+        ]})
+
     def close(self) -> None:
         """Release the engine's connection pool."""
 
@@ -514,6 +582,10 @@ class RasDatabaseCommand:
             "--verbose", "-v", action="count", default=argparse.SUPPRESS,
             help="Describe tables selected for this query.",
         )
+        parser.add_argument(
+            "--json", action="store_true",
+            help="Write a versioned JSON document instead of text output.",
+        )
         parser.set_defaults(func=self.run)
 
     def run(self, config: Any, args: Any) -> None:
@@ -547,45 +619,88 @@ class RasDatabaseCommand:
             if args.summary and (args.group_by or args.order_by):
                 self.parser.error("--summary has a fixed hostname/table grouping")
             if args.list_tables:
-                for name in tables:
-                    print(name)
+                if args.json:
+                    print(database.format_json(
+                        "list-tables", {"tables": list(tables)}
+                    ), end="")
+                else:
+                    for name in tables:
+                        print(name)
                 return
             if args.describe:
-                for name, table in tables.items():
-                    print(f"{name}:")
-                    for column in table.columns:
-                        print(f"  {column.name}: {column.type}")
+                if args.json:
+                    description = {
+                        name: [
+                            {"name": column.name, "type": str(column.type)}
+                            for column in table.columns
+                        ] for name, table in tables.items()
+                    }
+                    print(database.format_json(
+                        "describe", {"tables": description}
+                    ), end="")
+                else:
+                    for name, table in tables.items():
+                        print(f"{name}:")
+                        for column in table.columns:
+                            print(f"  {column.name}: {column.type}")
                 return
             if args.create_index:
                 created = database.create_missing_indexes(tables)
-                for name in created:
-                    print(f"Created index {name}")
+                if args.json:
+                    print(database.format_json(
+                        "create-index", {"created_indexes": created}
+                    ), end="")
+                else:
+                    for name in created:
+                        print(f"Created index {name}")
                 return
             if args.summary:
-                print(database.format_summary(database.summary(
+                result = database.summary(
                     since=args.since, until=until,
                     hostname=args.hostname, tables=tables, filters=filters,
                     severity=args.severity,
-                )), end="")
+                )
+                if args.json:
+                    print(database.format_json(
+                        "summary", {"hosts": result}
+                    ), end="")
+                else:
+                    print(database.format_summary(result), end="")
             elif args.count:
-                print(database.format_counts(database.counts(
+                result = database.counts(
                     since=args.since, until=until, hostname=args.hostname,
                     tables=tables, filters=filters, severity=args.severity,
                     group_by=group_by, order_by=ordering,
-                ), group_by), end="")
+                )
+                if args.json:
+                    print(database.format_counts_json("count", result), end="")
+                else:
+                    print(database.format_counts(result, group_by), end="")
             elif args.errors_per_table:
                 group_by = ("table",)
-                print(database.format_counts(database.counts(
+                result = database.counts(
                     since=args.since, until=until, hostname=args.hostname,
                     tables=tables, filters=filters, severity=args.severity,
                     group_by=group_by, order_by=ordering,
-                ), group_by), end="")
+                )
+                if args.json:
+                    print(database.format_counts_json(
+                        "errors-per-table", result
+                    ), end="")
+                else:
+                    print(database.format_counts(result, group_by), end="")
             else:
-                print(database.format_records(database.records(
+                result = database.records(
                     since=args.since, until=until,
                     hostname=args.hostname, tables=tables, filters=filters,
                     severity=args.severity, select_fields=select_fields,
                     order_by=ordering,
-                ), select_fields), end="")
+                )
+                if args.json:
+                    print(database.format_records_json(
+                        result, select_fields
+                    ), end="")
+                else:
+                    print(database.format_records(result, select_fields), end="")
         finally:
             database.close()

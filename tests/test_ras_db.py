@@ -5,6 +5,7 @@ import argparse
 import contextlib
 import datetime
 import io
+import json
 import os
 import pathlib
 import re
@@ -428,6 +429,9 @@ class RasDatabaseTests:
         self.assertTrue(parser.parse_args([
             "database", "-E"
         ]).errors_per_table)
+        self.assertTrue(parser.parse_args([
+            "database", "--summary", "--json"
+        ]).json)
 
         count = parser.parse_args([
             "database", "--count", "--corrected", "--where", "label=DIMM0",
@@ -441,6 +445,40 @@ class RasDatabaseTests:
         self.assertEqual(count.verbose, 1)
         self.assertIn("Count corrected EDAC events",
                       database_command.parser.format_help())
+
+    def test_json_formatters_produce_versioned_documents(self):
+        tables = self.database.discover_tables()
+        groups = self.database.records(
+            tables={"mc_event": tables["mc_event"]}
+        )
+        records = json.loads(self.database.format_records_json(groups))
+        self.assertEqual(records["format_version"], 1)
+        self.assertEqual(records["mode"], "errors")
+        self.assertTrue(records["records"])
+        self.assertEqual(records["records"][0]["table"], "mc_event")
+        self.assertIn("hostname", records["records"][0])
+        self.assertIn("timestamp", records["records"][0])
+        self.assertIn("fields", records["records"][0])
+
+        counts = self.database.counts(
+            tables={"mc_event": tables["mc_event"]},
+            group_by=("table",),
+        )
+        aggregate = json.loads(
+            self.database.format_counts_json("errors-per-table", counts)
+        )
+        self.assertEqual(aggregate["format_version"], 1)
+        self.assertEqual(aggregate["mode"], "errors-per-table")
+        self.assertEqual(aggregate["groups"][0]["values"]["table"],
+                         "mc_event")
+
+    def test_json_formatter_encodes_binary_values(self):
+        document = json.loads(RasDatabase.format_json(
+            "test", {"blob": b"ras"}
+        ))
+        self.assertEqual(document["blob"], {
+            "encoding": "base64", "data": "cmFz",
+        })
 
     def test_filter_parser_rejects_raw_sql(self):
         with self.assertRaisesRegex(ValueError, "invalid filter"):

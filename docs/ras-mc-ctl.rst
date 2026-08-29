@@ -29,8 +29,44 @@ Alternatively, summarize the records by hostname and table::
 
    $ sudo ras-mc-ctl db --summary
 
-The hostname column and ``--hostname`` filter are used with MySQL/MariaDB and
-PostgreSQL. They are ignored when the configured backend is SQLite.
+Machine-readable JSON output
+----------------------------
+
+By default, ``ras-mc-ctl`` outputs data in human format.
+
+There is a ``--json`` flag (currently supported only by database
+command) that changes the output format to JSON. It can be combined
+with any db command::
+
+   $ sudo ras-mc-ctl db --errors --json
+   $ sudo ras-mc-ctl db --summary --json
+   $ sudo ras-mc-ctl db --count --table mc_event --corrected --json
+
+On each output:
+
+- ``format_version`` is currently set to ``1``, and it is meant to
+  indicate changes a the format;
+-  ``mode`` - indicates the type of JSON output;
+
+- Detailed reports contains a ``records`` array with:
+   - ``hostname``, ``timestamp``, ``table`` and ``fields`` object. 
+
+- Count reports contains contains a ``groups`` array with:
+  - ``values``, ``count`` objects
+
+- Summary rreports contains a ``hosts`` object.
+
+Other reports like ``--list-tables``, ``--describe``, and ``--create-index``
+also support JSON output.
+
+Binary database values are represented by an object containing a ``base64"``
+encoding.
+
+Please notice that new fields may be added without changing the version,
+so consumers can ignore object members they do not recognize.
+
+The ``hostname`` column (and ``--hostname`` filter) are used with
+MySQL/MariaDB and PostgreSQL. Both are ignored when using SQLite.
 
 Discover tables and fields
 --------------------------
