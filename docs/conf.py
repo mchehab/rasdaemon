@@ -3,12 +3,20 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import os
+import sys
+
+docs_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(docs_dir, "sphinx"))
+
+kerneldoc_srctree = os.path.join(docs_dir, "..")
+
 
 project = 'RAS Daemon'
 copyright = '2013-2026, Mauro Carvalho Chehab'
 author = 'Mauro Carvalho Chehab'
 
-extensions = []
+extensions = ['kerneldoc']
 
 exclude_patterns = []
 
