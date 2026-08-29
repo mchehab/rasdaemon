@@ -5,6 +5,8 @@ rasdaemon monitors and records Linux kernel Reliability, Availability and
 Serviceability events. Start with the overview, or go directly to the build
 and installation instructions.
 
+This documentation describes rasdaemon |release|.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

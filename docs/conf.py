@@ -15,6 +15,7 @@ kerneldoc_srctree = os.path.join(docs_dir, "..")
 project = 'RAS Daemon'
 copyright = '2013-2026, Mauro Carvalho Chehab'
 author = 'Mauro Carvalho Chehab'
+version = release = 'development'
 
 extensions = ['kerneldoc']
 

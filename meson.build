@@ -539,7 +539,12 @@ else
             'db/ras-db.h'
         ],
         output : 'html',
-        command : [ sphinx, '-q', '-W', '-b', 'html', docsdir, htmldir ],
+        command : [
+            sphinx, '-q', '-W',
+            '-D', 'version=' + meson.project_version(),
+            '-D', 'release=' + meson.project_version(),
+            '-b', 'html', docsdir, htmldir,
+        ],
         build_by_default: true,
         install : false,
     )
