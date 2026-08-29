@@ -1,13 +1,13 @@
-1) Handle signals.
+1) Better register failures and event loss.
+   - Currently, those are only placed at the logs. Maybe they should also
+     be stored on an special table at the database.
+   - some events could be silently discarded. Need to review the error paths.
+   - failures at ras_event_publish() should probably be logged, eventually
+     using WARN_ONCE or a rate-limited log.
 
-2) Better handle error conditions to be sure that events won't be
-   lost.
+2) Change the logic to check what CPUs are online, instead of just assuming
+   they're in a continuous range. Some care should be taken to preserve
+   CPU number if we end skipping offline CPUs;
 
-3) Test support for PCIe AER trace records.
-
-4) Better parse mce trace records.
-
-5) Make it work fine with offline CPUs.
-
-6) Handle CPU hotplugs.
-
+3) Handle CPU hotplug events at runtime. If a CPU goes offline or returns
+   online, rasdaemon should enable/disable a listener to its events.
