@@ -482,6 +482,36 @@ if have_unittest
 endif
 
 #
+# Documentation
+#
+sphinx = find_program('sphinx-build', required: false)
+
+if not sphinx.found()
+    message('Sphinx not found. Skipping documentation build')
+    enable_sphinx = false
+else
+    enable_sphinx = true
+
+    docsdir =  meson.project_source_root() / 'docs'
+    htmldir =  meson.project_build_root() / 'html'
+
+    custom_target(
+        'sphinx',
+        input : [
+            'docs/conf.py',
+
+            'docs/index.rst',
+            'docs/rasdaemon.rst',
+            'docs/security.rst'
+        ],
+        output : 'html',
+        command : [ sphinx, '-q', '-b', 'html', docsdir, htmldir ],
+        build_by_default: true,
+        install : false,
+    )
+endif
+
+#
 # Install files that don't require configuration
 #
 
@@ -770,6 +800,7 @@ summary(
 summary(
     {
         'SQLite3 database': get_option('sqlite3-database'),
+        'Documentation build': enable_sphinx,
     },
     section : 'User defined options',
 )
