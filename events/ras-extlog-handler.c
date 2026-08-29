@@ -226,30 +226,6 @@ static char *err_cper_data(const char *c)
 	return buf;
 }
 
-static char *uuid_le(const char *uu)
-{
-	static char uuid[sizeof("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")];
-	char *p = uuid;
-	int i;
-	static const unsigned char le[16] = {3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15};
-
-	for (i = 0; i < 16; i++) {
-		p += snprintf(p, sizeof(uuid), "%.2x", (unsigned char)uu[le[i]]);
-		switch (i) {
-		case 3:
-		case 5:
-		case 7:
-		case 9:
-			*p++ = '-';
-			break;
-		}
-	}
-
-	*p = 0;
-
-	return uuid;
-}
-
 static void report_extlog_mem_event(struct ras_events *ras,
 				    struct tep_record *record,
 				    struct trace_seq *s,
@@ -281,7 +257,7 @@ static void report_extlog_mem_event(struct ras_events *ras,
 		err_mask(ev->pa_mask_lsb),
 		err_cper_data(ev->cper_data),
 		ev->fru_text,
-		uuid_le(ev->fru_id));
+		ras_uuid_str(ev->fru_id, RAS_UUID_LE));
 }
 
 static int ras_extlog_mem_event_handler(struct trace_seq *s,

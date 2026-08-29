@@ -134,8 +134,26 @@ static void test_non_standard_decoder_registry(void **state)
 	assert_int_equal(ras_ns_test_decoder_count(), count);
 }
 
+static void test_uuid_formatting(void **state)
+{
+	const unsigned char uuid_le[16] = {
+		0x33, 0x22, 0x11, 0x00, 0x55, 0x44, 0x77, 0x66,
+		0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+	};
+	const unsigned char uuid_be[16] = {
+		0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+		0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+	};
+
+	assert_string_equal(ras_uuid_str((const char *)uuid_le, RAS_UUID_LE),
+			    "00112233-4455-6677-8899-aabbccddeeff");
+	assert_string_equal(ras_uuid_str((const char *)uuid_be, RAS_UUID_BE),
+			    "00112233-4455-6677-8899-aabbccddeeff");
+}
+
 static const struct CMUnitTest non_standard_tests[] = {
 	cmocka_unit_test(test_non_standard_decoder_registry),
+	cmocka_unit_test(test_uuid_formatting),
 };
 
 static int test_non_standard(void)
@@ -696,6 +714,11 @@ int test_diskerror(void)
 #ifdef HAVE_EXTLOG
 static void test_extlog_mappings(void **state)
 {
+	const unsigned char uuid[16] = {
+		0x33, 0x22, 0x11, 0x00, 0x55, 0x44, 0x77, 0x66,
+		0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+	};
+
 	assert_string_equal(ras_extlog_test_error_type(2), "single-bit ECC");
 	assert_string_equal(ras_extlog_test_error_type(99), "unknown-type");
 	assert_string_equal(ras_extlog_test_severity(2), "corrected");
@@ -703,6 +726,8 @@ static void test_extlog_mappings(void **state)
 	assert_int_equal(ras_extlog_test_mask(0), ~0ULL);
 	assert_int_equal(ras_extlog_test_mask(12), ~((1ULL << 12) - 1));
 	assert_int_equal(ras_extlog_test_mask(0xff), ~0ULL);
+	assert_string_equal(ras_uuid_str((const char *)uuid, RAS_UUID_LE),
+			    "00112233-4455-6677-8899-aabbccddeeff");
 }
 
 static const struct CMUnitTest extlog_tests[] = {

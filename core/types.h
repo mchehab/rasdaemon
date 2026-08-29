@@ -205,4 +205,19 @@ static inline size_t strscat(char *dst, const char *src, size_t dsize)
 #define LOGLEVEL_DEBUG		7	/* debug-level messages */
 
 extern const char *loglevel_str[];
+
+enum ras_uuid_byte_order {
+	RAS_UUID_LE,
+	RAS_UUID_BE,
+};
+
+/**
+ * ras_uuid_str - format a binary UUID
+ * @uuid: 16-byte UUID
+ * @order: byte order of the UUID fields
+ *
+ * Return: a pointer to a static 36-character UUID string. The returned
+ * buffer is overwritten by the next call.
+ */
+const char *ras_uuid_str(const char *uuid, enum ras_uuid_byte_order order);
 #endif

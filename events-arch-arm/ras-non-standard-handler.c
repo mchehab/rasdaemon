@@ -39,30 +39,6 @@ static void print_le_hex(struct trace_seq *s, const uint8_t *buf, int index)
 			 buf[index + 1], buf[index]);
 }
 
-static char *uuid_le(const char *uu)
-{
-	static char uuid[sizeof("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")];
-	char *p = uuid;
-	int i;
-	static const unsigned char le[16] = {3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15};
-
-	for (i = 0; i < 16; i++) {
-		p += snprintf(p, sizeof(uuid) - (p - uuid), "%.2x", (unsigned char)uu[le[i]]);
-		switch (i) {
-		case 3:
-		case 5:
-		case 7:
-		case 9:
-			*p++ = '-';
-			break;
-		}
-	}
-
-	*p = 0;
-
-	return uuid;
-}
-
 int register_ns_ev_decoder(struct ras_ns_ev_decoder *ns_ev_decoder)
 {
 	struct ras_ns_ev_decoder *list;
@@ -113,7 +89,8 @@ static int find_ns_ev_decoder(const char *sec_type, struct ras_ns_ev_decoder **p
 
 	ns_ev_decoder = ras_ns_ev_dec_list;
 	while (ns_ev_decoder) {
-		if (strcmp(uuid_le(sec_type), ns_ev_decoder->sec_type) == 0) {
+		if (strcmp(ras_uuid_str(sec_type, RAS_UUID_LE),
+			   ns_ev_decoder->sec_type) == 0) {
 			*p_ns_ev_dec = ns_ev_decoder;
 			match  = 1;
 			break;
@@ -216,19 +193,19 @@ static int ras_non_standard_event_handler(struct trace_seq *s,
 					record, &len, 1);
 	if (!ev.sec_type)
 		return -1;
-	if (strcmp(uuid_le(ev.sec_type),
+	if (strcmp(ras_uuid_str(ev.sec_type, RAS_UUID_LE),
 		   "e8ed898d-df16-43cc-8ecc-54f060ef157f") == 0)
 		trace_seq_printf(s, " section type: %s",
 				 "Ampere Specific Error");
 	else
 		trace_seq_printf(s, " section type: %s",
-				 uuid_le(ev.sec_type));
+				 ras_uuid_str(ev.sec_type, RAS_UUID_LE));
 	ev.fru_text = tep_get_field_raw(s, event, "fru_text",
 					record, &len, 1);
 	ev.fru_id = tep_get_field_raw(s, event, "fru_id",
 				      record, &len, 1);
 	trace_seq_printf(s, " fru text: %s fru id: %s ",
-			 ev.fru_text, uuid_le(ev.fru_id));
+			 ev.fru_text, ras_uuid_str(ev.fru_id, RAS_UUID_LE));
 
 	if (tep_get_field_val(s, event, "len", record, &val, 1) < 0)
 		return -1;

@@ -69,30 +69,6 @@ static int decode_cxl_event_flags(struct trace_seq *s, uint32_t flags,
 	return 0;
 }
 
-static char *uuid_be(const char *uu)
-{
-	static char uuid[sizeof("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")];
-	char *p = uuid;
-	int i;
-	static const unsigned char be[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-
-	for (i = 0; i < 16; i++) {
-		p += snprintf(p, sizeof(uuid), "%.2x", (unsigned char)uu[be[i]]);
-		switch (i) {
-		case 3:
-		case 5:
-		case 7:
-		case 9:
-			*p++ = '-';
-			break;
-		}
-	}
-
-	*p = 0;
-
-	return uuid;
-}
-
 static const char * const get_cxl_type_str(const char * const *type_array,
 					   uint8_t num_elems, uint8_t type)
 {
@@ -504,7 +480,7 @@ void ras_cxl_test_convert_timestamp(unsigned long long timestamp,
 
 const char *ras_cxl_test_uuid(const char *uuid)
 {
-	return uuid_be(uuid);
+	return ras_uuid_str(uuid, RAS_UUID_BE);
 }
 #endif
 
@@ -672,7 +648,7 @@ static int handle_ras_cxl_common_hdr(struct trace_seq *s,
 	hdr->hdr_uuid = tep_get_field_raw(s, event, "hdr_uuid", record, &len, 1);
 	if (!hdr->hdr_uuid)
 		return -1;
-	hdr->hdr_uuid = uuid_be(hdr->hdr_uuid);
+	hdr->hdr_uuid = ras_uuid_str(hdr->hdr_uuid, RAS_UUID_BE);
 	if (trace_seq_printf(s, "hdr_uuid:%s ", hdr->hdr_uuid) <= 0)
 		return -1;
 
@@ -934,7 +910,7 @@ static int ras_cxl_general_media_event_handler(struct trace_seq *s,
 					   record, &len, 1);
 	if (!ev.region_uuid)
 		return -1;
-	ev.region_uuid = uuid_be(ev.region_uuid);
+	ev.region_uuid = ras_uuid_str(ev.region_uuid, RAS_UUID_BE);
 	if (trace_seq_printf(s, "region_uuid:%s ", ev.region_uuid) <= 0)
 		return -1;
 
@@ -1123,7 +1099,7 @@ static int ras_cxl_dram_event_handler(struct trace_seq *s,
 
 	ev.region_uuid = tep_get_field_raw(s, event, "region_uuid", record, &len, 1);
 	if (ev.region_uuid) {
-		ev.region_uuid = uuid_be(ev.region_uuid);
+		ev.region_uuid = ras_uuid_str(ev.region_uuid, RAS_UUID_BE);
 		trace_seq_printf(s, "region_uuid:%s ", ev.region_uuid);
 	}
 
