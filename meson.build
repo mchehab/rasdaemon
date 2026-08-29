@@ -502,6 +502,7 @@ else
             'docs/static/custom.css',
 
             'docs/api.rst',
+            'docs/development.rst',
             'docs/index.rst',
             'docs/rasdaemon.rst',
             'docs/security.rst',
@@ -623,7 +624,7 @@ install_map = {
     'misc/rasdaemon.spec.in' : '',
 
     # Man pages
-    'man/rasdaemon.1.in' : get_option('mandir') + '/man1',
+    'man/rasdaemon.8.in' : get_option('mandir') + '/man8',
 
     # Systemd service files
     'misc/rasdaemon.service.in' : systemd_unitdir,

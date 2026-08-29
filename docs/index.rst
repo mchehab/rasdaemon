@@ -6,5 +6,6 @@ RAS Daemon documentation
    :caption: Contents:
 
    rasdaemon
+   development
    security
    api

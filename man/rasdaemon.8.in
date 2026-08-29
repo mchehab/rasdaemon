@@ -1,0 +1,132 @@
+.\"****************************************************************************
+.\" $Id$
+.\"****************************************************************************
+.\" SPDX-License-Identifier: GPL-2.0-or-later
+.\"
+.\"Copyright (c) 2013 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+.\"
+.\" This is free software; you can redistribute it and/or modify it
+.\" under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This is distributed in the hope that it will be useful, but WITHOUT
+.\" ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+.\" FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+.\" for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License along
+.\" with this program; if not, write to the Free Software Foundation, Inc.,
+.\" 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
+.\"****************************************************************************
+
+.TH RASDAEMON 8 "@META_DATE@" "@META_ALIAS@" "RAS event logging daemon"
+
+.SH NAME
+rasdaemon \- monitor and log Linux RAS events
+
+.SH SYNOPSIS
+.B rasdaemon
+[\fIOPTION\fR]...
+
+.SH DESCRIPTION
+
+The \fBrasdaemon\fR program monitors Reliability, Availability and
+Serviceability (RAS) reports exposed as Linux kernel trace events. It prefers
+tracefs and falls back to the legacy debugfs tracing directory. Decoded events
+are reported through syslog or journald and can optionally be stored using a
+compiled SQLite, MySQL/MariaDB, or PostgreSQL backend.
+
+.SH OPTIONS
+.TP
+.B "--usage"
+Display a brief usage message and exit.
+.TP
+.B "--help"
+Display a help message and exit.
+.TP
+.BR "-d" ", " "--disable"
+Disable RAS tracing events and exit.
+.TP
+.BR "-e" ", " "--enable"
+Enable RAS tracing events and exit.
+.TP
+.BI "-c " FNAME ", " "--config=" FNAME
+Read environment settings from \fIFNAME\fR instead of
+@RASDAEMON_ENV@.
+.TP
+.BR "-f" ", " "--foreground"
+Run in the foreground and print events on the console. This is useful for
+testing and for service managers. If not specified, the program runs in daemon
+mode.
+.TP
+.BR "-r" ", " "--record"
+Record RAS events using the selected SQL backend. The backend defaults to
+SQLite and can be selected with \fBRASDAEMON_DB_BACKEND\fR. At least one
+database backend must have been compiled in.
+.TP
+.BR "-i" ", " "--ipmitool"
+Enable ipmitool logging. This option is present only when OpenBMC unified SEL
+support was compiled in.
+.TP
+.BR "-p" ", " "--post-processing"
+Decode an x86 machine-check event from raw register values instead of starting
+the daemon. This option and the following machine-check options are present
+only when x86 MCE support was compiled in.
+.TP
+.B "--smca"
+Decode an AMD SMCA event.
+.TP
+.BI "--model=" MODEL
+Set the CPU model used for offline decoding.
+.TP
+.BI "--family=" FAMILY
+Set the CPU family used for offline decoding.
+.TP
+.BI "--bank=" BANK_NUM
+Set the machine-check bank number.
+.TP
+.BI "--ipid=" IPID_REG
+Set the IPID register value for AMD SMCA decoding.
+.TP
+.BI "--status=" STATUS_REG
+Set the machine-check status register value.
+.TP
+.BI "--synd=" SYNDROME_REG
+Set the AMD SMCA syndrome register value.
+.TP
+.B "--version"
+Print the program version and exit.
+
+.SH CONFIG FILE
+
+The \fBrasdaemon\fR program reads environment settings from
+@RASDAEMON_ENV@ by default. The general format is
+\fINAME=value\fR. Values already present in the process environment take
+precedence over the file. Runtime reload is not supported.
+
+\fBRASDAEMON_DB_BACKEND\fR selects \fBsqlite3\fR, \fBmysql\fR, or
+\fBpostgresql\fR. \fBRASDAEMON_HOSTNAME\fR overrides the hostname recorded by
+remote database backends. Backend-specific connection settings, event-disable
+syntax, action thresholds, and trigger variables are documented in the
+installed configuration file.
+
+.SH LOG LEVEL
+
+Each log entry has a level prefix that describes the severity of the log to
+help users determine which logs are more valuable. Currently, three levels are
+used:
+
+.TP
+.B "ALERT"
+An uncorrected hardware error has been handled but may have caused side
+effects.
+.TP
+.B "CRIT"
+An uncorrected hardware error has been detected.
+.TP
+.B "ERROR"
+A corrected hardware error has been detected.
+
+.SH SEE ALSO
+\fBras-mc-ctl\fR(8)

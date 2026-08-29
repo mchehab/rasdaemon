@@ -70,8 +70,9 @@ the system administrator a comprehensive report, presenting him a better
 hint if he needs to contact the hardware vendor to replace a component
 that is working degraded, or to simply discard the error.
 
-So, the approach taken here is to allow storing those errors on a SQLite
-database, in order to allow those data to be latter mining.
+The daemon can persist these errors in SQLite, MySQL/MariaDB, or PostgreSQL
+for later analysis. Only one compiled database backend is active in a daemon
+process.
 
 It is currently not part of the scope to do sophiscicated data mining
 analysis, as that would require enough statistitical data about hardware
@@ -89,9 +90,10 @@ needed.
 Compiling and Installing
 ========================
 
-Meson, a C compiler, the trace-event library, and the Python
-dependencies need to be installed. On Fedora, this is done by installing
-the following packages::
+Meson 0.60 or newer, Ninja, a C compiler, the trace-event library, and the
+Python dependencies need to be installed. Sphinx is optional and enables the
+HTML documentation target; cmocka is optional and enables unit tests. On
+Fedora, the relevant packages are::
 
        gcc
        meson
@@ -100,6 +102,8 @@ the following packages::
        pciutils-devel
        python3
        python3-sqlalchemy
+       python3-sphinx             (to build this documentation)
+       libcmocka-devel            (to build unit tests)
        sqlite-devel                (if SQLite3 will be used)
        mariadb-connector-c-devel   (if MariaDB will be used)
        mysql-community-devel       (if Oracle MySQL will be used; from the MySQL repository)
@@ -119,6 +123,12 @@ options. For example::
        -Dsqlite3=enabled    enable storage in an SQLite3 database
        -Daer=enabled        enable PCIe AER events
        -Dmce=enabled        enable MCE events
+
+Use ``meson configure build`` after setup to see every option and its current
+value. ``-Denable-arch=auto`` selects the build host architecture;
+``x86``, ``arm``, and ``riscv`` select one architecture family, while ``all``
+is useful for cross-architecture testing. ``-Ddisable-all=true`` provides a
+minimal build for dependency and feature-isolation checks.
 
 In order to compile it, run::
 
@@ -165,10 +175,10 @@ To install the rpm files, run, as root::
 Running
 =======
 
-The daemon generally requires root permission, in order to read the
-needed debugfs trace nodes, with needs to be previously mounted. The
-rasdaemon will check at /proc/mounts where the debugfs partition is
-mounted and use it while running.
+The daemon generally requires root permission to read kernel tracing nodes.
+It prefers a mounted tracefs filesystem and falls back to the legacy
+``debugfs/tracing`` location. When trace instances are supported, it creates
+or reuses the ``rasdaemon`` instance.
 
 To run the rasdaemon in background, just call it without any parameters::
 
@@ -179,10 +189,14 @@ see the logs in console, run it as::
 
        # rasdaemon -f
 
-or, if you also want to record errors at the database (–enable-sqlite3
-is required)::
+To record errors, compile at least one database backend and use ``--record``::
 
        # rasdaemon -f -r
+
+The backend defaults to SQLite and can be selected with
+``RASDAEMON_DB_BACKEND`` in the configuration file or process environment.
+Use ``--config FNAME`` to load another configuration file. Values already in
+the process environment take precedence over values read from the file.
 
 To post-process and decode received MCA errors on AMD SMCA systems, run::
 
@@ -201,8 +215,8 @@ The rasdaemon will then output the messages to journald.
 How to Setup a Database
 =======================
 
-RAS Daemon supports multiple types of databases. Each require their own
-specific parameters. Only one database can be active. The database
+RAS Daemon supports multiple database types. Each requires its own connection
+parameters. Only one database can be active. The database
 backend connection parameters are specified via environment variables,
 usually in the ``/etc/sysconfig/rasdaemon`` file. It contains these
 common fields:
@@ -246,6 +260,8 @@ with sensible defaults):
 - ``RAS_PG_SCHEMA`` - Schema (default: ``rasdaemon``)
 - ``RAS_PG_DATABASE`` - Database name (default: ``rasdaemon``)
 - ``RAS_PG_SSL_MODE`` - Optional libpq SSL mode (default: ``prefer``)
+- ``RAS_PG_USE_SSL`` - Require TLS when no explicit SSL mode is supplied
+  (``true`` or ``false``, default: ``false``)
 - ``RAS_PG_CONNECT_TIMEOUT`` - Connection timeout in seconds (default:
   ``10``)
 
@@ -258,6 +274,7 @@ Example::
    RAS_PG_DATABASE="rasdaemon"
    RAS_PG_SCHEMA="rasdaemon"
    RAS_PG_SSL_MODE="prefer"
+   RAS_PG_USE_SSL="false"
    RAS_PG_CONNECT_TIMEOUT="10"
 
 **Prerequisites**: Install ``libpq-devel`` or ``libpq-dev`` package and
@@ -395,6 +412,28 @@ For a simple local setup, the SQL is the same for both implementations::
      FLUSH PRIVILEGES;
    EOF
 
+Runtime Configuration and Actions
+=================================
+
+The compiled configuration path is normally ``/etc/sysconfig/rasdaemon`` for
+system packages. Use ``--config FNAME`` to select another file. Entries use
+``NAME=value`` syntax; values already exported in the process environment are
+not overwritten. Restart rasdaemon after changing the file because runtime
+reload is not supported.
+
+``DISABLE`` is a comma- or space-separated list of trace events in
+``group:event`` form. For example, ``DISABLE="ras:mc_event ras:aer_event"``
+keeps those two events disabled.
+
+When the corresponding features are built, rasdaemon supports page and memory
+row corrected-error accounting and isolation, CPU fault isolation, external
+event triggers, poison-page statistics, and ERST deletion. The installed
+configuration file documents the accepted action names, thresholds, time
+units, and trigger variables. Trigger programs are resolved relative to
+``TRIGGER_DIR``; ``MC_CE_TRIGGER``, ``MC_UE_TRIGGER``, ``AER_CE_TRIGGER``,
+``AER_UE_TRIGGER``, and ``MEM_FAIL_TRIGGER`` select programs for their event
+types.
+
 Unit Tests
 ==========
 
@@ -416,7 +455,7 @@ The groups built for the selected Meson feature configuration can be
 listed or run individually::
 
    $ ./build/unittest --list-groups
-   $ ./build/unittest --group cxl
+   $ ./build/unittest --group events
 
 SQLite is part of the hermetic Meson test set. MySQL/MariaDB and
 PostgreSQL continue to use real database servers and must be run
@@ -466,8 +505,14 @@ Submitting Patches
 If you want to help improve this tool, be my guest! We try to follow the
 Kernel’s CodingStyle and submission rules as a reference.
 
-Before submitting your patch, please check the coding style with:
-scripts/checkpatch.pl.
+The module, event, database, and test-registration contracts are described in
+``docs/development.rst``. Before submitting a patch, run the relevant unit-test
+groups, the full hermetic suite, and the documentation build with::
+
+   $ make
+   $ meson test -C build --print-errorlogs
+
+Also check each patch with ``scripts/checkpatch.pl --strict --no-tree``.
 
 In order to contribute with rasdaemon, please send a Merge Request via
 github repository at:
