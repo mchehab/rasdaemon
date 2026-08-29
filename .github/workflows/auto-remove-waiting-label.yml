@@ -1,4 +1,4 @@
-name: Auto-remove "waiting new revision" label on PR update
+name: Remove Waiting Label after update
 
 on:
   pull_request_target:
