@@ -69,7 +69,7 @@ an utility for reporting current error counts from the EDAC sysfs files.
 %meson_install
 
 %files
-%doc AUTHORS ChangeLog COPYING README.md TODO
+%doc AUTHORS ChangeLog COPYING README.rst SECURITY.rst TODO
 %{_sbindir}/%{name}
 %{_sbindir}/ras-mc-ctl
 %{python3_sitelib}/*.py
