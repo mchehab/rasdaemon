@@ -35,8 +35,9 @@ PostgreSQL. They are ignored when the configured backend is SQLite.
 Discover tables and fields
 --------------------------
 
-The available tables depend on the events recorded by the installed
-rasdaemon. List them before constructing a more specific query::
+The available tables depend on the event handlers included in the installed
+rasdaemon and the schema initialized in the database. List them before
+constructing a more specific query::
 
    $ sudo ras-mc-ctl db --list-tables
 
@@ -47,10 +48,10 @@ Then inspect the fields in one table::
 ``--table`` accepts an exact table name or a shell-style pattern and may be
 repeated. Quote patterns to prevent the shell from expanding them. Tables can
 also be omitted with a repeatable ``--except`` option. For example, describe
-all HiSilicon tables except version 2 records with::
+all HiSilicon tables except PCIe local records with::
 
    $ sudo ras-mc-ctl db --describe --table 'hip08_*' \
-       --except hip08_v2_event
+       --except hip08_pcie_local_event_v2
 
 Filter and order database results
 ---------------------------------
@@ -67,7 +68,7 @@ repeated; all comparisons must match. Discover valid field names with
 ``--describe``. For example::
 
    $ sudo ras-mc-ctl db --errors --table mc_event \
-       --where 'label=DIMM_A1' --where 'error_count>=1'
+       --where 'label=DIMM_A1' --where 'err_count>=1'
 
 Detailed reports can be limited to selected fields and sorted by one or more
 fields. The following command displays the newest PCIe AER events first::
