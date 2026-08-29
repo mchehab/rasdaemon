@@ -15,6 +15,7 @@ This documentation describes rasdaemon |release|.
    installation
    running
    databases
+   ras-mc-ctl
    configuration
    testing
    development

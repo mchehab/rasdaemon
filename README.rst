@@ -59,6 +59,7 @@ User's documentation
 
 * `Installation and build options <https://mchehab.github.io/rasdaemon/installation.html>`_
 * `Running rasdaemon <https://mchehab.github.io/rasdaemon/running.html>`_
+* `Using ras-mc-ctl <https://mchehab.github.io/rasdaemon/ras-mc-ctl.html>`_
 * `Runtime configuration <https://mchehab.github.io/rasdaemon/configuration.html>`_
 * `Testing <https://mchehab.github.io/rasdaemon/testing.html>`_
 

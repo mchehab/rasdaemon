@@ -509,6 +509,7 @@ else
             'docs/index.rst',
             'docs/installation.rst',
             'docs/overview.rst',
+            'docs/ras-mc-ctl.rst',
             'docs/running.rst',
             'docs/security.rst',
             'docs/testing.rst',
