@@ -1,0 +1,25 @@
+#!/bin/bash
+
+script_dir=$(dirname "$(readlink -f "$0")")
+ras_mc_ctl="$script_dir/build/ras-mc-ctl"
+
+if [[ ! -x "$ras_mc_ctl" ]]; then
+	echo "warning: $ras_mc_ctl is not available; build rasdaemon first" >&2
+	exit 1
+fi
+
+config_args=(-c "$script_dir/misc/rasdaemon.env")
+for arg in "$@"; do
+	case "$arg" in
+	-c|--config|-c?*|--config=*)
+		config_args=()
+		break
+		;;
+	dimm|mem|database|db|--)
+		break
+		;;
+	esac
+done
+
+PYTHONPATH="$script_dir/util${PYTHONPATH:+:$PYTHONPATH}" \
+	exec "$ras_mc_ctl" "${config_args[@]}" "$@"
