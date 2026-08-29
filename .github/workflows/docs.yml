@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+name: Github RAS Daemon pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  Deploy:
+    name: Sphinx
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install build requirements
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential meson ninja-build python3 \
+                                  libtraceevent-dev libpci-dev
+
+      - name: Install Sphinx
+        run: pip install sphinx
+
+      - name: Build docs
+        run: make
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/master'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/html

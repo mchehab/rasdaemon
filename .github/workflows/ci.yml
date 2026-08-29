@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
-name: CI
+name: Build test
 
 on:
   workflow_dispatch:
@@ -22,7 +22,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential meson ninja-build pkg-config \
-                                git cmake libsqlite3-dev sqlite3 \
+                                git libsqlite3-dev sqlite3 \
                                 libtraceevent-dev libtraceevent1 libpci-dev
     - name: build
       run: |
