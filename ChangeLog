@@ -1,3 +1,66 @@
+2026-08-29      Mauro Carvalho Chehab <mchehab@kernel.org>
+	- Version 0.9.91 (development)
+
+        * Architecture: Replace central feature dispatch tables with
+          self-registering modules and event descriptors
+        * Modules: Add deterministic initialization and cleanup levels,
+          duplicate detection, failure isolation, named lifecycle helpers,
+          and process-exit cleanup
+        * Events: Register trace handlers, filters, triggers, recorders, and
+          ordinary event tests with their owning event descriptors
+        * Events: Keep generic tracing mechanics in the core and remove
+          feature-presence dispatch and toggle lists
+        * Actions: Add a priority-ordered event-consumer interface with
+          deterministic delivery and error propagation
+        * Actions: Convert database storage, ABRT reporting, CPU isolation,
+          page and row isolation, poison-page statistics, OpenBMC SEL, and
+          Ampere OEM handling into independent consumers
+        * ABRT: Report EXTLOG and CXL memory-sparing events
+        * CXL: Decode, publish, persist, test, and report memory-sparing events
+        * ARM: Add a vendor-data decoder registry and separate vendor parsing
+          from the generic processor-error handler
+        * Non-standard CPER: Convert Ampere, HiSilicon, JaguarMicro, NVIDIA,
+          and Yitian decoders into independently registered modules
+        * Non-standard CPER: Move vendor schemas and prepared statements into
+          their owning modules and add repeated-initialization cleanup
+        * Database: Add private backend and table registries with duplicate
+          detection and module-owned descriptor/statement pairs
+        * Database: Move event schemas, prepared statements, and recorders to
+          their logical event owners and remove the central record store
+        * Database: Make the daemon own one generic process-level database
+          session and provide compatible stubs when database support is off
+        * Database: Improve partial-open rollback, statement finalization,
+          binding validation, backend cleanup, and error propagation
+        * PostgreSQL: Use connection-unique prepared-statement names and
+          explicitly deallocate statements during finalization
+        * SQLite: Fix blob-length handling and statement-lifetime memory leaks
+        * Reliability: Fix allocation, initialization, and cleanup paths for
+          MCE, event formats, disk errors, trace clocks, polling, signal masks,
+          hostnames, and optional modules
+        * Tests: Dynamically register unit-test groups and discover registered
+          events and database tables instead of maintaining feature lists
+        * Tests: Expand module, consumer, event, database, cleanup, rollback,
+          repeated-initialization, and CXL memory-sparing coverage
+        * Tests: Support cmocka 2.x output while retaining older cmocka
+          compatibility
+        * Build: Prevent Arm and RISC-V-only actions from being selected on
+          x86 and add HiSilicon HIP13 common-section support
+        * Documentation: Add a warning-fatal Sphinx build and Linux kernel-doc
+          API reference for the core and database contracts
+        * Documentation: Display the Meson project version in the generated
+          Sphinx documentation
+        * Documentation: Split the user guide into overview, installation,
+          running, database, configuration, testing, development, security,
+          contributing, and API chapters
+        * Documentation: Replace the repository README with a concise quick
+          start and publish the complete guide through GitHub Pages
+        * Documentation: Update runtime configuration and action variables,
+          database examples, contributor guidance, and command-line behavior
+        * Manual pages: Expand rasdaemon option and configuration coverage and
+          install the daemon manual in section 8
+        * CI: Add the GitHub Pages documentation workflow and fix architecture
+          and action-workflow selection
+
 2026-08-21      Mauro Carvalho Chehab <mchehab@kernel.org>
         - Version 0.9.90 (development)
 
