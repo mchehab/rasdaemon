@@ -502,10 +502,16 @@ else
             'docs/static/custom.css',
 
             'docs/api.rst',
+            'docs/configuration.rst',
+            'docs/contributing.rst',
+            'docs/databases.rst',
             'docs/development.rst',
             'docs/index.rst',
-            'docs/rasdaemon.rst',
+            'docs/installation.rst',
+            'docs/overview.rst',
+            'docs/running.rst',
             'docs/security.rst',
+            'docs/testing.rst',
 
             'core/bitfield.c',
             'core/bitfield.h',
