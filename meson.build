@@ -499,6 +499,7 @@ else
         'sphinx',
         input : [
             'docs/conf.py',
+            'docs/static/custom.css',
 
             'docs/index.rst',
             'docs/rasdaemon.rst',

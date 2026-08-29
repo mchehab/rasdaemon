@@ -3,25 +3,26 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'RAS Daemon'
-copyright = '2026, Mauro Carvalho Chehab'
+copyright = '2013-2026, Mauro Carvalho Chehab'
 author = 'Mauro Carvalho Chehab'
-
-# -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = []
 
-templates_path = ['_templates']
 exclude_patterns = []
 
+primary_domain = "c"
+highlight_language = "bash"
 
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+#templates_path = ['templates']
+html_static_path = ['static']
 
 html_theme = 'alabaster'
-html_static_path = ['_static']
+html_theme_options = {
+    "page_width": "65em",
+    "sidebar_width": "15em",
+    "fixed_sidebar": "true",
+    "font_size": "inherit",
+    "font_family": "serif",
+}
