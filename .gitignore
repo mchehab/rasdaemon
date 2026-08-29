@@ -13,3 +13,4 @@ unittest
 *~
 rasdaemon-*.tar.bz2
 rasdaemon-*.src.rpm
+**/__pycache__
