@@ -7,3 +7,4 @@ RAS Daemon documentation
 
    rasdaemon
    security
+   api
