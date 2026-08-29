@@ -1,0 +1,83 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/* RAS Daemon adjustments for the Furo light and dark color schemes. */
+
+/* Use available space on wide displays, with a font-relative upper bound. */
+.content {
+    flex-grow: 1;
+    max-width: 120em;
+    width: auto;
+}
+
+.sidebar-drawer {
+    max-width: 10em;
+}
+
+/* Keep long API signatures inside their content column. */
+dl.c,
+dl.py {
+    margin-top: 2rem;
+}
+
+dl.c > dt.sig.sig-object,
+dl.py > dt.sig.sig-object {
+    background: var(--color-api-background);
+    border-left: 0.2rem solid var(--color-brand-primary);
+    font-size: 1.05em;
+    margin-left: 0;
+    margin-right: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5rem 0.75rem;
+    text-indent: 0;
+    white-space: nowrap;
+}
+
+div.kernelindent {
+    margin-left: 1.5rem;
+    margin-right: 1.5rem;
+}
+
+/* Allow long references and command lines to wrap instead of overflowing. */
+a,
+table.docutils a.reference {
+    overflow-wrap: anywhere;
+}
+
+a.reference {
+    text-decoration: underline;
+    text-decoration-thickness: 0.06em;
+    text-underline-offset: 0.2em;
+}
+
+a.headerlink,
+a.headerlink:hover {
+    text-decoration: none;
+}
+
+a.manpage {
+    font-family: var(--font-stack--monospace);
+    font-style: normal;
+    font-weight: 600;
+}
+
+/* Improve table separation without hard-coding light-mode colors. */
+table.docutils {
+    border: 1px solid var(--color-background-border);
+}
+
+table.docutils th {
+    background: var(--color-api-background);
+}
+
+/* Give wide literal blocks contained scrolling on small displays. */
+div.highlight pre,
+pre.literal-block {
+    overflow-x: auto;
+}
+
+@media screen and (max-width: 67em) {
+    div.kernelindent {
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+    }
+}

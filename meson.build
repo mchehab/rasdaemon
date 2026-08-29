@@ -499,7 +499,8 @@ else
         'sphinx',
         input : [
             'docs/conf.py',
-            'docs/static/custom.css',
+            'docs/static/alabaster/custom.css',
+            'docs/static/furo/custom.css',
 
             'docs/api.rst',
             'docs/configuration.rst',

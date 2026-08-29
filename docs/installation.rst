@@ -17,6 +17,7 @@ On Fedora, the relevant packages are::
    python3
    python3-sqlalchemy
    python3-sphinx              (to build this documentation)
+   python3-furo                (optional light/dark HTML theme)
    libcmocka-devel             (to build unit tests)
    sqlite-devel               (if SQLite will be used)
    mariadb-connector-c-devel  (if MariaDB will be used)
