@@ -509,6 +509,7 @@ else
             'docs/development.rst',
             'docs/index.rst',
             'docs/installation.rst',
+            'docs/origin.rst',
             'docs/overview.rst',
             'docs/ras-mc-ctl.rst',
             'docs/running.rst',
@@ -538,7 +539,7 @@ else
             'db/db-mysql.h',
             'db/db-postgresql.h',
             'db/ras-db.c',
-            'db/ras-db.h'
+            'db/ras-db.h',
         ],
         output : 'html',
         command : [

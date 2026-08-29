@@ -22,3 +22,4 @@ This documentation describes rasdaemon |release|.
    contributing
    security
    api
+   origin
