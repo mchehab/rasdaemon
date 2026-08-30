@@ -239,9 +239,18 @@ class TestUnits:
         parser.add_argument("-v", "--verbose", action="count", default=1)
         parser.add_argument("-q", "--quiet", action="store_true")
         parser.add_argument("-f", "--failfast", action="store_true")
-        parser.add_argument("-k", "--keyword",
-                            help="Regex pattern to filter test methods")
+        parser.add_argument("-k", "--keyword", nargs="+",
+                            help="Regex patterns to filter test methods or classes")
         return parser
+
+    @staticmethod
+    def _matches_keyword(test, pattern):
+        """Match a test method or any class which provides the test."""
+
+        method_name = test.id().split(".")[-1]
+        names = [method_name]
+        names.extend(cls.__name__ for cls in type(test).__mro__)
+        return any(pattern.search(name) for name in names)
 
     def run(self, caller_file=None, pattern=None,
             suite=None, parser=None, args=None, env=None):
@@ -318,14 +327,15 @@ class TestUnits:
         # Flatten the suite for environment injection
         tests_to_inject = flatten_suite(suite)
 
-        # Filter tests by method name if -k specified
+        # Filter tests by method or class name if -k specified
         if args.keyword:
             try:
-                pattern = re.compile(args.keyword)
+                patterns = [re.compile(keyword) for keyword in args.keyword]
                 filtered_suite = unittest.TestSuite()
                 for test in tests_to_inject:  # Use the pre-flattened list
-                    method_name = test.id().split(".")[-1]
-                    if pattern.search(method_name):
+                    if any(
+                            self._matches_keyword(test, pattern)
+                            for pattern in patterns):
                         filtered_suite.addTest(test)
                 suite = filtered_suite
             except re.error as e:
