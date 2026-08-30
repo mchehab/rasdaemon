@@ -7,28 +7,68 @@ rasdaemon follows the Linux kernel coding style and submission conventions.
 The module, event, database, and test-registration contracts are described in
 :doc:`development`.
 
-Before submitting a change, run the relevant unit-test groups, the hermetic
-suite, and the warning-fatal documentation build::
+Before submitting a change, run unit tests and fix any warnings. It is also
+good to compile with both gcc and clang, as they may produce different
+warnings. A good procedure is to run::
 
-   $ make
-   $ meson test -C build --print-errorlogs
+   # GCC compile
+   make distclean && CC=gcc make
+
+   # self-contained (hermetic) tests
+   meson test -C build --print-errorlogs
+
+   # CLANG compile
+   make distclean && CC=clang make
+
+Please notice that the full test suite also have tests that depend on
+setting up MySQL or MariaDB and PostgreSQL databases. Running::
+
+   make test
+
+Executes all of them, but the DB backend tests will fail if you don't
+setup a rasdaemon_test database. The
+`Github action workflow <.github/workflows/unittest.yml>`_ contains
+instructions to setup such database.
 
 Check each patch with::
 
-   $ scripts/checkpatch.pl --strict --no-tree PATCH
+   scripts/checkpatch.pl --strict --no-tree PATCH
+
+If the patch(es) modify python code, run also python unit tests::
+
+   make python-test
 
 Submitting changes
 ------------------
 
-The preferred contribution path is a pull request against
-https://github.com/mchehab/rasdaemon/. Alternatively, submit a merge request
-against https://gitlab.com/mchehab_kernel/rasdaemon.
+To avoid a single point of failure, the rasdaemon code is updated altogether
+on three separate independent locations:
 
-Patches may also be sent to ``linux-edac@vger.kernel.org`` with a copy to
-Mauro Carvalho Chehab at ``mchehab@kernel.org``. When using email, please also
-open a GitHub issue so the series can be tracked.
+1. https://github.com/mchehab/rasdaemon/
+2. https://gitlab.com/mchehab_kernel/rasdaemon
+3. https://git.infradead.org/?p=users/mchehab/rasdaemon.git
 
-Describe the change in each commit and add a ``Signed-off-by`` line using your
-real name. The sign-off certifies the contribution under the
-`Developer Certificate of Origin 1.1
-<https://developercertificate.org/>`_.
+Yet, to keep our workflow simpler, we currently only check contributions
+or issues at `repository (1) <https://github.com/mchehab/rasdaemon/>`_.
+
+So, the proper way to submit code changes it to open a pull request (PR)
+against https://github.com/mchehab/rasdaemon/. If there are strong
+technical reasons to submit code on a different way, be sure to let
+me aware.
+
+Before opening a new PR, please search for existing ones and related
+issues first. Please mention related issues when opening a new PR.
+
+If you cannot prepare a PR, or if, before doing that, some discussions are
+needed, you may open an issue at https://github.com/mchehab/rasdaemon/issues.
+
+Also, please notice that rasdaemon patches are no longer expected
+or tracked by email. So, please don't send patches to the Linux EDAC mailing
+list anymore.
+
+When opening a PR, ensure that your patches are tested by
+``scripts/checkpatch.pl`` and follow Linux Kernel best practices.
+
+In particular, each patch needs a ``Signed-off-by`` line using your
+real name. The ``sign-off-by`` certifies the contribution under the
+`Developer Certificate of Origin 1.1 <https://developercertificate.org/>`_.

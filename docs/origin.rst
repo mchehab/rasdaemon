@@ -5,6 +5,12 @@ Appendix
 RAS Daemon origin
 -----------------
 
+.. note::
+   That's the project's original 2013 announcement preserved for historical
+   context. For updated information, please read :doc:`index`.
+
+   In particular, please read :doc:`contributing` if you intend to submit
+   patches and issues.
 
 In Kernel 3.5 we’ve started to address the long-discussed need of having
 a better way to handle platform Reliability, Availability and
@@ -16,10 +22,6 @@ patches.
 
 In Kernel 3.8, a new event was added, to handle PCIe AER events
 (ras:aer_event) [1]_.
-
-.. [1] Currently, ras:mc_event is at include/ras/. It is on my todo list
-       to move it to be together with ras:aer_event, at
-       include/trace/events/ras.h.
 
 On kernel 3.9, a new driver was added to report hardware memory errors
 that comes from the BIOS via ras:mc_event (the new ghes_edac driver).
@@ -42,8 +44,9 @@ separate library. I’d like to thanks Steven for the help he gave me to
 write this initial version.
 
 The current version of the tool enables the ras:mc_event log, and reads
-it via the raw trace debugfs node:
-/sys/kernel/debug/tracing/per_cpu/cpu*/trace_pipe_raw
+it via the raw trace debugfs node::
+
+  /sys/kernel/debug/tracing/per_cpu/cpu*/trace_pipe_raw
 
 It also has a code that allows recording the errors via an sqlite3
 database.
@@ -62,9 +65,11 @@ ras:aer_event traces that can come from PCIe AER.
 
 While it currently works with current Kernels since kernel 3.5, there
 are a number of interesting changes at tracing that are planned to be
-merged for Kernel 3.10: - poll() support for per_cpu trace_pipe_raw; - a
-timestamp that could more easily associated with machine’s uptime; -
-support for a separate ringbuffer for RAS.
+merged for Kernel 3.10:
+
+- poll() support for per_cpu trace_pipe_raw;
+- a timestamp that could more easily associated with machine’s uptime;
+- support for a separate ringbuffer for RAS.
 
 So, it is planned the minimal requirement for the final version (v1.0)
 would be kernel 3.10.
@@ -72,8 +77,15 @@ would be kernel 3.10.
 This is currently on very early staging. Help is needed ;)
 
 So, please send us suggestions, patches etc to the EDAC mailing list:
-linux-edac@vger.kernel.org
+linux-edac@vger.kernel.org [2]_.
 
 | Thanks,
 | Mauro Carvalho Chehab 
 | 2013-03-14
+
+.. [1] Currently, ras:mc_event is at include/ras/. It is on my todo list
+       to move it to be together with ras:aer_event, at
+       include/trace/events/ras.h.
+
+.. [2] [Editor's note] This procedure does not apply anymore.
+       The current submission rules can be found at :doc:`contributing`.
