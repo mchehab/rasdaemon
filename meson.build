@@ -604,11 +604,11 @@ conf_data = {
     'PACKAGE' : meson.project_name(),
     'PACKAGE_VERSION' : meson.project_version(),
 
-    'prefix' : get_option('prefix'),
-    'sysconfdir' : get_option('sysconfdir'),
-    'localstatedir' : get_option('localstatedir'),
-    'sbindir' : get_option('sbindir'),
-    'SYSCONFDEFDIR' : get_option('sysconfdir') / 'sysconfig',
+    'prefix' : prefix,
+    'sysconfdir' : prefix / get_option('sysconfdir'),
+    'localstatedir' : prefix / get_option('localstatedir'),
+    'sbindir' : prefix / get_option('sbindir'),
+    'SYSCONFDEFDIR' : prefix / get_option('sysconfdir') / 'sysconfig',
 
     'META_DATE' : run_command('date', '+%d %B %Y', check: true).stdout().strip(),
     'META_ALIAS' : meson.project_name(),
