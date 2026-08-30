@@ -639,9 +639,10 @@ static int set_buffer_percent(struct ras_events *ras, int percent)
  * before return. All file descriptors and buffers are released on every path.
  *
  * Return:
+ * * 0 - an expected shutdown signal was received
  * * @LEGACY_KERNEL - polling appears unsupported and callers should fall back
  * * -ENOMEM - a page or kernel-buffer decoder could not be allocated
- * * -EINVAL - signal-driven shutdown or any other polling/read failure
+ * * -EINVAL - a polling, read, or setup failure occurred
  */
 static int read_ras_event_all_cpus(struct pthread_data *pdata,
 				   unsigned int n_cpus)
@@ -658,6 +659,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	int warnonce[n_cpus];
 	char pipe_raw[PATH_MAX];
 	int legacy_kernel = 0;
+	int rc = -EINVAL;
 
 	memset(&warnonce, 0, sizeof(warnonce));
 
@@ -744,8 +746,9 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			    fdsiginfo.ssi_signo == SIGTERM ||
 			    fdsiginfo.ssi_signo == SIGHUP ||
 			    fdsiginfo.ssi_signo == SIGQUIT) {
-				log(TERM, LOG_INFO, "Received signal=%d\n",
-				    fdsiginfo.ssi_signo);
+				log(TERM, LOG_INFO, "Received signal %s. Stopping rasdaemon.\n",
+				    strsignal(fdsiginfo.ssi_signo));
+				rc = 0;
 				goto  cleanup;
 			} else {
 				log(TERM, LOG_INFO,
@@ -819,7 +822,7 @@ error:
 	if (legacy_kernel)
 		return LEGACY_KERNEL;
 
-	return -EINVAL;
+	return rc;
 }
 
 /**
@@ -1502,7 +1505,8 @@ void ras_events_cleanup(struct ras_events *ras)
  * before returning.
  *
  * Return:
- * * -EINVAL - @ras is invalid, no events were enabled, or polling stopped
+ * * 0 - polling stopped due to an expected shutdown signal
+ * * -EINVAL - @ras is invalid, no events were enabled, or polling failed
  * * -ENOMEM - per-CPU reader state could not be allocated
  * * @LEGACY_KERNEL - all fallback reader threads exited without setup failure
  * * otherwise - a negated pthread initialization or creation error
@@ -1576,7 +1580,8 @@ int handle_ras_events(struct ras_events *ras)
 		pthread_mutex_destroy(&ras->db_lock);
 	}
 
-	log(SYSLOG, LOG_INFO, "Huh! something got wrong. Aborting.\n");
+	if (rc)
+		log(SYSLOG, LOG_INFO, "Huh! something went wrong. Aborting.\n");
 
 err:
 	free(data);
