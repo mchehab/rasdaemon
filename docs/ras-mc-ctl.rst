@@ -93,10 +93,21 @@ Filter and order database results
 ---------------------------------
 
 The ``--since`` and ``--until`` options accept dates in ``YYYY-MM-DD`` form.
-Both limits are inclusive, so this command reports errors recorded during
-August 2026::
+
+Dates are interpreted in the local timezone of the machine running
+``ras-mc-ctl``.
+
+Both limits are inclusive, so this command reports errors
+recorded during August 2026, in local time from zero hours at the first
+day until midnight of the last day (including 24:00:00)::
 
    $ sudo ras-mc-ctl db --errors --since 2026-08-01 --until 2026-08-31
+
+SQLite databases keep timestamps in the local time of the rasdaemon host,
+including its numeric UTC offset. MySQL and PostgreSQL store timestamps as UTC
+so that a shared database can combine records from hosts in different
+timezones. ``ras-mc-ctl`` converts MySQL and PostgreSQL results to the local
+timezone of the machine on which it is running.
 
 Use ``--where 'FIELD OP VALUE'`` for field comparisons. Supported operators
 are ``=``, ``!=``, ``<``, ``<=``, ``>``, and ``>=``. The option may be

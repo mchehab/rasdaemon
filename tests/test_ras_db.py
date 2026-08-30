@@ -11,6 +11,7 @@ import pathlib
 import re
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -163,6 +164,7 @@ class RasDatabaseTests:
             sqlalchemy.Table(table_name, self.metadata, *columns)
 
     def _insert_records(self):
+        query = self.database._query({})
         with self.engine.begin() as connection:
             for table in self.metadata.tables.values():
                 records = []
@@ -177,9 +179,8 @@ class RasDatabaseTests:
                             if self.backend == "sqlite3":
                                 value = f"2026-03-{row + 1:02d} 10:00:00"
                             else:
-                                value = datetime.datetime(
-                                    2026, 3, row + 1, 10, 0,
-                                    tzinfo=datetime.timezone.utc,
+                                value = query._database_timestamp(
+                                    f"2026-03-{row + 1:02d} 10:00:00"
                                 )
                         elif (table.name == "mc_event"
                               and column.name == "err_type"):
@@ -649,6 +650,82 @@ class PostgresqlUrlContractTest(unittest.TestCase):
             },
         })
         self.assertEqual(url.query["sslmode"], "require")
+
+    def test_connections_use_utc_for_date_boundaries(self):
+        self.assertEqual(
+            RasDatabase._database_connect_args("postgresql", {}),
+            {"options": "-c timezone=UTC"},
+        )
+
+
+@unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")
+class TimestampConversionTest(unittest.TestCase):
+    def setUp(self):
+        self.old_timezone = os.environ.get("TZ")
+        # Take the test to French Polynesia (UTC-09:30), as even
+        # server machines deserve island vacations now and then... ;-)
+        os.environ["TZ"] = "Pacific/Marquesas"
+        time.tzset()
+
+    def tearDown(self):
+        if self.old_timezone is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = self.old_timezone
+        time.tzset()
+
+    @staticmethod
+    def query(backend):
+        return RasDatabaseQuery(backend, "local-host", {}, mock.Mock())
+
+    def test_local_query_bound_is_converted_to_backend_utc(self):
+        mysql = self.query("mysql")._database_timestamp(
+            "2026-03-05 10:00:00"
+        )
+        postgresql = self.query("postgresql")._database_timestamp(
+            "2026-03-05 10:00:00"
+        )
+
+        self.assertEqual(mysql, datetime.datetime(2026, 3, 5, 19, 30))
+        self.assertEqual(
+            postgresql,
+            datetime.datetime(
+                2026, 3, 5, 19, 30, tzinfo=datetime.timezone.utc
+            ),
+        )
+
+    def test_backend_utc_timestamp_is_displayed_in_local_time(self):
+        expected = datetime.datetime(
+            2026, 3, 5, 10,
+            tzinfo=datetime.timezone(datetime.timedelta(hours=-9, minutes=-30)),
+        )
+
+        mysql = self.query("mysql")._local_timestamp(
+            datetime.datetime(2026, 3, 5, 19, 30)
+        )
+        postgresql = self.query("postgresql")._local_timestamp(
+            datetime.datetime(
+                2026, 3, 5, 19, 30, tzinfo=datetime.timezone.utc
+            )
+        )
+
+        self.assertEqual(mysql, expected)
+        self.assertEqual(postgresql, expected)
+
+    def test_sqlite_storage_is_unchanged_but_display_is_normalized(self):
+        timestamp = "2026-03-05 10:00:00 -0930"
+        query = self.query("sqlite3")
+
+        self.assertEqual(query._database_timestamp(timestamp), timestamp)
+        self.assertEqual(
+            query._local_timestamp(timestamp),
+            datetime.datetime(
+                2026, 3, 5, 10,
+                tzinfo=datetime.timezone(
+                    datetime.timedelta(hours=-9, minutes=-30)
+                ),
+            ),
+        )
 
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")

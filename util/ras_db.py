@@ -137,6 +137,12 @@ class RasDatabase:
                                kwargs: Mapping[str, Any]) -> dict[str, Any]:
         """Return DBAPI connection arguments not representable in a URL."""
 
+        if backend == "postgresql":
+            # rasdaemon records timestamps with an explicit UTC offset. Keep
+            # CLI date comparisons independent of the server timezone, since
+            # PostgreSQL interprets naive bounds in the session timezone.
+            return {"options": "-c timezone=UTC"}
+
         if backend != "mysql":
             return {}
 

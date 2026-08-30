@@ -97,6 +97,33 @@ class RasDatabaseQuery:
         self.tables = tables
         self.logger = query_logger
 
+    def _database_timestamp(self, value: str) -> Any:
+        """Convert a ras-mc-ctl local timestamp to the backend convention."""
+
+        if self.backend == "sqlite3":
+            return value
+        timestamp = datetime.datetime.fromisoformat(value)
+        timestamp = timestamp.astimezone(datetime.timezone.utc)
+        if self.backend == "mysql":
+            return timestamp.replace(tzinfo=None)
+        return timestamp
+
+    def _local_timestamp(self, value: Any) -> Any:
+        """Convert a database timestamp to the ras-mc-ctl local timezone."""
+
+        if self.backend == "sqlite3" and isinstance(value, str):
+            try:
+                value = datetime.datetime.strptime(
+                    value, "%Y-%m-%d %H:%M:%S %z"
+                )
+            except ValueError:
+                return value
+        if not isinstance(value, datetime.datetime):
+            return value
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=datetime.timezone.utc)
+        return value.astimezone()
+
     @staticmethod
     def validate_field(field: str) -> str:
         """Validate a database or virtual field name."""
@@ -255,14 +282,21 @@ class RasDatabaseQuery:
                 continue
             if field not in table.c:
                 return None, f"field '{field}' is absent"
+            filter_value = query_filter.value
+            if field == "timestamp":
+                filter_value = self._database_timestamp(filter_value)
             conditions.append(self._comparison(
-                table.c[field], query_filter.operator, query_filter.value
+                table.c[field], query_filter.operator, filter_value
             ))
 
         if since:
-            conditions.append(table.c.timestamp >= since)
+            conditions.append(
+                table.c.timestamp >= self._database_timestamp(since)
+            )
         if until:
-            conditions.append(table.c.timestamp <= until)
+            conditions.append(
+                table.c.timestamp <= self._database_timestamp(until)
+            )
         if hostname and self.backend != "sqlite3":
             if "hostname" not in table.c:
                 return None, "hostname is absent"
@@ -359,9 +393,10 @@ class RasDatabaseQuery:
             for row in connection.execute(statement).mappings():
                 values = dict(row)
                 event_hostname = values.get("hostname") or self.hostname
+                timestamp = self._local_timestamp(values.get("timestamp"))
+                values["timestamp"] = timestamp
                 grouped[str(event_hostname)].append(DatabaseEvent(
-                    table_name, str(event_hostname), values.get("timestamp"),
-                    values
+                    table_name, str(event_hostname), timestamp, values
                 ))
 
         for events in grouped.values():
@@ -417,7 +452,10 @@ class RasDatabaseQuery:
                     continue
                 values = dict(constant_values)
                 for index, (field, _) in enumerate(columns, start=1):
-                    values[field] = row[index]
+                    value = row[index]
+                    if field == "timestamp":
+                        value = self._local_timestamp(value)
+                    values[field] = value
                 key = tuple(values[field] for field in group_by)
                 grouped[key] += count
 

@@ -158,23 +158,35 @@ static const char *db_mysql_get_sql_type(enum db_field_type type, bool is_pk)
 static int bind_iso_datetime(MYSQL_BIND *mb, const char *value)
 {
 	MYSQL_TIME *time;
-	struct tm tm = {0};
+	struct tm tm = {0}, utc_tm;
+	time_t timestamp;
+	long utc_offset;
 	char *end;
 
 	end = strptime(value, "%Y-%m-%d %H:%M:%S %z", &tm);
 	if (!end)
 		return -1;
 
+	/*
+	 * MySQL doesn't preserve timezone on DATETIME.
+	 * As we may have machines on different timezeones, always
+	 * store in UTC, letting the ras-mc-ctl convert to local timezone.
+	 */
+	utc_offset = tm.tm_gmtoff;
+	timestamp = timegm(&tm) - utc_offset;
+	if (!gmtime_r(&timestamp, &utc_tm))
+		return -1;
+
 	time = calloc(1, sizeof(*time));
 	if (!time)
 		return -1;
 
-	time->year   = tm.tm_year + 1900;
-	time->month  = tm.tm_mon + 1;
-	time->day    = tm.tm_mday;
-	time->hour   = tm.tm_hour;
-	time->minute = tm.tm_min;
-	time->second = tm.tm_sec;
+	time->year   = utc_tm.tm_year + 1900;
+	time->month  = utc_tm.tm_mon + 1;
+	time->day    = utc_tm.tm_mday;
+	time->hour   = utc_tm.tm_hour;
+	time->minute = utc_tm.tm_min;
+	time->second = utc_tm.tm_sec;
 
 	time->second_part = 0;
 	time->neg = false;

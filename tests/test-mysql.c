@@ -67,31 +67,15 @@ static char *datetime_to_iso(const char * cell)
 {
 	struct tm tm = {0};
 	char buffer[64];
-	char *end;
 	char *output;
-	size_t length;
 
-	end = strptime(cell, "%Y-%m-%d %H:%M:%S", &tm);
-	if (!end )
+	/* MySQL DATETIME values use UTC as the application convention. */
+	if (!strptime(cell, "%Y-%m-%d %H:%M:%S", &tm))
 		return NULL;
-
-	/*
-	 * MySQL DATETIME has no timezone.
-	 */
-	tm.tm_isdst = -1;
-
-	if (mktime(&tm) == (time_t)-1)
+	if (!strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &tm))
 		return NULL;
-
-	length = strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %z", &tm);
-	if (length == 0)
+	if (asprintf(&output, "%s +0000", buffer) < 0)
 		return NULL;
-
-	output = malloc(length + 1);
-	if (output == NULL)
-		return NULL;
-
-	memcpy(output, buffer, length + 1);
 	return output;
 }
 
@@ -357,8 +341,8 @@ static void test_db_complex_table(void **state)
 {
 	struct ras_stmt *stmt = NULL;
 	int rc, pos = 1;
-	struct tm tm;
-	char buf[64];
+	char buf[] = "2026-01-01 21:34:05 +0000";
+	const char timestamp[] = "2026-01-02 03:04:05 +0530";
 
 	static const struct db_fields fields[] = {
 		{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP, .create_index = true },
@@ -382,18 +366,13 @@ static void test_db_complex_table(void **state)
 		{ .type = fields[4].type, .string = "blob2" },
 	};
 
-	time_t now = time(NULL);
-	localtime_r(&now, &tm);
-
-	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S %z", &tm);
-
 	rc = db_create_table(ras.db, &db_tab);
 	assert_int_equal(rc, 0);
 	rc = db_prepare_insert_stmt(ras.db, &stmt, &db_tab);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
-	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[0].string, -1);
+	db_bind(&db_tab, stmt, pos++, (uint64_t)timestamp, -1);
 	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[2].string, -1);
 	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[3].string, -1);
 	db_bind(&db_tab, stmt, pos++, (uint64_t)vals[4].string, -1);
