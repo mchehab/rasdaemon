@@ -24,18 +24,19 @@ class RasMemoryDimm:
 
     SYSFS_DIR = "/sys/devices/system/edac/mc"
     DMI_DIR = "/sys/class/dmi/id"
-    DEFAULT_LABEL_DB = "/etc/ras/dimm_labels.db"
-    DEFAULT_LABEL_DIR = "/etc/ras/dimm_labels.d"
+    DEFAULT_SYSCONF_DIR = "/etc"
 
-    def __init__(self, prog, subparsers):
+    def __init__(self, prog, subparsers, sysconf_dir=DEFAULT_SYSCONF_DIR):
         self.prog = prog
         self.mainboard_vendor = "unknown"
         self.mainboard_model = "unknown"
         self.product_vendor = "unknown"
         self.product_name = "unknown"
-        self.label_db = self.DEFAULT_LABEL_DB
-        self.label_dir = self.DEFAULT_LABEL_DIR
+        self.label_db = os.path.join(sysconf_dir, "ras", "dimm_labels.db")
+        self.label_dir = os.path.join(sysconf_dir, "ras", "dimm_labels.d")
+        self.mainboard_config = os.path.join(sysconf_dir, "ras", "mainboard")
         self.delay = 0
+        self.quiet = False
 
         parser = subparsers.add_parser(
             "dimm", aliases=["mem"],
@@ -68,15 +69,22 @@ class RasMemoryDimm:
                             help="Display corrected and uncorrected DIMM error counts.")
         parser.add_argument("--per-rank", "-P", action="store_true",
                             help="With --error-count, show every rank separately.")
+        parser.add_argument("--quiet", "-q", action="store_true",
+                            help="Suppress DIMM status and error messages.")
         self.parser = parser
         parser.set_defaults(func=self.run)
 
-    def run(self, config:Any, args: Any) -> None:
+    def run(self, config: Any, args: Any) -> int:
         self.delay = args.delay
+        self.quiet = args.quiet
         if args.labeldb:
             self.label_db = args.labeldb
         if args.per_rank and not args.error_count:
             self.parser.error("Only use --per-rank with --error-count")
+        if args.delay and not args.register_labels:
+            self.parser.error("Only use --delay with --register-labels")
+        if args.delay < 0:
+            self.parser.error("--delay must not be negative")
 
         needs_board = (args.mainboard or args.dmidecode or args.print_labels or
                        args.register_labels)
@@ -84,30 +92,45 @@ class RasMemoryDimm:
             self.get_mainboard_info(args.vendor, args.model, args.dmidecode)
 
         actions = 0
+        failed = False
         if args.mainboard or args.dmidecode:
             print(f"{self.prog}: mainboard: {self.mainboard_vendor} "
                   f"model {self.mainboard_model}\n")
             actions += 1
         if args.print_labels:
-            self.print_dimm_labels()
+            failed |= not self.print_dimm_labels()
             actions += 1
         if args.register_labels:
-            self.register_dimm_labels()
+            failed |= not self.register_dimm_labels()
             actions += 1
         if args.layout:
-            self.display_memory_layout()
-            actions += 1
-        if args.error_count:
-            self.display_error_count(args.per_rank)
-            actions += 1
-        if args.status:
-            self.print_status()
+            try:
+                self.display_memory_layout()
+            except (OSError, RuntimeError, ValueError) as error:
+                self._log_error("%s", error)
+                failed = True
             actions += 1
         if args.guess_labels:
-            self.guess_dimm_label()
+            failed |= not self.guess_dimm_label()
+            actions += 1
+        if args.error_count:
+            failed |= not self.display_error_count(args.per_rank)
+            actions += 1
+        if args.status:
+            failed |= not self.print_status()
             actions += 1
         if not actions:
-            logger.error("Missing argument")
+            self._log_error("Missing argument")
+            return 1
+        return int(failed)
+
+    def _log_error(self, message, *args):
+        if not self.quiet:
+            logger.error(message, *args)
+
+    def _print_error(self, message):
+        if not self.quiet:
+            print(message, file=sys.stderr)
 
     @staticmethod
     def _read_text(path):
@@ -125,9 +148,79 @@ class RasMemoryDimm:
         self.product_name = (self._read_text(
             os.path.join(self.DMI_DIR, "product_name")) or "unknown")
 
+    @staticmethod
+    def _strip_config_comment(line):
+        """Remove an unquoted comment from a legacy mainboard config line."""
+
+        quote = None
+        escaped = False
+        for position, character in enumerate(line):
+            if escaped:
+                escaped = False
+                continue
+            if character == "\\" and quote:
+                escaped = True
+                continue
+            if character in ("'", '"'):
+                if quote == character:
+                    quote = None
+                elif quote is None:
+                    quote = character
+                continue
+            if character == "#" and quote is None:
+                return line[:position]
+        return line
+
+    @classmethod
+    def _parse_mainboard_config(cls, contents, source):
+        config = {}
+        for line_number, raw_line in enumerate(contents.splitlines(), start=1):
+            line = cls._strip_config_comment(raw_line).strip()
+            if not line:
+                continue
+            match = re.fullmatch(r"([-\w]+)\s*=\s*(.*)", line)
+            if not match:
+                raise ValueError(
+                    f"{source}: line {line_number}: invalid mainboard configuration"
+                )
+            config[match.group(1)] = match.group(2)
+        return config
+
+    def _mainboard_config_values(self):
+        try:
+            with open(self.mainboard_config, encoding="utf-8") as config_file:
+                config = self._parse_mainboard_config(
+                    config_file.read(), self.mainboard_config
+                )
+        except FileNotFoundError:
+            return None
+        except OSError as error:
+            raise ValueError(
+                f"Failed to read mainboard config {self.mainboard_config}: {error}"
+            ) from error
+
+        script = config.get("script")
+        if script:
+            try:
+                result = subprocess.run(
+                    script, shell=True, capture_output=True, text=True,
+                    check=False,
+                )
+            except OSError as error:
+                raise ValueError(f"Failed to run mainboard script: {error}") from error
+            if result.returncode:
+                detail = result.stderr.strip()
+                suffix = f": {detail}" if detail else ""
+                raise ValueError(
+                    f"Mainboard script exited with status {result.returncode}{suffix}"
+                )
+            config = self._parse_mainboard_config(result.stdout, script)
+
+        return config.get("vendor"), config.get("model")
+
     def get_mainboard_info(self, vendor="unknown", model="unknown",
                            force_dmidecode=False):
-        """Get board data from overrides, sysfs, then dmidecode, like Perl."""
+        """Get board data from overrides, config, sysfs, then dmidecode."""
         supplied_vendor = vendor not in (None, "", "unknown")
         supplied_model = model not in (None, "", "unknown")
 
@@ -138,8 +231,21 @@ class RasMemoryDimm:
 
         board_vendor = board_model = None
         if not force_dmidecode:
-            board_vendor = self._read_text(os.path.join(self.DMI_DIR, "board_vendor"))
-            board_model = self._read_text(os.path.join(self.DMI_DIR, "board_name"))
+            try:
+                configured = self._mainboard_config_values()
+            except ValueError as error:
+                self._log_error("%s", error)
+                configured = None
+            if configured:
+                board_vendor, board_model = configured
+
+            if not (board_vendor and board_model):
+                board_vendor = board_vendor or self._read_text(
+                    os.path.join(self.DMI_DIR, "board_vendor")
+                )
+                board_model = board_model or self._read_text(
+                    os.path.join(self.DMI_DIR, "board_name")
+                )
 
         if not (board_vendor and board_model):
             decoded = self._run_dmidecode()
@@ -154,25 +260,28 @@ class RasMemoryDimm:
     def _run_dmidecode(self):
         dmidecode = which("dmidecode")
         if not dmidecode:
-            print(f"{self.prog}: Can't run dmidecode: program not found.",
-                  file=sys.stderr)
+            self._print_error(
+                f"{self.prog}: Can't run dmidecode: program not found."
+            )
             return None
         if os.geteuid() != 0:
-            print(f"{self.prog}: dmidecode requires root permissions; "
-                  f"please run this command using sudo.", file=sys.stderr)
+            self._print_error(
+                f"{self.prog}: dmidecode requires root permissions; "
+                f"please run this command using sudo."
+            )
             return None
         try:
             result = subprocess.run([dmidecode], capture_output=True, text=True,
                                     timeout=5, check=False)
         except (OSError, subprocess.TimeoutExpired) as error:
-            print(f"{self.prog}: failed to run {dmidecode}: {error}",
-                  file=sys.stderr)
+            self._print_error(
+                f"{self.prog}: failed to run {dmidecode}: {error}"
+            )
             return None
         if result.returncode:
             detail = result.stderr.strip()
             suffix = f": {detail}" if detail else ""
-            print(f"{self.prog}: failed to run {dmidecode}{suffix}",
-                  file=sys.stderr)
+            self._print_error(f"{self.prog}: failed to run {dmidecode}{suffix}")
             return None
         return result.stdout
 
@@ -223,7 +332,8 @@ class RasMemoryDimm:
                          for entry in os.scandir("/sys/module"))
         except OSError:
             status = False
-        print(f"{self.prog}: drivers {'are' if status else 'not'} loaded.")
+        if not self.quiet:
+            print(f"{self.prog}: drivers {'are' if status else 'not'} loaded.")
         return status
 
     def guess_dimm_label(self):
@@ -256,8 +366,7 @@ class RasMemoryDimm:
                 in_device = False
         return True
 
-    @staticmethod
-    def _parse_label_file(path, board_labels, product_labels):
+    def _parse_label_file(self, path, board_labels, product_labels):
         vendor = ""
         targets = []
         target_map = board_labels
@@ -291,8 +400,10 @@ class RasMemoryDimm:
                         if not position:
                             continue
                         if not re.fullmatch(r"\d+(?:[.:]\d+)+", position):
-                            logger.error('%s: %d: Invalid syntax, ignoring: "%s"',
-                                         path, line_number, raw_line.rstrip())
+                            self._log_error(
+                                '%s: %d: Invalid syntax, ignoring: "%s"',
+                                path, line_number, raw_line.rstrip()
+                            )
                             continue
                         values = tuple(int(value) for value in re.split(r"[.:]", position))
                         layers = len(values) - 1
@@ -346,8 +457,10 @@ class RasMemoryDimm:
     def print_dimm_labels(self):
         entry = self._read_dimm_labels()
         if not entry:
-            print(f"{self.prog}: No dimm labels for {self.mainboard_vendor} "
-                  f"model {self.mainboard_model}\n", file=sys.stderr)
+            self._print_error(
+                f"{self.prog}: No dimm labels for {self.mainboard_vendor} "
+                f"model {self.mainboard_model}\n"
+            )
             return False
         nodes = self._parse_dimm_nodes()
         print(f"{'LOCATION':35s} {'CONFIGURED LABEL':20s} {'SYSFS CONTENTS':20s}")
@@ -369,8 +482,10 @@ class RasMemoryDimm:
     def register_dimm_labels(self):
         entry = self._read_dimm_labels()
         if not entry:
-            print(f"{self.prog}: No dimm labels for {self.mainboard_vendor} "
-                  f"model {self.mainboard_model}\n", file=sys.stderr)
+            self._print_error(
+                f"{self.prog}: No dimm labels for {self.mainboard_vendor} "
+                f"model {self.mainboard_model}\n"
+            )
             return False
         nodes = self._parse_dimm_nodes()
         time.sleep(self.delay)
@@ -383,8 +498,9 @@ class RasMemoryDimm:
                 with open(node["path"], "w", encoding="utf-8") as output:
                     output.write(label)
             except OSError as error:
-                print(f"{self.prog}: Unable to write {node['path']}: {error}",
-                      file=sys.stderr)
+                self._print_error(
+                    f"{self.prog}: Unable to write {node['path']}: {error}"
+                )
         return True
 
     def display_memory_layout(self):
@@ -395,7 +511,9 @@ class RasMemoryDimm:
 
         nodes = self._parse_dimm_nodes()
         if not nodes:
-            logger.error("No DIMMs found in /sys or new sysfs EDAC interface not found.")
+            self._log_error(
+                "No DIMMs found in /sys or new sysfs EDAC interface not found."
+            )
             return False
 
         rows = []
@@ -408,7 +526,9 @@ class RasMemoryDimm:
                 ce_count = int(ce_count)
                 ue_count = int(ue_count)
             except (TypeError, ValueError):
-                logger.error("Missing or invalid EDAC error counters for %s", label)
+                self._log_error(
+                    "Missing or invalid EDAC error counters for %s", label
+                )
                 return False
             rows.append((label, node["location"], ce_count, ue_count))
 

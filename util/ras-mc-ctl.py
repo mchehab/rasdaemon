@@ -38,7 +38,7 @@ from ras_dimm import RasMemoryDimm
 from ras_config import RasMesonConfig
 
 
-def main() -> None:
+def main() -> int:
     """Parse command line arguments."""
 
     meson_cfg = RasMesonConfig()
@@ -59,7 +59,7 @@ def main() -> None:
     # Each command will pick subparsers at init, adding at the end:
     #           parser.set_defaults(command=self.run_command)
 
-    RasMemoryDimm(PROG, subparsers)
+    RasMemoryDimm(PROG, subparsers, meson_cfg.sysconf_dir)
 
     # Database support is optional, so keep the rest of the utility available
     # when SQLAlchemy or a database-specific driver is not installed.
@@ -86,7 +86,7 @@ def main() -> None:
     logging.basicConfig(level=level, format='[%(levelname)s] %(message)s')
 
     if "func" in args:
-        args.func(env_cfg, args)
+        return args.func(env_cfg, args) or 0
     else:
         print("Error: no command specified\n", file=sys.stderr)
 
@@ -96,4 +96,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

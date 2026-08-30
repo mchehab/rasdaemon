@@ -41,6 +41,65 @@ class RasMemoryDimmTest(unittest.TestCase):
             ("Board vendor", "Board model"),
         )
 
+    def test_uses_configured_sysconf_directory(self):
+        parser = argparse.ArgumentParser()
+        dimm = RasMemoryDimm(
+            "ras-mc-ctl", parser.add_subparsers(), "/opt/ras/etc"
+        )
+
+        self.assertEqual(dimm.label_db, "/opt/ras/etc/ras/dimm_labels.db")
+        self.assertEqual(dimm.label_dir, "/opt/ras/etc/ras/dimm_labels.d")
+        self.assertEqual(dimm.mainboard_config, "/opt/ras/etc/ras/mainboard")
+
+    def test_mainboard_config_precedes_sysfs_and_dmidecode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            config_dir = root / "etc" / "ras"
+            config_dir.mkdir(parents=True)
+            (config_dir / "mainboard").write_text(
+                "# Local override\n"
+                "vendor = Configured Vendor\n"
+                "model = Configured Model # trailing comment\n",
+                encoding="utf-8",
+            )
+            dmi_dir = root / "dmi"
+            dmi_dir.mkdir()
+            (dmi_dir / "board_vendor").write_text(
+                "Sysfs Vendor\n", encoding="utf-8"
+            )
+            (dmi_dir / "board_name").write_text(
+                "Sysfs Model\n", encoding="utf-8"
+            )
+            self.dimm.mainboard_config = os.fspath(config_dir / "mainboard")
+            self.dimm.DMI_DIR = os.fspath(dmi_dir)
+
+            with mock.patch.object(self.dimm, "_run_dmidecode") as dmidecode:
+                self.assertTrue(self.dimm.get_mainboard_info())
+
+        dmidecode.assert_not_called()
+        self.assertEqual(self.dimm.mainboard_vendor, "Configured Vendor")
+        self.assertEqual(self.dimm.mainboard_model, "Configured Model")
+
+    def test_mainboard_config_may_call_legacy_helper_script(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = pathlib.Path(directory) / "mainboard"
+            config.write_text("script = /usr/libexec/ras-board\n", encoding="utf-8")
+            self.dimm.mainboard_config = os.fspath(config)
+            result = argparse.Namespace(
+                returncode=0,
+                stdout="vendor=Script Vendor\nmodel=Script Model\n",
+                stderr="",
+            )
+
+            with mock.patch("ras_dimm.subprocess.run", return_value=result) as run:
+                values = self.dimm._mainboard_config_values()
+
+        self.assertEqual(values, ("Script Vendor", "Script Model"))
+        run.assert_called_once_with(
+            "/usr/libexec/ras-board", shell=True, capture_output=True,
+            text=True, check=False,
+        )
+
     def test_parse_board_dmidecode_asus_b650m(self):
         output = dedent("""\
             Handle 0x0001, DMI type 1, 27 bytes
@@ -231,8 +290,9 @@ class RasMemoryDimmTest(unittest.TestCase):
         self.assertTrue(args.error_count)
         self.assertTrue(args.per_rank)
 
-        with mock.patch.object(self.dimm, "display_error_count") as display:
-            self.dimm.run(None, args)
+        with mock.patch.object(
+                self.dimm, "display_error_count", return_value=True) as display:
+            self.assertEqual(self.dimm.run(None, args), 0)
         display.assert_called_once_with(True)
 
     def test_per_rank_requires_error_count(self):
@@ -240,6 +300,72 @@ class RasMemoryDimmTest(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):
                 self.dimm.run(None, args)
+
+    def test_delay_requires_register_labels(self):
+        args = self.parser.parse_args(["dimm", "--status", "--delay", "1"])
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                self.dimm.run(None, args)
+
+    def test_negative_delay_is_rejected(self):
+        args = self.parser.parse_args([
+            "dimm", "--register-labels", "--delay", "-1"
+        ])
+        with contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                self.dimm.run(None, args)
+
+    def test_failed_status_sets_command_exit_status(self):
+        args = self.parser.parse_args(["dimm", "--status"])
+        with mock.patch.object(self.dimm, "print_status", return_value=False):
+            self.assertEqual(self.dimm.run(None, args), 1)
+
+    def test_failed_error_count_sets_command_exit_status(self):
+        args = self.parser.parse_args(["dimm", "--error-count"])
+        with mock.patch.object(
+                self.dimm, "display_error_count", return_value=False):
+            self.assertEqual(self.dimm.run(None, args), 1)
+
+    def test_quiet_suppresses_status_and_errors(self):
+        args = self.parser.parse_args(["dimm", "--status", "--quiet"])
+        output = io.StringIO()
+        with mock.patch("ras_dimm.os.scandir", side_effect=OSError):
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(self.dimm.run(None, args), 1)
+        self.assertEqual(output.getvalue(), "")
+
+        with mock.patch.object(self.dimm, "_read_dimm_labels", return_value=None):
+            errors = io.StringIO()
+            with contextlib.redirect_stderr(errors):
+                self.assertFalse(self.dimm.print_dimm_labels())
+        self.assertEqual(errors.getvalue(), "")
+
+    def test_combined_actions_keep_legacy_order_and_collect_failures(self):
+        args = self.parser.parse_args([
+            "dimm", "--layout", "--guess-labels", "--error-count", "--status"
+        ])
+        calls = []
+
+        def action(name, result=True):
+            def run(*_args):
+                calls.append(name)
+                return result
+            return run
+
+        with mock.patch.object(
+                self.dimm, "display_memory_layout", side_effect=action("layout")):
+            with mock.patch.object(
+                    self.dimm, "guess_dimm_label",
+                    side_effect=action("guess", False)):
+                with mock.patch.object(
+                        self.dimm, "display_error_count",
+                        side_effect=action("error-count")):
+                    with mock.patch.object(
+                            self.dimm, "print_status",
+                            side_effect=action("status")):
+                        self.assertEqual(self.dimm.run(None, args), 1)
+
+        self.assertEqual(calls, ["layout", "guess", "error-count", "status"])
 
 
 if __name__ == "__main__":

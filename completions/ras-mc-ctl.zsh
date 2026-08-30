@@ -38,7 +38,8 @@ _ras-mc-ctl()
                         '(-L --labeldb)'{-L,--labeldb}'[use an alternate label database]:label database:_files' \
                         '(-l --layout)'{-l,--layout}'[print the EDAC memory layout]' \
                         '{-e,--error-count}[display corrected and uncorrected DIMM error counts]' \
-                        '(-e --error-count){-P,--per-rank}[show each rank separately]'
+                        '(-e --error-count){-P,--per-rank}[show each rank separately]' \
+                        '(-q --quiet)'{-q,--quiet}'[suppress DIMM status and error messages]'
                     ;;
                 database|db)
                     _arguments \

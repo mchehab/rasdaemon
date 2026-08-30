@@ -64,6 +64,7 @@ def main() -> None:
     parser.add_argument("--output", required=True)
     parser.add_argument("--python-dir", required=True)
     parser.add_argument("--source-dir", required=True)
+    parser.add_argument("--sysconf-dir", required=True)
     args = parser.parse_args()
 
     env = os.environ.copy()
@@ -100,13 +101,15 @@ def main() -> None:
     except subprocess.CalledProcessError:
         pass
 
-    output += dedent('''\
+    output += dedent(f'''\
         .SH FILES
-        .I /etc/sysconfig/rasdaemon
+        .I {args.sysconf_dir}/sysconfig/rasdaemon
         .br
-        .I /etc/ras/dimm_labels.db
+        .I {args.sysconf_dir}/ras/dimm_labels.db
         .br
-        .I /etc/ras/dimm_labels.d
+        .I {args.sysconf_dir}/ras/dimm_labels.d
+        .br
+        .I {args.sysconf_dir}/ras/mainboard
         .SH SEE ALSO
         .BR rasdaemon (1),
         .BR dmidecode (8)
