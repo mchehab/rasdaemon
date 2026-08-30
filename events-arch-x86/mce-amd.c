@@ -74,13 +74,14 @@ void decode_amd_errcode(struct mce_event *e)
 		if (e->status & MCI_STATUS_PCC)
 			strscpy(e->error_msg, "System Fatal error.",
 				sizeof(e->error_msg));
-		if (e->mcgstatus & MCG_STATUS_RIPV)
+		else if (e->mcgstatus & MCG_STATUS_RIPV)
 			strscpy(e->error_msg,
 				"Uncorrected, software restartable error.",
 				sizeof(e->error_msg));
-		strscpy(e->error_msg,
-			"Uncorrected, software containable error.",
-			sizeof(e->error_msg));
+		else
+			strscpy(e->error_msg,
+				"Uncorrected, software containable error.",
+				sizeof(e->error_msg));
 	} else if (e->status & MCI_STATUS_DEFERRED) {
 		strscpy(e->error_msg, "Deferred error, no action required.",
 			sizeof(e->error_msg));

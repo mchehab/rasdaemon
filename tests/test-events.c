@@ -1069,9 +1069,45 @@ static void test_mce_vendor_decoders(void **state)
 	assert_string_equal(event.bank_name, "THERMAL EVENT");
 }
 
+static void test_amd_uncorrected_classification(void **state)
+{
+	static const struct {
+		uint64_t status;
+		uint64_t mcgstatus;
+		const char *expected;
+	} cases[] = {
+		{
+			.status = MCI_STATUS_UC | MCI_STATUS_PCC,
+			.expected = "System Fatal error.",
+		}, {
+			.status = MCI_STATUS_UC,
+			.mcgstatus = MCG_STATUS_RIPV,
+			.expected = "Uncorrected, software restartable error.",
+		}, {
+			.status = MCI_STATUS_UC,
+			.expected = "Uncorrected, software containable error.",
+		}, {
+			.status = MCI_STATUS_UC | MCI_STATUS_PCC,
+			.mcgstatus = MCG_STATUS_RIPV,
+			.expected = "System Fatal error.",
+		},
+	};
+	struct mce_event event;
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(cases); i++) {
+		memset(&event, 0, sizeof(event));
+		event.status = cases[i].status;
+		event.mcgstatus = cases[i].mcgstatus;
+		decode_amd_errcode(&event);
+		assert_string_equal(event.error_msg, cases[i].expected);
+	}
+}
+
 static const struct CMUnitTest mce_tests[] = {
 	cmocka_unit_test(test_mce_priv_cleanup),
 	cmocka_unit_test(test_mce_vendor_decoders),
+	cmocka_unit_test(test_amd_uncorrected_classification),
 };
 
 int test_mce(void)
