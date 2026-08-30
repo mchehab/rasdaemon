@@ -91,7 +91,7 @@ jobs:
         run: |
           meson setup build
           make
-      - name: Run unittest
+      - name: Run C unit tests
         env:
           RAS_MYSQL_HOST: ''
           RAS_MYSQL_PORT: '3306'
@@ -109,7 +109,7 @@ jobs:
           RAS_PG_DATABASE: rasdaemon_test
         run: |
           build/unittest -o tap
-      - name: Run Python unittests
+      - name: Run Python unit tests
         env:
           RAS_MYSQL_HOST: ''
           RAS_MYSQL_PORT: '3306'
@@ -126,7 +126,7 @@ jobs:
           RAS_PG_SCHEMA: rasdaemon
           RAS_PG_DATABASE: rasdaemon_test
         run: |
-          python3 tests/run.py
+          python3 tests/run.py -vvv
 
   MariaDBUnittest:
     name: MariaDB Unit Test
@@ -163,7 +163,7 @@ jobs:
         run: |
           meson setup build
           make
-      - name: Run unittest
+      - name: Run MariaDB unit tests
         env:
           RAS_MYSQL_HOST: ''
           RAS_MYSQL_PORT: '3306'
@@ -186,4 +186,4 @@ jobs:
           RAS_MYSQL_USE_SSL: 'false'
           RAS_MYSQL_CONNECT_TIMEOUT: '10'
         run: |-
-          python3 -m unittest -v tests.test_ras_db.MysqlRasDatabaseTest
+          python3 tests/run.py -vvv -k RasDatabaseTests MysqlRasDatabaseTest
