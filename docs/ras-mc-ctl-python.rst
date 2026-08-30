@@ -7,8 +7,8 @@ Using ras-mc-ctl
 about the system's EDAC memory devices. Its two command groups are
 ``database`` (also spelled ``db``) and ``dimm`` (also spelled ``mem``).
 
-Users moving from the former Perl implementation can find a complete DIMM
-command mapping in :ref:`ras-mc-ctl-dimm-migration`.
+Users moving from the former Perl implementation can find complete DIMM and
+database command mappings in :doc:`ras-mc-ctl-perl`.
 
 The database commands require rasdaemon to have been run with ``--record``.
 They use the backend and connection settings described in :doc:`databases`.
@@ -23,14 +23,21 @@ To display every recorded error in detail, use::
    $ sudo ras-mc-ctl db --errors
 
 Detailed output is the default, so ``ras-mc-ctl db`` produces the same kind
-of report. For a shorter overview, count the records in each non-empty event
-table::
+of report. To summarize events using fields appropriate to each known table,
+use::
+
+   $ sudo ras-mc-ctl db --summary
+
+The report remains table-aware when new tables are discovered. Tables without
+a registered event-specific grouping are summarized by hostname and table.
+
+For a shorter overview, count the records in each non-empty event table::
 
    $ sudo ras-mc-ctl db --errors-per-table
 
 Alternatively, summarize the records by hostname and table::
 
-   $ sudo ras-mc-ctl db --summary
+   $ sudo ras-mc-ctl db --table-summary
 
 Machine-readable JSON output
 ----------------------------
@@ -43,21 +50,24 @@ with any db command::
 
    $ sudo ras-mc-ctl db --errors --json
    $ sudo ras-mc-ctl db --summary --json
+   $ sudo ras-mc-ctl db --table-summary --json
    $ sudo ras-mc-ctl db --count --table mc_event --corrected --json
 
 On each output:
 
 - ``format_version`` is currently set to ``1``, and it is meant to
-  indicate changes a the format;
--  ``mode`` - indicates the type of JSON output;
+  indicate changes to the format;
+- ``mode`` indicates the type of JSON output.
 
-- Detailed reports contains a ``records`` array with:
-   - ``hostname``, ``timestamp``, ``table`` and ``fields`` object. 
+- Detailed reports contain a ``records`` array with ``hostname``,
+  ``timestamp``, ``table`` and ``fields`` objects.
 
-- Count reports contains contains a ``groups`` array with:
-  - ``values``, ``count`` objects
+- Count reports contain a ``groups`` array with ``values`` and ``count``
+  objects.
 
-- Summary rreports contains a ``hosts`` object.
+- Event-specific summary reports contain a ``groups`` array.
+
+- Table summary reports contain a ``hosts`` object.
 
 Other reports like ``--list-tables``, ``--describe``, and ``--create-index``
 also support JSON output.
@@ -113,12 +123,32 @@ timezones. ``ras-mc-ctl`` converts MySQL and PostgreSQL results to the local
 timezone of the machine on which it is running.
 
 Use ``--where 'FIELD OP VALUE'`` for field comparisons. Supported operators
-are ``=``, ``!=``, ``<``, ``<=``, ``>``, and ``>=``. The option may be
+are ``=``, ``!=``, ``<``, ``<=``, ``>``, ``>=``, and ``~=``. The ``~=``
+operator performs case-insensitive equality on text fields. The option may be
 repeated; all comparisons must match. Discover valid field names with
 ``--describe``. For example::
 
    $ sudo ras-mc-ctl db --errors --table mc_event \
        --where 'label=DIMM_A1' --where 'err_count>=1'
+
+Join alternatives with the ``OR`` keyword inside one quoted ``--where``
+expression when any one may match. This is particularly useful for records
+which use different field names for the same concept. For example::
+
+   $ sudo ras-mc-ctl db --errors --table 'hip08_*_event_v2' \
+       --table hisi_common_section_v2 \
+       --where 'module_id~=SMMU OR sub_module_id~=SMMU'
+
+Each ``--where`` occurrence is one parenthesized group. Separate ``--where``
+options are joined with AND, so every group must match. Parentheses and an
+explicit ``AND`` operator within one expression are not supported.
+
+The common module lookup has a shorter alias. This command applies the same
+case-insensitive ``module_id`` or ``sub_module_id`` predicate as the previous
+example::
+
+   $ sudo ras-mc-ctl db --errors --table 'hip08_*_event_v2' \
+       --table hisi_common_section_v2 --module SMMU
 
 Detailed reports can be limited to selected fields and sorted by one or more
 fields. The following command displays the newest PCIe AER events first::

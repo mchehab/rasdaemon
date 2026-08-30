@@ -3,8 +3,6 @@
 
 """Discover and display rasdaemon events stored in SQL databases."""
 
-from __future__ import annotations
-
 import argparse
 import base64
 import collections
@@ -22,11 +20,36 @@ from typing import Any, Iterable, Mapping
 from sqlalchemy import Index, MetaData, Table, create_engine, event, inspect
 from sqlalchemy.engine import Engine, URL
 
+from ras_db_decode import format_event_value
 from ras_filter import (DatabaseCount, DatabaseEvent, DatabaseFilter,
                         DatabaseOrder, RasDatabaseQuery)
 
 SUPPORTED_BACKENDS = ("sqlite3", "mysql", "postgresql")
 logger = logging.getLogger(__name__)
+
+
+SUMMARY_FIELDS = {
+    "mc_event": (
+        "err_type", "label", "mc", "top_layer", "middle_layer",
+        "lower_layer",
+    ),
+    "aer_event": ("err_type", "err_msg"),
+    "arm_event": ("mpidr",),
+    "nvidia_ns_event": ("signature", "socket"),
+    "nvidia_vera_ns_event": ("signature", "socket"),
+    "extlog_event": ("etype", "severity"),
+    "devlink_event": ("dev_name",),
+    "disk_errors": ("dev",),
+    "memory_failure_event": ("action_result",),
+    "mce_record": ("error_msg",),
+    "signal_event": ("code",),
+    "hip08_oem_type1_event_v2": ("err_severity", "module_id"),
+    "hip08_oem_type2_event_v2": ("err_severity", "module_id"),
+    "hip08_pcie_local_event_v2": ("err_severity", "sub_module_id"),
+    "hisi_common_section_v2": ("err_severity", "module_id"),
+    "yitian_ddr_reg_dump_event": ("address",),
+    "jm_payload0_event": ("err_severity", "subsystem"),
+}
 
 
 def _decode_sqlite_text(value: bytes) -> str:
@@ -268,6 +291,7 @@ class RasDatabase:
                 hostname: str | None = None,
                 tables: Mapping[str, Table] | None = None,
                 filters: Iterable[DatabaseFilter] = (),
+                any_filter_groups: Iterable[Iterable[DatabaseFilter]] = (),
                 severity: str | None = None,
                 select_fields: Iterable[str] = (),
                 order_by: Iterable[DatabaseOrder] = (),
@@ -280,7 +304,8 @@ class RasDatabase:
         with self.engine.connect() as connection:
             return self._query(tables).records(
                 connection, since=since, until=until, hostname=hostname,
-                filters=filters, severity=severity, select_fields=select_fields,
+                filters=filters, any_filter_groups=any_filter_groups,
+                severity=severity, select_fields=select_fields,
                 order_by=order_by,
             )
 
@@ -288,6 +313,7 @@ class RasDatabase:
                hostname: str | None = None,
                tables: Mapping[str, Table] | None = None,
                filters: Iterable[DatabaseFilter] = (),
+               any_filter_groups: Iterable[Iterable[DatabaseFilter]] = (),
                severity: str | None = None,
                group_by: Iterable[str] = (),
                order_by: Iterable[DatabaseOrder] = ()
@@ -300,23 +326,69 @@ class RasDatabase:
         with self.engine.connect() as connection:
             return self._query(tables).counts(
                 connection, since=since, until=until, hostname=hostname,
-                filters=filters, severity=severity, group_by=group_by,
-                order_by=order_by,
+                filters=filters, any_filter_groups=any_filter_groups,
+                severity=severity, group_by=group_by, order_by=order_by,
             )
 
     def summary(self, since: str | None = None, until: str | None = None,
                 hostname: str | None = None,
                 tables: Mapping[str, Table] | None = None,
                 filters: Iterable[DatabaseFilter] = (),
+                any_filter_groups: Iterable[Iterable[DatabaseFilter]] = (),
                 severity: str | None = None,
-                ) -> dict[str, dict[str, int]]:
+                ) -> list[DatabaseCount]:
+        """Return table-aware event summaries grouped by hostname."""
+
+        tables = tables if tables is not None else (
+            self.tables or self.discover_tables()
+        )
+        filters = tuple(filters)
+        any_filter_groups = tuple(
+            tuple(group) for group in any_filter_groups
+        )
+        results = []
+        with self.engine.connect() as connection:
+            for table_name, table in tables.items():
+                fields = SUMMARY_FIELDS.get(table_name)
+                if fields is None and table_name.startswith("cxl_"):
+                    fields = ("memdev",)
+                fields = tuple(
+                    field for field in (fields or ()) if field in table.c
+                )
+                query = self._query({table_name: table})
+                for item in query.counts(
+                        connection, since=since, until=until,
+                        hostname=hostname, filters=filters,
+                        any_filter_groups=any_filter_groups,
+                        severity=severity,
+                        group_by=("hostname", *fields)):
+                    values = dict(item.values)
+                    values["table"] = table_name
+                    results.append(DatabaseCount(values, item.count))
+        results.sort(key=lambda item: (
+            str(item.values["hostname"]), str(item.values["table"]),
+            tuple(str(value) for key, value in item.values.items()
+                  if key not in ("hostname", "table")),
+        ))
+        return results
+
+    def table_summary(self, since: str | None = None,
+                      until: str | None = None,
+                      hostname: str | None = None,
+                      tables: Mapping[str, Table] | None = None,
+                      filters: Iterable[DatabaseFilter] = (),
+                      any_filter_groups: Iterable[
+                          Iterable[DatabaseFilter]
+                      ] = (),
+                      severity: str | None = None,
+                      ) -> dict[str, dict[str, int]]:
         """Return event counts grouped by hostname and table."""
 
         grouped: dict[str, dict[str, int]] = collections.defaultdict(dict)
         for result in self.counts(
                 since=since, until=until, hostname=hostname, tables=tables,
-                filters=filters, severity=severity,
-                group_by=("hostname", "table")):
+                filters=filters, any_filter_groups=any_filter_groups,
+                severity=severity, group_by=("hostname", "table")):
             if result.count:
                 grouped[str(result.values["hostname"])][
                     str(result.values["table"])
@@ -339,13 +411,17 @@ class RasDatabase:
             for event in events:
                 if select_fields:
                     fields = (
-                        f"{field}={RasDatabaseQuery.event_value(event, field)}"
+                        f"{field}={format_event_value(event.table, field, value)}"
                         for field in select_fields
                         if field not in ("hostname", "timestamp", "table")
+                        for value in (
+                            RasDatabaseQuery.event_value(event, field),
+                        )
                     )
                 else:
                     fields = (
-                        f"{key}={value}" for key, value in event.values.items()
+                        f"{key}={format_event_value(event.table, key, value)}"
+                        for key, value in event.values.items()
                         if key not in ("hostname", "timestamp")
                     )
                 output.append(
@@ -355,7 +431,8 @@ class RasDatabase:
 
     @staticmethod
     def format_counts(counts: Iterable[DatabaseCount],
-                      group_by: Iterable[str] = ()) -> str:
+                      group_by: Iterable[str] = (),
+                      table: str | None = None) -> str:
         """Format a total or grouped event counts."""
 
         counts = list(counts)
@@ -365,14 +442,47 @@ class RasDatabase:
             return f"Count: {count}\n"
         output = []
         for item in counts:
+            item_table = str(item.values.get("table", table or ""))
             fields = ", ".join(
-                f"{field}={item.values[field]}" for field in group_by
+                f"{field}={format_event_value(item_table, field, item.values[field])}"
+                for field in group_by
             )
             output.append(f"{fields}: {item.count} event(s)")
         return "\n".join(output) + ("\n" if output else "")
 
     @staticmethod
-    def format_summary(groups: Mapping[str, Mapping[str, int]]) -> str:
+    def format_summary(counts: Iterable[DatabaseCount]) -> str:
+        """Format table-aware event summaries."""
+
+        output = []
+        current_hostname = None
+        current_table = None
+        for item in counts:
+            hostname = str(item.values["hostname"])
+            table = str(item.values["table"])
+            if hostname != current_hostname:
+                output.append(f"Hostname: {hostname}")
+                current_hostname = hostname
+                current_table = None
+            fields = {
+                key: value for key, value in item.values.items()
+                if key not in ("hostname", "table")
+            }
+            if not fields:
+                output.append(f"  {table}: {item.count} event(s)")
+                continue
+            if table != current_table:
+                output.append(f"  {table}:")
+                current_table = table
+            values = ", ".join(
+                f"{field}={format_event_value(table, field, value)}"
+                for field, value in fields.items()
+            )
+            output.append(f"    {values}: {item.count} event(s)")
+        return "\n".join(output) + ("\n" if output else "")
+
+    @staticmethod
+    def format_table_summary(groups: Mapping[str, Mapping[str, int]]) -> str:
         """Format event counts grouped by hostname and table."""
 
         output = []
@@ -448,6 +558,12 @@ class RasDatabase:
             for item in counts
         ]})
 
+    @classmethod
+    def format_summary_json(cls, counts: Iterable[DatabaseCount]) -> str:
+        """Format table-aware summaries without applying text decoders."""
+
+        return cls.format_counts_json("summary", counts)
+
     def close(self) -> None:
         """Release the engine's connection pool."""
 
@@ -497,6 +613,10 @@ class RasDatabaseCommand:
         )
         output.add_argument(
             "--summary", "-S", action="store_true",
+            help="Display table-aware event summaries.",
+        )
+        output.add_argument(
+            "--table-summary", action="store_true",
             help="Display event counts grouped by hostname and table.",
         )
         output.add_argument(
@@ -534,8 +654,18 @@ class RasDatabaseCommand:
         )
         parser.add_argument(
             "--where", "-w", action="append", default=[],
-            metavar="FIELD[OP]VALUE",
-            help="Require a field comparison; may be repeated.",
+            metavar="EXPRESSION",
+            help=(
+                "Require a field comparison or OR expression; repeated "
+                "options are joined with AND."
+            ),
+        )
+        parser.add_argument(
+            "--module", metavar="MODULE",
+            help=(
+                "Select MODULE case-insensitively from module_id or "
+                "sub_module_id."
+            ),
         )
         parser.add_argument(
             "--select", "-x", dest="select_fields", action="append", default=[],
@@ -604,7 +734,14 @@ class RasDatabaseCommand:
         try:
             try:
                 tables = database.select_tables(args.table, args.exclude_table)
-                filters = RasDatabaseQuery.parse_filters(args.where)
+                filters, any_filter_groups = RasDatabaseQuery.parse_where(
+                    args.where
+                )
+                if args.module is not None:
+                    any_filter_groups += ((
+                        DatabaseFilter("module_id", "~=", args.module),
+                        DatabaseFilter("sub_module_id", "~=", args.module),
+                    ),)
                 ordering = RasDatabaseQuery.parse_ordering(args.order_by)
                 select_fields = tuple(
                     RasDatabaseQuery.validate_field(field)
@@ -620,10 +757,12 @@ class RasDatabaseCommand:
             if args.group_by and not args.count:
                 self.parser.error("--group-by requires --count")
             if args.select_fields and (
-                    args.count or args.summary or args.errors_per_table):
+                    args.count or args.summary or args.table_summary
+                    or args.errors_per_table):
                 self.parser.error("--select is only available with detailed errors")
-            if args.summary and (args.group_by or args.order_by):
-                self.parser.error("--summary has a fixed hostname/table grouping")
+            if (args.summary or args.table_summary) and (
+                    args.group_by or args.order_by):
+                self.parser.error("summary reports have fixed groupings")
             if args.list_tables:
                 if args.json:
                     print(database.format_json(
@@ -664,30 +803,52 @@ class RasDatabaseCommand:
                 result = database.summary(
                     since=args.since, until=until,
                     hostname=args.hostname, tables=tables, filters=filters,
+                    any_filter_groups=any_filter_groups,
+                    severity=args.severity,
+                )
+                if args.json:
+                    print(database.format_summary_json(result), end="")
+                else:
+                    print(database.format_summary(result), end="")
+            elif args.table_summary:
+                result = database.table_summary(
+                    since=args.since, until=until,
+                    hostname=args.hostname, tables=tables, filters=filters,
+                    any_filter_groups=any_filter_groups,
                     severity=args.severity,
                 )
                 if args.json:
                     print(database.format_json(
-                        "summary", {"hosts": result}
+                        "table-summary", {"hosts": result}
                     ), end="")
                 else:
-                    print(database.format_summary(result), end="")
+                    print(database.format_table_summary(result), end="")
             elif args.count:
                 result = database.counts(
                     since=args.since, until=until, hostname=args.hostname,
-                    tables=tables, filters=filters, severity=args.severity,
-                    group_by=group_by, order_by=ordering,
+                    tables=tables, filters=filters,
+                    any_filter_groups=any_filter_groups,
+                    severity=args.severity, group_by=group_by,
+                    order_by=ordering,
                 )
                 if args.json:
                     print(database.format_counts_json("count", result), end="")
                 else:
-                    print(database.format_counts(result, group_by), end="")
+                    table = next(iter(tables)) if len(tables) == 1 else None
+                    if table is None:
+                        print(database.format_counts(result, group_by), end="")
+                    else:
+                        print(database.format_counts(
+                            result, group_by, table=table
+                        ), end="")
             elif args.errors_per_table:
                 group_by = ("table",)
                 result = database.counts(
                     since=args.since, until=until, hostname=args.hostname,
-                    tables=tables, filters=filters, severity=args.severity,
-                    group_by=group_by, order_by=ordering,
+                    tables=tables, filters=filters,
+                    any_filter_groups=any_filter_groups,
+                    severity=args.severity, group_by=group_by,
+                    order_by=ordering,
                 )
                 if args.json:
                     print(database.format_counts_json(
@@ -699,8 +860,9 @@ class RasDatabaseCommand:
                 result = database.records(
                     since=args.since, until=until,
                     hostname=args.hostname, tables=tables, filters=filters,
-                    severity=args.severity, select_fields=select_fields,
-                    order_by=ordering,
+                    any_filter_groups=any_filter_groups,
+                    severity=args.severity,
+                    select_fields=select_fields, order_by=ordering,
                 )
                 if args.json:
                     print(database.format_records_json(

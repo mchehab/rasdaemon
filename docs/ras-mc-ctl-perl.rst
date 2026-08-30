@@ -1,5 +1,8 @@
 .. SPDX-License-Identifier: GPL-2.0-only
 
+.. |le| unicode:: U+2264
+.. |gt| unicode:: U+003E
+
 ============================
 Migrating from version 0.8.5
 ============================
@@ -38,8 +41,8 @@ The following table maps every DIMM operation provided by the Perl tool.
    :header-rows: 1
    :widths: 31 42 27
 
-   * - Perl command options
-     - Python command options
+   * - ras-mc-ctl |le| v0.8.5 (Perl)
+     - ras-mc-ctl |gt| v0.8.5 (Python)
      - Notes
    * - ``--mainboard``
      - ``dimm --mainboard``
@@ -162,3 +165,137 @@ rejected before any action runs.
 ``dimm --quiet`` suppresses runtime DIMM status and diagnostic messages.  It
 does not suppress command-line syntax errors or data explicitly requested by
 options such as ``--layout`` or ``--error-count``.
+
+.. _ras-mc-ctl-database-migration:
+
+Migrating ras-mc-ctl database commands
+======================================
+
+The Python implementation places all database operations below the
+``database`` command. ``db`` is its shorter alias. For example, replace::
+
+   $ sudo ras-mc-ctl --summary
+
+with::
+
+   $ sudo ras-mc-ctl db --summary
+
+Database command mapping
+------------------------
+
+The following table maps every database operation provided by the Perl tool.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 43 27
+
+   * - ras-mc-ctl |le| v0.8.5 (Perl)
+     - ras-mc-ctl |gt| v0.8.5 (Python)
+     - Notes
+   * - ``--summary``
+     - ``db --summary``
+     - Uses event-specific groupings and separates remote records by hostname.
+   * - ``--errors``
+     - ``db --errors``
+     - Known EXTLOG, CXL and NVIDIA values are decoded in text output.
+   * - ``--since DATE --summary``
+     - ``db --since DATE --summary``
+     - The date is interpreted in the local timezone of the client.
+   * - ``--since DATE --errors``
+     - ``db --since DATE --errors``
+     - Applies the same inclusive lower date boundary.
+   * - ``--vendor-errors-summary KunPeng9xx``
+     - ``db --summary --table 'hip08_*_event_v2' --table hisi_common_section_v2``
+     - Uses the registered grouping for each selected HiSilicon table.
+   * - ``--vendor-errors KunPeng9xx``
+     - ``db --errors --table 'hip08_*_event_v2' --table hisi_common_section_v2``
+     - Displays records from the corresponding autodiscovered tables.
+   * - ``--vendor-errors KunPeng9xx MODULE``
+     - Add ``--module MODULE``
+     - Alias for ``--where 'module_id~=MODULE OR sub_module_id~=MODULE'``.
+   * - ``--vendor-errors-summary YiTian7XX``
+     - ``db --summary --table yitian_ddr_reg_dump_event``
+     - Groups the DDR register dumps by address.
+   * - ``--vendor-errors YiTian7XX``
+     - ``db --errors --table yitian_ddr_reg_dump_event``
+     - Displays detailed DDR register-dump records.
+   * - ``--vendor-errors-summary CorsicaDpu1xx``
+     - ``db --summary --table jm_payload0_event``
+     - Groups records by severity and subsystem.
+   * - ``--vendor-errors CorsicaDpu1xx``
+     - ``db --errors --table jm_payload0_event``
+     - Displays detailed CorsicaDpu records.
+   * - ``--vendor-errors CorsicaDpu1xx MODULE``
+     - ``db --errors --table jm_payload0_event --module MODULE``
+     - Selects ``module_id`` case-insensitively through the common alias.
+   * - ``--vendor-platforms``
+     - ``db --list-tables``
+     - Static platform identifiers are replaced by discovered table names.
+   * - ``--help``
+     - ``db --help``
+     - Shows the database-specific command reference.
+
+Summary reports
+---------------
+
+``db --summary`` retains the event-specific purpose of the Perl report while
+discovering the available tables at runtime. Known tables are grouped as
+follows:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 36 64
+
+   * - Event table
+     - Summary fields
+   * - ``mc_event``
+     - Error type, DIMM label and EDAC location
+   * - ``aer_event``
+     - Error type and message
+   * - ``arm_event``
+     - MPIDR
+   * - NVIDIA tables
+     - Signature and socket
+   * - CXL tables
+     - Memory device
+   * - ``extlog_event``
+     - Decoded error type and severity
+   * - ``devlink_event``
+     - Device name
+   * - ``disk_errors``
+     - Device
+   * - ``memory_failure_event``
+     - Action result
+   * - ``mce_record``
+     - Error message
+   * - ``signal_event``
+     - Signal code
+   * - KunPeng OEM and common tables
+     - Severity and module
+   * - KunPeng PCIe local table
+     - Severity and submodule
+   * - ``yitian_ddr_reg_dump_event``
+     - Address
+   * - ``jm_payload0_event``
+     - Severity and subsystem
+   * - Other discovered tables
+     - Hostname and table count
+
+The Python tool also provides database reports which have no Perl equivalent:
+
+* ``db --table-summary`` counts events by hostname and table;
+* ``db --errors-per-table`` lists counts for non-empty tables;
+* ``db --count`` supports configurable grouping, filtering and ordering;
+* ``db --until`` supplies an inclusive upper date boundary;
+* ``db --hostname`` selects one host in a remote database;
+* ``db --json`` produces machine-readable output.
+
+Database backends and timestamps
+--------------------------------
+
+The Perl tool read one fixed SQLite database. The Python command reads the
+backend and connection parameters from the rasdaemon configuration and
+supports SQLite, MySQL/MariaDB and PostgreSQL. SQLite continues to use the
+local timestamps recorded on its single host. MySQL and PostgreSQL store UTC
+timestamps so records from hosts in different timezones can be combined;
+``ras-mc-ctl`` displays and filters them in the local timezone of the client.

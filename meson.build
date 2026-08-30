@@ -564,6 +564,7 @@ py.install_sources([
     'util/display_table.py',
     'util/mem_layout.py',
     'util/ras_db.py',
+    'util/ras_db_decode.py',
     'util/ras_filter.py',
     'util/ras_dimm.py',
     'util/ras_env.py',
@@ -692,6 +693,7 @@ custom_target(
     input: [
         ras_mc_ctl,
         'util/ras_db.py',
+        'util/ras_db_decode.py',
         'util/ras_filter.py',
         'util/ras_dimm.py',
     ],

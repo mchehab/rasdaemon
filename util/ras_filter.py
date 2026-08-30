@@ -3,8 +3,6 @@
 
 """Dynamic, safe queries over rasdaemon event tables."""
 
-from __future__ import annotations
-
 import collections
 import datetime
 import logging
@@ -53,7 +51,8 @@ class DatabaseCount:
 
 FIELD_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 FILTER_SPEC = re.compile(
-    r"\s*([A-Za-z_][A-Za-z0-9_]*)\s*(<=|>=|!=|=|<|>)\s*(\S(?:.*\S)?)\s*\Z"
+    r"\s*([A-Za-z_][A-Za-z0-9_]*)\s*(<=|>=|!=|~=|=|<|>)\s*"
+    r"(\S(?:.*\S)?)\s*\Z"
 )
 ORDER_SPEC = re.compile(
     r"\s*([A-Za-z_][A-Za-z0-9_]*)(?::(asc|desc))?\s*\Z", re.IGNORECASE
@@ -151,6 +150,27 @@ class RasDatabaseQuery:
         return tuple(filters)
 
     @classmethod
+    def parse_where(cls, specifications: Iterable[str]
+                    ) -> tuple[
+                        tuple[DatabaseFilter, ...],
+                        tuple[tuple[DatabaseFilter, ...], ...],
+                    ]:
+        """Parse repeated filters, with ``OR`` alternatives in each one."""
+
+        filters = []
+        any_filter_groups = []
+        for specification in specifications:
+            alternatives = re.split(
+                r"\s+OR\s+", specification, flags=re.IGNORECASE
+            )
+            parsed = cls.parse_filters(alternatives)
+            if len(parsed) == 1:
+                filters.extend(parsed)
+            else:
+                any_filter_groups.append(parsed)
+        return tuple(filters), tuple(any_filter_groups)
+
+    @classmethod
     def parse_ordering(cls, specifications: Iterable[str]
                        ) -> tuple[DatabaseOrder, ...]:
         """Parse ``FIELD[:asc|desc]`` ordering terms."""
@@ -200,6 +220,13 @@ class RasDatabaseQuery:
 
     @classmethod
     def _comparison(cls, column: Any, operator: str, value: str) -> Any:
+        if operator == "~=":
+            if not cls._column_is_text(column):
+                raise ValueError(
+                    f"case-insensitive comparison requires a text field: "
+                    f"{column.name}"
+                )
+            return func.lower(column) == value.lower()
         value = cls._coerce_filter_value(column, value)
         comparisons = {
             "=": column == value,
@@ -213,6 +240,8 @@ class RasDatabaseQuery:
 
     @staticmethod
     def _literal_matches(value: str, operator: str, expected: str) -> bool:
+        if operator == "~=":
+            return value.lower() == expected.lower()
         comparisons = {
             "=": value == expected,
             "!=": value != expected,
@@ -255,7 +284,9 @@ class RasDatabaseQuery:
     def _query_conditions(
             self, table_name: str, table: Table, *, since: str | None,
             until: str | None, hostname: str | None,
-            filters: Iterable[DatabaseFilter], severity: str | None,
+            filters: Iterable[DatabaseFilter],
+            any_filter_groups: Iterable[Iterable[DatabaseFilter]],
+            severity: str | None,
             required_fields: Iterable[str]) -> tuple[list[Any] | None, str | None]:
         """Build safe predicates or explain why a table is incompatible."""
 
@@ -289,6 +320,43 @@ class RasDatabaseQuery:
                 table.c[field], query_filter.operator, filter_value
             ))
 
+        for any_filters in any_filter_groups:
+            any_conditions = []
+            any_literal_match = False
+            for query_filter in any_filters:
+                field = query_filter.field
+                if field == "table":
+                    any_literal_match |= self._literal_matches(
+                        table_name, query_filter.operator, query_filter.value
+                    )
+                    continue
+                if field == "hostname":
+                    if self.backend != "sqlite3" and "hostname" in table.c:
+                        any_conditions.append(self._comparison(
+                            table.c.hostname, query_filter.operator,
+                            query_filter.value,
+                        ))
+                    else:
+                        any_literal_match |= self._literal_matches(
+                            self.hostname, query_filter.operator,
+                            query_filter.value,
+                        )
+                    continue
+                if field not in table.c:
+                    continue
+                filter_value = query_filter.value
+                if field == "timestamp":
+                    filter_value = self._database_timestamp(filter_value)
+                any_conditions.append(self._comparison(
+                    table.c[field], query_filter.operator, filter_value
+                ))
+
+            if any_literal_match:
+                continue
+            if not any_conditions:
+                return None, "none of the OR fields are present"
+            conditions.append(or_(*any_conditions))
+
         if since:
             conditions.append(
                 table.c.timestamp >= self._database_timestamp(since)
@@ -312,6 +380,7 @@ class RasDatabaseQuery:
     def _query_tables(
             self, *, since: str | None, until: str | None,
             hostname: str | None, filters: Iterable[DatabaseFilter],
+            any_filter_groups: Iterable[Iterable[DatabaseFilter]],
             severity: str | None, required_fields: Iterable[str]
             ) -> Iterable[tuple[str, Table, list[Any]]]:
         """Yield selected tables that can satisfy this dynamic query."""
@@ -319,7 +388,8 @@ class RasDatabaseQuery:
         for table_name, table in self.tables.items():
             conditions, reason = self._query_conditions(
                 table_name, table, since=since, until=until, hostname=hostname,
-                filters=filters, severity=severity, required_fields=required_fields,
+                filters=filters, any_filter_groups=any_filter_groups,
+                severity=severity, required_fields=required_fields,
             )
             if conditions is None:
                 self.logger.debug("Skipping event table %s: %s", table_name, reason)
@@ -372,6 +442,7 @@ class RasDatabaseQuery:
     def records(self, connection: Connection, *, since: str | None = None,
                 until: str | None = None, hostname: str | None = None,
                 filters: Iterable[DatabaseFilter] = (),
+                any_filter_groups: Iterable[Iterable[DatabaseFilter]] = (),
                 severity: str | None = None,
                 select_fields: Iterable[str] = (),
                 order_by: Iterable[DatabaseOrder] = (),
@@ -379,6 +450,7 @@ class RasDatabaseQuery:
         """Return matching records grouped by hostname."""
 
         filters = tuple(filters)
+        any_filter_groups = tuple(tuple(group) for group in any_filter_groups)
         select_fields = tuple(select_fields)
         order_by = tuple(order_by)
         required_fields = list(select_fields)
@@ -388,7 +460,8 @@ class RasDatabaseQuery:
         grouped: dict[str, list[DatabaseEvent]] = collections.defaultdict(list)
         for table_name, table, conditions in self._query_tables(
                 since=since, until=until, hostname=hostname, filters=filters,
-                severity=severity, required_fields=required_fields):
+                any_filter_groups=any_filter_groups, severity=severity,
+                required_fields=required_fields):
             statement = select(table).where(*conditions)
             for row in connection.execute(statement).mappings():
                 values = dict(row)
@@ -406,6 +479,7 @@ class RasDatabaseQuery:
     def counts(self, connection: Connection, *, since: str | None = None,
                until: str | None = None, hostname: str | None = None,
                filters: Iterable[DatabaseFilter] = (),
+               any_filter_groups: Iterable[Iterable[DatabaseFilter]] = (),
                severity: str | None = None,
                group_by: Iterable[str] = (),
                order_by: Iterable[DatabaseOrder] = ()
@@ -413,6 +487,7 @@ class RasDatabaseQuery:
         """Count matching events, optionally grouped by runtime fields."""
 
         filters = tuple(filters)
+        any_filter_groups = tuple(tuple(group) for group in any_filter_groups)
         group_by = tuple(group_by)
         order_by = tuple(order_by)
         if len(set(group_by)) != len(group_by):
@@ -429,7 +504,8 @@ class RasDatabaseQuery:
         grouped: dict[tuple[Any, ...], int] = collections.defaultdict(int)
         for table_name, table, conditions in self._query_tables(
                 since=since, until=until, hostname=hostname, filters=filters,
-                severity=severity, required_fields=group_by):
+                any_filter_groups=any_filter_groups, severity=severity,
+                required_fields=group_by):
             columns = []
             constant_values = {}
             for field in group_by:
@@ -443,7 +519,12 @@ class RasDatabaseQuery:
                 else:
                     columns.append((field, table.c[field]))
 
-            statement = select(func.count()).where(*conditions)
+            # Keep the table in the query even when every grouping value is
+            # virtual and there are no predicates. Otherwise SQLAlchemy emits
+            # ``SELECT count(*)`` without a FROM clause, whose result is one.
+            statement = select(func.count()).select_from(table).where(
+                *conditions
+            )
             for _, column in columns:
                 statement = statement.add_columns(column).group_by(column)
             for row in connection.execute(statement):

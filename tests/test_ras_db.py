@@ -311,15 +311,73 @@ class RasDatabaseTests:
     def test_table_summary(self):
         selected_name = sorted(self.descriptors)[0]
         selected = self.database.select_tables([selected_name])
-        groups = self.database.summary(
+        groups = self.database.table_summary(
             since="2026-03-03 10:00:00", until="2026-03-05 10:00:00",
             tables=selected,
         )
 
         self.assertEqual(list(groups), ["local-host"])
         self.assertEqual(groups["local-host"], {selected_name: 3})
-        formatted = self.database.format_summary(groups)
+        formatted = self.database.format_table_summary(groups)
         self.assertIn(f"{selected_name}: 3 event(s)", formatted)
+
+    def test_event_summary_uses_table_specific_fields(self):
+        selected = self.database.select_tables(["mc_event"])
+        counts = self.database.summary(
+            since="2026-03-03 10:00:00", until="2026-03-05 10:00:00",
+            tables=selected,
+        )
+
+        self.assertEqual(len(counts), 3)
+        self.assertTrue(all(item.count == 1 for item in counts))
+        self.assertTrue(all(
+            item.values["hostname"] == "local-host" for item in counts
+        ))
+        self.assertTrue(all(
+            item.values["table"] == "mc_event" for item in counts
+        ))
+        self.assertEqual(
+            [item.values["label"] for item in counts],
+            [f"mc_event-label-{row}" for row in range(2, 5)],
+        )
+        formatted = self.database.format_summary(counts)
+        self.assertIn("Hostname: local-host", formatted)
+        self.assertIn("  mc_event:", formatted)
+        self.assertIn("label=mc_event-label-2", formatted)
+
+    def test_event_summary_falls_back_to_hostname_and_table(self):
+        selected = self.database.select_tables(["non_standard_event"])
+        counts = self.database.summary(tables=selected)
+
+        expected_hosts = (["local-host"] if self.backend == "sqlite3"
+                          else ["local-host", "remote-a"])
+        self.assertEqual(
+            [item.values["hostname"] for item in counts], expected_hosts
+        )
+        self.assertTrue(all(
+            item.values["table"] == "non_standard_event" for item in counts
+        ))
+        expected_count = 10 if self.backend == "sqlite3" else 5
+        self.assertTrue(all(item.count == expected_count for item in counts))
+
+    def test_text_summary_and_records_decode_known_values(self):
+        selected = self.database.select_tables(["extlog_event"])
+        summary = self.database.format_summary(
+            self.database.summary(tables=selected)
+        )
+        records = self.database.format_records(
+            self.database.records(tables=selected)
+        )
+
+        self.assertIn("etype=1 (no error)", summary)
+        self.assertIn("severity=2 (corrected)", summary)
+        self.assertIn("severity=2 (corrected)", records)
+
+        document = json.loads(self.database.format_summary_json(
+            self.database.summary(tables=selected)
+        ))
+        self.assertEqual(document["mode"], "summary")
+        self.assertIsInstance(document["groups"][0]["values"]["etype"], int)
 
     def test_dynamic_filter_uses_only_tables_with_the_field(self):
         target = "mc_event-label-0"
@@ -336,6 +394,42 @@ class RasDatabaseTests:
         self.assertEqual(
             self.database.format_records(groups, ("label",)),
             f"Hostname: local-host\n  {event.timestamp} mc_event: label={target}\n",
+        )
+
+    def test_where_accepts_case_insensitive_or_comparisons(self):
+        selected = self.database.select_tables(["mc_event"])
+        filters, any_filter_groups = RasDatabaseQuery.parse_where([
+            "label~=MC_EVENT-LABEL-0 OR label~=MC_EVENT-LABEL-2",
+            "err_count>=2",
+        ])
+        groups = self.database.records(
+            tables=selected, filters=filters,
+            any_filter_groups=any_filter_groups,
+        )
+
+        self.assertEqual(len(groups["local-host"]), 1)
+        self.assertEqual(
+            {event.values["label"] for event in groups["local-host"]},
+            {"mc_event-label-2"},
+        )
+
+    def test_where_or_ignores_missing_alternative_fields(self):
+        table_names = (
+            "hip08_oem_type1_event_v2", "hip08_pcie_local_event_v2",
+        )
+        selected = self.database.select_tables(table_names)
+        filters, any_filter_groups = RasDatabaseQuery.parse_where([
+            "module_id~=HIP08_OEM_TYPE1_EVENT_V2-MODULE_ID-0 OR "
+            "sub_module_id~=HIP08_PCIE_LOCAL_EVENT_V2-SUB_MODULE_ID-0",
+        ])
+        groups = self.database.records(
+            tables=selected, filters=filters,
+            any_filter_groups=any_filter_groups,
+        )
+
+        self.assertEqual(
+            {event.table for event in groups["local-host"]},
+            set(table_names),
         )
 
     def test_count_and_group_by_filters(self):
@@ -433,14 +527,23 @@ class RasDatabaseTests:
         self.assertTrue(parser.parse_args([
             "database", "--summary", "--json"
         ]).json)
+        self.assertTrue(parser.parse_args([
+            "database", "--table-summary"
+        ]).table_summary)
 
         count = parser.parse_args([
             "database", "--count", "--corrected", "--where", "label=DIMM0",
-            "--group-by", "label", "--order-by", "count:desc", "--verbose",
+            "--where", "label~=dimm0 OR err_type~=corrected",
+            "--module", "SMMU",
+            "--group-by", "label",
+            "--order-by", "count:desc", "--verbose",
         ])
         self.assertTrue(count.count)
         self.assertEqual(count.severity, "corrected")
-        self.assertEqual(count.where, ["label=DIMM0"])
+        self.assertEqual(count.where, [
+            "label=DIMM0", "label~=dimm0 OR err_type~=corrected",
+        ])
+        self.assertEqual(count.module, "SMMU")
         self.assertEqual(count.group_by, ["label"])
         self.assertEqual(count.order_by, ["count:desc"])
         self.assertEqual(count.verbose, 1)
@@ -484,6 +587,23 @@ class RasDatabaseTests:
     def test_filter_parser_rejects_raw_sql(self):
         with self.assertRaisesRegex(ValueError, "invalid filter"):
             RasDatabaseQuery.parse_filters(["label; DROP TABLE mc_event"])
+        self.assertEqual(
+            RasDatabaseQuery.parse_filters(["label~=dimm_a1"]),
+            (DatabaseFilter("label", "~=", "dimm_a1"),),
+        )
+        self.assertEqual(
+            RasDatabaseQuery.parse_where([
+                "module_id~=SMMU OR sub_module_id~=SMMU",
+                "err_severity=corrected",
+            ]),
+            (
+                (DatabaseFilter("err_severity", "=", "corrected"),),
+                ((
+                    DatabaseFilter("module_id", "~=", "SMMU"),
+                    DatabaseFilter("sub_module_id", "~=", "SMMU"),
+                ),),
+            ),
+        )
 
     def test_verbose_query_planning_explains_excluded_tables(self):
         with self.assertLogs("ras_db", "DEBUG") as logs:
@@ -512,8 +632,8 @@ class RasDatabaseTests:
 
         database.records.assert_called_once_with(
             since=None, until="2026-03-06 00:00:00",
-            hostname=None, tables={}, filters=(), severity=None,
-            select_fields=(), order_by=(),
+            hostname=None, tables={}, filters=(), any_filter_groups=(),
+            severity=None, select_fields=(), order_by=(),
         )
 
     def test_database_command_creates_indexes_only_on_request(self):
@@ -538,6 +658,31 @@ class RasDatabaseTests:
             database.create_missing_indexes.assert_called_once_with({})
             database.close.assert_called_once()
 
+    def test_database_table_summary_retains_hostname_table_report(self):
+        parser = argparse.ArgumentParser()
+        subparsers = parser.add_subparsers()
+        command = RasDatabaseCommand("ras-mc-ctl", subparsers)
+        database = mock.Mock()
+        database.select_tables.return_value = {}
+        database.table_summary.return_value = {"local-host": {"mc_event": 2}}
+        database.format_table_summary.return_value = (
+            "Hostname: local-host\n  mc_event: 2 event(s)\n"
+        )
+
+        with mock.patch.object(RasDatabase, "from_config", return_value=database):
+            with contextlib.redirect_stdout(io.StringIO()):
+                command.run(None, parser.parse_args([
+                    "database", "--table-summary"
+                ]))
+
+        database.table_summary.assert_called_once_with(
+            since=None, until=None, hostname=None, tables={}, filters=(),
+            any_filter_groups=(), severity=None,
+        )
+        database.format_table_summary.assert_called_once_with(
+            {"local-host": {"mc_event": 2}}
+        )
+
     def test_database_count_command_passes_query_options(self):
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
@@ -551,13 +696,17 @@ class RasDatabaseTests:
             with contextlib.redirect_stdout(io.StringIO()):
                 command.run(None, parser.parse_args([
                     "database", "--count", "--corrected", "--where", "label=A1",
+                    "--module", "SMMU",
                     "--group-by", "label", "--order-by", "count:desc",
                 ]))
 
         database.counts.assert_called_once_with(
             since=None, until=None, hostname=None, tables={},
             filters=(DatabaseFilter("label", "=", "A1"),),
-            severity="corrected", group_by=("label",),
+            any_filter_groups=((
+                DatabaseFilter("module_id", "~=", "SMMU"),
+                DatabaseFilter("sub_module_id", "~=", "SMMU"),
+            ),), severity="corrected", group_by=("label",),
             order_by=(DatabaseOrder("count", descending=True),),
         )
         database.format_counts.assert_called_once_with([], ("label",))
@@ -581,7 +730,7 @@ class RasDatabaseTests:
         database.counts.assert_called_once_with(
             since=None, until=None, hostname=None, tables={},
             filters=(DatabaseFilter("label", "=", "A1"),),
-            severity="corrected", group_by=("table",),
+            any_filter_groups=(), severity="corrected", group_by=("table",),
             order_by=(DatabaseOrder("count", descending=True),),
         )
         database.format_counts.assert_called_once_with([], ("table",))
