@@ -43,6 +43,7 @@
 #include "actions/ras-poison-page-stat.h"
 #include "actions/abrt-report.h"
 #include "actions/ipmi-bmc.h"
+#include "actions/ras-pcie-edpc.h"
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
 
@@ -1220,6 +1221,43 @@ int test_bmc_generic(void)
 }
 #endif
 
+#ifdef HAVE_PCIE_EDPC
+static int edpc_test_setup(void **state)
+{
+	modules_cleanup_type(ACTIONS_MODULE);
+	unsetenv(PCIE_EDPC_ENABLE);
+	unsetenv("EDPC_DEVICE");
+	return 0;
+}
+
+static int edpc_test_teardown(void **state)
+{
+	modules_cleanup_type(ACTIONS_MODULE);
+	unsetenv(PCIE_EDPC_ENABLE);
+	unsetenv("EDPC_DEVICE");
+	return 0;
+}
+
+static void test_pcie_edpc_disabled(void **state)
+{
+	struct ras_events ras = { 0 };
+
+	assert_true(module_is_registered("pcie-edpc"));
+	assert_int_equal(module_init(&ras, "pcie-edpc"), 0);
+	assert_true(module_is_enabled("pcie-edpc"));
+}
+
+static const struct CMUnitTest edpc_tests[] = {
+	cmocka_unit_test_setup_teardown(test_pcie_edpc_disabled,
+				       edpc_test_setup, edpc_test_teardown),
+};
+
+int test_pcie_edpc(void)
+{
+	return RUN_FEATURE_GROUP("PCIe eDPC", edpc_tests);
+}
+#endif
+
 #ifdef HAVE_MCE
 static void test_mce_priv_cleanup(void **state)
 {
@@ -1648,6 +1686,9 @@ REGISTER_TEST(TEST_GROUP_ACTIONS, test_openbmc_sel, 0);
 #endif
 #ifdef HAVE_BMC_GENERIC
 REGISTER_TEST(TEST_GROUP_ACTIONS, test_bmc_generic, 0);
+#endif
+#ifdef HAVE_PCIE_EDPC
+REGISTER_TEST(TEST_GROUP_ACTIONS, test_pcie_edpc, 0);
 #endif
 #ifdef HAVE_ERST
 REGISTER_TEST(TEST_GROUP_EVENTS, test_erst, 0);

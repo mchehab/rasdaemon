@@ -71,6 +71,21 @@ space when enabling an IPMI consumer.
 
 Both settings default to ``no``.
 
+PCIe eDPC configuration
+------------------------
+
+The optional ``pcie-edpc`` Meson feature builds an action module that can
+configure PCIe Enhanced Downstream Port Containment (eDPC) during startup.
+It requires ``libpci`` version 3.10.0 or newer.
+Set ``PCIE_EDPC_ENABLE=yes`` to make DPC-capable ports trigger containment on
+fatal PCIe errors. This changes device configuration and remains disabled by
+default. Set ``EDPC_DEVICE`` to a comma-separated list of PCI addresses to
+limit the action; without it, rasdaemon configures every DPC-capable device.
+
+CXL traffic can be disrupted when containment brings a link down. Do not
+enable eDPC on CXL.cache or CXL.mem paths unless the platform vendor explicitly
+supports it.
+
 Corrected-error actions
 -----------------------
 

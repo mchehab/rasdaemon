@@ -156,6 +156,7 @@ enable_non_standard = false
 enable_nvidia_ns_decode = false
 enable_openbmc_unified_sel = false
 enable_page_isolation = false
+enable_pcie_edpc = false
 enable_poison_page_stat = false
 enable_postgresql = false
 enable_reri = false
@@ -244,6 +245,17 @@ if not get_option('disable-all')
         enable_bmc_generic = true
         enable_ipmi_bmc = true
         lib_sources += 'actions/bmc-generic.c'
+    endif
+
+    if enable_aer and not get_option('pcie-edpc').disabled()
+        pcie_edpc_libpci_dep = dependency('libpci', version: '>=3.10.0',
+                                          required: false)
+        if pcie_edpc_libpci_dep.found()
+            enable_pcie_edpc = true
+            lib_sources += 'actions/ras-pcie-edpc.c'
+        else
+            message('libpci >= 3.10.0 is required for PCIe eDPC; disabling it')
+        endif
     endif
 
     if arch_arm and not get_option('openbmc-unified-sel').disabled()
@@ -485,7 +497,8 @@ if have_unittest
         hermetic_test_groups += 'riscv-events'
     endif
     if enable_abrt_report or enable_cpu_fault_isolation or \
-       enable_memory_ce_pfa or enable_memory_row_ce_pfa or enable_ipmi_bmc
+       enable_memory_ce_pfa or enable_memory_row_ce_pfa or enable_ipmi_bmc or \
+       enable_pcie_edpc
         hermetic_test_groups += 'actions'
     endif
     if enable_sqlite3
@@ -797,6 +810,7 @@ conf_header = configuration_data({
     'HAVE_NON_STANDARD' : enable_non_standard,
     'HAVE_NVIDIA_NS_DECODE' : enable_nvidia_ns_decode,
     'HAVE_OPENBMC_UNIFIED_SEL' : enable_openbmc_unified_sel,
+    'HAVE_PCIE_EDPC' : enable_pcie_edpc,
     'HAVE_POSTGRESQL' : enable_postgresql,
     'HAVE_RERI' : enable_reri,
     'HAVE_SIGNAL' : enable_signal,
@@ -833,6 +847,7 @@ summary(
         'Memory CE PFA' : enable_memory_ce_pfa,
         'Memory Failure' : enable_memory_failure,
         'Memory ROW CE PFA' : enable_memory_row_ce_pfa,
+        'PCIe eDPC' : enable_pcie_edpc,
         'Signal' : enable_signal,
     },
     section : 'General options',

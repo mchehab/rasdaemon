@@ -4,6 +4,7 @@
  * Copyright (C) 2025 Alibaba Inc
  */
 
+#include <errno.h>
 #include <pci/pci.h>
 #include <linux/pci_regs.h>
 #include <stdbool.h>
@@ -12,9 +13,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "ras-pcie-edpc.h"
-#include "ras-logger.h"
-#include "types.h"
+#include "actions/ras-pcie-edpc.h"
+#include "core/modules.h"
+#include "core/ras-logger.h"
+#include "core/types.h"
 
 #define EDPC_DEVICE "EDPC_DEVICE"
 
@@ -36,6 +38,12 @@ static char *edpc_str(int bit)
 	return "Error";
 };
 
+struct edpc_device {
+	struct pci_dev *dev;
+	bool is_cxl_root_port;
+	struct edpc_device *next;
+};
+
 static bool is_cxl_mem_or_cache(struct pci_dev *dev)
 {
 	struct pci_cap *cap;
@@ -52,8 +60,8 @@ static bool is_cxl_mem_or_cache(struct pci_dev *dev)
 	if (vendor != PCI_DVSEC_VENDOR_ID_CXL || id != PCI_DVSEC_ID_CXL)
 		return false;
 
-	cxl_cap = pci_read_word(dev, cap->addr + PCI_CXL_CAP);
-	if (cxl_cap & (PCI_CXL_CAP_CACHE | PCI_CXL_CAP_MEM))
+	cxl_cap = pci_read_word(dev, cap->addr + PCI_CXL_DEV_CAP);
+	if (cxl_cap & (PCI_CXL_DEV_CAP_CACHE | PCI_CXL_DEV_CAP_MEM))
 		return true;
 
 	return false;
@@ -65,18 +73,20 @@ static bool is_cxl_mem_or_cache(struct pci_dev *dev)
  * containment flow brings the link down, disrupting CXL.cache and
  * CXL.mem traffic which can lead to host timeouts.
  */
-static void cxl_check_rp(struct pci_dev *dev, struct pci_dev *dpc)
+static void cxl_check_rp(struct pci_dev *dev, struct edpc_device *dpc)
 {
-	struct pci_dev *dev_p, *dpc_p;
+	struct pci_dev *dev_p;
+	struct edpc_device *dpc_p;
 	for (dev_p = dev->parent; dev_p; dev_p = dev_p->parent) {
 		for (dpc_p = dpc->next; dpc_p; dpc_p = dpc_p->next) {
-			if (dev_p->domain == dpc_p->domain &&
-			    dev_p->bus == dpc_p->bus &&
-			    dev_p->dev == dpc_p->dev &&
-			    dev_p->func == dpc_p->func) {
-				dpc_p->aux = (void *)true;
+			if (dev_p->domain == dpc_p->dev->domain &&
+			    dev_p->bus == dpc_p->dev->bus &&
+			    dev_p->dev == dpc_p->dev->dev &&
+			    dev_p->func == dpc_p->dev->func) {
+				dpc_p->is_cxl_root_port = true;
 				log(TERM, LOG_INFO, "Device %x:%x:%x.%x is CXL RP, ignore EDPC config\n",
-					dpc_p->domain, dpc_p->bus, dpc_p->dev, dpc_p->func);
+					dpc_p->dev->domain, dpc_p->dev->bus,
+					dpc_p->dev->dev, dpc_p->dev->func);
 			    }
 		}
 	}
@@ -91,6 +101,20 @@ static bool has_edpc(struct pci_dev *dev)
 	if (!cap)
 		return false;
 	return true;
+}
+
+static bool is_downstream_port(struct pci_dev *dev)
+{
+	struct pci_cap *cap;
+	u16 flags;
+
+	pci_fill_info(dev, PCI_FILL_CAPS);
+	cap = pci_find_cap(dev, PCI_CAP_ID_EXP, PCI_CAP_NORMAL);
+	if (!cap)
+		return false;
+
+	flags = pci_read_word(dev, cap->addr + PCI_EXP_FLAGS);
+	return ((flags & PCI_EXP_FLAGS_TYPE) >> 4) == PCI_EXP_TYPE_DOWNSTREAM;
 }
 
 static void set_edpc(struct pci_dev *dev)
@@ -158,11 +182,12 @@ static struct pci_filter *config_pcie_edpc_device(struct pci_access *pacc, char 
 int config_pcie_edpc(void)
 {
 	struct pci_access *pacc;
-	struct pci_dev *dev, *dev_head, *tmp;
+	struct pci_dev *dev, *dev_head;
+	struct edpc_device *dpc, *tmp;
 	int ret = 0, len = 1, i;
 	char *pci_names;
 	struct pci_filter *filter = NULL;
-	struct pci_dev dev_dpc_head = { 0 };
+	struct edpc_device dev_dpc_head = { 0 };
 
 	pacc = pci_alloc();
 	if (!pacc)
@@ -174,8 +199,10 @@ int config_pcie_edpc(void)
 	pci_names = getenv(EDPC_DEVICE);
 	if (pci_names && strlen(pci_names) != 0) {
 		filter = config_pcie_edpc_device(pacc, pci_names, &len);
-		if (!filter)
+		if (!filter) {
+			ret = -EINVAL;
 			goto free;
+		}
 	} else {
 		len = 0;
 	}
@@ -183,14 +210,14 @@ int config_pcie_edpc(void)
 	dev_head = pacc->devices;
 	for (dev = dev_head; dev; dev = dev->next) {
 		pci_fill_info(dev, PCI_FILL_PARENT);
-		if (has_edpc(dev)) {
-			tmp = malloc(sizeof(struct pci_dev));
+		if (has_edpc(dev) && is_downstream_port(dev)) {
+			tmp = calloc(1, sizeof(*tmp));
 			if (!tmp) {
 				ret = -1;
 				goto free;
 			}
 
-			memcpy(tmp, dev, sizeof(struct pci_dev));
+			tmp->dev = dev;
 			tmp->next = dev_dpc_head.next;
 			dev_dpc_head.next = tmp;
 		}
@@ -200,17 +227,17 @@ int config_pcie_edpc(void)
 		if (is_cxl_mem_or_cache(dev))
 			cxl_check_rp(dev, &dev_dpc_head);
 
-	for (dev = dev_dpc_head.next; dev; dev = dev->next) {
-		if (!dev->aux) {
+	for (dpc = dev_dpc_head.next; dpc; dpc = dpc->next) {
+		if (!dpc->is_cxl_root_port) {
 			if (len) {
 				for (i = 0; i < len; i++) {
-					if (pci_filter_match(&filter[i], dev)) {
-						set_edpc(dev);
+					if (pci_filter_match(&filter[i], dpc->dev)) {
+						set_edpc(dpc->dev);
 						break;
 					}
 				}
 			} else {
-				set_edpc(dev);
+				set_edpc(dpc->dev);
 			}
 		}
 	}
@@ -226,3 +253,21 @@ free:
 	free(filter);
 	return ret;
 }
+
+static int pcie_edpc_init(struct ras_module_ctx *ctx)
+{
+	const char *enabled = getenv(PCIE_EDPC_ENABLE);
+
+	if (!enabled || !atoi(enabled))
+		return 0;
+
+	return config_pcie_edpc();
+}
+
+static const struct ras_module_entry pcie_edpc_module = {
+	.name = "pcie-edpc",
+	.level = ACTIONS_MODULE,
+	.init = pcie_edpc_init,
+};
+
+REGISTER_RAS_MODULE(pcie_edpc_module);
