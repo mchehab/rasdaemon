@@ -8,7 +8,7 @@
 #ifndef __NON_STANDARD_AMPEREONE_H
 #define __NON_STANDARD_AMPEREONE_H
 
-#include "ras-events.h"
+#include "core/ras-events.h"
 #include <traceevent/event-parse.h>
 
 #define AMPEREONE_SEVERITY(x) ((x >> 30) & 0x3)
@@ -303,39 +303,4 @@ enum {
 	AMPEREONE_PAYLOAD6_FIELD_MSG_SIZE,
 	AMPEREONE_PAYLOAD6_FIELD_ERROR_MSG,
 };
-struct ras_non_standard_event;
-
-int decode_ampereone_type_error(struct ras_events *ras,
-				     struct ras_ns_ev_decoder *ev_decoder,
-				     struct trace_seq *s,
-				     struct ras_non_standard_event *event);
-
-void decode_ampereone_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				  struct trace_seq *s,
-				  const struct ampereone_payload0_type_sec *err);
-
-void decode_ampereone_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload1_type_sec *err);
-
-void decode_ampereone_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload2_type_sec *err);
-
-void decode_ampereone_payload3_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload3_type_sec *err);
-
-void decode_ampereone_payload4_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload4_type_sec *err);
-
-void decode_ampereone_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload5_type_sec *err);
-
-void decode_ampereone_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload6_type_sec *err);
-
 #endif

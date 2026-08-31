@@ -22,6 +22,7 @@
 #include "db/ras-db-backend.h"
 #include "db/ras-db.h"
 #include "events-arch-arm/non-standard-ampere.h"
+#include "events-arch-arm/non-standard-ampereone.h"
 #include "events-arch-arm/non-standard-nvidia.h"
 #include "events-arch-arm/non-standard-yitian.h"
 #include "events-arch-arm/ras-arm-handler.h"
@@ -1484,6 +1485,66 @@ static void test_ampere_decoder_registration(void **state)
 	trace_seq_destroy(&seq);
 }
 
+static void test_ampereone_decoder_registration(void **state)
+{
+	struct ampereone_payload5_type_sec payload = {
+		.header.type = AMPEREONE_PAYLOAD_TYPE_5 << 12,
+	};
+	struct ras_non_standard_event event = {
+		.timestamp = "2026-08-25 00:00:00 +0000",
+		.error = (const uint8_t *)&payload,
+		.length = sizeof(payload),
+	};
+	struct ras_events ras = { 0 };
+	struct trace_seq seq;
+	const char *type = "2826cc9f-448c-4c2b-86b6-a95394b7ef33";
+
+	assert_true(decoder_is_registered(type));
+	trace_seq_init(&seq);
+	assert_int_equal(ras_ns_test_decode(type, &ras, &seq, &event), 0);
+	trace_seq_destroy(&seq);
+}
+
+static void test_ampereone_vendor_data_registration(void **state)
+{
+	struct ampereone_payload0_type_sec payload = { 0 };
+	struct trace_seq seq;
+
+	trace_seq_init(&seq);
+	assert_true(ras_arm_vendor_data_decode(0xc00fac30, &seq,
+				       (const uint8_t *)&payload, sizeof(payload)));
+	trace_seq_destroy(&seq);
+}
+
+static int find_ampereone_tables(const struct db_table_descriptor *desc,
+				 void *data)
+{
+	static const char * const names[] = {
+		"ampereone_payload0_event", "ampereone_payload1_event",
+		"ampereone_payload2_event", "ampereone_payload3_event",
+		"ampereone_payload4_event", "ampereone_payload5_event",
+		"ampereone_payload6_event",
+	};
+	unsigned int *found = data;
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(names); i++) {
+		if (!strcmp(desc->name, names[i]))
+			*found |= 1U << i;
+	}
+
+	return 0;
+}
+
+static void test_ampereone_database_tables(void **state)
+{
+	unsigned int found = 0;
+
+	assert_int_equal(ras_db_table_test_foreach(find_ampereone_tables,
+						   &found), 0);
+	assert_int_equal(found, 0x7f);
+}
+
 #ifdef HAVE_AMPERE_OEM_SEL
 static int ampere_oem_test_setup(void **state)
 {
@@ -1550,6 +1611,9 @@ static void test_ampere_oem_sel_report(void **state)
 
 static const struct CMUnitTest amp_ns_tests[] = {
 	cmocka_unit_test(test_ampere_decoder_registration),
+	cmocka_unit_test(test_ampereone_decoder_registration),
+	cmocka_unit_test(test_ampereone_vendor_data_registration),
+	cmocka_unit_test(test_ampereone_database_tables),
 #ifdef HAVE_AMPERE_OEM_SEL
 	cmocka_unit_test_setup_teardown(test_ampere_oem_sel_disabled,
 				       ampere_oem_test_setup, ampere_oem_test_teardown),

@@ -232,7 +232,10 @@ if not get_option('disable-all')
         enable_amp_ns_decode = true
         enable_arm_vendor_data = true
         enable_non_standard = true
-        lib_sources += 'events-arch-arm/non-standard-ampere.c'
+        lib_sources += [
+            'events-arch-arm/non-standard-ampere.c',
+            'events-arch-arm/non-standard-ampereone.c',
+        ]
     endif
 
     if arch_arm and not get_option('ampere-oem-sel').disabled()

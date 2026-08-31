@@ -8,13 +8,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "ras-record.h"
-#include "ras-logger.h"
-#include "ras-report.h"
-#include "ras-non-standard-handler.h"
-#include "non-standard-ampereone.h"
+#include <stddef.h>
+
+#include "core/ras-logger.h"
+#include "core/modules.h"
+#include "core/types.h"
+#include "db/ras-db.h"
+#include "events-arch-arm/non-standard-ampereone.h"
+#include "events-arch-arm/ras-arm-vendor-data.h"
+#include "events-arch-arm/ras-non-standard-handler.h"
 
 #define HEX_WIDTH 16
+#define AMPEREONE_MIDR_R0P0 0xc00fac30
 
 static void display_hex_dump(char **p, char *end, uint8_t size, const uint8_t *byte_array,
 							 const char *disp_reg_name);
@@ -246,15 +251,6 @@ static const char * const err_ampereone_secpro_sub_type[] = {
 	"ERR3",
 };
 
-static char *sqlite3_table_list[] = {
-	"ampereone_payload0_event_tab",
-	"ampereone_payload1_event_tab",
-	"ampereone_payload2_event_tab",
-	"ampereone_payload3_event_tab",
-	"ampereone_payload4_event_tab",
-	"ampereone_payload5_event_tab",
-	"ampereone_payload6_event_tab",
-};
 struct ampereone_ras_type_info {
 	int id;
 	const char *name;
@@ -362,8 +358,8 @@ static const struct ampereone_ras_type_info ampereone_payload_error_type[] = {
 	{}
 };
 
-void display_hex_dump(char **p, char *end, uint8_t size, const uint8_t *byte_array,
-					  const char *disp_reg_name)
+static void display_hex_dump(char **p, char *end, uint8_t size,
+			     const uint8_t *byte_array, const char *disp_reg_name)
 {
 	for (uint8_t c = 0; c < size; c++) {
 
@@ -414,23 +410,22 @@ static const char *ampereone_subtype_name(const struct ampereone_ras_type_info *
 	return "unknown";
 }
 
-#ifdef HAVE_SQLITE3
 /*key pair definition for ampere specific error payload type 0*/
 static const struct db_fields ampereone_payload0_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "type_id",		.type = "TEXT" },
-	{ .name = "subtype_id",		.type = "TEXT" },
-	{ .name = "instance",		.type = "INTEGER" },
-	{ .name = "socket_num",		.type = "INTEGER" },
-	{ .name = "ERRxFR",		.type = "INTEGER" },
-	{ .name = "ERRxCTLR",		.type = "INTEGER" },
-	{ .name = "ERRxSTATUS",		.type = "INTEGER" },
-	{ .name = "ERRxADDR",		.type = "INTEGER" },
-	{ .name = "ERRxMISC0",		.type = "INTEGER" },
-	{ .name = "ERRxMISC1",		.type = "INTEGER" },
-	{ .name = "ERRxMISC2",		.type = "INTEGER" },
-	{ .name = "ERRxMISC3",		.type = "INTEGER" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "type_id",		.type = DB_TYPE_TEXT },
+	{ .name = "subtype_id",		.type = DB_TYPE_TEXT },
+	{ .name = "instance",		.type = DB_TYPE_INT64 },
+	{ .name = "socket_num",		.type = DB_TYPE_INT64 },
+	{ .name = "ERRxFR",		.type = DB_TYPE_INT64 },
+	{ .name = "ERRxCTLR",		.type = DB_TYPE_INT64 },
+	{ .name = "ERRxSTATUS",		.type = DB_TYPE_INT64 },
+	{ .name = "ERRxADDR",		.type = DB_TYPE_INT64 },
+	{ .name = "ERRxMISC0",		.type = DB_TYPE_INT64 },
+	{ .name = "ERRxMISC1",		.type = DB_TYPE_INT64 },
+	{ .name = "ERRxMISC2",		.type = DB_TYPE_INT64 },
+	{ .name = "ERRxMISC3",		.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor ampereone_payload0_event_tab = {
@@ -441,49 +436,49 @@ static const struct db_table_descriptor ampereone_payload0_event_tab = {
 
 /*key pair definition for ampere specific error payload type 1*/
 static const struct db_fields ampereone_payload1_event_fields[] = {
-	{ .name = "id",					.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",				.type = "TEXT" },
-	{ .name = "type_id",				.type = "TEXT" },
-	{ .name = "subtype_id",				.type = "TEXT" },
-	{ .name = "instance",				.type = "INTEGER" },
-	{ .name = "socket_num",				.type = "INTEGER" },
-	{ .name = "AER_CORR_ERR_STATUS",		.type = "INTEGER" },
-	{ .name = "AER_UNCORR_ERR_STATUS",		.type = "INTEGER" },
-	{ .name = "EBUF_OVERFLOW",			.type = "INTEGER" },
-	{ .name = "EBUF_UNDERRUN",			.type = "INTEGER" },
-	{ .name = "DECODE_ERR",			.type = "INTEGER" },
-	{ .name = "RUNNING_DISPARITY_ERR",		.type = "INTEGER" },
-	{ .name = "SKP_OS_PARITY_ERR_G3",		.type = "INTEGER" },
-	{ .name = "SYNC_HEADER_ERR",			.type = "INTEGER" },
-	{ .name = "RX_VALID_DEASSERTION",		.type = "INTEGER" },
-	{ .name = "CTL_SKP_OS_PARITY_ERR_G4",	.type = "INTEGER" },
-	{ .name = "FIRST_RETIMER_PARITY_ERR_G4",	.type = "INTEGER" },
-	{ .name = "SECOND_RETIMER_PARITY_ERR_G4",	.type = "INTEGER" },
-	{ .name = "MARGIN_CRC_AND_PARTIY_ERR_G4",	.type = "INTEGER" },
-	{ .name = "RASDES_GRP1_COUNTERS",		.type = "INTEGER" },
-	{ .name = "RSVD0",				.type = "INTEGER" },
-	{ .name = "RASDES_GRP2_COUNTERS",		.type = "INTEGER" },
-	{ .name = "EBUF_SKP_ADD",			.type = "INTEGER" },
-	{ .name = "EBUF_SKP_DEL",			.type = "INTEGER" },
-	{ .name = "RASDES_GRP5_CNTRS_0",		.type = "INTEGER" },
-	{ .name = "RASDES_GRP5_CNTRS_1",	.type = "INTEGER" },
-	{ .name = "RSVD1",				.type = "INTEGER" },
-	{ .name = "L0",	.type = "INTEGER" },
-	{ .name = "L1",	.type = "INTEGER" },
-	{ .name = "L2",	.type = "INTEGER" },
-	{ .name = "L3",	.type = "INTEGER" },
-	{ .name = "L4",	.type = "INTEGER" },
-	{ .name = "L5",	.type = "INTEGER" },
-	{ .name = "L6",	.type = "INTEGER" },
-	{ .name = "L7",	.type = "INTEGER" },
-	{ .name = "L8",	.type = "INTEGER" },
-	{ .name = "L9",	.type = "INTEGER" },
-	{ .name = "L10",	.type = "INTEGER" },
-	{ .name = "L11",	.type = "INTEGER" },
-	{ .name = "L12",	.type = "INTEGER" },
-	{ .name = "L13",	.type = "INTEGER" },
-	{ .name = "L14",	.type = "INTEGER" },
-	{ .name = "L15",	.type = "INTEGER" },
+	{ .name = "id",					.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",				.type = DB_TYPE_TIMESTAMP },
+	{ .name = "type_id",				.type = DB_TYPE_TEXT },
+	{ .name = "subtype_id",				.type = DB_TYPE_TEXT },
+	{ .name = "instance",				.type = DB_TYPE_INT64 },
+	{ .name = "socket_num",				.type = DB_TYPE_INT64 },
+	{ .name = "AER_CORR_ERR_STATUS",		.type = DB_TYPE_INT64 },
+	{ .name = "AER_UNCORR_ERR_STATUS",		.type = DB_TYPE_INT64 },
+	{ .name = "EBUF_OVERFLOW",			.type = DB_TYPE_INT64 },
+	{ .name = "EBUF_UNDERRUN",			.type = DB_TYPE_INT64 },
+	{ .name = "DECODE_ERR",				.type = DB_TYPE_INT64 },
+	{ .name = "RUNNING_DISPARITY_ERR",		.type = DB_TYPE_INT64 },
+	{ .name = "SKP_OS_PARITY_ERR_G3",		.type = DB_TYPE_INT64 },
+	{ .name = "SYNC_HEADER_ERR",			.type = DB_TYPE_INT64 },
+	{ .name = "RX_VALID_DEASSERTION",		.type = DB_TYPE_INT64 },
+	{ .name = "CTL_SKP_OS_PARITY_ERR_G4",		.type = DB_TYPE_INT64 },
+	{ .name = "FIRST_RETIMER_PARITY_ERR_G4",	.type = DB_TYPE_INT64 },
+	{ .name = "SECOND_RETIMER_PARITY_ERR_G4",	.type = DB_TYPE_INT64 },
+	{ .name = "MARGIN_CRC_AND_PARTIY_ERR_G4",	.type = DB_TYPE_INT64 },
+	{ .name = "RASDES_GRP1_COUNTERS",		.type = DB_TYPE_INT64 },
+	{ .name = "RSVD0",				.type = DB_TYPE_INT64 },
+	{ .name = "RASDES_GRP2_COUNTERS",		.type = DB_TYPE_INT64 },
+	{ .name = "EBUF_SKP_ADD",			.type = DB_TYPE_INT64 },
+	{ .name = "EBUF_SKP_DEL",			.type = DB_TYPE_INT64 },
+	{ .name = "RASDES_GRP5_CNTRS_0",		.type = DB_TYPE_INT64 },
+	{ .name = "RASDES_GRP5_CNTRS_1",		.type = DB_TYPE_INT64 },
+	{ .name = "RSVD1",				.type = DB_TYPE_INT64 },
+	{ .name = "L0",					.type = DB_TYPE_INT64 },
+	{ .name = "L1",					.type = DB_TYPE_INT64 },
+	{ .name = "L2",					.type = DB_TYPE_INT64 },
+	{ .name = "L3",					.type = DB_TYPE_INT64 },
+	{ .name = "L4",					.type = DB_TYPE_INT64 },
+	{ .name = "L5",					.type = DB_TYPE_INT64 },
+	{ .name = "L6",					.type = DB_TYPE_INT64 },
+	{ .name = "L7",					.type = DB_TYPE_INT64 },
+	{ .name = "L8",					.type = DB_TYPE_INT64 },
+	{ .name = "L9",					.type = DB_TYPE_INT64 },
+	{ .name = "L10",				.type = DB_TYPE_INT64 },
+	{ .name = "L11",				.type = DB_TYPE_INT64 },
+	{ .name = "L12",				.type = DB_TYPE_INT64 },
+	{ .name = "L13",				.type = DB_TYPE_INT64 },
+	{ .name = "L14",				.type = DB_TYPE_INT64 },
+	{ .name = "L15",				.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor ampereone_payload1_event_tab = {
@@ -494,17 +489,18 @@ static const struct db_table_descriptor ampereone_payload1_event_tab = {
 
 /*key pair definition for ampere specific error payload type 2*/
 static const struct db_fields ampereone_payload2_event_fields[] = {
-	{ .name = "id",				.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",			.type = "TEXT" },
-	{ .name = "type_id",			.type = "TEXT" },
-	{ .name = "subtype_id",			.type = "TEXT" },
-	{ .name = "instance",			.type = "INTEGER" },
-	{ .name = "socket_num",			.type = "INTEGER" },
-	{ .name = "CORR_COUNT_REPORT",		.type = "INTEGER" },
-	{ .name = "CORR_ERROR_LOCATION",	.type = "INTEGER" },
-	{ .name = "RAM_ADDR_CORR",		.type = "INTEGER" },
-	{ .name = "UNCORR_ERROR_LOCATION",	.type = "INTEGER" },
-	{ .name = "RAM_ADDR_UNCORR",		.type = "INTEGER" },
+	{ .name = "id",				.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",			.type = DB_TYPE_TIMESTAMP },
+	{ .name = "type_id",			.type = DB_TYPE_TEXT },
+	{ .name = "subtype_id",			.type = DB_TYPE_TEXT },
+	{ .name = "instance",			.type = DB_TYPE_INT64 },
+	{ .name = "socket_num",			.type = DB_TYPE_INT64 },
+	{ .name = "CORR_COUNT_REPORT",		.type = DB_TYPE_INT64 },
+	{ .name = "CORR_ERROR_LOCATION",	.type = DB_TYPE_INT64 },
+	{ .name = "RAM_ADDR_CORR",		.type = DB_TYPE_INT64 },
+	{ .name = "UNCORR_COUNT_REPORT",	.type = DB_TYPE_INT64 },
+	{ .name = "UNCORR_ERROR_LOCATION",	.type = DB_TYPE_INT64 },
+	{ .name = "RAM_ADDR_UNCORR",		.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor ampereone_payload2_event_tab = {
@@ -515,20 +511,20 @@ static const struct db_table_descriptor ampereone_payload2_event_tab = {
 
 /*key pair definition for ampere specific error payload type 3*/
 static const struct db_fields ampereone_payload3_event_fields[] = {
-	{ .name = "id",			.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",		.type = "TEXT" },
-	{ .name = "type_id",		.type = "TEXT" },
-	{ .name = "subtype_id",		.type = "TEXT" },
-	{ .name = "instance",		.type = "INTEGER" },
-	{ .name = "socket_num",		.type = "INTEGER" },
-	{ .name = "ECC_ADDRESS",	.type = "INTEGER" },
-	{ .name = "ECC_DATA",		.type = "INTEGER" },
-	{ .name = "ECC_SRC_ID",		.type = "INTEGER" },
-	{ .name = "ECC_SYND",		.type = "INTEGER" },
-	{ .name = "ECC_MCE_CNT",	.type = "INTEGER" },
-	{ .name = "ECC_CTLR",		.type = "INTEGER" },
-	{ .name = "ECC_ERR_STS",	.type = "INTEGER" },
-	{ .name = "ECC_ERR_CNT",	.type = "INTEGER" },
+	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP },
+	{ .name = "type_id",		.type = DB_TYPE_TEXT },
+	{ .name = "subtype_id",		.type = DB_TYPE_TEXT },
+	{ .name = "instance",		.type = DB_TYPE_INT64 },
+	{ .name = "socket_num",		.type = DB_TYPE_INT64 },
+	{ .name = "ECC_ADDRESS",	.type = DB_TYPE_INT64 },
+	{ .name = "ECC_DATA",		.type = DB_TYPE_INT64 },
+	{ .name = "ECC_SRC_ID",		.type = DB_TYPE_INT64 },
+	{ .name = "ECC_SYND",		.type = DB_TYPE_INT64 },
+	{ .name = "ECC_MCE_CNT",	.type = DB_TYPE_INT64 },
+	{ .name = "ECC_CTLR",		.type = DB_TYPE_INT64 },
+	{ .name = "ECC_ERR_STS",	.type = DB_TYPE_INT64 },
+	{ .name = "ECC_ERR_CNT",	.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor ampereone_payload3_event_tab = {
@@ -539,20 +535,20 @@ static const struct db_table_descriptor ampereone_payload3_event_tab = {
 
 /*key pair definition for ampere specific error payload type 4*/
 static const struct db_fields ampereone_payload4_event_fields[] = {
-	{ .name = "id",		.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",	.type = "TEXT" },
-	{ .name = "type_id",	.type = "TEXT" },
-	{ .name = "subtype_id",	.type = "TEXT" },
-	{ .name = "instance",	.type = "INTEGER" },
-	{ .name = "socket_num",	.type = "INTEGER" },
-	{ .name = "ADDRESS",	.type = "INTEGER" },
-	{ .name = "SRC_ID",	.type = "INTEGER" },
-	{ .name = "TXNID",	.type = "INTEGER" },
-	{ .name = "TYPE",	.type = "INTEGER" },
-	{ .name = "LPID",	.type = "INTEGER" },
-	{ .name = "OPCODE",	.type = "INTEGER" },
-	{ .name = "TAG",	.type = "INTEGER" },
-	{ .name = "MPAM",	.type = "INTEGER" },
+	{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP },
+	{ .name = "type_id",	.type = DB_TYPE_TEXT },
+	{ .name = "subtype_id",	.type = DB_TYPE_TEXT },
+	{ .name = "instance",	.type = DB_TYPE_INT64 },
+	{ .name = "socket_num",	.type = DB_TYPE_INT64 },
+	{ .name = "ADDRESS",	.type = DB_TYPE_INT64 },
+	{ .name = "SRC_ID",	.type = DB_TYPE_INT64 },
+	{ .name = "TXNID",	.type = DB_TYPE_INT64 },
+	{ .name = "TYPE",	.type = DB_TYPE_INT64 },
+	{ .name = "LPID",	.type = DB_TYPE_INT64 },
+	{ .name = "OPCODE",	.type = DB_TYPE_INT64 },
+	{ .name = "TAG",	.type = DB_TYPE_INT64 },
+	{ .name = "MPAM",	.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor ampereone_payload4_event_tab = {
@@ -563,12 +559,12 @@ static const struct db_table_descriptor ampereone_payload4_event_tab = {
 
 /*key pair definition for ampere specific error payload type 5*/
 static const struct db_fields ampereone_payload5_event_fields[] = {
-	{ .name = "id",		.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",	.type = "TEXT" },
-	{ .name = "type_id",	.type = "TEXT" },
-	{ .name = "subtype_id",	.type = "TEXT" },
-	{ .name = "instance",	.type = "INTEGER" },
-	{ .name = "socket_num",	.type = "INTEGER" },
+	{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP },
+	{ .name = "type_id",	.type = DB_TYPE_TEXT },
+	{ .name = "subtype_id",	.type = DB_TYPE_TEXT },
+	{ .name = "instance",	.type = DB_TYPE_INT64 },
+	{ .name = "socket_num",	.type = DB_TYPE_INT64 },
 };
 
 static const struct db_table_descriptor ampereone_payload5_event_tab = {
@@ -579,16 +575,16 @@ static const struct db_table_descriptor ampereone_payload5_event_tab = {
 
 /*key pair definition for ampere specific error payload type 6*/
 static const struct db_fields ampereone_payload6_event_fields[] = {
-	{ .name = "id",		.type = "INTEGER PRIMARY KEY" },
-	{ .name = "timestamp",	.type = "TEXT" },
-	{ .name = "type_id",	.type = "TEXT" },
-	{ .name = "subtype_id",	.type = "TEXT" },
-	{ .name = "instance",	.type = "INTEGER" },
-	{ .name = "socket_num",	.type = "INTEGER" },
-	{ .name = "DRIVER",	.type = "INTEGER" },
-	{ .name = "ERROR_CODE",	.type = "INTEGER" },
-	{ .name = "MSG_SIZE",	.type = "INTEGER" },
-	{ .name = "ERROR_MSG",	.type = "TEXT" },
+	{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
+	{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP },
+	{ .name = "type_id",	.type = DB_TYPE_TEXT },
+	{ .name = "subtype_id",	.type = DB_TYPE_TEXT },
+	{ .name = "instance",	.type = DB_TYPE_INT64 },
+	{ .name = "socket_num",	.type = DB_TYPE_INT64 },
+	{ .name = "DRIVER",	.type = DB_TYPE_INT64 },
+	{ .name = "ERROR_CODE",	.type = DB_TYPE_INT64 },
+	{ .name = "MSG_SIZE",	.type = DB_TYPE_INT64 },
+	{ .name = "ERROR_MSG",	.type = DB_TYPE_TEXT },
 };
 
 static const struct db_table_descriptor ampereone_payload6_event_tab = {
@@ -597,6 +593,39 @@ static const struct db_table_descriptor ampereone_payload6_event_tab = {
 	.num_fields = ARRAY_SIZE(ampereone_payload6_event_fields),
 };
 
+static struct db_desc_and_stmt ampereone_payload0_event_db = {
+	.desc = &ampereone_payload0_event_tab,
+};
+static struct db_desc_and_stmt ampereone_payload1_event_db = {
+	.desc = &ampereone_payload1_event_tab,
+};
+static struct db_desc_and_stmt ampereone_payload2_event_db = {
+	.desc = &ampereone_payload2_event_tab,
+};
+static struct db_desc_and_stmt ampereone_payload3_event_db = {
+	.desc = &ampereone_payload3_event_tab,
+};
+static struct db_desc_and_stmt ampereone_payload4_event_db = {
+	.desc = &ampereone_payload4_event_tab,
+};
+static struct db_desc_and_stmt ampereone_payload5_event_db = {
+	.desc = &ampereone_payload5_event_tab,
+};
+static struct db_desc_and_stmt ampereone_payload6_event_db = {
+	.desc = &ampereone_payload6_event_tab,
+};
+
+static struct db_desc_and_stmt * const ampereone_event_dbs[] = {
+	&ampereone_payload0_event_db,
+	&ampereone_payload1_event_db,
+	&ampereone_payload2_event_db,
+	&ampereone_payload3_event_db,
+	&ampereone_payload4_event_db,
+	&ampereone_payload5_event_db,
+	&ampereone_payload6_event_db,
+};
+
+static struct db_desc_and_stmt *ampereone_event_db;
 
 
 /*Save data with different type into sqlite3 db*/
@@ -604,6 +633,8 @@ static void record_ampereone_data(struct ras_ns_ev_decoder *ev_decoder,
 			    enum ampereone_oem_data_type data_type,
 			    int id, int64_t data, const char *text)
 {
+	uint64_t value;
+
 	switch (data_type) {
 	case AMPEREONE_OEM_DATA_TYPE_INT:
 		/*
@@ -613,42 +644,26 @@ static void record_ampereone_data(struct ras_ns_ev_decoder *ev_decoder,
 		 * So, Let's use SQLite's INT64 so that the full range of our unsigned
 		 * 32 bits are accurately represented in the SQLite DB.
 		 */
-		sqlite3_bind_int(ev_decoder->stmt_dec_record, id, data);
+		value = data;
 		break;
 	case AMPEREONE_OEM_DATA_TYPE_INT64:
-		sqlite3_bind_int64(ev_decoder->stmt_dec_record, id, data);
+		value = data;
 		break;
 	case AMPEREONE_OEM_DATA_TYPE_TEXT:
-		sqlite3_bind_text(ev_decoder->stmt_dec_record, id,
-				  text, -1, NULL);
+		value = (uint64_t)text;
 		break;
 	default:
-		break;
+		return;
 	}
+
+	db_bind(ampereone_event_db->desc, ampereone_event_db->stmt,
+		id, value, -1);
 }
 
 static int store_ampereone_err_data(struct ras_ns_ev_decoder *ev_decoder,
 			      const char *name)
 {
-	int rc;
-
-	rc = sqlite3_step(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to do %s step on sqlite: error = %d\n", name, rc);
-
-	rc = sqlite3_reset(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to reset %s on sqlite: error = %d\n", name, rc);
-
-	rc = sqlite3_clear_bindings(ev_decoder->stmt_dec_record);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
-		log(TERM, LOG_ERR,
-		    "Failed to clear bindings %s on sqlite: error = %d\n",
-		    name, rc);
-
-	return rc;
+	return db_eval_stmt(ampereone_event_db->stmt, name);
 }
 
 /*save all Ampere Specific Error Payload type 0 to sqlite3 database*/
@@ -714,10 +729,10 @@ static void record_ampereone_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
 				AMPEREONE_PAYLOAD1_FIELD_AER_CORR_ERR_STATUS,
-				err->aer_ue_err_status, NULL);
+				err->aer_ce_err_status, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
 				AMPEREONE_PAYLOAD1_FIELD_AER_UNCORR_ERR_STATUS,
-				err->aer_ce_err_status, NULL);
+				err->aer_ue_err_status, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
 				AMPEREONE_PAYLOAD1_FIELD_EBUF_OVERFLOW,
 				err->ebuf_overflow, NULL);
@@ -780,49 +795,49 @@ static void record_ampereone_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 				err->dbg_l1_status_lane0, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
 				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE1,
-				err->dbg_l1_status_lane0, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE2,
 				err->dbg_l1_status_lane1, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE3,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE2,
 				err->dbg_l1_status_lane2, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE4,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE3,
 				err->dbg_l1_status_lane3, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE5,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE4,
 				err->dbg_l1_status_lane4, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE6,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE5,
 				err->dbg_l1_status_lane5, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE7,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE6,
 				err->dbg_l1_status_lane6, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE8,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE7,
 				err->dbg_l1_status_lane7, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE9,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE8,
 				err->dbg_l1_status_lane8, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE10,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE9,
 				err->dbg_l1_status_lane9, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE11,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE10,
 				err->dbg_l1_status_lane10, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE12,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE11,
 				err->dbg_l1_status_lane11, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE13,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE12,
 				err->dbg_l1_status_lane12, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE14,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE13,
 				err->dbg_l1_status_lane13, NULL);
 		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE15,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE14,
 				err->dbg_l1_status_lane14, NULL);
+		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
+				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE15,
+				err->dbg_l1_status_lane15, NULL);
 
 		store_ampereone_err_data(ev_decoder, "ampereone_payload1_event_tab");
 	}
@@ -1015,62 +1030,7 @@ static void record_ampereone_payload6_err(struct ras_ns_ev_decoder *ev_decoder,
 	}
 }
 
-#else
-static void record_ampereone_data(struct ras_ns_ev_decoder *ev_decoder,
-			    enum ampereone_oem_data_type data_type,
-			    int id, int64_t data, const char *text)
-{
-}
-
-static void record_ampereone_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload0_type_sec *err)
-{
-}
-
-static void record_ampereone_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload1_type_sec *err)
-{
-}
-
-static void record_ampereone_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload2_type_sec *err)
-{
-}
-
-static void record_ampereone_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload3_type_sec *err)
-{
-}
-
-static void record_ampereone_payload4_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload4_type_sec *err)
-{
-}
-
-static void record_ampereone_payload5_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload5_type_sec *err)
-{
-}
-
-static void record_ampereone_payload6_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload6_type_sec *err)
-{
-}
-
-static int store_ampereone_err_data(struct ras_ns_ev_decoder *ev_decoder, char *name)
-{
-	return 0;
-}
-#endif
-
-void decode_ampereone_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_ampereone_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				struct trace_seq *s,
 				const struct ampereone_payload0_type_sec *err)
 {
@@ -1159,7 +1119,7 @@ void decode_ampereone_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 // Payload Type 1: PCIe AER Format
-void decode_ampereone_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_ampereone_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				struct trace_seq *s,
 				const struct ampereone_payload1_type_sec *err)
 {
@@ -1394,7 +1354,7 @@ void decode_ampereone_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 // Payload Type 2: PCIe RASDP
-void decode_ampereone_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_ampereone_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				struct trace_seq *s,
 				const struct ampereone_payload2_type_sec *err)
 {
@@ -1471,7 +1431,7 @@ void decode_ampereone_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-void decode_ampereone_payload3_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_ampereone_payload3_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				struct trace_seq *s,
 				const struct ampereone_payload3_type_sec *err)
 {
@@ -1558,7 +1518,7 @@ void decode_ampereone_payload3_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-void decode_ampereone_payload4_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_ampereone_payload4_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				struct trace_seq *s,
 				const struct ampereone_payload4_type_sec *err)
 {
@@ -1645,7 +1605,7 @@ void decode_ampereone_payload4_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-void decode_ampereone_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_ampereone_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				struct trace_seq *s,
 				const struct ampereone_payload5_type_sec *err)
 {
@@ -1692,7 +1652,7 @@ void decode_ampereone_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	trace_seq_printf(s, "%s\n", buf);
 }
 
-void decode_ampereone_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
+static void decode_ampereone_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 				struct trace_seq *s,
 				const struct ampereone_payload6_type_sec *err)
 {
@@ -1759,55 +1719,76 @@ void decode_ampereone_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 /* error data decoding functions */
-int decode_ampereone_type_error(struct ras_events *ras,
-				     struct ras_ns_ev_decoder *ev_decoder,
-				     struct trace_seq *s,
-				     struct ras_non_standard_event *event)
+static int decode_ampereone_type_error(struct ras_events *ras,
+				       struct ras_ns_ev_decoder *ev_decoder,
+				       struct trace_seq *s,
+				       struct ras_non_standard_event *event)
 {
-	int payload_type = AMPEREONE_PAYLOAD_TYPE(
-		((struct ampereone_payload_header *)event->error)->type);
-
-#ifdef HAVE_SQLITE3
-	struct db_table_descriptor db_tab;
+	const struct ampereone_payload_header *header;
+	size_t payload_len;
+	int payload_type;
 	int id = 0;
 
+	if (event->length < sizeof(*header)) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return -1;
+	}
+
+	header = (const struct ampereone_payload_header *)event->error;
+	payload_type = AMPEREONE_PAYLOAD_TYPE(header->type);
+
 	if (payload_type == AMPEREONE_PAYLOAD_TYPE_0) {
-		db_tab = ampereone_payload0_event_tab;
+		ampereone_event_db = &ampereone_payload0_event_db;
+		payload_len = sizeof(struct ampereone_payload0_type_sec);
 		id = AMPEREONE_PAYLOAD0_FIELD_TIMESTAMP;
 	} else if (payload_type == AMPEREONE_PAYLOAD_TYPE_1) {
-		db_tab = ampereone_payload1_event_tab;
+		ampereone_event_db = &ampereone_payload1_event_db;
+		payload_len = sizeof(struct ampereone_payload1_type_sec);
 		id = AMPEREONE_PAYLOAD1_FIELD_TIMESTAMP;
 	} else if (payload_type == AMPEREONE_PAYLOAD_TYPE_2) {
-		db_tab = ampereone_payload2_event_tab;
+		ampereone_event_db = &ampereone_payload2_event_db;
+		payload_len = sizeof(struct ampereone_payload2_type_sec);
 		id = AMPEREONE_PAYLOAD2_FIELD_TIMESTAMP;
 	} else if (payload_type == AMPEREONE_PAYLOAD_TYPE_3) {
-		db_tab = ampereone_payload3_event_tab;
+		ampereone_event_db = &ampereone_payload3_event_db;
+		payload_len = sizeof(struct ampereone_payload3_type_sec);
 		id = AMPEREONE_PAYLOAD3_FIELD_TIMESTAMP;
 	} else if (payload_type == AMPEREONE_PAYLOAD_TYPE_4) {
-		db_tab = ampereone_payload4_event_tab;
+		ampereone_event_db = &ampereone_payload4_event_db;
+		payload_len = sizeof(struct ampereone_payload4_type_sec);
 		id = AMPEREONE_PAYLOAD4_FIELD_TIMESTAMP;
 	} else if (payload_type == AMPEREONE_PAYLOAD_TYPE_5) {
-		db_tab = ampereone_payload5_event_tab;
+		ampereone_event_db = &ampereone_payload5_event_db;
+		payload_len = sizeof(struct ampereone_payload5_type_sec);
 		id = AMPEREONE_PAYLOAD5_FIELD_TIMESTAMP;
 	} else if (payload_type == AMPEREONE_PAYLOAD_TYPE_6) {
-		db_tab = ampereone_payload6_event_tab;
+		ampereone_event_db = &ampereone_payload6_event_db;
+		payload_len = offsetof(struct ampereone_payload6_type_sec, error_msg);
 		id = AMPEREONE_PAYLOAD6_FIELD_TIMESTAMP;
 	} else {
 		return -1;
 	}
 
-	if (ras->record_events) {
-		if (ras_mc_add_vendor_table(ras, &ev_decoder->stmt_dec_record,
-					    &db_tab) != SQLITE_OK) {
-			trace_seq_printf(s,
-					 "create sql %s fail\n",
-					 sqlite3_table_list[payload_type]);
+	if (event->length < payload_len) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return -1;
+	}
+	if (payload_type == AMPEREONE_PAYLOAD_TYPE_6) {
+		const struct ampereone_payload6_type_sec *err =
+			(const struct ampereone_payload6_type_sec *)event->error;
+
+		if (err->error_msg_size > event->length - payload_len) {
+			trace_seq_printf(s, "%s: truncated firmware error message\n",
+					 __func__);
 			return -1;
 		}
 	}
+
+	WARN_ONCE(ras->record_events && !ampereone_event_db->stmt, ALL,
+		  LOG_WARNING, "Can't insert into table %s: no statement\n",
+		  ampereone_event_db->desc->name);
 	record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
 			id, 0, event->timestamp);
-#endif
 
 	if (payload_type == AMPEREONE_PAYLOAD_TYPE_0) {
 		const struct ampereone_payload0_type_sec *err =
@@ -1844,14 +1825,79 @@ int decode_ampereone_type_error(struct ras_events *ras,
 	return 0;
 }
 
-struct ras_ns_ev_decoder ampereone_ns_oem_decoder[] = {
+static struct ras_ns_ev_decoder ampereone_ns_oem_decoder[] = {
 	{
 		.sec_type = "2826cc9f-448c-4c2b-86b6-a95394b7ef33",
 		.decode = decode_ampereone_type_error,
 	},
 };
 
-static void __attribute__((constructor)) ampereone_init(void)
+static void decode_ampereone_arm_vendor_data(struct trace_seq *s,
+					      const uint8_t *buf, uint32_t length)
 {
-	register_ns_ev_decoder(ampereone_ns_oem_decoder);
+	const struct ampereone_payload0_type_sec *err;
+
+	if (length < sizeof(*err)) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return;
+	}
+
+	err = (const struct ampereone_payload0_type_sec *)buf;
+	if (AMPEREONE_PAYLOAD_TYPE(err->header.type) !=
+	    AMPEREONE_PAYLOAD_TYPE_0) {
+		trace_seq_printf(s, "%s: unknown payload type\n", __func__);
+		return;
+	}
+
+	decode_ampereone_payload0_err_regs(NULL, s, err);
 }
+
+static const struct ras_arm_vendor_data_handler ampereone_arm_vendor_data_handler = {
+	.name = "ampereone",
+	.midr = AMPEREONE_MIDR_R0P0,
+	.decode = decode_ampereone_arm_vendor_data,
+};
+
+static int ampereone_init(struct ras_module_ctx *ctx)
+{
+	size_t i;
+	int rc;
+
+	for (i = 0; i < ARRAY_SIZE(ampereone_event_dbs); i++) {
+		rc = ras_db_table_register(ctx, ampereone_event_dbs[i]);
+		if (rc) {
+			ras_db_table_unregister(ctx);
+			return rc;
+		}
+	}
+
+	rc = register_ns_ev_decoder(ampereone_ns_oem_decoder);
+	if (rc) {
+		ras_db_table_unregister(ctx);
+		return rc;
+	}
+
+	rc = ras_arm_vendor_data_register(&ampereone_arm_vendor_data_handler);
+	if (rc) {
+		unregister_ns_ev_decoder(ampereone_ns_oem_decoder);
+		ras_db_table_unregister(ctx);
+	}
+
+	return rc;
+}
+
+static void ampereone_cleanup(struct ras_module_ctx *ctx)
+{
+	ras_arm_vendor_data_unregister(&ampereone_arm_vendor_data_handler);
+	unregister_ns_ev_decoder(ampereone_ns_oem_decoder);
+	ras_db_table_unregister(ctx);
+}
+
+static const struct ras_module_entry ampereone_module = {
+	.name = "non-standard-ampereone",
+	.level = SUB_EVENT_MODULE,
+	.init = ampereone_init,
+	.cleanup = ampereone_cleanup,
+};
+
+REGISTER_RAS_MODULE(ampereone_module);
