@@ -627,86 +627,28 @@ static struct db_desc_and_stmt * const ampereone_event_dbs[] = {
 
 static struct db_desc_and_stmt *ampereone_event_db;
 
-
-/*Save data with different type into sqlite3 db*/
-static void record_ampereone_data(struct ras_ns_ev_decoder *ev_decoder,
-			    enum ampereone_oem_data_type data_type,
-			    int id, int64_t data, const char *text)
-{
-	uint64_t value;
-
-	switch (data_type) {
-	case AMPEREONE_OEM_DATA_TYPE_INT:
-		/*
-		 * Use this type sparingly. Just use INT64 for most things.
-		 * The reason is that most (if not all) of our registers contain
-		 * unsigned 32 bit values. SQLite doesn't have unsigned data types.
-		 * So, Let's use SQLite's INT64 so that the full range of our unsigned
-		 * 32 bits are accurately represented in the SQLite DB.
-		 */
-		value = data;
-		break;
-	case AMPEREONE_OEM_DATA_TYPE_INT64:
-		value = data;
-		break;
-	case AMPEREONE_OEM_DATA_TYPE_TEXT:
-		value = (uint64_t)text;
-		break;
-	default:
-		return;
-	}
-
-	db_bind(ampereone_event_db->desc, ampereone_event_db->stmt,
-		id, value, -1);
-}
-
-static int store_ampereone_err_data(struct ras_ns_ev_decoder *ev_decoder,
-			      const char *name)
-{
-	return db_eval_stmt(ampereone_event_db->stmt, name);
-}
-
 /*save all Ampere Specific Error Payload type 0 to sqlite3 database*/
 static void record_ampereone_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const char *type_str, const char *subtype_str,
 				    const struct ampereone_payload0_type_sec *err)
 {
 	if (ev_decoder) {
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD0_FIELD_TYPE_ID, 0, type_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD0_FIELD_SUB_TYPE_ID, 0, subtype_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD0_FIELD_INS,
-				AMPEREONE_INSTANCE(err->header.instance), NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD0_FIELD_SOCKET_NUM,
-				AMPEREONE_SOCKET_NUM(err->header.instance), NULL);
+		const struct db_table_descriptor *db = ampereone_event_db->desc;
+		struct ras_stmt *stmt = ampereone_event_db->stmt;
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_TYPE_ID, (uint64_t)type_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_SOCKET_NUM, AMPEREONE_SOCKET_NUM(err->header.instance), -1);
 
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD0_FIELD_ERRxFR, err->err_fr, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD0_FIELD_ERRxCTLR,
-				err->err_ctlr, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD0_FIELD_ERRxSTATUS,
-				err->err_status, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD0_FIELD_ERRxADDR,
-				err->err_addr, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD0_FIELD_ERRxMISC0,
-				err->err_misc_0, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD0_FIELD_ERRxMISC1,
-				err->err_misc_1, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD0_FIELD_ERRxMISC2,
-				err->err_misc_2, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD0_FIELD_ERRxMISC3,
-				err->err_misc_3, NULL);
-		store_ampereone_err_data(ev_decoder, "ampereone_payload0_event_tab");
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxFR, err->err_fr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxCTLR, err->err_ctlr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxSTATUS, err->err_status, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxADDR, err->err_addr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxMISC0, err->err_misc_0, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxMISC1, err->err_misc_1, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxMISC2, err->err_misc_2, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxMISC3, err->err_misc_3, -1);
+		db_eval_stmt(stmt, "ampereone_payload0_event_tab");
 	}
 }
 
@@ -716,130 +658,52 @@ static void record_ampereone_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const struct ampereone_payload1_type_sec *err)
 {
 	if (ev_decoder) {
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD1_FIELD_TYPE_ID, 0, type_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD1_FIELD_SUB_TYPE_ID, 0, subtype_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD1_FIELD_INS,
-				AMPEREONE_INSTANCE(err->header.instance), NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD1_FIELD_SOCKET_NUM,
-				AMPEREONE_SOCKET_NUM(err->header.instance), NULL);
+		const struct db_table_descriptor *db = ampereone_event_db->desc;
+		struct ras_stmt *stmt = ampereone_event_db->stmt;
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_TYPE_ID, (uint64_t)type_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SOCKET_NUM, AMPEREONE_SOCKET_NUM(err->header.instance), -1);
 
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_AER_CORR_ERR_STATUS,
-				err->aer_ce_err_status, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_AER_UNCORR_ERR_STATUS,
-				err->aer_ue_err_status, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_EBUF_OVERFLOW,
-				err->ebuf_overflow, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_EBUF_UNDERRUN,
-				err->ebuf_underrun, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_DECODE_ERROR,
-				err->decode_error, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_RUNNING_DISPARITY_ERROR,
-				err->running_disparity_error, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SKP_OS_PARITY_ERROR_GEN3,
-				err->skp_os_parity_error_gen3, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SYNC_HEADER_ERROR,
-				err->sync_header_error, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_RX_VALID_DEASSERTION,
-				err->rx_valid_deassertion, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_CTL_SKP_OS_PARITY_ERROR_GEN4,
-				err->ctl_skp_os_parity_error_gen4, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_FIRST_RETIMER_PARITY_ERROR_GEN4,
-				err->first_retimer_parity_error_gen4, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SECOND_RETIMER_PARITY_ERROR_GEN4,
-				err->second_retimer_parity_error_gen4, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_MARGIN_CRC_AND_PARTIY_ERROR_GEN4,
-				err->margin_crc_and_parity_error_gen4, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP1_COUNTERS,
-				err->rasdes_group1_counters, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_RSVD0,
-				err->rsvd0, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP2_COUNTERS,
-				err->rasdes_group2_counters, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_EBUF_SKP_ADD,
-				err->ebuf_skp_add, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_EBUF_SKP_DEL,
-				err->ebuf_skp_del, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP5_COUNTERS,
-				err->rasdes_group5_counters, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP5_COUNTERS_CONTINUED,
-				err->rasdes_group5_counters_continued, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_RSVD1,
-				err->rsvd1, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE0,
-				err->dbg_l1_status_lane0, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE1,
-				err->dbg_l1_status_lane1, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE2,
-				err->dbg_l1_status_lane2, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE3,
-				err->dbg_l1_status_lane3, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE4,
-				err->dbg_l1_status_lane4, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE5,
-				err->dbg_l1_status_lane5, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE6,
-				err->dbg_l1_status_lane6, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE7,
-				err->dbg_l1_status_lane7, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE8,
-				err->dbg_l1_status_lane8, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE9,
-				err->dbg_l1_status_lane9, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE10,
-				err->dbg_l1_status_lane10, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE11,
-				err->dbg_l1_status_lane11, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE12,
-				err->dbg_l1_status_lane12, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE13,
-				err->dbg_l1_status_lane13, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE14,
-				err->dbg_l1_status_lane14, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE15,
-				err->dbg_l1_status_lane15, NULL);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_AER_CORR_ERR_STATUS, err->aer_ce_err_status, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_AER_UNCORR_ERR_STATUS, err->aer_ue_err_status, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_EBUF_OVERFLOW, err->ebuf_overflow, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_EBUF_UNDERRUN, err->ebuf_underrun, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_DECODE_ERROR, err->decode_error, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RUNNING_DISPARITY_ERROR, err->running_disparity_error, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SKP_OS_PARITY_ERROR_GEN3, err->skp_os_parity_error_gen3, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SYNC_HEADER_ERROR, err->sync_header_error, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RX_VALID_DEASSERTION, err->rx_valid_deassertion, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_CTL_SKP_OS_PARITY_ERROR_GEN4, err->ctl_skp_os_parity_error_gen4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_FIRST_RETIMER_PARITY_ERROR_GEN4, err->first_retimer_parity_error_gen4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SECOND_RETIMER_PARITY_ERROR_GEN4, err->second_retimer_parity_error_gen4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_MARGIN_CRC_AND_PARTIY_ERROR_GEN4, err->margin_crc_and_parity_error_gen4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP1_COUNTERS, err->rasdes_group1_counters, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RSVD0, err->rsvd0, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP2_COUNTERS, err->rasdes_group2_counters, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_EBUF_SKP_ADD, err->ebuf_skp_add, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_EBUF_SKP_DEL, err->ebuf_skp_del, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP5_COUNTERS, err->rasdes_group5_counters, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP5_COUNTERS_CONTINUED, err->rasdes_group5_counters_continued, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RSVD1, err->rsvd1, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE0, err->dbg_l1_status_lane0, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE1, err->dbg_l1_status_lane1, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE2, err->dbg_l1_status_lane2, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE3, err->dbg_l1_status_lane3, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE4, err->dbg_l1_status_lane4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE5, err->dbg_l1_status_lane5, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE6, err->dbg_l1_status_lane6, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE7, err->dbg_l1_status_lane7, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE8, err->dbg_l1_status_lane8, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE9, err->dbg_l1_status_lane9, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE10, err->dbg_l1_status_lane10, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE11, err->dbg_l1_status_lane11, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE12, err->dbg_l1_status_lane12, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE13, err->dbg_l1_status_lane13, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE14, err->dbg_l1_status_lane14, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE15, err->dbg_l1_status_lane15, -1);
 
-		store_ampereone_err_data(ev_decoder, "ampereone_payload1_event_tab");
+		db_eval_stmt(stmt, "ampereone_payload1_event_tab");
 	}
 }
 
@@ -849,36 +713,20 @@ static void record_ampereone_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const struct ampereone_payload2_type_sec *err)
 {
 	if (ev_decoder) {
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD2_FIELD_TYPE_ID, 0, type_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD2_FIELD_SUB_TYPE_ID, 0, subtype_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD2_FIELD_INS,
-				AMPEREONE_INSTANCE(err->header.instance), NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD2_FIELD_SOCKET_NUM,
-				AMPEREONE_SOCKET_NUM(err->header.instance), NULL);
+		const struct db_table_descriptor *db = ampereone_event_db->desc;
+		struct ras_stmt *stmt = ampereone_event_db->stmt;
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_TYPE_ID, (uint64_t)type_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_SOCKET_NUM, AMPEREONE_SOCKET_NUM(err->header.instance), -1);
 
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD2_FIELD_CORR_COUNT_REPORT,
-				err->corr_count_report, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD2_FIELD_CORR_ERROR_LOCATION,
-				err->corr_error_location, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD2_FIELD_RAM_ADDR_CORR,
-				err->ram_addr_corr, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD2_FIELD_UNCORR_COUNT_REPORT,
-				err->uncorr_count_report, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD2_FIELD_UNCORR_ERROR_LOCATION,
-				err->uncorr_error_location, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD2_FIELD_RAM_ADDR_UNCORR,
-				err->ram_addr_uncorr, NULL);
-		store_ampereone_err_data(ev_decoder, "ampereone_payload2_event_tab");
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_CORR_COUNT_REPORT, err->corr_count_report, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_CORR_ERROR_LOCATION, err->corr_error_location, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_RAM_ADDR_CORR, err->ram_addr_corr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_UNCORR_COUNT_REPORT, err->uncorr_count_report, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_UNCORR_ERROR_LOCATION, err->uncorr_error_location, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_RAM_ADDR_UNCORR, err->ram_addr_uncorr, -1);
+		db_eval_stmt(stmt, "ampereone_payload2_event_tab");
 	}
 }
 
@@ -888,42 +736,22 @@ static void record_ampereone_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const struct ampereone_payload3_type_sec *err)
 {
 	if (ev_decoder) {
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD3_FIELD_TYPE_ID, 0, type_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD3_FIELD_SUB_TYPE_ID, 0, subtype_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD3_FIELD_INS,
-				AMPEREONE_INSTANCE(err->header.instance), NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD3_FIELD_SOCKET_NUM,
-				AMPEREONE_SOCKET_NUM(err->header.instance), NULL);
+		const struct db_table_descriptor *db = ampereone_event_db->desc;
+		struct ras_stmt *stmt = ampereone_event_db->stmt;
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_TYPE_ID, (uint64_t)type_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_SOCKET_NUM, AMPEREONE_SOCKET_NUM(err->header.instance), -1);
 
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD3_FIELD_ECC_ADDRESS,
-				err->ecc_addr, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD3_FIELD_ECC_DATA,
-				err->ecc_data, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD3_FIELD_ECC_SRC_ID,
-				err->ecc_id, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD3_FIELD_ECC_SYND,
-				err->ecc_synd, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD3_FIELD_ECC_MCE_CNT,
-				err->ecc_mce_cnt, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD3_FIELD_ECC_CTLR,
-				err->ecc_ctlr, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD3_FIELD_ECC_ERR_STS,
-				err->ecc_err_sts, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD3_FIELD_ECC_ERR_CNT,
-				err->ecc_err_cnt, NULL);
-		store_ampereone_err_data(ev_decoder, "ampereone_payload3_event_tab");
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_ECC_ADDRESS, err->ecc_addr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_ECC_DATA, err->ecc_data, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_ECC_SRC_ID, err->ecc_id, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_ECC_SYND, err->ecc_synd, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_ECC_MCE_CNT, err->ecc_mce_cnt, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_ECC_CTLR, err->ecc_ctlr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_ECC_ERR_STS, err->ecc_err_sts, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_ECC_ERR_CNT, err->ecc_err_cnt, -1);
+		db_eval_stmt(stmt, "ampereone_payload3_event_tab");
 	}
 }
 
@@ -933,43 +761,23 @@ static void record_ampereone_payload4_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const struct ampereone_payload4_type_sec *err)
 {
 	if (ev_decoder) {
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD4_FIELD_TYPE_ID, 0, type_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD4_FIELD_SUB_TYPE_ID, 0, subtype_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD4_FIELD_INS,
-				AMPEREONE_INSTANCE(err->header.instance), NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD4_FIELD_SOCKET_NUM,
-				AMPEREONE_SOCKET_NUM(err->header.instance), NULL);
+		const struct db_table_descriptor *db = ampereone_event_db->desc;
+		struct ras_stmt *stmt = ampereone_event_db->stmt;
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_TYPE_ID, (uint64_t)type_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_SOCKET_NUM, AMPEREONE_SOCKET_NUM(err->header.instance), -1);
 
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD4_FIELD_ADDRESS,
-				err->address, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD4_FIELD_SRC_ID,
-				err->srcid, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD4_FIELD_TXNID,
-				err->txnid, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD4_FIELD_TYPE,
-				err->type, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD4_FIELD_LPID,
-				err->lpid, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD4_FIELD_OPCODE,
-				err->opcode, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD4_FIELD_TAG,
-				err->tag, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD4_FIELD_MPAM,
-				err->mpam, NULL);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_ADDRESS, err->address, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_SRC_ID, err->srcid, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_TXNID, err->txnid, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_TYPE, err->type, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_LPID, err->lpid, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_OPCODE, err->opcode, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_TAG, err->tag, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_MPAM, err->mpam, -1);
 
-		store_ampereone_err_data(ev_decoder, "ampereone_payload4_event_tab");
+		db_eval_stmt(stmt, "ampereone_payload4_event_tab");
 	}
 }
 
@@ -979,18 +787,14 @@ static void record_ampereone_payload5_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const struct ampereone_payload5_type_sec *err)
 {
 	if (ev_decoder) {
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD5_FIELD_TYPE_ID, 0, type_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD5_FIELD_SUB_TYPE_ID, 0, subtype_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD5_FIELD_INS,
-				AMPEREONE_INSTANCE(err->header.instance), NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD5_FIELD_SOCKET_NUM,
-				AMPEREONE_SOCKET_NUM(err->header.instance), NULL);
+		const struct db_table_descriptor *db = ampereone_event_db->desc;
+		struct ras_stmt *stmt = ampereone_event_db->stmt;
+		db_bind(db, stmt, AMPEREONE_PAYLOAD5_FIELD_TYPE_ID, (uint64_t)type_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD5_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD5_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD5_FIELD_SOCKET_NUM, AMPEREONE_SOCKET_NUM(err->header.instance), -1);
 
-		store_ampereone_err_data(ev_decoder, "ampereone_payload5_event_tab");
+		db_eval_stmt(stmt, "ampereone_payload5_event_tab");
 	}
 }
 
@@ -999,34 +803,21 @@ static void record_ampereone_payload6_err(struct ras_ns_ev_decoder *ev_decoder,
 				    const char *type_str, const char *subtype_str,
 				    const struct ampereone_payload6_type_sec *err)
 {
-	int64_t nothing = 0;
 
 	if (ev_decoder) {
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD6_FIELD_TYPE_ID, 0, type_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD6_FIELD_SUB_TYPE_ID, 0, subtype_str);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD6_FIELD_INS,
-				AMPEREONE_INSTANCE(err->header.instance), NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT,
-				AMPEREONE_PAYLOAD6_FIELD_SOCKET_NUM,
-				AMPEREONE_SOCKET_NUM(err->header.instance), NULL);
+		const struct db_table_descriptor *db = ampereone_event_db->desc;
+		struct ras_stmt *stmt = ampereone_event_db->stmt;
+		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_TYPE_ID, (uint64_t)type_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_SOCKET_NUM, AMPEREONE_SOCKET_NUM(err->header.instance), -1);
 
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD6_FIELD_DRIVER,
-				err->driver, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD6_FIELD_ERROR_CODE,
-				err->error_code, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_INT64,
-				AMPEREONE_PAYLOAD6_FIELD_MSG_SIZE,
-				err->error_msg_size, NULL);
-		record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-				AMPEREONE_PAYLOAD6_FIELD_ERROR_MSG,
-				nothing, (const char *)err->error_msg);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_DRIVER, err->driver, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_ERROR_CODE, err->error_code, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_MSG_SIZE, err->error_msg_size, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_ERROR_MSG, (uint64_t)(const char *)err->error_msg, -1);
 
-		store_ampereone_err_data(ev_decoder, "ampereone_payload6_event_tab");
+		db_eval_stmt(stmt, "ampereone_payload6_event_tab");
 	}
 }
 
@@ -1787,8 +1578,8 @@ static int decode_ampereone_type_error(struct ras_events *ras,
 	WARN_ONCE(ras->record_events && !ampereone_event_db->stmt, ALL,
 		  LOG_WARNING, "Can't insert into table %s: no statement\n",
 		  ampereone_event_db->desc->name);
-	record_ampereone_data(ev_decoder, AMPEREONE_OEM_DATA_TYPE_TEXT,
-			id, 0, event->timestamp);
+	db_bind(ampereone_event_db->desc, ampereone_event_db->stmt,
+		id, (uint64_t)event->timestamp, -1);
 
 	if (payload_type == AMPEREONE_PAYLOAD_TYPE_0) {
 		const struct ampereone_payload0_type_sec *err =

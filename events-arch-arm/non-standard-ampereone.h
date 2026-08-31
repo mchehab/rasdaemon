@@ -164,12 +164,6 @@ struct ampereone_payload6_type_sec {
 	uint8_t error_msg[];
 };
 
-enum ampereone_oem_data_type {
-	AMPEREONE_OEM_DATA_TYPE_INT,
-	AMPEREONE_OEM_DATA_TYPE_INT64,
-	AMPEREONE_OEM_DATA_TYPE_TEXT,
-};
-
 enum {
 	AMPEREONE_PAYLOAD0_FIELD_ID,
 	AMPEREONE_PAYLOAD0_FIELD_TIMESTAMP,
