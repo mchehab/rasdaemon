@@ -1,6 +1,25 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org> */
 
+/*
+ * Generic PCIe AER SEL reporting uses an IPMI system-event record (type 0x02).
+ * See the IPMI v2.0 specification, section 31.6 (Add SEL Entry), section 32.1
+ * (SEL Event Records), and the Critical Interrupt sensor event table. Corrected,
+ * non-fatal, and fatal PCIe AER events map to the Bus Correctable (0x07), Bus
+ * Uncorrectable (0x08), and Bus Fatal (0x0a) offsets, respectively.
+ *
+ * A standard SEL sensor number normally identifies a BMC SDR entry. There is
+ * no portable PCIe AER sensor number, so this consumer uses zero. Before
+ * enabling it, check ``ipmitool sdr elist full`` for a Critical Interrupt
+ * sensor numbered 00h. Event data 2 and 3 are marked as OEM data and retain
+ * the PCI bus and device/function; BMC firmware may store that data without
+ * decoding it.
+ *
+ * Platform firmware can handle AER first and log a corresponding SEL entry
+ * itself. Enable this consumer only after checking that it will not duplicate
+ * firmware-generated PCIe AER records on the target platform.
+ */
+
 #include <errno.h>
 #include <stdio.h>
 

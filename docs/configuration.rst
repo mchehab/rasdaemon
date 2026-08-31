@@ -45,8 +45,15 @@ or ``/dev/ipmidev/0``) and a successful ``ipmitool sel`` command with a
 standard IPMI system-event SEL records using the Critical Interrupt sensor:
 corrected, non-fatal, and fatal AER events map to Bus Correctable, Bus
 Uncorrectable, and Bus Fatal events. The PCI bus and device/function occupy
-the event's OEM data bytes. Enable it only after confirming that the target
-BMC accepts locally added SEL entries.
+the event's OEM data bytes. The current payload uses Critical Interrupt sensor
+number ``00h``. Before enabling it, verify that exact sensor exists with::
+
+   ipmitool sdr elist full | grep -i 'Critical Interrupt'
+
+Enable it only when the target BMC has that sensor and accepts locally added
+SEL entries. Platform firmware can handle AER first and log its own SEL entry;
+check existing BMC SEL records for the same AER event before enabling this
+consumer, to avoid duplicate records.
 
 ``OPENBMC_UNIFIED_SEL_ENABLE=yes`` enables the Facebook/Meta Unified SEL
 consumer. It writes non-timestamped OEM record type ``0xfb`` entries. Enable
