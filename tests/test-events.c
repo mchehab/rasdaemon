@@ -42,7 +42,7 @@
 #include "actions/ras-page-isolation.h"
 #include "actions/ras-poison-page-stat.h"
 #include "actions/abrt-report.h"
-#include "actions/unified-sel.h"
+#include "actions/ipmi-bmc.h"
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
 
@@ -1018,8 +1018,29 @@ int test_reri(void)
 }
 #endif
 
-#ifdef HAVE_OPENBMC_UNIFIED_SEL
-static void test_openbmc_sel_commands(void **state)
+#ifdef HAVE_IPMI_BMC
+static int bmc_sel_test_setup(void **state)
+{
+	modules_cleanup_type(ACTIONS_SUB_MODULE);
+	modules_cleanup_type(ACTIONS_MODULE);
+	unsetenv(OPENBMC_UNIFIED_SEL_ENABLE_ENV);
+	unsetenv(AMPERE_OEM_SEL_ENABLE_ENV);
+	return 0;
+}
+
+static int bmc_sel_test_teardown(void **state)
+{
+	modules_cleanup_type(ACTIONS_SUB_MODULE);
+	modules_cleanup_type(ACTIONS_MODULE);
+	system_mock_stop();
+	popen_mock_stop();
+	access_mock_stop();
+	unsetenv(OPENBMC_UNIFIED_SEL_ENABLE_ENV);
+	unsetenv(AMPERE_OEM_SEL_ENABLE_ENV);
+	return 0;
+}
+
+static void test_openbmc_sel_disabled(void **state)
 {
 	struct ras_aer_event event = {
 		.severity = HW_EVENT_AER_CORRECTED,
@@ -1028,39 +1049,73 @@ static void test_openbmc_sel_commands(void **state)
 	};
 	struct ras_events ras = { 0 };
 
-	unsetenv(IPMITOOL_ENABLE_ENV);
+	unsetenv(OPENBMC_UNIFIED_SEL_ENABLE_ENV);
 	access_mock_start(NULL);
 	popen_mock_start("Version : 1.5\n", 0);
 	system_mock_start(0);
-	modules_cleanup_type(ACTIONS_MODULE);
 	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(popen_mock_call_count(), 0);
 	assert_int_equal(access_mock_call_count(), 0);
 	assert_int_equal(system_mock_call_count(), 0);
-	modules_cleanup_type(ACTIONS_MODULE);
+}
 
-	assert_int_equal(setenv(IPMITOOL_ENABLE_ENV, "yes", 1), 0);
+static void test_openbmc_sel_no_device(void **state)
+{
+	struct ras_aer_event event = {
+		.severity = HW_EVENT_AER_CORRECTED,
+		.status = BIT_ULL(0),
+		.dev_name = "0000:02:03.1",
+	};
+	struct ras_events ras = { 0 };
+
+	assert_int_equal(setenv(OPENBMC_UNIFIED_SEL_ENABLE_ENV, "yes", 1), 0);
+	access_mock_start(NULL);
+	popen_mock_start("Version : 1.5\n", 0);
+	system_mock_start(0);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), -ENODEV);
 	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
 	assert_int_equal(access_mock_call_count(), 3);
 	assert_int_equal(popen_mock_call_count(), 0);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(system_mock_call_count(), 0);
-	modules_cleanup_type(ACTIONS_MODULE);
+}
 
-	access_mock_stop();
+static void test_openbmc_sel_invalid_probe(void **state)
+{
+	struct ras_aer_event event = {
+		.severity = HW_EVENT_AER_CORRECTED,
+		.status = BIT_ULL(0),
+		.dev_name = "0000:02:03.1",
+	};
+	struct ras_events ras = { 0 };
+
+	assert_int_equal(setenv(OPENBMC_UNIFIED_SEL_ENABLE_ENV, "yes", 1), 0);
 	access_mock_start("/dev/ipmi0");
-	popen_mock_stop();
 	popen_mock_start("SEL Information\nEntries: 1\n", 0);
+	system_mock_start(0);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), -ENODEV);
 	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
 	assert_int_equal(access_mock_call_count(), 1);
 	assert_int_equal(popen_mock_call_count(), 1);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(system_mock_call_count(), 0);
-	modules_cleanup_type(ACTIONS_MODULE);
+}
 
-	popen_mock_stop();
+static void test_openbmc_sel_report(void **state)
+{
+	struct ras_aer_event event = {
+		.severity = HW_EVENT_AER_CORRECTED,
+		.status = BIT_ULL(0),
+		.dev_name = "0000:02:03.1",
+	};
+	struct ras_events ras = { 0 };
+
+	assert_int_equal(setenv(OPENBMC_UNIFIED_SEL_ENABLE_ENV, "yes", 1), 0);
+	access_mock_start("/dev/ipmi0");
 	popen_mock_start("SEL Information\nVersion : 1.5\n", 0);
+	system_mock_start(0);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
 	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
 	assert_int_equal(popen_mock_call_count(), 1);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
@@ -1075,15 +1130,17 @@ static void test_openbmc_sel_commands(void **state)
 	system_mock_start(0);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(system_mock_call_count(), 1);
-	modules_cleanup_type(ACTIONS_MODULE);
-	system_mock_stop();
-	popen_mock_stop();
-	access_mock_stop();
-	unsetenv(IPMITOOL_ENABLE_ENV);
 }
 
 static const struct CMUnitTest openbmc_tests[] = {
-	cmocka_unit_test(test_openbmc_sel_commands),
+	cmocka_unit_test_setup_teardown(test_openbmc_sel_disabled,
+				       bmc_sel_test_setup, bmc_sel_test_teardown),
+	cmocka_unit_test_setup_teardown(test_openbmc_sel_no_device,
+				       bmc_sel_test_setup, bmc_sel_test_teardown),
+	cmocka_unit_test_setup_teardown(test_openbmc_sel_invalid_probe,
+				       bmc_sel_test_setup, bmc_sel_test_teardown),
+	cmocka_unit_test_setup_teardown(test_openbmc_sel_report,
+				       bmc_sel_test_setup, bmc_sel_test_teardown),
 };
 
 int test_openbmc_sel(void)
@@ -1302,13 +1359,8 @@ static void test_ampere_decoder_registration(void **state)
 		.error = (const uint8_t *)&payload,
 		.length = sizeof(payload),
 	};
-	struct ras_aer_event aer = {
-		.severity = HW_EVENT_AER_CORRECTED,
-		.dev_name = "0000:02:03.1",
-	};
 	struct ras_events ras = { 0 };
 	struct trace_seq seq;
-	const char *command;
 
 	assert_true(decoder_is_registered("e8ed898d-df16-43cc-8ecc-54f060ef157f"));
 	trace_seq_init(&seq);
@@ -1321,36 +1373,76 @@ static void test_ampere_decoder_registration(void **state)
 					       (const uint8_t *)&payload,
 					       sizeof(payload)));
 	trace_seq_destroy(&seq);
+}
 
+static int ampere_oem_test_setup(void **state)
+{
+	modules_cleanup_type(ACTIONS_SUB_MODULE);
+	modules_cleanup_type(ACTIONS_MODULE);
 	unsetenv(AMPERE_OEM_SEL_ENABLE_ENV);
+	return 0;
+}
+
+static int ampere_oem_test_teardown(void **state)
+{
+	modules_cleanup_type(ACTIONS_SUB_MODULE);
+	modules_cleanup_type(ACTIONS_MODULE);
+	system_mock_stop();
+	popen_mock_stop();
+	access_mock_stop();
+	unsetenv(AMPERE_OEM_SEL_ENABLE_ENV);
+	return 0;
+}
+
+static void test_ampere_oem_sel_disabled(void **state)
+{
+	struct ras_aer_event aer = {
+		.severity = HW_EVENT_AER_CORRECTED,
+		.dev_name = "0000:02:03.1",
+	};
+	struct ras_events ras = { 0 };
+
 	access_mock_start("/dev/ipmi0");
 	popen_mock_start("Version : 1.5\n", 0);
 	system_mock_start(0);
-	modules_cleanup_type(ACTIONS_MODULE);
 	assert_int_equal(module_init(&ras, "ampere-oem-action"), 0);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
 	assert_int_equal(popen_mock_call_count(), 0);
 	assert_int_equal(access_mock_call_count(), 0);
 	assert_int_equal(system_mock_call_count(), 0);
-	modules_cleanup_type(ACTIONS_MODULE);
+}
+
+static void test_ampere_oem_sel_report(void **state)
+{
+	struct ras_aer_event aer = {
+		.severity = HW_EVENT_AER_CORRECTED,
+		.dev_name = "0000:02:03.1",
+	};
+	struct ras_events ras = { 0 };
+	const char *command;
 
 	assert_int_equal(setenv(AMPERE_OEM_SEL_ENABLE_ENV, "yes", 1), 0);
+	access_mock_start("/dev/ipmi0");
+	popen_mock_start("Version : 1.5\n", 0);
+	system_mock_start(0);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
 	assert_int_equal(module_init(&ras, "ampere-oem-action"), 0);
 	assert_int_equal(access_mock_call_count(), 1);
 	assert_int_equal(popen_mock_call_count(), 1);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
 	assert_int_equal(system_mock_call_count(), 1);
 	command = system_mock_last_command();
-	assert_non_null(strstr(command, "0xbf 0x00 0x00 0x02 0x19"));
-	modules_cleanup_type(ACTIONS_MODULE);
-	system_mock_stop();
-	popen_mock_stop();
-	access_mock_stop();
-	unsetenv(AMPERE_OEM_SEL_ENABLE_ENV);
+	assert_string_equal(command,
+		"ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 "
+		"0x00 0x3a 0xcd 0x00 0xc0 0xbf 0x00 0x00 0x02 0x19");
 }
 
 static const struct CMUnitTest amp_ns_tests[] = {
 	cmocka_unit_test(test_ampere_decoder_registration),
+	cmocka_unit_test_setup_teardown(test_ampere_oem_sel_disabled,
+				       ampere_oem_test_setup, ampere_oem_test_teardown),
+	cmocka_unit_test_setup_teardown(test_ampere_oem_sel_report,
+				       ampere_oem_test_setup, ampere_oem_test_teardown),
 };
 
 int test_amp_ns(void)
@@ -1476,7 +1568,7 @@ REGISTER_TEST(TEST_GROUP_ACTIONS, test_memory_ce_pfa, 0);
 #ifdef HAVE_MEMORY_ROW_CE_PFA
 REGISTER_TEST(TEST_GROUP_ACTIONS, test_memory_row_ce_pfa, 0);
 #endif
-#ifdef HAVE_OPENBMC_UNIFIED_SEL
+#ifdef HAVE_IPMI_BMC
 REGISTER_TEST(TEST_GROUP_ACTIONS, test_openbmc_sel, 0);
 #endif
 #ifdef HAVE_ERST

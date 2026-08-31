@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "actions/unified-sel.h"
+#include "actions/ipmi-bmc.h"
 #include "core/modules.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
@@ -18,7 +18,7 @@
 static int amp_oem_aer_consume(struct ras_events *ras, int event, void *data)
 {
 	struct ras_aer_event *aer = data;
-	uint8_t record[IPMI_SEL_RECORD_SIZE] = {
+	uint8_t record[IPMI_BMC_SEL_RECORD_SIZE] = {
 		[2] = 0xc0,
 		[7] = 0x3a,
 		[8] = 0xcd,
@@ -40,7 +40,7 @@ static int amp_oem_aer_consume(struct ras_events *ras, int event, void *data)
 		record[13] = (seg & 0xff00) >> 8;
 		record[14] = bus;
 		record[15] = ((dev & 0x1f) << 3) | (fn & 0x7);
-		rc = ipmitool_add_sel_entry(record, sizeof(record));
+		rc = ipmi_bmc_add_sel_entry(record, sizeof(record));
 	}
 	if (rc)
 		log(SYSLOG, LOG_WARNING, "Failed to execute ipmitool\n");
@@ -59,15 +59,11 @@ static int amp_oem_action_init(struct ras_module_ctx *ctx)
 {
 	int rc;
 
-	if (!ipmitool_config_enabled(AMPERE_OEM_SEL_ENABLE_ENV))
+	if (!ipmi_bmc_config_enabled(AMPERE_OEM_SEL_ENABLE_ENV))
 		return 0;
 
-	rc = ipmitool_probe_sel();
-	if (rc) {
-		log(ALL, LOG_WARNING,
-		    "Ampere OEM SEL reporting is disabled: no local IPMI device, or ipmitool sel did not return a Version\n");
+	if (!module_is_enabled("ipmi_bmc"))
 		return 0;
-	}
 
 	rc = ras_event_consumer_register(&amp_oem_aer_consumer);
 	if (!rc)

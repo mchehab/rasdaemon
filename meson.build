@@ -151,7 +151,7 @@ enable_memory_row_ce_pfa = false
 enable_mysql = false
 enable_non_standard = false
 enable_nvidia_ns_decode = false
-enable_openbmc_unified_sel = false
+enable_ipmi_bmc = false
 enable_page_isolation = false
 enable_poison_page_stat = false
 enable_postgresql = false
@@ -228,10 +228,15 @@ if not get_option('disable-all')
         enable_amp_ns_decode = true
         enable_arm_vendor_data = true
         enable_non_standard = true
-        lib_sources += [
-            'actions/ampere-oem-action.c',
-            'events-arch-arm/non-standard-ampere.c',
-        ]
+        lib_sources += 'events-arch-arm/non-standard-ampere.c'
+
+        if not get_option('openbmc-unified-sel').disabled()
+            enable_ipmi_bmc = true
+            lib_sources += [
+                'actions/ampere-oem-action.c',
+                'actions/openbmc-unified-sel.c',
+            ]
+        endif
     endif
 
     if arch_arm and not get_option('arm').disabled()
@@ -317,11 +322,6 @@ if not get_option('disable-all')
         lib_sources += 'events-arch-arm/non-standard-nvidia.c'
     endif
 
-    if not get_option('openbmc-unified-sel').disabled()
-        enable_openbmc_unified_sel = true
-        lib_sources += 'actions/unified-sel.c'
-    endif
-
     if not get_option('signal').disabled()
         enable_signal = true
         lib_sources += 'events/ras-signal-handler.c'
@@ -375,6 +375,10 @@ endif
 #
 # Add database modules
 #
+
+if enable_ipmi_bmc
+    lib_sources += 'actions/ipmi-bmc.c'
+endif
 
 if enable_db
     lib_sources += [
@@ -467,7 +471,8 @@ if have_unittest
     if enable_reri
         hermetic_test_groups += 'riscv-events'
     endif
-    if enable_abrt_report or enable_cpu_fault_isolation or enable_memory_ce_pfa or enable_memory_row_ce_pfa or enable_openbmc_unified_sel
+    if enable_abrt_report or enable_cpu_fault_isolation or \
+       enable_memory_ce_pfa or enable_memory_row_ce_pfa or enable_ipmi_bmc
         hermetic_test_groups += 'actions'
     endif
     if enable_sqlite3
@@ -775,7 +780,7 @@ conf_header = configuration_data({
     'HAVE_MYSQL' : enable_mysql,
     'HAVE_NON_STANDARD' : enable_non_standard,
     'HAVE_NVIDIA_NS_DECODE' : enable_nvidia_ns_decode,
-    'HAVE_OPENBMC_UNIFIED_SEL' : enable_openbmc_unified_sel,
+    'HAVE_IPMI_BMC' : enable_ipmi_bmc,
     'HAVE_POSTGRESQL' : enable_postgresql,
     'HAVE_RERI' : enable_reri,
     'HAVE_SIGNAL' : enable_signal,
@@ -809,7 +814,7 @@ summary(
         'Memory CE PFA' : enable_memory_ce_pfa,
         'Memory Failure' : enable_memory_failure,
         'Memory ROW CE PFA' : enable_memory_row_ce_pfa,
-        'OpenBMC unified' : enable_openbmc_unified_sel,
+        'IPMI BMC' : enable_ipmi_bmc,
         'Signal' : enable_signal,
     },
     section : 'General options',

@@ -22,23 +22,33 @@ names in ``group:event`` form. For example::
 
 Database selection and connection settings are described in :doc:`databases`.
 
-OpenBMC IPMI SEL reporting
---------------------------
+IPMI BMC reporting
+------------------
 
-When the system as a valid IPMI device, detected by the presence of either
-``/dev/ipmi0``, ``/dev/ipmi/0`` or ``/dev/ipmidev/0`` and by a successful
-run of ``ipmitool sel``, the OpenBMC IPMI SEL consumer report considered
-ready to be enabled.
+RAS Daemon has some support to use IPMI and OpenBMC.
 
-To actually enable, ``IPMITOOL_ENABLE=yes`` should be set, allowing
-OpenBMC vendor-specific handlers to be enabled.
+IPMI is the management protocol used to access a BMC's System Event Log
+(SEL).
 
-Currently, there's just one such handlers:
+OpenBMC is a BMC firmware that implements IPMI, Redfish, and other
+interfaces.
 
-Ampere: enable it via ``AMPERE_OEM_SEL_ENABLE=yes`` That activates
-forwarding PCI AER errors to OpenBMC. Please notice that each reported AER
-status bit consumes a SEL entry, so monitor the available SEL space when
-enabling the consumer.
+The current support assumes OpenBMC IPMI support for SEL.
+
+SEL consumers require a local IPMI device (``/dev/ipmi0``, ``/dev/ipmi/0``,
+or ``/dev/ipmidev/0``) and a successful ``ipmitool sel`` command with a
+``Version`` field. They remain disabled unless individually selected.
+
+``OPENBMC_UNIFIED_SEL_ENABLE=yes`` enables the OpenBMC unified SEL consumer.
+It creates OpenBMC-specific OEM record type ``0xfb`` entries and must be used
+only with BMC firmware that supports that record format.
+
+``AMPERE_OEM_SEL_ENABLE=yes`` enables Ampere's separate OEM-specific
+AER SEL format. It embeds Ampere's IANA enterprise number and must be
+used only with BMC firmware that expects it.
+
+Each reported AER event consumes a SEL entry, so monitor the available SEL
+space when enabling an IPMI consumer.
 
 Both settings default to ``no``.
 

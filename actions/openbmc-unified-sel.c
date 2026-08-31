@@ -13,7 +13,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "actions/unified-sel.h"
+#include "actions/ipmi-bmc.h"
 #include "core/modules.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
@@ -52,94 +52,12 @@ static const char *uncor_error_ids[32] = {
 	[25] = "0x2F", /* TLP Prefix Blocked */
 };
 
-bool ipmitool_config_enabled(const char *name)
-{
-	const char *value = getenv(name);
-
-	if (!value || !*value || !strcasecmp(value, "no") ||
-	    !strcasecmp(value, "false") || !strcasecmp(value, "off") ||
-	    !strcmp(value, "0"))
-		return false;
-
-	if (!strcasecmp(value, "yes") || !strcasecmp(value, "true") ||
-	    !strcasecmp(value, "on") || !strcmp(value, "1"))
-		return true;
-
-	log(ALL, LOG_WARNING,
-	    "Ignoring invalid %s=%s; use yes or no\n", name, value);
-	return false;
-}
-
-int ipmitool_probe_sel(void)
-{
-	static const char * const ipmi_devices[] = {
-		"/dev/ipmi0",
-		"/dev/ipmi/0",
-		"/dev/ipmidev/0",
-	};
-	char output[256];
-	bool found_version = false;
-	FILE *fp;
-	int status;
-	size_t i;
-	size_t nr_devices = sizeof(ipmi_devices) / sizeof(*ipmi_devices);
-
-	for (i = 0; i < nr_devices; i++)
-		if (!access(ipmi_devices[i], F_OK))
-			break;
-
-	if (i == nr_devices)
-		return -ENODEV;
-
-	/* Capture stderr too, avoiding shell diagnostics during the probe. */
-	fp = popen("ipmitool sel 2>&1", "r");
-	if (!fp)
-		return -errno;
-
-	while (fgets(output, sizeof(output), fp)) {
-		char *p = output;
-
-		while (isspace((unsigned char)*p))
-			p++;
-		if (!strncmp(p, "Version", sizeof("Version") - 1))
-			found_version = true;
-	}
-
-	status = pclose(fp);
-	if (status < 0)
-		return -errno;
-	if (!WIFEXITED(status) || WEXITSTATUS(status) || !found_version)
-		return -ENODEV;
-
-	return 0;
-}
-
-int ipmitool_add_sel_entry(const uint8_t *record, size_t size)
-{
-	char command[256] = "ipmitool raw 0x0a 0x44";
-	size_t offset = sizeof("ipmitool raw 0x0a 0x44") - 1;
-	int written;
-
-	if (!record || size != IPMI_SEL_RECORD_SIZE)
-		return -EINVAL;
-
-	for (size_t i = 0; i < size; i++) {
-		written = snprintf(command + offset, sizeof(command) - offset,
-				   " 0x%02x", record[i]);
-		if (written < 0 || (size_t)written >= sizeof(command) - offset)
-			return -EOVERFLOW;
-		offset += written;
-	}
-
-	return system(command) ? -EIO : 0;
-}
-
 static int verify_id_log_sel(uint64_t status,
 			     const char **idarray,
 			     unsigned int bus,
 			     unsigned int dev_fn)
 {
-	uint8_t record[IPMI_SEL_RECORD_SIZE] = {
+	uint8_t record[IPMI_BMC_SEL_RECORD_SIZE] = {
 		[2] = 0xfb,
 		[3] = 0x20,
 		[8] = 0x01,
@@ -176,7 +94,7 @@ static int verify_id_log_sel(uint64_t status,
 			record[10] = dev_fn;
 			record[11] = bus;
 			record[15] = strtoul(idarray[i], NULL, 0);
-			if (ipmitool_add_sel_entry(record, sizeof(record)))
+			if (ipmi_bmc_add_sel_entry(record, sizeof(record)))
 				return -1;
 		}
 	}
@@ -227,15 +145,11 @@ static int openbmc_unified_sel_init(struct ras_module_ctx *ctx)
 {
 	int rc;
 
-	if (!ipmitool_config_enabled(IPMITOOL_ENABLE_ENV))
+	if (!ipmi_bmc_config_enabled(OPENBMC_UNIFIED_SEL_ENABLE_ENV))
 		return 0;
 
-	rc = ipmitool_probe_sel();
-	if (rc) {
-		log(ALL, LOG_WARNING,
-		    "IPMI SEL reporting is disabled: no local IPMI device, or ipmitool sel did not return a Version\n");
+	if (!module_is_enabled("ipmi_bmc"))
 		return 0;
-	}
 
 	rc = ras_event_consumer_register(&openbmc_unified_sel_consumer);
 	if (!rc)
@@ -251,7 +165,7 @@ static void openbmc_unified_sel_cleanup(struct ras_module_ctx *ctx)
 
 static const struct ras_module_entry openbmc_unified_sel_module = {
 	.name = "openbmc-unified-sel",
-	.level = ACTIONS_MODULE,
+	.level = ACTIONS_SUB_MODULE,
 	.init = openbmc_unified_sel_init,
 	.cleanup = openbmc_unified_sel_cleanup,
 };
