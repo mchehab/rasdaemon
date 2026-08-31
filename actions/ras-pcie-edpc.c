@@ -18,11 +18,22 @@
 
 #define EDPC_DEVICE "EDPC_DEVICE"
 
-#define PCI_EXP_DPC_CTL_EN_MASK	0x3
+#define PCI_EXP_DPC_CTL_EN_MASK	(PCI_EXP_DPC_CTL_EN_FATAL | \
+				 PCI_EXP_DPC_CTL_EN_NONFATAL)
 
-static char *edpc_str[] = {
-	[PCI_EXP_DPC_CTL_EN_FATAL] = "Fatal Error",
-	[PCI_EXP_DPC_CTL_EN_NONFATAL] = "Non-Fatal Error",
+static char *edpc_str(int bit)
+{
+	if (bit == PCI_EXP_DPC_CTL_EN_FATAL)
+		return "Fatal Error";
+
+	if (bit == PCI_EXP_DPC_CTL_EN_NONFATAL)
+		return "Non-Fatal Error";
+
+	/*
+	 * We can't tell if the error is fatal or not if
+	 * both bits are on or off
+	 */
+	return "Error";
 };
 
 static bool is_cxl_mem_or_cache(struct pci_dev *dev)
@@ -97,17 +108,17 @@ static void set_edpc(struct pci_dev *dev)
 	log(TERM, LOG_INFO, "Device %x:%x:%x.%x origin EDPC %s and triggered for %s, %s need config\n",
 	    dev->domain, dev->bus, dev->dev, dev->func,
 	    (control & PCI_EXP_DPC_CTL_INT_EN) ? "enabled" : "disabled",
-	    edpc_str[control & PCI_EXP_DPC_CTL_EN_MASK],
+	    edpc_str(control & PCI_EXP_DPC_CTL_EN_MASK),
 	    need_config ? "" : "not");
 
 	if (need_config) {
-		control &= PCI_EXP_DPC_CTL_EN_MASK;
+		control &= ~PCI_EXP_DPC_CTL_EN_MASK;
 		control |= PCI_EXP_DPC_CTL_EN_FATAL;
 		pci_write_word(dev, cap->addr + PCI_EXP_DPC_CTL, control);
 		log(TERM, LOG_INFO, "Device %x:%x:%x.%x EDPC %s and triggered for %s\n",
 		    dev->domain, dev->bus, dev->dev, dev->func,
 		    (control & PCI_EXP_DPC_CTL_INT_EN) ? "enabled" : "disabled",
-		    edpc_str[control & PCI_EXP_DPC_CTL_EN_MASK]);
+		    edpc_str(control & PCI_EXP_DPC_CTL_EN_MASK));
 	}
 }
 
