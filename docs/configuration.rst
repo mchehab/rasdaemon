@@ -33,12 +33,20 @@ IPMI is the management protocol used to access a BMC's System Event Log
 OpenBMC is BMC firmware that can implement IPMI, Redfish, and other
 interfaces. It does not define one universal OEM SEL format.
 
-The ``ampere-oem-sel`` and ``openbmc-unified-sel`` Meson features build the
-Ampere OEM and Facebook/Meta Unified SEL consumers, respectively.
+The ``bmc-generic``, ``ampere-oem-sel``, and ``openbmc-unified-sel`` Meson
+features build the generic IPMI, Ampere OEM, and Facebook/Meta Unified SEL
+consumers, respectively.
 
 SEL consumers require a local IPMI device (``/dev/ipmi0``, ``/dev/ipmi/0``,
 or ``/dev/ipmidev/0``) and a successful ``ipmitool sel`` command with a
 ``Version`` field. They remain disabled unless individually selected.
+
+``BMC_GENERIC_ENABLE=yes`` enables the generic BMC consumer. It writes
+standard IPMI system-event SEL records using the Critical Interrupt sensor:
+corrected, non-fatal, and fatal AER events map to Bus Correctable, Bus
+Uncorrectable, and Bus Fatal events. The PCI bus and device/function occupy
+the event's OEM data bytes. Enable it only after confirming that the target
+BMC accepts locally added SEL entries.
 
 ``OPENBMC_UNIFIED_SEL_ENABLE=yes`` enables the Facebook/Meta Unified SEL
 consumer. It writes non-timestamped OEM record type ``0xfb`` entries. Enable

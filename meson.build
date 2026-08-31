@@ -133,6 +133,7 @@ mce_sources = [
 enable_abrt_report = false
 enable_aer = false
 enable_amp_ns_decode = false
+enable_ampere_oem_sel = false
 enable_arm = false
 enable_arm_vendor_data = false
 enable_cpu_fault_isolation = false
@@ -143,6 +144,8 @@ enable_diskerror = false
 enable_erst = false
 enable_extlog = false
 enable_hisi_ns_decode = false
+enable_bmc_generic = false
+enable_ipmi_bmc = false
 enable_jaguar_ns_decode = false
 enable_mce = false
 enable_memory_ce_pfa = false
@@ -151,7 +154,7 @@ enable_memory_row_ce_pfa = false
 enable_mysql = false
 enable_non_standard = false
 enable_nvidia_ns_decode = false
-enable_ipmi_bmc = false
+enable_openbmc_unified_sel = false
 enable_page_isolation = false
 enable_poison_page_stat = false
 enable_postgresql = false
@@ -232,11 +235,19 @@ if not get_option('disable-all')
     endif
 
     if arch_arm and not get_option('ampere-oem-sel').disabled()
+        enable_ampere_oem_sel = true
         enable_ipmi_bmc = true
         lib_sources += 'actions/ampere-oem-sel.c'
     endif
 
+    if not get_option('bmc-generic').disabled()
+        enable_bmc_generic = true
+        enable_ipmi_bmc = true
+        lib_sources += 'actions/bmc-generic.c'
+    endif
+
     if arch_arm and not get_option('openbmc-unified-sel').disabled()
+        enable_openbmc_unified_sel = true
         enable_ipmi_bmc = true
         lib_sources += 'actions/openbmc-unified-sel.c'
     endif
@@ -765,6 +776,7 @@ conf_header = configuration_data({
     'HAVE_ABRT_REPORT' : enable_abrt_report,
     'HAVE_AER' : enable_aer,
     'HAVE_AMP_NS_DECODE' : enable_amp_ns_decode,
+    'HAVE_AMPERE_OEM_SEL' : enable_ampere_oem_sel,
     'HAVE_ARM' : enable_arm,
     'HAVE_DB' : enable_db,
     'HAVE_CPU_FAULT_ISOLATION' : enable_cpu_fault_isolation,
@@ -774,6 +786,8 @@ conf_header = configuration_data({
     'HAVE_ERST' : enable_erst,
     'HAVE_EXTLOG' : enable_extlog,
     'HAVE_HISI_NS_DECODE' : enable_hisi_ns_decode,
+    'HAVE_BMC_GENERIC' : enable_bmc_generic,
+    'HAVE_IPMI_BMC' : enable_ipmi_bmc,
     'HAVE_JAGUAR_NS_DECODE' : enable_jaguar_ns_decode,
     'HAVE_MCE' : enable_mce,
     'HAVE_MEMORY_CE_PFA' : enable_memory_ce_pfa,
@@ -782,7 +796,7 @@ conf_header = configuration_data({
     'HAVE_MYSQL' : enable_mysql,
     'HAVE_NON_STANDARD' : enable_non_standard,
     'HAVE_NVIDIA_NS_DECODE' : enable_nvidia_ns_decode,
-    'HAVE_IPMI_BMC' : enable_ipmi_bmc,
+    'HAVE_OPENBMC_UNIFIED_SEL' : enable_openbmc_unified_sel,
     'HAVE_POSTGRESQL' : enable_postgresql,
     'HAVE_RERI' : enable_reri,
     'HAVE_SIGNAL' : enable_signal,
@@ -807,16 +821,18 @@ summary(
         # Keep in alphabetic order
         'ABRT report' : enable_abrt_report,
         'AER' : enable_aer,
+        'Ampere OEM SEL' : enable_ampere_oem_sel,
         'CPU fault isolation' : enable_cpu_fault_isolation,
         'CXL events' : enable_cxl,
         'DEVLINK' : enable_devlink,
         'Disk I/O errors' : enable_diskerror,
         'ERST' : enable_erst,
         'EXTLOG' : enable_extlog,
+        'Facebook Unified SEL' : enable_openbmc_unified_sel,
+        'Generic BMC SEL'     : enable_bmc_generic,
         'Memory CE PFA' : enable_memory_ce_pfa,
         'Memory Failure' : enable_memory_failure,
         'Memory ROW CE PFA' : enable_memory_row_ce_pfa,
-        'IPMI BMC' : enable_ipmi_bmc,
         'Signal' : enable_signal,
     },
     section : 'General options',

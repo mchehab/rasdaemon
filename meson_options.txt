@@ -43,6 +43,8 @@ option('erst', type : 'feature',
         description: 'enable erst')
 option('extlog', type : 'feature',
         description: 'enable EXTLOG events')
+option('bmc-generic', type : 'feature',
+        description: 'enable generic BMC PCIe AER SEL reports')
 option('memory-failure', type : 'feature',
         description: 'enable memory failure events')
 option('memory-ce-pfa', type : 'feature',
