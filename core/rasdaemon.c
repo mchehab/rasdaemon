@@ -50,7 +50,6 @@ const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.or
  * struct arguments - parsed command-line state
  * @record_events: database recording request count
  * @enable_ras: positive to enable or negative to disable tracing
- * @enable_ipmitool: IPMI reporting request count
  * @foreground: nonzero to avoid daemonizing
  * @offline: nonzero to decode a supplied offline MCE
  * @cfg_file: explicit environment configuration path
@@ -58,7 +57,6 @@ const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.or
 struct arguments {
 	int record_events;
 	int enable_ras;
-	int enable_ipmitool;
 	int foreground;
 	int offline;
 	char *cfg_file;
@@ -118,11 +116,6 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'r':
 		args->record_events++;
 		break;
-#ifdef HAVE_OPENBMC_UNIFIED_SEL
-	case 'i':
-		args->enable_ipmitool++;
-		break;
-#endif
 	case 'f':
 		args->foreground++;
 		break;
@@ -237,9 +230,6 @@ int main(int argc, char *argv[])
 		{"foreground", 'f', 0,       0, "run foreground, not daemonize", 0},
 
 		{"record",     'r', 0,       0, "record events at the SQL backend", 0},
-#ifdef HAVE_OPENBMC_UNIFIED_SEL
-		{"ipmitool",   'i', 0,       0, "enable ipmitool logging", 0},
-#endif
 #ifdef HAVE_MCE
 		{"post-processing", 'p', 0, 0,
 		"Post-processing MCE's with raw register values", 2},
@@ -325,7 +315,7 @@ int main(int argc, char *argv[])
 
 	db_backend_enable(NULL);
 
-	if (ras_events_prepare(ras, args.record_events, args.enable_ipmitool)) {
+	if (ras_events_prepare(ras, args.record_events)) {
 		modules_unregister();
 		free(ras);
 		return EXIT_FAILURE;

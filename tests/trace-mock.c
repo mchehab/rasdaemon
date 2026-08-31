@@ -6,10 +6,14 @@
  */
 
 #include <assert.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <traceevent/event-parse.h>
+#include <unistd.h>
 
 #include "tests/trace-mock.h"
 
@@ -31,6 +35,14 @@ static bool mock_system;
 static int mock_system_result;
 static unsigned int mock_system_calls;
 static char mock_system_command[512];
+static bool mock_popen;
+static int mock_pclose_status;
+static unsigned int mock_popen_calls;
+static char mock_popen_output[1024];
+static FILE *mock_popen_stream;
+static bool mock_access;
+static unsigned int mock_access_calls;
+static char mock_access_path[PATH_MAX];
 
 int __real_tep_get_field_val(struct trace_seq *s, struct tep_event *event,
 			     const char *name, struct tep_record *record,
@@ -41,6 +53,9 @@ void *__real_tep_get_field_raw(struct trace_seq *s, struct tep_event *event,
 enum tep_errno __real_tep_filter_match(struct tep_event_filter *filter,
 				       struct tep_record *record);
 int __real_system(const char *command);
+FILE *__real_popen(const char *command, const char *type);
+int __real_pclose(FILE *stream);
+int __real_access(const char *pathname, int mode);
 
 void trace_mock_start(void)
 {
@@ -159,4 +174,99 @@ int __wrap_system(const char *command)
 		mock_system_command[sizeof(mock_system_command) - 1] = '\0';
 	}
 	return mock_system_result;
+}
+
+void popen_mock_start(const char *output, int status)
+{
+	assert(!mock_popen_stream);
+	mock_popen = true;
+	mock_pclose_status = status;
+	mock_popen_calls = 0;
+	if (output) {
+		strncpy(mock_popen_output, output,
+			sizeof(mock_popen_output) - 1);
+		mock_popen_output[sizeof(mock_popen_output) - 1] = '\0';
+	} else {
+		mock_popen_output[0] = '\0';
+	}
+}
+
+void popen_mock_stop(void)
+{
+	if (mock_popen_stream)
+		fclose(mock_popen_stream);
+	mock_popen_stream = NULL;
+	mock_popen = false;
+}
+
+unsigned int popen_mock_call_count(void)
+{
+	return mock_popen_calls;
+}
+
+FILE *__wrap_popen(const char *command, const char *type)
+{
+	if (!mock_popen)
+		return __real_popen(command, type);
+
+	assert(!mock_popen_stream);
+	assert(!strcmp(command, "ipmitool sel 2>&1"));
+	assert(!strcmp(type, "r"));
+	mock_popen_calls++;
+	mock_popen_stream = tmpfile();
+	if (!mock_popen_stream)
+		return NULL;
+	fputs(mock_popen_output, mock_popen_stream);
+	rewind(mock_popen_stream);
+	return mock_popen_stream;
+}
+
+int __wrap_pclose(FILE *stream)
+{
+	int status;
+
+	if (!mock_popen || stream != mock_popen_stream)
+		return __real_pclose(stream);
+
+	status = mock_pclose_status;
+	fclose(mock_popen_stream);
+	mock_popen_stream = NULL;
+	return status;
+}
+
+void access_mock_start(const char *existing_path)
+{
+	mock_access = true;
+	mock_access_calls = 0;
+	if (existing_path) {
+		strncpy(mock_access_path, existing_path,
+			sizeof(mock_access_path) - 1);
+		mock_access_path[sizeof(mock_access_path) - 1] = '\0';
+	} else {
+		mock_access_path[0] = '\0';
+	}
+}
+
+void access_mock_stop(void)
+{
+	mock_access = false;
+}
+
+unsigned int access_mock_call_count(void)
+{
+	return mock_access_calls;
+}
+
+int __wrap_access(const char *pathname, int mode)
+{
+	if (!mock_access)
+		return __real_access(pathname, mode);
+
+	mock_access_calls++;
+	assert(mode == F_OK);
+	if (mock_access_path[0] && !strcmp(pathname, mock_access_path))
+		return 0;
+
+	errno = ENOENT;
+	return -1;
 }

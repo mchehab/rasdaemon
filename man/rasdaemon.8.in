@@ -65,10 +65,6 @@ Record RAS events using the selected SQL backend. The backend defaults to
 SQLite and can be selected with \fBRASDAEMON_DB_BACKEND\fR. At least one
 database backend must have been compiled in.
 .TP
-.BR "-i" ", " "--ipmitool"
-Enable ipmitool logging. This option is present only when OpenBMC unified SEL
-support was compiled in.
-.TP
 .BR "-p" ", " "--post-processing"
 Decode an x86 machine-check event from raw register values instead of starting
 the daemon. This option and the following machine-check options are present

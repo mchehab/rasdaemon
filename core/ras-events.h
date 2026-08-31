@@ -162,7 +162,6 @@ struct ras_event_entry {
  * @page_size: kernel tracing page size
  * @use_uptime: timestamps use uptime rather than wall clock
  * @record_events: database recording is requested
- * @enable_ipmitool: IPMI event reporting is requested
  * @uptime_diff: wall-clock offset from monotonic uptime
  * @db: active backend connection
  * @db_priv: backend-private per-session data
@@ -182,7 +181,6 @@ struct ras_events {
 	/* Booleans */
 	unsigned		use_uptime: 1;
 	unsigned		record_events: 1;
-	unsigned		enable_ipmitool: 1;
 
 	/* For timestamp */
 	time_t			uptime_diff;
@@ -285,8 +283,7 @@ int ras_event_consumer_unregister(const struct ras_event_consumer *consumer);
 int ras_event_publish(struct ras_events *ras, int event, void *data);
 int ras_event_filter(struct ras_events *ras, const char *group,
 		     const char *event, const char *filter);
-int ras_events_prepare(struct ras_events *ras, int record_events,
-		       int enable_ipmitool);
+int ras_events_prepare(struct ras_events *ras, int record_events);
 void ras_events_cleanup(struct ras_events *ras);
 int handle_ras_events(struct ras_events *ras);
 #ifdef HAVE_UNITTEST

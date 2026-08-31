@@ -1392,7 +1392,6 @@ static int add_event_handler(struct ras_events *ras,
  * ras_events_prepare - initialize tracing and all registered event handlers
  * @ras: zero-initialized process context
  * @record_events: enable database recording consumers
- * @enable_ipmitool: enable IPMI reporting
  *
  * The caller owns @ras and must call ras_events_cleanup() after a successful
  * call, including if a later database/module initialization step fails.
@@ -1402,8 +1401,7 @@ static int add_event_handler(struct ras_events *ras,
  * * 0 - basic preparation completed; unsupported individual events were skipped
  * * otherwise - a negative tracing-setup or parser-allocation error
  */
-int ras_events_prepare(struct ras_events *ras, int record_events,
-		       int enable_ipmitool)
+int ras_events_prepare(struct ras_events *ras, int record_events)
 {
 	struct ras_event_runtime *event;
 	struct tep_handle *pevent;
@@ -1430,7 +1428,6 @@ int ras_events_prepare(struct ras_events *ras, int record_events,
 	ras->pevent = pevent;
 	ras->page_size = get_pagesize(ras, pevent);
 	ras->record_events = record_events;
-	ras->enable_ipmitool = enable_ipmitool;
 	ras->daemon_active_fd = -1;
 	ras->num_events = 0;
 

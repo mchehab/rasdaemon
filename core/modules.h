@@ -17,6 +17,7 @@ struct ras_module_ctx;
  * @BASE_EVENT_MODULE: base event decoders and table owners
  * @SUB_EVENT_MODULE: decoders which depend on base event modules
  * @ACTIONS_MODULE: consumers of decoded events
+ * @ACTIONS_SUB_MODULE: consumer modules that depend on a base consumer
  * @MAX_LEVELS: number of initialization levels
  *
  * Initialization proceeds from @DB_MODULE to @ACTIONS_MODULE. Process-wide
@@ -27,6 +28,7 @@ enum init_level {
 	BASE_EVENT_MODULE,
 	SUB_EVENT_MODULE,
 	ACTIONS_MODULE,
+	ACTIONS_SUB_MODULE,
 
 	/* Should be the last one */
 	MAX_LEVELS

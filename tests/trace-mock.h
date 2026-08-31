@@ -7,6 +7,7 @@
 #define RAS_TEST_TRACE_MOCK_H
 
 #include <stddef.h>
+#include <stdio.h>
 
 void trace_mock_start(void);
 void trace_mock_stop(void);
@@ -17,5 +18,11 @@ void system_mock_start(int result);
 void system_mock_stop(void);
 unsigned int system_mock_call_count(void);
 const char *system_mock_last_command(void);
+void popen_mock_start(const char *output, int status);
+void popen_mock_stop(void);
+unsigned int popen_mock_call_count(void);
+void access_mock_start(const char *existing_path);
+void access_mock_stop(void);
+unsigned int access_mock_call_count(void);
 
 #endif

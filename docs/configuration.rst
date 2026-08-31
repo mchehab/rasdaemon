@@ -22,6 +22,26 @@ names in ``group:event`` form. For example::
 
 Database selection and connection settings are described in :doc:`databases`.
 
+OpenBMC IPMI SEL reporting
+--------------------------
+
+When the system as a valid IPMI device, detected by the presence of either
+``/dev/ipmi0``, ``/dev/ipmi/0`` or ``/dev/ipmidev/0`` and by a successful
+run of ``ipmitool sel``, the OpenBMC IPMI SEL consumer report considered
+ready to be enabled.
+
+To actually enable, ``IPMITOOL_ENABLE=yes`` should be set, allowing
+OpenBMC vendor-specific handlers to be enabled.
+
+Currently, there's just one such handlers:
+
+Ampere: enable it via ``AMPERE_OEM_SEL_ENABLE=yes`` That activates
+forwarding PCI AER errors to OpenBMC. Please notice that each reported AER
+status bit consumes a SEL entry, so monitor the available SEL space when
+enabling the consumer.
+
+Both settings default to ``no``.
+
 Corrected-error actions
 -----------------------
 

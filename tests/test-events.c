@@ -42,6 +42,7 @@
 #include "actions/ras-page-isolation.h"
 #include "actions/ras-poison-page-stat.h"
 #include "actions/abrt-report.h"
+#include "actions/unified-sel.h"
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
 
@@ -1025,11 +1026,43 @@ static void test_openbmc_sel_commands(void **state)
 		.status = BIT_ULL(0),
 		.dev_name = "0000:02:03.1",
 	};
-	struct ras_events ras = { .enable_ipmitool = true };
+	struct ras_events ras = { 0 };
 
+	unsetenv(IPMITOOL_ENABLE_ENV);
+	access_mock_start(NULL);
+	popen_mock_start("Version : 1.5\n", 0);
 	system_mock_start(0);
 	modules_cleanup_type(ACTIONS_MODULE);
 	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
+	assert_int_equal(popen_mock_call_count(), 0);
+	assert_int_equal(access_mock_call_count(), 0);
+	assert_int_equal(system_mock_call_count(), 0);
+	modules_cleanup_type(ACTIONS_MODULE);
+
+	assert_int_equal(setenv(IPMITOOL_ENABLE_ENV, "yes", 1), 0);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(access_mock_call_count(), 3);
+	assert_int_equal(popen_mock_call_count(), 0);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
+	assert_int_equal(system_mock_call_count(), 0);
+	modules_cleanup_type(ACTIONS_MODULE);
+
+	access_mock_stop();
+	access_mock_start("/dev/ipmi0");
+	popen_mock_stop();
+	popen_mock_start("SEL Information\nEntries: 1\n", 0);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(access_mock_call_count(), 1);
+	assert_int_equal(popen_mock_call_count(), 1);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
+	assert_int_equal(system_mock_call_count(), 0);
+	modules_cleanup_type(ACTIONS_MODULE);
+
+	popen_mock_stop();
+	popen_mock_start("SEL Information\nVersion : 1.5\n", 0);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(popen_mock_call_count(), 1);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(system_mock_call_count(), 1);
 	assert_non_null(strstr(system_mock_last_command(), "0x19 0x02"));
@@ -1044,6 +1077,9 @@ static void test_openbmc_sel_commands(void **state)
 	assert_int_equal(system_mock_call_count(), 1);
 	modules_cleanup_type(ACTIONS_MODULE);
 	system_mock_stop();
+	popen_mock_stop();
+	access_mock_stop();
+	unsetenv(IPMITOOL_ENABLE_ENV);
 }
 
 static const struct CMUnitTest openbmc_tests[] = {
@@ -1286,15 +1322,31 @@ static void test_ampere_decoder_registration(void **state)
 					       sizeof(payload)));
 	trace_seq_destroy(&seq);
 
+	unsetenv(AMPERE_OEM_SEL_ENABLE_ENV);
+	access_mock_start("/dev/ipmi0");
+	popen_mock_start("Version : 1.5\n", 0);
 	system_mock_start(0);
 	modules_cleanup_type(ACTIONS_MODULE);
 	assert_int_equal(module_init(&ras, "ampere-oem-action"), 0);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
+	assert_int_equal(popen_mock_call_count(), 0);
+	assert_int_equal(access_mock_call_count(), 0);
+	assert_int_equal(system_mock_call_count(), 0);
+	modules_cleanup_type(ACTIONS_MODULE);
+
+	assert_int_equal(setenv(AMPERE_OEM_SEL_ENABLE_ENV, "yes", 1), 0);
+	assert_int_equal(module_init(&ras, "ampere-oem-action"), 0);
+	assert_int_equal(access_mock_call_count(), 1);
+	assert_int_equal(popen_mock_call_count(), 1);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
 	assert_int_equal(system_mock_call_count(), 1);
 	command = system_mock_last_command();
 	assert_non_null(strstr(command, "0xbf 0x00 0x00 0x02 0x19"));
 	modules_cleanup_type(ACTIONS_MODULE);
 	system_mock_stop();
+	popen_mock_stop();
+	access_mock_stop();
+	unsetenv(AMPERE_OEM_SEL_ENABLE_ENV);
 }
 
 static const struct CMUnitTest amp_ns_tests[] = {
