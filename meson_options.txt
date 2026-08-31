@@ -29,6 +29,8 @@ option('abrt-report', type : 'feature',
         description: 'enable report event to ABRT')
 option('aer', type : 'feature',
         description: 'enable PCIe AER events')
+option('ampere-oem-sel', type : 'feature',
+        description: 'enable Ampere OEM timestamped SEL (0xc0) reports')
 option('cpu-fault-isolation', type : 'feature',
         description: 'enable cpu online fault isolation')
 option('cxl', type : 'feature',
@@ -48,7 +50,7 @@ option('memory-ce-pfa', type : 'feature',
 option('memory-row-ce-pfa', type : 'feature',
         description: 'enable memory row Corrected Error predictive failure analysis')
 option('openbmc-unified-sel', type : 'feature',
-        description: 'enable OpenBMC unified SEL reports')
+        description: 'enable Facebook Unified SEL (0xfb) BMC reports')
 option('signal', type : 'feature',
         description: 'enable signal event(currently experimental)')
 

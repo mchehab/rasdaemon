@@ -1405,7 +1405,7 @@ static void test_ampere_oem_sel_disabled(void **state)
 	access_mock_start("/dev/ipmi0");
 	popen_mock_start("Version : 1.5\n", 0);
 	system_mock_start(0);
-	assert_int_equal(module_init(&ras, "ampere-oem-action"), 0);
+	assert_int_equal(module_init(&ras, "ampere-oem-sel"), 0);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
 	assert_int_equal(popen_mock_call_count(), 0);
 	assert_int_equal(access_mock_call_count(), 0);
@@ -1426,7 +1426,7 @@ static void test_ampere_oem_sel_report(void **state)
 	popen_mock_start("Version : 1.5\n", 0);
 	system_mock_start(0);
 	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
-	assert_int_equal(module_init(&ras, "ampere-oem-action"), 0);
+	assert_int_equal(module_init(&ras, "ampere-oem-sel"), 0);
 	assert_int_equal(access_mock_call_count(), 1);
 	assert_int_equal(popen_mock_call_count(), 1);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);

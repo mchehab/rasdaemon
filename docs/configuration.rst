@@ -25,27 +25,31 @@ Database selection and connection settings are described in :doc:`databases`.
 IPMI BMC reporting
 ------------------
 
-RAS Daemon has some support to use IPMI and OpenBMC.
+RAS Daemon can report PCIe AER events to a BMC through IPMI.
 
 IPMI is the management protocol used to access a BMC's System Event Log
 (SEL).
 
-OpenBMC is a BMC firmware that implements IPMI, Redfish, and other
-interfaces.
+OpenBMC is BMC firmware that can implement IPMI, Redfish, and other
+interfaces. It does not define one universal OEM SEL format.
 
-The current support assumes OpenBMC IPMI support for SEL.
+The ``ampere-oem-sel`` and ``openbmc-unified-sel`` Meson features build the
+Ampere OEM and Facebook/Meta Unified SEL consumers, respectively.
 
 SEL consumers require a local IPMI device (``/dev/ipmi0``, ``/dev/ipmi/0``,
 or ``/dev/ipmidev/0``) and a successful ``ipmitool sel`` command with a
 ``Version`` field. They remain disabled unless individually selected.
 
-``OPENBMC_UNIFIED_SEL_ENABLE=yes`` enables the OpenBMC unified SEL consumer.
-It creates OpenBMC-specific OEM record type ``0xfb`` entries and must be used
-only with BMC firmware that supports that record format.
+``OPENBMC_UNIFIED_SEL_ENABLE=yes`` enables the Facebook/Meta Unified SEL
+consumer. It writes non-timestamped OEM record type ``0xfb`` entries. Enable
+it only on BMC firmware that includes ``fb-ipmi-oem`` Unified SEL support;
+OpenBMC branding alone is not sufficient.
 
-``AMPERE_OEM_SEL_ENABLE=yes`` enables Ampere's separate OEM-specific
-AER SEL format. It embeds Ampere's IANA enterprise number and must be
-used only with BMC firmware that expects it.
+``AMPERE_OEM_SEL_ENABLE=yes`` enables Ampere's OEM AER SEL consumer. It
+writes timestamped OEM record type ``0xc0`` entries, with Ampere's IANA
+Private Enterprise Number 52538 and Ampere-defined PCIe location data. Enable
+it only on BMC firmware that implements this payload. The public Ampere
+documentation does not identify a compatible model list.
 
 Each reported AER event consumes a SEL entry, so monitor the available SEL
 space when enabling an IPMI consumer.

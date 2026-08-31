@@ -15,7 +15,12 @@
 #include "core/ras-logger.h"
 #include "events/ras-aer-handler.h"
 
-static int amp_oem_aer_consume(struct ras_events *ras, int event, void *data)
+/*
+ * This is Ampere's OEM C0 SEL record. It is separate from the OpenBMC
+ * unified SEL's 0xfb record and must be enabled only on BMCs that support
+ * Ampere's OEM payload.
+ */
+static int ampere_oem_sel_consume(struct ras_events *ras, int event, void *data)
 {
 	struct ras_aer_event *aer = data;
 	uint8_t record[IPMI_BMC_SEL_RECORD_SIZE] = {
@@ -43,19 +48,19 @@ static int amp_oem_aer_consume(struct ras_events *ras, int event, void *data)
 		rc = ipmi_bmc_add_sel_entry(record, sizeof(record));
 	}
 	if (rc)
-		log(SYSLOG, LOG_WARNING, "Failed to execute ipmitool\n");
+		log(SYSLOG, LOG_WARNING, "Failed to add Ampere OEM SEL entry\n");
 
 	return 0;
 }
 
-static const struct ras_event_consumer amp_oem_aer_consumer = {
+static const struct ras_event_consumer ampere_oem_sel_consumer = {
 	.name = "ampere-oem-aer",
 	.priority = PRI_PLATFORM_ACTION,
 	.events = BIT_ULL(AER_EVENT),
-	.consume = amp_oem_aer_consume,
+	.consume = ampere_oem_sel_consume,
 };
 
-static int amp_oem_action_init(struct ras_module_ctx *ctx)
+static int ampere_oem_sel_init(struct ras_module_ctx *ctx)
 {
 	int rc;
 
@@ -65,23 +70,23 @@ static int amp_oem_action_init(struct ras_module_ctx *ctx)
 	if (!module_is_enabled("ipmi_bmc"))
 		return 0;
 
-	rc = ras_event_consumer_register(&amp_oem_aer_consumer);
+	rc = ras_event_consumer_register(&ampere_oem_sel_consumer);
 	if (!rc)
-		ctx->priv = (void *)&amp_oem_aer_consumer;
+		ctx->priv = (void *)&ampere_oem_sel_consumer;
 	return rc;
 }
 
-static void amp_oem_action_cleanup(struct ras_module_ctx *ctx)
+static void ampere_oem_sel_cleanup(struct ras_module_ctx *ctx)
 {
 	if (ctx->priv)
-		ras_event_consumer_unregister(&amp_oem_aer_consumer);
+		ras_event_consumer_unregister(&ampere_oem_sel_consumer);
 }
 
-static const struct ras_module_entry amp_oem_action_module = {
-	.name = "ampere-oem-action",
+static const struct ras_module_entry ampere_oem_sel_module = {
+	.name = "ampere-oem-sel",
 	.level = ACTIONS_SUB_MODULE,
-	.init = amp_oem_action_init,
-	.cleanup = amp_oem_action_cleanup,
+	.init = ampere_oem_sel_init,
+	.cleanup = ampere_oem_sel_cleanup,
 };
 
-REGISTER_RAS_MODULE(amp_oem_action_module);
+REGISTER_RAS_MODULE(ampere_oem_sel_module);

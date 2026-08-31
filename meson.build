@@ -229,14 +229,16 @@ if not get_option('disable-all')
         enable_arm_vendor_data = true
         enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-ampere.c'
+    endif
 
-        if not get_option('openbmc-unified-sel').disabled()
-            enable_ipmi_bmc = true
-            lib_sources += [
-                'actions/ampere-oem-action.c',
-                'actions/openbmc-unified-sel.c',
-            ]
-        endif
+    if arch_arm and not get_option('ampere-oem-sel').disabled()
+        enable_ipmi_bmc = true
+        lib_sources += 'actions/ampere-oem-sel.c'
+    endif
+
+    if arch_arm and not get_option('openbmc-unified-sel').disabled()
+        enable_ipmi_bmc = true
+        lib_sources += 'actions/openbmc-unified-sel.c'
     endif
 
     if arch_arm and not get_option('arm').disabled()
