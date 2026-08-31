@@ -11,3 +11,17 @@
 
 3) Handle CPU hotplug events at runtime. If a CPU goes offline or returns
    online, rasdaemon should enable/disable a listener to its events.
+
+4) Add support for unsigned integer types at the database abstraction.
+   - DB_TYPE_INT32 and DB_TYPE_INT64 are signed, but several event tables use
+     them to store unsigned register values. Values above INT32_MAX or
+     INT64_MAX are therefore not represented correctly.
+   - A DB_TYPE_UINT32 can be mapped without loss to INTEGER on SQLite, BIGINT
+     on PostgreSQL and INT UNSIGNED on MySQL/MariaDB.
+   - A DB_TYPE_UINT64 needs a representation decision, as SQLite has no native
+     integer type capable of storing the full uint64_t range. Possible portable
+     representations include decimal text, fixed-width hexadecimal text or an
+     eight-byte blob; PostgreSQL NUMERIC(20, 0) and MySQL/MariaDB BIGINT
+     UNSIGNED could otherwise provide native numeric storage.
+   - Existing table descriptors should be audited and migrated according to
+     the actual signedness and width of their source fields.
