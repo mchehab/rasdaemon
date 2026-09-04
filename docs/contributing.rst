@@ -72,3 +72,37 @@ When opening a PR, ensure that your patches are tested by
 In particular, each patch needs a ``Signed-off-by`` line using your
 real name. The ``sign-off-by`` certifies the contribution under the
 `Developer Certificate of Origin 1.1 <https://developercertificate.org/>`_.
+
+Contributor Roles and Affiliations
+----------------------------------
+
+Contributions are accepted as upstream project contributions. A contributor is
+not required to disclose an employer, client, sponsor, or other affiliation.
+Employment, funding, a ``Signed-off-by`` line, and repository access do not
+authorize a contributor to make product-security, regulatory-compliance,
+support, or warranty commitments on behalf of this project or its other
+maintainers and contributors. Any commitments made independently in a separate
+employment, contractual, or commercial role are outside the scope of the
+contribution and this project.
+
+Submitting, reviewing, merging, or maintaining an upstream contribution does
+not assign responsibility for products that incorporate this software to an
+individual contributor or maintainer. It also does not make that person the
+manufacturer, distributor, regulatory representative, or support provider for
+such products.
+
+Organizations that incorporate this software into a product retain
+responsibility for that product's integration, packaging, release, security
+assessment, support, and regulatory notifications. They must maintain their own
+security and regulatory reporting processes rather than relying on the upstream
+project, its maintainers, or its individual contributors to perform those
+roles.
+
+This project does not require individual contributors to assess the regulatory
+status of downstream products or to perform regulatory monitoring or reporting
+for organizations that use their contributions. Any duties a contributor may
+have in a separate employment or commercial role remain outside the scope of
+the contribution and of this project.
+
+See :doc:`security` for the upstream security-reporting process and the scope of
+the project's security documentation.
