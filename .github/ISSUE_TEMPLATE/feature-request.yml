@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest an improvement or new capability for rasdaemon.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement to rasdaemon.
+
+        Feature enhancements are best proposed as pull requests.
+
+        Check current upstream code and documentation before filing a request
+        to avoid requesting functionality that is already available or has an
+        open issue.
+
+        Use this form only for matters that you are willing to discuss
+        publicly. Issues submitted here are publicly visible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the use case, current limitation, and who would benefit.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the requested behavior, interface, or documentation change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any existing workaround or alternative approach, or write N/A.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add examples, mockups, related issues, proposed patches, or other useful information.

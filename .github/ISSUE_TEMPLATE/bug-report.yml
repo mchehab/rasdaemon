@@ -1,0 +1,90 @@
+name: Bug report
+description: Report unexpected behavior, a regression, a build problem, or a documentation defect.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve rasdaemon.
+
+        Please reproduce the issue with current upstream code before filing it,
+        where practical. Reports limited to older releases are still welcome,
+        but may describe behavior already fixed in current upstream code.
+
+        Use this form only for matters that you are willing to discuss
+        publicly. Issues submitted here are publicly visible.
+
+        Do not disclose non-public suspected security vulnerabilities here.
+        For the project's private security-reporting process, read:
+        https://mchehab.github.io/rasdaemon/security.html
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior, the expected behavior, and the user-visible impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable reproduction, including commands, configuration, input data, and relevant setup.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: latest
+    attributes:
+      label: Tested against current upstream code?
+      description: Reproducing with current upstream code helps determine whether the issue has already been fixed.
+      options:
+        - Yes, it reproduces with current upstream code
+        - No, I tested only an older release
+        - I could not test current upstream code
+    validations:
+      required: true
+
+  - type: input
+    id: revision
+    attributes:
+      label: rasdaemon release or source changeset
+      description: State the upstream release tag or Git changeset tested. For a distribution build, include its package version and, when known, the corresponding upstream release or changeset.
+      placeholder: "e.g. v0.9.91 or changeset abcdef12"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include relevant operating-system, kernel, architecture, build options, database backend, and deployment details.
+      placeholder: |
+        Distribution and release:
+        Kernel version:
+        Architecture:
+        Installation method or package source:
+        Build options and enabled features:
+        Database backend, if applicable:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, output, or other evidence
+      description: Include relevant command output, logs, stack traces, test failures, or screenshots. Remove passwords, tokens, private data, and other secrets.
+      render: text
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add workarounds, related issues, proposed patches, or other useful information.
