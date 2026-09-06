@@ -107,6 +107,7 @@ class RasDatabase:
             config.db_backend,
             engine=engine,
             sqlite3_database=cls._get(sqlite, "database", "ras-mc_event.db"),
+            sqlite3_lock_timeout=cls._get(sqlite, "lock_timeout", 100),
             mysql_conn_parms=config.mysql_conn_parms,
             postgresql_conn_parms=config.pg_conn_parms,
         )
@@ -165,6 +166,15 @@ class RasDatabase:
             # CLI date comparisons independent of the server timezone, since
             # PostgreSQL interprets naive bounds in the session timezone.
             return {"options": "-c timezone=UTC"}
+
+        if backend == "sqlite3":
+            try:
+                timeout_ms = int(kwargs.get("sqlite3_lock_timeout", 100))
+            except (TypeError, ValueError):
+                timeout_ms = 100
+            if not timeout_ms:
+                timeout_ms = 100
+            return {"timeout": timeout_ms / 1000}
 
         if backend != "mysql":
             return {}

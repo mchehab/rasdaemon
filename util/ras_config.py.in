@@ -23,3 +23,6 @@ class Sqlite3ConnParms:
         self.database = os.environ.get(
             "RAS_SQLITE3_DATABASE", "@SQLITE3_DATABASE@"
         )
+        self.lock_timeout = os.environ.get(
+            "RAS_SQLITE3_LOCK_TIMEOUT", "100"
+        )

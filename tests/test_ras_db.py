@@ -771,6 +771,22 @@ class SqliteRasDatabaseTest(RasDatabaseTests, unittest.TestCase):
 
         self.assertEqual(url.database, path)
 
+    def test_lock_timeout_connection_argument(self):
+        self.assertEqual(
+            RasDatabase._database_connect_args("sqlite3", {
+                "sqlite3_lock_timeout": 275,
+            }),
+            {"timeout": 0.275},
+        )
+        for value in (None, "", "invalid", "0"):
+            with self.subTest(sqlite3_lock_timeout=value):
+                self.assertEqual(
+                    RasDatabase._database_connect_args("sqlite3", {
+                        "sqlite3_lock_timeout": value,
+                    }),
+                    {"timeout": 0.1},
+                )
+
 
 @unittest.skipIf(sqlalchemy is None, "SQLAlchemy is not installed")
 class PostgresqlUrlContractTest(unittest.TestCase):

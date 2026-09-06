@@ -22,6 +22,9 @@ if "ras_config" not in sys.modules:
                 "RAS_SQLITE3_DATABASE",
                 "/var/lib/rasdaemon/ras-mc_event.db",
             )
+            self.lock_timeout = os.environ.get(
+                "RAS_SQLITE3_LOCK_TIMEOUT", "100"
+            )
 
     ras_config.Sqlite3ConnParms = Sqlite3ConnParms
     sys.modules["ras_config"] = ras_config
@@ -41,7 +44,10 @@ class RasdaemonConfigTest(unittest.TestCase):
 
     def test_contrib_database_configs(self):
         cases = {
-            "sqlite3": (("database", "/tmp/rasdaemon-test/rasdaemon-test.db"),),
+            "sqlite3": (
+                ("database", "/tmp/rasdaemon-test/rasdaemon-test.db"),
+                ("lock_timeout", "100"),
+            ),
             "mysql": (
                 ("database", "rasdaemon_test"),
                 ("connect_timeout", "10"),

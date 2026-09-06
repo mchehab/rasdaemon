@@ -6,4 +6,5 @@
 struct db_sqlite3_conn_params {
 	const char *database;
 	int extra_flags;
+	int lock_timeout;
 };

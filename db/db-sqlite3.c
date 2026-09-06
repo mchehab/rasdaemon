@@ -21,8 +21,7 @@
 
 //#define DEBUG_SQL
 
-/* TODO: maybe add an env var to allow adjusting max lock tiemout */
-#define DB_LOCK_TIMEOUT 100 /* miliseconds */
+#define DB_LOCK_TIMEOUT 100 /* milliseconds */
 
 /* Store the DB name on a static var to be used later on logs */
 static char *full_fname = NULL;
@@ -32,6 +31,7 @@ static void *db_sqlite3_get_conn_parms(void)
 	static struct db_sqlite3_conn_params cp;
 
 	cp.database = env_or("RAS_SQLITE3_DATABASE", SQLITE3_DATABASE);
+	cp.lock_timeout = env_or_int("RAS_SQLITE3_LOCK_TIMEOUT", DB_LOCK_TIMEOUT);
 
 	return &cp;
 }
@@ -77,7 +77,7 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 	struct db_sqlite3_conn_params *conn_parms = __conn_parms;
 	const char *database = SQLITE3_DATABASE;
 	sqlite3 **db = (void *)__db;
-	int flags, rc;
+	int flags, lock_timeout = DB_LOCK_TIMEOUT, rc;
 
 	*db = NULL;
 
@@ -93,6 +93,8 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 			database = conn_parms->database;
 		if (conn_parms->extra_flags)
 			flags |= conn_parms->extra_flags;
+		if (conn_parms->lock_timeout)
+			lock_timeout = conn_parms->lock_timeout;
 	}
 
 	free(full_fname);
@@ -126,7 +128,7 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 
 	rc = sqlite3_open_v2(full_fname, db, flags, NULL);
 	if (rc == SQLITE_OK)
-		rc = sqlite3_busy_timeout(*db, DB_LOCK_TIMEOUT);
+		rc = sqlite3_busy_timeout(*db, lock_timeout);
 
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,

@@ -22,7 +22,18 @@ SQLite
 
 ``RAS_SQLITE3_DATABASE`` specifies the full database path. It defaults to
 ``/var/lib/rasdaemon/ras-mc_event.db``; rasdaemon creates the parent directory
-when needed. Change the compiled default with::
+when needed.
+
+``RAS_SQLITE3_LOCK_TIMEOUT`` sets how long SQLite waits for a database lock in
+milliseconds. It defaults to ``100``. A zero, empty, or nonnumeric value selects
+the default.
+
+For example::
+
+   RAS_SQLITE3_DATABASE="/var/lib/rasdaemon/ras-mc_event.db"
+   RAS_SQLITE3_LOCK_TIMEOUT="100"
+
+Change the compiled database-path default with::
 
    $ meson setup build \
        -Dsqlite3-database=/path/to/ras-mc_event.db

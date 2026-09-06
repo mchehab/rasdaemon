@@ -54,6 +54,7 @@ struct mock_priv {
 static struct db_sqlite3_conn_params conn_parms = {
 	.database = "/tmp/sqlite3_mock.db",
 	.extra_flags = SQLITE_OPEN_MEMORY,
+	.lock_timeout = 100,
 };
 
 struct db_backend backend = {
@@ -200,6 +201,20 @@ static void sqlite3_assert_row_count(sqlite3 *db, const char *table,
 	assert_int_equal(sqlite3_step(stmt), SQLITE_ROW);
 	assert_int_equal(sqlite3_column_int(stmt, 0), expected);
 	assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
+}
+
+static int sqlite3_get_busy_timeout(sqlite3 *db)
+{
+	sqlite3_stmt *stmt = NULL;
+	int timeout;
+
+	assert_int_equal(sqlite3_prepare_v2(db, "PRAGMA busy_timeout", -1,
+					    &stmt, NULL), SQLITE_OK);
+	assert_int_equal(sqlite3_step(stmt), SQLITE_ROW);
+	timeout = sqlite3_column_int(stmt, 0);
+	assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
+
+	return timeout;
 }
 
 static int sqlite3_count_rows(struct ras_db *__db, const char *table)
@@ -595,14 +610,17 @@ static int tests_teardown(void **state)
 static void test_database_environment(void **state)
 {
 	char config_path[128], path[128];
-	const char *current;
-	char *saved = NULL;
+	const char *current, *current_timeout;
+	char *saved = NULL, *saved_timeout = NULL;
 	FILE *fp;
 	int rc;
 
 	current = getenv("RAS_SQLITE3_DATABASE");
 	if (current)
 		saved = strdup(current);
+	current_timeout = getenv("RAS_SQLITE3_LOCK_TIMEOUT");
+	if (current_timeout)
+		saved_timeout = strdup(current_timeout);
 
 	snprintf(path, sizeof(path), "/tmp/rasdaemon-sqlite-env-%ld.db",
 		 (long)getpid());
@@ -610,9 +628,11 @@ static void test_database_environment(void **state)
 		 "/tmp/rasdaemon-sqlite-env-%ld.conf", (long)getpid());
 	unlink(path);
 	unsetenv("RAS_SQLITE3_DATABASE");
+	unsetenv("RAS_SQLITE3_LOCK_TIMEOUT");
 	fp = fopen(config_path, "w");
 	assert_non_null(fp);
 	assert_true(fprintf(fp, "RAS_SQLITE3_DATABASE=\"%s\"\n", path) > 0);
+	assert_true(fprintf(fp, "RAS_SQLITE3_LOCK_TIMEOUT=\"275\"\n") > 0);
 	assert_int_equal(fclose(fp), 0);
 	assert_int_equal(ras_set_env(config_path), 0);
 	unlink(config_path);
@@ -620,6 +640,7 @@ static void test_database_environment(void **state)
 	rc = db_open(NULL, 0, &ras, sizeof(struct mock_priv));
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
+	assert_int_equal(sqlite3_get_busy_timeout((void *)ras.db), 275);
 	assert_int_equal(db_close(0, &ras), 0);
 	assert_int_equal(access(path, F_OK), 0);
 
@@ -629,6 +650,13 @@ static void test_database_environment(void **state)
 		free(saved);
 	} else {
 		assert_int_equal(unsetenv("RAS_SQLITE3_DATABASE"), 0);
+	}
+	if (saved_timeout) {
+		assert_int_equal(setenv("RAS_SQLITE3_LOCK_TIMEOUT",
+					saved_timeout, 1), 0);
+		free(saved_timeout);
+	} else {
+		assert_int_equal(unsetenv("RAS_SQLITE3_LOCK_TIMEOUT"), 0);
 	}
 }
 
@@ -939,7 +967,10 @@ static void test_db_reference_count(void **state)
 static void check_database_contention(unsigned int hold_us, int expected)
 {
 	char filename[] = "/tmp/rasdaemon-contention-XXXXXX";
-	struct db_sqlite3_conn_params params = { .database = filename };
+	struct db_sqlite3_conn_params params = {
+		.database = filename,
+		.lock_timeout = 100,
+	};
 	struct db_backend file_backend = { .name = "sqlite3", .conn_parms = &params };
 	sqlite3 *connection;
 	int ready[2], status, fd, rc;
