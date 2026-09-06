@@ -233,27 +233,33 @@ static int db_sqlite3_bind_type(struct ras_stmt *__stmt,
 static int db_sqlite3_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 {
 	sqlite3_stmt *stmt = (void *)__stmt;
-	int rc;
+	int rc, ret = 0;
 
 	rc = sqlite3_step(stmt);
-	if (rc != SQLITE_DONE)
+	if (rc != SQLITE_DONE) {
 		log(TERM, LOG_ERR,
 		    "Failed to do step on sqlite. Table = %s: %s (error %d)\n",
 		    tab_name, sqlite3_errstr(rc), rc);
+		ret = rc;
+	}
 
 	rc = sqlite3_reset(stmt);
-	if (rc != SQLITE_OK)
+	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
 		    "Failed to reset on sqlite. Table = %s: %s (error %d)\n",
 		    tab_name, sqlite3_errstr(rc), rc);
+		ret = rc;
+	}
 
 	rc = sqlite3_clear_bindings(stmt);
-	if (rc != SQLITE_OK && rc != SQLITE_DONE)
+	if (rc != SQLITE_OK && rc != SQLITE_DONE) {
 		log(TERM, LOG_ERR,
 		    "Failed to clear bindings on sqlite. Table = %s: %s (error %d)\n",
 		    tab_name, sqlite3_errstr(rc), rc);
+		ret = rc;
+	}
 
-	return rc;
+	return ret;
 }
 
 static int db_sqlite3_exec_sql(struct ras_db *__db, const char *sql)

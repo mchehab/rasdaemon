@@ -974,6 +974,30 @@ static void test_database_contention_timeout(void **state)
 	check_database_contention(6000000, SQLITE_BUSY);
 }
 
+static void test_insert_error_and_reuse(void **state)
+{
+	sqlite3 *connection;
+	sqlite3_stmt *stmt;
+
+	assert_int_equal(db_open(&backend, 0, &ras, sizeof(struct mock_priv)), 0);
+	connection = (void *)ras.db;
+	assert_int_equal(sqlite3_exec(connection,
+		"CREATE TABLE duplicate_key (id INTEGER PRIMARY KEY);"
+		"INSERT INTO duplicate_key VALUES (1)", NULL, NULL, NULL), SQLITE_OK);
+	assert_int_equal(sqlite3_prepare_v2(connection,
+		"INSERT INTO duplicate_key VALUES (?)", -1, &stmt, NULL), SQLITE_OK);
+	assert_int_equal(sqlite3_bind_int(stmt, 1, 1), SQLITE_OK);
+	assert_int_equal(db_eval_stmt((void *)stmt, "duplicate_key"), SQLITE_CONSTRAINT);
+	sqlite3_assert_row_count(connection, "duplicate_key", 1);
+
+	/* Fail must still reset the statement and free bindings. */
+	assert_int_equal(sqlite3_bind_int(stmt, 1, 2), SQLITE_OK);
+	assert_int_equal(db_eval_stmt((void *)stmt, "duplicate_key"), SQLITE_OK);
+	sqlite3_assert_row_count(connection, "duplicate_key", 2);
+	assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
+	assert_int_equal(db_close(0, &ras), 0);
+}
+
 static void test_backend_module_reinitialization(void **state)
 {
 	assert_true(db_backend_is_registered("sqlite3"));
@@ -985,6 +1009,7 @@ static void test_backend_module_reinitialization(void **state)
 }
 
 static const struct CMUnitTest tests[] = {
+	cmocka_unit_test(test_insert_error_and_reuse),
 	cmocka_unit_test(test_database_contention_released),
 	cmocka_unit_test(test_database_contention_timeout),
 	cmocka_unit_test(test_db_open_registered_tables),
