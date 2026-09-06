@@ -16,7 +16,7 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v7
     - name: Release changelog
       run: |
         .github/workflows/gen_release.pl body_file.tmp > version

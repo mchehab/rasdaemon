@@ -29,8 +29,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential meson ninja-build python3 \
                                   pkg-config libsqlite3-dev sqlite3 \
-                                  python3-sqlalchemy libcmocka-dev \
-                                  libtraceevent-dev libtraceevent1 libpci-dev
+                                  python3-sqlalchemy python3-mysqldb \
+                                  python3-psycopg2 libcmocka-dev \
+                                  libmysqlclient-dev libpq-dev postgresql \
+                                  postgresql-client libtraceevent-dev \
+                                  libtraceevent1 libpci-dev
 
       - name: Install Sphinx and its HTML theme
         run: pip install sphinx furo
@@ -38,47 +41,88 @@ jobs:
       - name: Build docs
         run: make
 
+      - name: Provision database test services
+        env:
+          MYSQL_PWD: root
+        run: |
+          sudo systemctl start mysql.service
+          mysqladmin ping --host=127.0.0.1 --user=root
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql --set ON_ERROR_STOP=1 << EOF
+          CREATE USER rasdaemon WITH PASSWORD 'mypass';
+          CREATE DATABASE rasdaemon_test OWNER rasdaemon;
+          EOF
+          mysql --host=127.0.0.1 --user=root << EOF
+          CREATE USER 'rasdaemon'@'%' IDENTIFIED BY 'mypass';
+          CREATE DATABASE rasdaemon_test;
+          GRANT ALL PRIVILEGES ON rasdaemon_test.* TO 'rasdaemon'@'%';
+          FLUSH PRIVILEGES;
+          EOF
+
+      - name: Configure PostgreSQL test access
+        run: |
+          hba_file="$(sudo -u postgres psql --tuples-only --no-align --command='SHOW hba_file')"
+          sudo sed -i '1i local all rasdaemon trust' "$hba_file"
+          sudo systemctl restart postgresql.service
+          PGPASSWORD='mypass' psql -h /var/run/postgresql -U rasdaemon \
+              -d rasdaemon_test --set ON_ERROR_STOP=1 \
+              --command='CREATE SCHEMA rasdaemon AUTHORIZATION rasdaemon;'
+
       - name: Run CMocka tests
         id: cmocka
         continue-on-error: true
+        env:
+          RAS_MYSQL_HOST: ''
+          RAS_MYSQL_PORT: '3306'
+          RAS_MYSQL_USER: rasdaemon
+          RAS_MYSQL_PASSWORD: mypass
+          RAS_MYSQL_DATABASE: rasdaemon_test
+          RAS_MYSQL_SOCKET: ''
+          RAS_MYSQL_USE_SSL: 'false'
+          RAS_MYSQL_CONNECT_TIMEOUT: '10'
+          RAS_PG_HOST: ''
+          RAS_PG_PORT: 5432
+          RAS_PG_USER: rasdaemon
+          RAS_PG_PASSWORD: mypass
+          RAS_PG_SCHEMA: rasdaemon
+          RAS_PG_DATABASE: rasdaemon_test
         run: |
           set -o pipefail
-          build/unittest -o tap | tee cmocka.tap
+          build/unittest -o tap 2>&1 | tee cmocka.tap
 
       - name: Run Python tests
         id: python
         continue-on-error: true
+        env:
+          RAS_MYSQL_HOST: ''
+          RAS_MYSQL_PORT: '3306'
+          RAS_MYSQL_USER: rasdaemon
+          RAS_MYSQL_PASSWORD: mypass
+          RAS_MYSQL_DATABASE: rasdaemon_test
+          RAS_MYSQL_SOCKET: ''
+          RAS_MYSQL_USE_SSL: 'false'
+          RAS_MYSQL_CONNECT_TIMEOUT: '10'
+          RAS_PG_HOST: ''
+          RAS_PG_PORT: 5432
+          RAS_PG_USER: rasdaemon
+          RAS_PG_PASSWORD: mypass
+          RAS_PG_SCHEMA: rasdaemon
+          RAS_PG_DATABASE: rasdaemon_test
         run: |
           set -o pipefail
-          python3 tests/run.py -vvv | tee python-tests.log
+          python3 tests/run.py -vvv 2>&1 | tee python-tests.log
 
       - name: Create test-count badges
         run: |
           mkdir -p build/html/test-badges
-          cmocka_pass=$(grep -c '^ok ' cmocka.tap || true)
-          cmocka_fail=$(grep -c '^not ok ' cmocka.tap || true)
-          python_total=$(sed -n 's/^Ran \([0-9][0-9]*\) tests.*/\1/p' python-tests.log | tail -1)
-          python_total=${python_total:-0}
-          python_fail=$(grep -Ec ':[[:space:]]*(FAIL|ERROR)' python-tests.log || true)
-          python_skip=$(grep -Ec ':[[:space:]]*SKIP' python-tests.log || true)
-          python_pass=$((python_total - python_fail - python_skip))
-          export cmocka_pass cmocka_fail python_pass python_fail
-          python3 -c 'import html, os, pathlib
-          for tool, result, value, color in (
-              ("rasdaemon", "pass", os.environ["cmocka_pass"], "4c1"),
-              ("rasdaemon", "fail", os.environ["cmocka_fail"], "e05d44"),
-              ("ras-mc-ctl", "pass", os.environ["python_pass"], "4c1"),
-              ("ras-mc-ctl", "fail", os.environ["python_fail"], "e05d44")):
-              label = f"{tool} {result}"
-              width = max(92, 8 * len(label) + 14)
-              svg = f"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width + 28}\" height=\"20\"><rect width=\"{width}\" height=\"20\" fill=\"#555\"/><rect x=\"{width}\" width=\"28\" height=\"20\" fill=\"#{color}\"/><text x=\"6\" y=\"14\" fill=\"#fff\" font-family=\"Verdana\" font-size=\"11\">{html.escape(label)}</text><text x=\"{width + 10}\" y=\"14\" fill=\"#fff\" font-family=\"Verdana\" font-size=\"11\">{value}</text></svg>"
-              pathlib.Path(f"build/html/test-badges/{tool}-{result}.svg").write_text(svg)'
+          python3 scripts/generate-test-report.py cmocka.tap python-tests.log \
+              build/html/test-badges
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: build/html
 
