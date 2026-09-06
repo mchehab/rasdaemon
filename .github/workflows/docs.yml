@@ -110,12 +110,12 @@ jobs:
           RAS_PG_DATABASE: rasdaemon_test
         run: |
           set -o pipefail
-          python3 tests/run.py -vvv 2>&1 | tee python-tests.log
+          tests/run.py -vvv 2>&1 | tee python-tests.log
 
       - name: Create test-count badges
         run: |
           mkdir -p build/html/test-badges
-          python3 scripts/generate-test-report.py cmocka.tap python-tests.log \
+          scripts/generate-test-report.py cmocka.tap python-tests.log \
               build/html/test-badges
 
       - name: Setup Pages
