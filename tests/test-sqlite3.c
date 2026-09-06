@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "core/modules.h"
@@ -909,6 +910,70 @@ static void test_db_reference_count(void **state)
 	}
 }
 
+static void check_database_contention(unsigned int hold_us, int expected)
+{
+	char filename[] = "/tmp/rasdaemon-contention-XXXXXX";
+	struct db_sqlite3_conn_params params = { .database = filename };
+	struct db_backend file_backend = { .name = "sqlite3", .conn_parms = &params };
+	sqlite3 *connection;
+	int ready[2], status, fd, rc;
+	char marker;
+	pid_t child;
+
+	fd = mkstemp(filename);
+	assert_true(fd >= 0);
+	close(fd);
+	assert_int_equal(sqlite3_open(filename, &connection), SQLITE_OK);
+	assert_int_equal(sqlite3_exec(connection, "CREATE TABLE reader (id INTEGER)",
+				     NULL, NULL, NULL), SQLITE_OK);
+	assert_int_equal(sqlite3_close(connection), SQLITE_OK);
+	assert_int_equal(pipe(ready), 0);
+	child = fork();
+	assert_true(child >= 0);
+	if (!child) {
+		close(ready[0]);
+		if (sqlite3_open(filename, &connection) != SQLITE_OK)
+			_exit(1);
+		/* Keep a shared reader lock while the daemon creates its schema. */
+		if (sqlite3_exec(connection, "BEGIN; SELECT * FROM reader",
+				 NULL, NULL, NULL) != SQLITE_OK)
+			_exit(2);
+		if (write(ready[1], "R", 1) != 1)
+			_exit(3);
+		usleep(hold_us);
+		rc = sqlite3_exec(connection, "COMMIT", NULL, NULL, NULL);
+		sqlite3_close(connection);
+		_exit(rc != SQLITE_OK);
+	}
+	close(ready[1]);
+	assert_int_equal(read(ready[0], &marker, 1), 1);
+	close(ready[0]);
+	rc = db_open(&file_backend, 0, &ras, sizeof(struct mock_priv));
+	assert_int_equal(waitpid(child, &status, 0), child);
+	assert_true(WIFEXITED(status));
+	assert_int_equal(WEXITSTATUS(status), 0);
+	assert_int_equal(rc, expected);
+	if (rc) {
+		/* A timed-out startup must leave the session reusable. */
+		assert_null(ras.db);
+		assert_int_equal(ras.db_ref_count, 0);
+		assert_int_equal(db_open(&file_backend, 0, &ras,
+					 sizeof(struct mock_priv)), 0);
+	}
+	assert_int_equal(db_close(0, &ras), 0);
+	assert_int_equal(unlink(filename), 0);
+}
+
+static void test_database_contention_released(void **state)
+{
+	check_database_contention(100000, 0);
+}
+
+static void test_database_contention_timeout(void **state)
+{
+	check_database_contention(6000000, SQLITE_BUSY);
+}
+
 static void test_backend_module_reinitialization(void **state)
 {
 	assert_true(db_backend_is_registered("sqlite3"));
@@ -920,6 +985,8 @@ static void test_backend_module_reinitialization(void **state)
 }
 
 static const struct CMUnitTest tests[] = {
+	cmocka_unit_test(test_database_contention_released),
+	cmocka_unit_test(test_database_contention_timeout),
 	cmocka_unit_test(test_db_open_registered_tables),
 	cmocka_unit_test(test_db_reference_count),
 	cmocka_unit_test(test_database_environment),

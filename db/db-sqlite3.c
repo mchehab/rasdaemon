@@ -21,6 +21,9 @@
 
 //#define DEBUG_SQL
 
+/* TODO: maybe add an env var to allow adjusting max lock tiemout */
+#define DB_LOCK_TIMEOUT 100 /* miliseconds */
+
 /* Store the DB name on a static var to be used later on logs */
 static char *full_fname = NULL;
 
@@ -121,11 +124,9 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 		return -1;
 	}
 
-	do {
-		rc = sqlite3_open_v2(full_fname, db, flags, NULL);
-		if (rc == SQLITE_BUSY)
-			usleep(10000);
-	} while (rc == SQLITE_BUSY);
+	rc = sqlite3_open_v2(full_fname, db, flags, NULL);
+	if (rc == SQLITE_OK)
+		rc = sqlite3_busy_timeout(*db, DB_LOCK_TIMEOUT);
 
 	if (rc != SQLITE_OK) {
 		log(TERM, LOG_ERR,
