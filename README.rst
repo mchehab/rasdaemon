@@ -10,77 +10,36 @@ The primary source repository and issue tracker is https://github.com/mchehab/ra
 External CI reports
 -------------------
 
+.. |func-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-pass.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |func-kernel-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-fail.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |func-kernel-skip| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-skip.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |func-kernel-n-a| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-n-a.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |func-rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-pass.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |func-rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-fail.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |func-rasdaemon-skip| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-skip.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |func-rasdaemon-n-a| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-n-a.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+
 The separate `rasdaemon-ci project <https://github.com/mchehab/rasdaemon-ci>`_
-publishes system-level test results independently of this repository. See the
-`latest daily functional-test report
-<https://mchehab.github.io/rasdaemon-ci/daily/>`_ and `latest weekly fuzz-test
-report <https://mchehab.github.io/rasdaemon-ci/weekly/>`_ for full results and
-links to their GitHub Actions runs.
+publishes system-level test results independently of this repository.
 
-.. list-table:: Latest external CI results
-   :widths: 28 36 36
-   :header-rows: 1
+The `latest daily functional-test report
+<https://mchehab.github.io/rasdaemon-ci/daily/>`_ summary can be seen here:
 
-   * - Result
-     - Daily functional tests
-     - Weekly fuzz tests
-   * - Kernel PASS
-     - |daily-kernel-pass|
-     - |weekly-kernel-pass|
-   * - Kernel FAIL
-     - |daily-kernel-fail|
-     - |weekly-kernel-fail|
-   * - Kernel SKIP
-     - |daily-kernel-skip|
-     - |weekly-kernel-skip|
-   * - Kernel N/A
-     - |daily-kernel-n-a|
-     - |weekly-kernel-n-a|
-   * - rasdaemon PASS
-     - |daily-rasdaemon-pass|
-     - |weekly-rasdaemon-pass|
-   * - rasdaemon FAIL
-     - |daily-rasdaemon-fail|
-     - |weekly-rasdaemon-fail|
-   * - rasdaemon SKIP
-     - |daily-rasdaemon-skip|
-     - |weekly-rasdaemon-skip|
-   * - rasdaemon N/A
-     - |daily-rasdaemon-n-a|
-     - |weekly-rasdaemon-n-a|
-
-.. |daily-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-pass.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |daily-kernel-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-fail.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |daily-kernel-skip| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-skip.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |daily-kernel-n-a| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-n-a.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |daily-rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-pass.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |daily-rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-fail.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |daily-rasdaemon-skip| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-skip.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |daily-rasdaemon-n-a| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-n-a.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |weekly-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-kernel-pass.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
-.. |weekly-kernel-fail| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-kernel-fail.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
-.. |weekly-kernel-skip| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-kernel-skip.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
-.. |weekly-kernel-n-a| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-kernel-n-a.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
-.. |weekly-rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-rasdaemon-pass.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
-.. |weekly-rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-rasdaemon-fail.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
-.. |weekly-rasdaemon-skip| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-rasdaemon-skip.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
-.. |weekly-rasdaemon-n-a| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-rasdaemon-n-a.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
++------------------+----------------+-----------------------+-----------------------+-----------------------+-----------------------+
+| Test type        | Scope          | PASS                  | FAIL                  | SKIP                  | N/A                   |
++==================+================+=======================+=======================+=======================+=======================+
+| Functional tests | Kernel         | |func-kernel-pass|    | |func-kernel-fail|    | |func-kernel-skip|    | |func-kernel-n-a|     |
+|                  +----------------+-----------------------+-----------------------+-----------------------+-----------------------+
+|                  | RAS Daemon     | |func-rasdaemon-pass| | |func-rasdaemon-fail| | |func-rasdaemon-skip| | |func-rasdaemon-n-a|  |
++------------------+----------------+-----------------------+-----------------------+------------------------+----------------------+
 
 Building
 --------
