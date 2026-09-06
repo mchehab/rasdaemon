@@ -7,8 +7,8 @@ journald and can record them in SQLite, MySQL/MariaDB, or PostgreSQL.
 
 The primary source repository and issue tracker is https://github.com/mchehab/rasdaemon/.
 
-External CI reports
--------------------
+CI tests
+--------
 
 .. |func-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-pass.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
@@ -27,11 +27,15 @@ External CI reports
 .. |func-rasdaemon-n-a| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-n-a.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
 
-The separate `rasdaemon-ci project <https://github.com/mchehab/rasdaemon-ci>`_
-publishes system-level test results independently of this repository.
+RAS Daemon has two types of CI tests, automated via Github Actions:
 
-The `latest daily functional-test report
-<https://mchehab.github.io/rasdaemon-ci/daily/>`_ summary can be seen here:
+1. `rasdaemon Actions <https://github.com/mchehab/rasdaemon/actions>`_, with
+   tests several unit tests for both ``rasdaemon`` and `ras-mc-ctl` tools;
+2. `rasdaemon functional tests <https://github.com/mchehab/rasdaemon-ci>`_,
+   which runs rasdaemon on a QEMU engine, using some mechanisms supported by
+   QEMU to trigger events on it. The functional tests are handled in separate.
+
+The updated results are:
 
 +------------------+----------------+-----------------------+-----------------------+-----------------------+-----------------------+
 | Test type        | Scope          | PASS                  | FAIL                  | SKIP                  | N/A                   |
@@ -39,7 +43,7 @@ The `latest daily functional-test report
 | Functional tests | Kernel         | |func-kernel-pass|    | |func-kernel-fail|    | |func-kernel-skip|    | |func-kernel-n-a|     |
 |                  +----------------+-----------------------+-----------------------+-----------------------+-----------------------+
 |                  | RAS Daemon     | |func-rasdaemon-pass| | |func-rasdaemon-fail| | |func-rasdaemon-skip| | |func-rasdaemon-n-a|  |
-+------------------+----------------+-----------------------+-----------------------+------------------------+----------------------+
++------------------+----------------+-----------------------+-----------------------+-----------------------+-----------------------+
 
 Building
 --------
