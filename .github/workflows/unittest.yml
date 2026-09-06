@@ -7,9 +7,14 @@ name: Unit Tests
 on:
   workflow_dispatch:
   push:
+    branches-ignore:
+      - master
   pull_request:
 
 jobs:
+  # Master results are collected and published by docs.yml.
+  # Keep this workflow for pull requests and non-master branches.
+
   Unittest:
     name: Default Unit Tests
     runs-on: ubuntu-latest

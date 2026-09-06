@@ -10,6 +10,14 @@ The primary source repository and issue tracker is https://github.com/mchehab/ra
 CI tests
 --------
 
+.. |unit-rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon/test-badges/rasdaemon-pass.svg
+   :target: https://github.com/mchehab/rasdaemon/actions/workflows/docs.yml?query=branch%3Amaster
+.. |unit-rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon/test-badges/rasdaemon-fail.svg
+   :target: https://github.com/mchehab/rasdaemon/actions/workflows/docs.yml?query=branch%3Amaster
+.. |unit-ras-mc-ctl-pass| image:: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl-pass.svg
+   :target: https://github.com/mchehab/rasdaemon/actions/workflows/docs.yml?query=branch%3Amaster
+.. |unit-ras-mc-ctl-fail| image:: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl-fail.svg
+   :target: https://github.com/mchehab/rasdaemon/actions/workflows/docs.yml?query=branch%3Amaster
 .. |func-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-pass.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
 .. |func-kernel-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-fail.svg
@@ -37,13 +45,17 @@ RAS Daemon has two types of CI tests, automated via Github Actions:
 
 The updated results are:
 
-+------------------+----------------+-----------------------+-----------------------+-----------------------+-----------------------+
-| Test type        | Scope          | PASS                  | FAIL                  | SKIP                  | N/A                   |
-+==================+================+=======================+=======================+=======================+=======================+
-| Functional tests | Kernel         | |func-kernel-pass|    | |func-kernel-fail|    | |func-kernel-skip|    | |func-kernel-n-a|     |
-|                  +----------------+-----------------------+-----------------------+-----------------------+-----------------------+
-|                  | RAS Daemon     | |func-rasdaemon-pass| | |func-rasdaemon-fail| | |func-rasdaemon-skip| | |func-rasdaemon-n-a|  |
-+------------------+----------------+-----------------------+-----------------------+-----------------------+-----------------------+
++------------------+----------------+------------------------+------------------------+------------------------+----------------------+
+| Test type        | Scope          | PASS                   | FAIL                   | SKIP                   | N/A                  |
++==================+================+========================+========================+========================+======================+
+| Functional tests | Kernel         | |func-kernel-pass|     | |func-kernel-fail|     | |func-kernel-skip|     | |func-kernel-n-a|    |
+|                  +----------------+------------------------+------------------------+------------------------+----------------------+
+|                  | RAS Daemon     | |func-rasdaemon-pass|  | |func-rasdaemon-fail|  | |func-rasdaemon-skip|  | |func-rasdaemon-n-a| |
++------------------+----------------+------------------------+------------------------+------------------------+----------------------+
+| Unit tests       | rasdaemon      | |unit-rasdaemon-pass|  | |unit-rasdaemon-fail|  |                        |                      |
+|                  +----------------+------------------------+------------------------+------------------------+----------------------+
+|                  | ras-mc-ctl     | |unit-ras-mc-ctl-pass| | |unit-ras-mc-ctl-fail| |                        |                      |
++------------------+----------------+------------------------+------------------------+------------------------+----------------------+
 
 Building
 --------
