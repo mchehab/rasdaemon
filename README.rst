@@ -7,6 +7,25 @@ journald and can record them in SQLite, MySQL/MariaDB, or PostgreSQL.
 
 The primary source repository and issue tracker is https://github.com/mchehab/rasdaemon/.
 
+External CI reports
+-------------------
+
+The separate `rasdaemon-ci project <https://github.com/mchehab/rasdaemon-ci>`_
+publishes system-level test results independently of this repository. See the
+`latest daily functional-test report
+<https://mchehab.github.io/rasdaemon-ci/daily/>`_ and `latest weekly fuzz-test
+report <https://mchehab.github.io/rasdaemon-ci/weekly/>`_ for full results and
+links to their GitHub Actions runs.
+
+|daily-rasdaemon-ci| |weekly-rasdaemon-ci|
+
+.. |daily-rasdaemon-ci| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/daily/
+   :alt: Latest daily rasdaemon-ci kernel and rasdaemon results
+.. |weekly-rasdaemon-ci| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
+   :alt: Latest weekly rasdaemon-ci kernel and rasdaemon fuzz results
+
 Building
 --------
 
