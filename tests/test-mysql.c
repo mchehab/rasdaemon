@@ -32,6 +32,7 @@
 #include "db/ras-db.h"
 #include "events/ras-mc-handler.h"
 #include "tests/unittest.h"
+#include "tests/test-db-concurrency.h"
 
 extern struct module_list ras_modules;
 
@@ -438,6 +439,37 @@ static int tests_setup(void **state)
 	return rc;
 }
 
+static int mysql_count_rows(struct ras_db *__db, const char *table)
+{
+	MYSQL *db = (void *)__db;
+	MYSQL_RES *result;
+	MYSQL_ROW row;
+	char sql[128];
+	int count = -1;
+
+	snprintf(sql, sizeof(sql), "SELECT COUNT(*) FROM %s", table);
+	if (mysql_query(db, sql))
+		return -1;
+	result = mysql_store_result(db);
+	if (!result)
+		return -1;
+	row = mysql_fetch_row(result);
+	if (row && row[0])
+		count = atoi(row[0]);
+	mysql_free_result(result);
+
+	return count;
+}
+
+static void test_concurrent_writers(void **state)
+{
+	int rc = test_db_concurrent_writers(&ras, mysql_count_rows);
+
+	if (rc == -EAGAIN)
+		skip();
+	assert_int_equal(rc, 0);
+}
+
 static int tests_teardown(void **state)
 {
 	struct mock_priv *priv = ras.db_priv;
@@ -470,6 +502,8 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test_setup_teardown(test_db_bind,
 					tests_setup, tests_teardown),
 	cmocka_unit_test_setup_teardown(test_db_complex_table,
+					tests_setup, tests_teardown),
+	cmocka_unit_test_setup_teardown(test_concurrent_writers,
 					tests_setup, tests_teardown),
 };
 

@@ -35,6 +35,7 @@
 #include "events/ras-memory-failure-handler.h"
 #include "events/ras-signal-handler.h"
 #include "tests/unittest.h"
+#include "tests/test-db-concurrency.h"
 
 #ifdef HAVE_BLK_RQ_ERROR
 #define DISKERROR_TRACE_EVENT "block_rq_error"
@@ -199,6 +200,31 @@ static void sqlite3_assert_row_count(sqlite3 *db, const char *table,
 	assert_int_equal(sqlite3_step(stmt), SQLITE_ROW);
 	assert_int_equal(sqlite3_column_int(stmt, 0), expected);
 	assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
+}
+
+static int sqlite3_count_rows(struct ras_db *__db, const char *table)
+{
+	sqlite3 *db = (void *)__db;
+	sqlite3_stmt *stmt = NULL;
+	char sql[128];
+	int count = -1;
+
+	snprintf(sql, sizeof(sql), "SELECT COUNT(*) FROM %s", table);
+	if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK &&
+	    sqlite3_step(stmt) == SQLITE_ROW)
+		count = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
+
+	return count;
+}
+
+static void test_concurrent_writers(void **state)
+{
+	int rc = test_db_concurrent_writers(&ras, sqlite3_count_rows);
+
+	if (rc == -EAGAIN)
+		skip();
+	assert_int_equal(rc, 0);
 }
 
 static void init_cxl_header(struct ras_cxl_event_common_hdr *header)
@@ -1038,6 +1064,8 @@ static const struct CMUnitTest tests[] = {
 					tests_setup, tests_teardown),
 
 	cmocka_unit_test_setup_teardown(test_db_complex_table,
+					tests_setup, tests_teardown),
+	cmocka_unit_test_setup_teardown(test_concurrent_writers,
 					tests_setup, tests_teardown),
 
 	cmocka_unit_test(test_backend_module_reinitialization),

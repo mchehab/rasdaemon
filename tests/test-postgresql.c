@@ -30,6 +30,7 @@
 #include "db/ras-db.h"
 #include "events/ras-mc-handler.h"
 #include "tests/unittest.h"
+#include "tests/test-db-concurrency.h"
 
 extern struct module_list ras_modules;
 
@@ -478,6 +479,32 @@ static int tests_setup(void **state)
 	return rc;
 }
 
+static int pg_count_rows(struct ras_db *__db, const char *table)
+{
+	struct pg_conn_priv *connection = (void *)__db;
+	PGresult *result;
+	char sql[128];
+	int count = -1;
+
+	snprintf(sql, sizeof(sql), "SELECT COUNT(*) FROM %s", table);
+	result = PQexec(connection->conn, sql);
+	if (result && PQresultStatus(result) == PGRES_TUPLES_OK &&
+	    PQntuples(result) == 1)
+		count = atoi(PQgetvalue(result, 0, 0));
+	PQclear(result);
+
+	return count;
+}
+
+static void test_concurrent_writers(void **state)
+{
+	int rc = test_db_concurrent_writers(&ras, pg_count_rows);
+
+	if (rc == -EAGAIN)
+		skip();
+	assert_int_equal(rc, 0);
+}
+
 static int tests_teardown(void **state)
 {
 	struct mock_priv *priv = ras.db_priv;
@@ -510,6 +537,8 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test_setup_teardown(test_db_bind,
 					tests_setup, tests_teardown),
 	cmocka_unit_test_setup_teardown(test_db_complex_table,
+					tests_setup, tests_teardown),
+	cmocka_unit_test_setup_teardown(test_concurrent_writers,
 					tests_setup, tests_teardown),
 };
 

@@ -27,6 +27,7 @@ unittest_sources = [
     'tests/test-core.c',
     'tests/test-events.c',
     'tests/test-modules.c',
+    'tests/test-db-concurrency.c',
 ]
 
 #
