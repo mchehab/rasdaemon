@@ -17,6 +17,9 @@ tests/test-postgresql\.c:.*WARNING:STATIC_CONST_CHAR_ARRAY
 # Ignore desired whitespace tail on a test
 tests/test-core\.c:.*WARNING:QUOTED_WHITESPACE_BEFORE_NEWLINE
 #
+# Ignore a long string at mce-intel-diamond.c
+events-arch-x86/mce-intel-diamond.c:.*: WARNING:SPLIT_STRING: quoted string split across lines
+#
 # Ignore Postgres CamelCase
 Avoid CamelCase: <ConnStatusType>
 Avoid CamelCase: <PGconn>

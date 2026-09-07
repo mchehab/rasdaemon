@@ -420,6 +420,9 @@ sub hash_show_words {
 }
 
 hash_save_array_words(\%ignore_type, \@ignore);
+
+# Doesn't apply for userspace: init is required there
+$ignore_type{"GLOBAL_INITIALISERS"} = 1;
 hash_save_array_words(\%use_type, \@use);
 
 my $dbg_values = 0;
