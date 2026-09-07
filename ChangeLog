@@ -1,3 +1,21 @@
+2026-09-07      Mauro Carvalho Chehab <mchehab@kernel.org>
+	- Version 0.9.92 (development)
+
+        * SQLite: Add a configurable busy timeout, preserve statement error
+          handling, and add multi-CPU writer stress coverage.
+        * Non-standard events: Add AmpereOne decoding and SQLite storage,
+          and simplify ARM event registration.
+        * PCIe EDPC: Integrate EDPC support and correct error-type masking.
+        * BMC: Add generic SEL support while keeping it experimental and
+          disabled by default; improve OpenBMC and Ampere OEM SEL handling.
+        * ras-mc-ctl: Add JSON database-error output, improve database command
+          mapping and migration documentation, and fix PostgreSQL timezone
+          handling.
+        * RAS handling: Correct AMD MCE status classification, fix page
+          isolation parameter parsing, and add the ASRock X99M Killer label.
+        * Documentation and CI: Expand security, design, test, and reporting
+          documentation; improve unit-test and functional-CI result badges.
+
 2026-08-29      Mauro Carvalho Chehab <mchehab@kernel.org>
 	- Version 0.9.91 (development)
 
