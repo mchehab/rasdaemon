@@ -24,21 +24,8 @@ static int db_diskerror_event(struct ras_events *ras, void *priv);
 int test_diskerror(void) __attribute__((weak));
 #endif
 
-#ifndef HAVE_BLK_RQ_ERROR
-static int ras_diskerror_prepare(struct ras_events *ras)
-{
-	return ras_event_filter(ras, "block", "block_rq_complete",
-				"error != 0");
-}
-#endif
-
-static const struct ras_event_entry ras_diskerror_event = {
-	.group = "block",
-#ifdef HAVE_BLK_RQ_ERROR
-	.event = "block_rq_error",
-#else
-	.event = "block_rq_complete", .prepare = ras_diskerror_prepare,
-#endif
+static struct ras_event_entry ras_diskerror_event = {
+	.group = "block", .event = "block_rq_error",
 	.handler = ras_diskerror_event_handler, .id = DISKERROR_EVENT,
 #ifdef HAVE_UNITTEST
 	.test_group = TEST_GROUP_EVENTS, .test = test_diskerror,
@@ -197,12 +184,35 @@ static int db_diskerror_event(struct ras_events *ras, void *priv)
 	return rc;
 }
 
-static int ras_diskerror_db_init(struct ras_module_ctx *ctx)
+static int check_diskerror_event(struct ras_events *ras)
 {
+	if (ras_event_exists(ras, "block", "block_rq_error")) {
+		ras_diskerror_event.event = "block_rq_error";
+		ras_diskerror_event.filter = NULL;
+		return 0;
+}
+
+	if (ras_event_exists(ras, "block", "block_rq_complete")) {
+		ras_diskerror_event.event = "block_rq_complete";
+		ras_diskerror_event.filter = "error != 0";
+		return 0;
+	}
+
+	return -ENOENT;
+}
+
+static int ras_diskerror_init(struct ras_module_ctx *ctx)
+{
+	int rc;
+
+	rc = check_diskerror_event(ctx->ras);
+	if (rc)
+		return rc;
+
 	return ras_db_table_register(ctx, &diskerror_event_db);
 }
 
-static void ras_diskerror_db_cleanup(struct ras_module_ctx *ctx)
+static void ras_diskerror_cleanup(struct ras_module_ctx *ctx)
 {
 	ras_db_table_unregister(ctx);
 }
@@ -210,8 +220,8 @@ static void ras_diskerror_db_cleanup(struct ras_module_ctx *ctx)
 static const struct ras_module_entry ras_diskerror_module = {
 	.name = "disk-error-event",
 	.level = BASE_EVENT_MODULE,
-	.init = ras_diskerror_db_init,
-	.cleanup = ras_diskerror_db_cleanup,
+	.init = ras_diskerror_init,
+	.cleanup = ras_diskerror_cleanup,
 };
 
 REGISTER_RAS_MODULE(ras_diskerror_module);

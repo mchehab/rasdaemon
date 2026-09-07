@@ -116,11 +116,13 @@ struct ras_event_consumer {
 };
 
 /**
- * struct ras_event_entry - immutable trace-event registration descriptor
+ * struct ras_event_entry - static trace-event registration descriptor
  * @group: trace-event subsystem name
  * @event: trace-event name
  * @handler: libtraceevent callback
  * @filter: fixed kernel filter string, or NULL
+ * @fallback_event: alternate event in @group when @event is unavailable
+ * @fallback_filter: fixed filter used with @fallback_event
  * @filter_cb: optional callback producing a kernel filter string
  * @prepare: optional per-event preparation callback
  * @enabled: optional callback after successful event enablement
@@ -132,14 +134,18 @@ struct ras_event_consumer {
  * @test: optional unit-test callback
  * @test_priority: ascending test execution order
  *
- * Descriptors have static lifetime. Callback resources are owned by their
- * module and must remain valid until ras_events_cleanup().
+ * Descriptors have static lifetime. A module may select its event and filter
+ * during initialization, before ras_events_prepare() consumes the descriptor.
+ * Callback resources are owned by their module and must remain valid until
+ * ras_events_cleanup().
  */
 struct ras_event_entry {
 	const char *group;
 	const char *event;
 	tep_event_handler_func handler;
 	const char *filter;
+	const char *fallback_event;
+	const char *fallback_filter;
 	const char *(*filter_cb)(struct ras_events *ras);
 	int (*prepare)(struct ras_events *ras);
 	void (*enabled)(struct ras_events *ras);
@@ -264,6 +270,8 @@ enum ghes_severity {
 int toggle_ras_mc_event(int enable);
 
 int ras_event_register(const struct ras_event_entry *entry);
+bool ras_event_exists(struct ras_events *ras, const char *group,
+		      const char *event);
 int ras_event_record(struct ras_events *ras, int event, void *data);
 
 /*

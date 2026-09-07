@@ -54,11 +54,7 @@
 #define RUN_EVENT(group, event, ...) \
 	ras_event_test_handler(group, event)(__VA_ARGS__)
 
-#ifdef HAVE_BLK_RQ_ERROR
 #define DISKERROR_TRACE_EVENT "block_rq_error"
-#else
-#define DISKERROR_TRACE_EVENT "block_rq_complete"
-#endif
 
 static void init_trace(struct trace_seq *seq, struct tep_record *record,
 		       struct ras_events *ras)

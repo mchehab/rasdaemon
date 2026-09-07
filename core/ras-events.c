@@ -1067,6 +1067,29 @@ static bool check_event_exist(struct ras_events *ras, const char *group,
 	return false;
 }
 
+/**
+ * ras_event_exists - check whether a trace event is available
+ * @ras: tracing context
+ * @group: trace subsystem
+ * @event: trace event name
+ *
+ * Locates the tracing instance on first use, allowing modules to probe event
+ * availability before ras_events_prepare().
+ *
+ * Return: true when the event directory exists.
+ */
+bool ras_event_exists(struct ras_events *ras, const char *group,
+		      const char *event)
+{
+	if (!ras || !group || !event)
+		return false;
+
+	if (!ras->tracing[0] && get_tracing_dir(ras))
+		return false;
+
+	return check_event_exist(ras, group, event);
+}
+
 #define EVENT_DISABLED	1
 
 /**
@@ -1175,6 +1198,7 @@ int ras_event_register(const struct ras_event_entry *entry)
 	int cmp;
 
 	if (!entry || !entry->group || !entry->event || !entry->handler ||
+	    (entry->fallback_filter && !entry->fallback_event) ||
 	    entry->id < 0 || entry->id >= NR_EVENTS)
 		return -EINVAL;
 
@@ -1432,7 +1456,14 @@ int ras_events_prepare(struct ras_events *ras, int record_events)
 
 	LIST_FOREACH(event, &ras_event_handlers, node) {
 		const struct ras_event_entry *entry = event->entry;
+		const char *event_name = entry->event;
 		const char *filter = entry->filter;
+
+		if (entry->fallback_event &&
+		    !ras_event_exists(ras, entry->group, event_name)) {
+			event_name = entry->fallback_event;
+			filter = entry->fallback_filter;
+		}
 
 		if (entry->prepare && entry->prepare(ras))
 			continue;
@@ -1440,7 +1471,7 @@ int ras_events_prepare(struct ras_events *ras, int record_events)
 			filter = entry->filter_cb(ras);
 
 		rc = add_event_handler(ras, pevent, ras->page_size,
-				       entry->group, entry->event, entry->handler,
+				       entry->group, event_name, entry->handler,
 				       filter, entry->id);
 		if (!rc) {
 			ras->num_events++;
@@ -1452,7 +1483,7 @@ int ras_events_prepare(struct ras_events *ras, int record_events)
 		}
 		if (rc != EVENT_DISABLED)
 			log(ALL, LOG_ERR, "Can't get traces from %s:%s\n",
-			    entry->group, entry->event);
+			    entry->group, event_name);
 	}
 
 	return 0;

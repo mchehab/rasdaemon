@@ -37,12 +37,6 @@
 #include "tests/unittest.h"
 #include "tests/test-db-concurrency.h"
 
-#ifdef HAVE_BLK_RQ_ERROR
-#define DISKERROR_TRACE_EVENT "block_rq_error"
-#else
-#define DISKERROR_TRACE_EVENT "block_rq_complete"
-#endif
-
 struct mock_priv {
 	struct ras_stmt *stmt;
 };
