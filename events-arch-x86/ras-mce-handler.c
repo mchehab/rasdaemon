@@ -52,6 +52,7 @@ static const struct ras_event_entry ras_mce_event = {
 #endif
 	.record = db_mce_record,
 };
+
 REGISTER_RAS_EVENT(ras_mce_event);
 
 /*
@@ -583,8 +584,8 @@ free_mce:
 }
 
 static int ras_mce_event_handler(struct trace_seq *s,
-			  struct tep_record *record,
-			  struct tep_event *event, void *context)
+				 struct tep_record *record,
+				 struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	struct ras_events *ras = context;
@@ -689,6 +690,7 @@ static int ras_mce_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 static const struct db_fields mce_record_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

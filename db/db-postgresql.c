@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  *
@@ -70,7 +70,7 @@ static void *db_pg_get_conn_parms(void)
 }
 
 static int db_pg_open(struct ras_db **__db, void *__conn_parms,
-			  unsigned int cpu)
+		      unsigned int cpu)
 {
 	struct db_postgresql_conn_params *cp = __conn_parms;
 	struct pg_conn_priv *conn_priv;
@@ -153,8 +153,8 @@ static int db_pg_open(struct ras_db **__db, void *__conn_parms,
 
 	if (PQstatus(conn) != CONNECTION_OK) {
 		log(TERM, LOG_ERR,
-			"cpu %u: PostgreSQL connection failed: %s\n",
-			cpu, PQerrorMessage(conn));
+		    "cpu %u: PostgreSQL connection failed: %s\n",
+		    cpu, PQerrorMessage(conn));
 		PQfinish(conn);
 		free(conn_priv);
 		return -1;
@@ -164,8 +164,8 @@ static int db_pg_open(struct ras_db **__db, void *__conn_parms,
 	conn_priv->schema = schema;
 
 	log(TERM, LOG_INFO,
-		"cpu %u: Connected to PostgreSQL at %s, schema: %s\n",
-		cpu, PQhost(conn), schema);
+	    "cpu %u: Connected to PostgreSQL at %s, schema: %s\n",
+	    cpu, PQhost(conn), schema);
 
 	*__db = (void *)conn_priv;
 	return 0;
@@ -185,8 +185,8 @@ static int db_pg_close(struct ras_db *__db, unsigned int cpu)
 
 		if (st != CONNECTION_OK && st != CONNECTION_BAD) {
 			log(TERM, LOG_ERR,
-				"cpu %u: Unexpected PGconn state %d\n",
-				cpu, (int)st);
+			    "cpu %u: Unexpected PGconn state %d\n",
+			    cpu, (int)st);
 			rc = -1;
 		}
 	}
@@ -240,8 +240,8 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 
 	if (idx >= priv->n_params) {
 		log(TERM, LOG_ERR,
-			"pg_bind_type: pos %d out of range (n=%u)\n",
-			pos, priv->n_params);
+		    "pg_bind_type: pos %d out of range (n=%u)\n",
+		    pos, priv->n_params);
 		return -1;
 	}
 
@@ -264,7 +264,7 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 	case DB_TYPE_INT32:
 		asprintf(&buf, "%d", (int32_t)value);
 		if (!buf) {
-			log(TERM, LOG_ERR,"Failed to allocate memory for INT32\n");
+			log(TERM, LOG_ERR, "Failed to allocate memory for INT32\n");
 			return -1;
 		}
 
@@ -275,7 +275,7 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 	case DB_TYPE_INT64:
 		asprintf(&buf, "%lld", (long long)value);
 		if (!buf) {
-			log(TERM, LOG_ERR,"Failed to allocate memory for INT64\n");
+			log(TERM, LOG_ERR, "Failed to allocate memory for INT64\n");
 			return -1;
 		}
 		priv->values[idx] = buf;
@@ -305,7 +305,7 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 		buf = (char *)PQescapeByteaConn(conn, (unsigned char *)str,
 						len, &encoded_len);
 		if (!buf) {
-			log(TERM, LOG_ERR,"Failed to allocate memory for BLOB\n");
+			log(TERM, LOG_ERR, "Failed to allocate memory for BLOB\n");
 			return -1;
 		}
 
@@ -318,7 +318,7 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 	buf = malloc(len + 1);
 	if (!buf) {
 		log(TERM, LOG_ERR,
-		"Failed to allocate memory for TEXT\n");
+		    "Failed to allocate memory for TEXT\n");
 		return -1;
 	}
 
@@ -356,7 +356,6 @@ static int db_pg_exec_sql(struct ras_db *__db, const char *sql)
 
 	return rc;
 }
-
 
 static int db_pg_create_table(struct ras_db *__db,
 			      const struct db_table_descriptor *db_tab)
@@ -405,8 +404,8 @@ static int db_pg_create_table(struct ras_db *__db,
 		return i;
 
 	snprintf(sql, sizeof(sql),
-		 "CREATE INDEX IF NOT EXISTS \"%s_hostname_idx\" "
-		 "ON %s.%s (\"hostname\")", db_tab->name,
+		 "CREATE INDEX IF NOT EXISTS \"%s_hostname_idx\" ON %s.%s (\"hostname\")",
+		 db_tab->name,
 		 conn_priv->schema, db_tab->name);
 	i = db_pg_exec_sql(__db, sql);
 	if (i)
@@ -417,8 +416,8 @@ static int db_pg_create_table(struct ras_db *__db,
 		if (!field->create_index)
 			continue;
 		snprintf(sql, sizeof(sql),
-			 "CREATE INDEX IF NOT EXISTS \"%s_%s_idx\" "
-			 "ON %s.%s (\"%s\")", db_tab->name, field->name,
+			 "CREATE INDEX IF NOT EXISTS \"%s_%s_idx\" ON %s.%s (\"%s\")",
+			 db_tab->name, field->name,
 			 conn_priv->schema, db_tab->name, field->name);
 		if (db_pg_exec_sql(__db, sql))
 			return -1;
@@ -442,9 +441,8 @@ static int db_pg_alter_table(struct ras_db *__db,
 		const char *params[] = { conn_priv->schema, db_tab->name };
 
 		res = PQexecParams(conn,
-			"SELECT column_name FROM information_schema.columns "
-			"WHERE table_schema = $1 AND table_name = $2",
-			2, NULL, params, NULL, NULL, 0);
+				   "SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2",
+				   2, NULL, params, NULL, NULL, 0);
 	}
 	if (!res) {
 		log(TERM, LOG_ERR, "Failed to allocate PostgreSQL result\n");
@@ -452,8 +450,8 @@ static int db_pg_alter_table(struct ras_db *__db,
 	}
 	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
 		log(TERM, LOG_ERR,
-			"Failed to query columns of %s: %s\n",
-			db_tab->name, PQresultErrorMessage(res));
+		    "Failed to query columns of %s: %s\n",
+		    db_tab->name, PQresultErrorMessage(res));
 		PQclear(res);
 		return -1;
 	}
@@ -472,8 +470,7 @@ static int db_pg_alter_table(struct ras_db *__db,
 		}
 
 		if (!found) {
-			const char *type = db_pg_get_sql_type(
-				field->type, field->is_pk);
+			const char *type = db_pg_get_sql_type(field->type, field->is_pk);
 
 			snprintf(sql, sizeof(sql),
 				 "ALTER TABLE %s.%s ADD COLUMN \"%s\" %s",
@@ -500,8 +497,8 @@ static int db_pg_alter_table(struct ras_db *__db,
 
 			if (!rc && field->create_index) {
 				snprintf(sql, sizeof(sql),
-					 "CREATE INDEX \"%s_%s_idx\" "
-					 "ON %s.%s (\"%s\")", db_tab->name,
+					 "CREATE INDEX \"%s_%s_idx\" ON %s.%s (\"%s\")",
+					 db_tab->name,
 					 field->name, conn_priv->schema,
 					 db_tab->name, field->name);
 				if (db_pg_exec_sql(__db, sql))
@@ -575,7 +572,7 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	res = PQprepare(conn, stmt_name, sql, n_parms, NULL);
 	if (!res) {
 		log(TERM, LOG_ERR,
-			"PQprepare failed for %s\n", db_tab->name);
+		    "PQprepare failed for %s\n", db_tab->name);
 		return -1;
 	}
 
@@ -595,14 +592,14 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	priv = calloc(1, sizeof(*priv));
 	if (!priv) {
 		log(TERM, LOG_ERR,
-			"No memory for PostgreSQL stmt priv\n");
+		    "No memory for PostgreSQL stmt priv\n");
 		return -ENOMEM;
 	}
 
 	priv->values = calloc(n_parms, sizeof(char *));
 	if (!priv->values) {
 		log(TERM, LOG_ERR,
-			"No memory for PostgreSQL stmt priv\n");
+		    "No memory for PostgreSQL stmt priv\n");
 		free(priv);
 		return -ENOMEM;
 	}
@@ -610,7 +607,7 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	priv->lengths = calloc(n_parms, sizeof(*priv->lengths));
 	if (!priv->lengths) {
 		log(TERM, LOG_ERR,
-			"No memory for PostgreSQL stmt priv\n");
+		    "No memory for PostgreSQL stmt priv\n");
 		free(priv->values);
 		free(priv);
 		return -ENOMEM;
@@ -619,7 +616,7 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	priv->is_blob = calloc(n_parms, sizeof(*priv->is_blob));
 	if (!priv->is_blob) {
 		log(TERM, LOG_ERR,
-			"No memory for PostgreSQL stmt priv\n");
+		    "No memory for PostgreSQL stmt priv\n");
 		free(priv->lengths);
 		free(priv->values);
 		free(priv);
@@ -641,7 +638,7 @@ static int db_pg_prepare_insert_stmt(struct ras_db *__db,
 	*__stmt = (void *)priv;
 
 	log(TERM, LOG_INFO, "Recording %s events (postgresql)\n",
-		db_tab->name);
+	    db_tab->name);
 	return 0;
 }
 
@@ -683,7 +680,6 @@ static int db_pg_deallocate_stmt(struct pg_stmt_priv *priv)
 	return rc;
 }
 
-
 static int db_pg_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 {
 	struct pg_stmt_priv *priv = (struct pg_stmt_priv *)__stmt;
@@ -693,7 +689,7 @@ static int db_pg_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 
 	if (priv->has_hostname &&
 	    db_pg_bind_type(__stmt, DB_TYPE_TEXT, priv->n_params,
-				    (uint64_t)rasdaemon_hostname, -1)) {
+			    (uint64_t)rasdaemon_hostname, -1)) {
 		db_pg_free_stmt(priv);
 		return -1;
 	}
@@ -704,17 +700,17 @@ static int db_pg_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 
 	if (!res) {
 		log(TERM, LOG_ERR,
-			"PQexecPrepared (%s) failed: %s\n",
-			tab_name, PQerrorMessage(conn));
+		    "PQexecPrepared (%s) failed: %s\n",
+		    tab_name, PQerrorMessage(conn));
 		db_pg_free_stmt(priv);
 		return -1;
 	}
 
 	if (PQresultStatus(res) != PGRES_COMMAND_OK &&
-		PQresultStatus(res) != PGRES_TUPLES_OK) {
+	    PQresultStatus(res) != PGRES_TUPLES_OK) {
 		log(TERM, LOG_ERR,
-			"PQexecPrepared (%s): %s\n",
-			tab_name, PQresultErrorMessage(res));
+		    "PQexecPrepared (%s): %s\n",
+		    tab_name, PQresultErrorMessage(res));
 		rc = -1;
 	}
 
@@ -778,7 +774,7 @@ static int pg_init(struct ras_module_ctx *ctx)
 	ret = db_backend_register(&pg_backend_entry);
 	if (ret != 0)
 		log(TERM, LOG_ERR,
-			"Failed to init PostgreSQL backend: %d\n", ret);
+		    "Failed to init PostgreSQL backend: %d\n", ret);
 
 	return ret;
 }

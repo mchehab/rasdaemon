@@ -32,10 +32,6 @@
 #include "tests/unittest.h"
 #include "tests/test-db-concurrency.h"
 
-extern struct module_list ras_modules;
-
-extern struct ras_events ras;
-
 struct mock_priv {
 	struct ras_stmt *stmt;
 };
@@ -72,7 +68,7 @@ static char *datetime_to_iso(const char *cell)
 	char *end;
 
 	end = strptime(cell, "%Y-%m-%d %H:%M:%S", &tm);
-	if (!end )
+	if (!end)
 		return NULL;
 
 	tm.tm_isdst = 0;
@@ -83,7 +79,7 @@ static char *datetime_to_iso(const char *cell)
 		return NULL;
 
 	output = malloc(length + 1);
-	if (output == NULL)
+	if (!output)
 		return NULL;
 
 	memcpy(output, buffer, length + 1);
@@ -108,7 +104,7 @@ static int pg_check_values(void **state,
 
 	res = PQexec(db, buf);
 	if (!res || PQresultStatus(res) != PGRES_TUPLES_OK) {
-		fprintf(stderr, "pg_check_values: query failed\n");
+		fprintf(stderr, "%s: query failed\n", __func__);
 		if (res)
 			PQclear(res);
 		return -1;
@@ -133,7 +129,7 @@ static int pg_check_values(void **state,
 					long long val = strtoll(cell, NULL, 10);
 
 					assert_int_equal((long long)val,
-							(long long)ev->value);
+							 (long long)ev->value);
 				}
 				break;
 			case DB_TYPE_TIMESTAMP:
@@ -188,13 +184,8 @@ static void pg_assert_index(const char *table, const char *field)
 	PGresult *res;
 
 	res = PQexecParams(conn_priv->conn,
-		"SELECT 1 FROM pg_class t "
-		"JOIN pg_namespace n ON n.oid = t.relnamespace "
-		"JOIN pg_index i ON i.indrelid = t.oid "
-		"JOIN pg_attribute a ON a.attrelid = t.oid "
-		"AND a.attnum = ANY(i.indkey) "
-		"WHERE n.nspname = $1 AND t.relname = $2 AND a.attname = $3",
-		3, NULL, params, NULL, NULL, 0);
+			   "SELECT 1 FROM pg_class t JOIN pg_namespace n ON n.oid = t.relnamespace JOIN pg_index i ON i.indrelid = t.oid JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY(i.indkey) WHERE n.nspname = $1 AND t.relname = $2 AND a.attname = $3",
+			   3, NULL, params, NULL, NULL, 0);
 	assert_non_null(res);
 	assert_int_equal(PQresultStatus(res), PGRES_TUPLES_OK);
 	assert_true(PQntuples(res) > 0);
@@ -239,7 +230,7 @@ static void test_db_create_table(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	rc = db_create_table(ras.db, &db_tab);
@@ -290,7 +281,7 @@ static void test_db_bind_types(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	static struct db_values vals[] = {
@@ -337,7 +328,7 @@ static void test_db_bind(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	static struct db_values vals[] = {
@@ -386,7 +377,7 @@ static void test_db_complex_table(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	struct db_values vals[] = {
@@ -398,6 +389,7 @@ static void test_db_complex_table(void **state)
 	};
 
 	time_t now = time(NULL);
+
 	localtime_r(&now, &tm);
 
 	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S %z", &tm);
@@ -453,7 +445,6 @@ static void test_ras_mc_ctl_record(void **state)
 
 static int test_ras_mc_ctl_teardown(void **state)
 {
-
 	/*
 	 * Assertions in test_ras_mc_ctl_record() can abort the test before
 	 * db_close() is reached. Always release the database

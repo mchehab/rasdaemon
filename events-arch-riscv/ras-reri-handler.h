@@ -111,4 +111,11 @@ struct ras_reri_event {
 	uint64_t timestamp_val;
 };
 
+#ifdef HAVE_UNITTEST
+const char *ras_reri_test_error_code(uint8_t value);
+const char *ras_reri_test_transaction(uint8_t value);
+const char *ras_reri_test_address_type(uint8_t value);
+const char *ras_reri_test_category(uint8_t value);
+#endif
+
 #endif /* __RAS_RERI_HANDLER_H */

@@ -37,6 +37,7 @@ static const struct ras_event_entry ras_reri_event_entry = {
 #endif
 	.record = db_reri_event,
 };
+
 REGISTER_RAS_EVENT(ras_reri_event_entry);
 
 #define RERI_GET_FIELD(val, offset, mask)	(((val) >> (offset)) & (mask))
@@ -73,26 +74,29 @@ REGISTER_RAS_EVENT(ras_reri_event_entry);
 #define RERI_STATUS_GET_TSV(x)		RERI_GET_FIELD(x, RERI_STATUS_TSV_OFFSET, RERI_STATUS_TSV_MASK)
 #define RERI_STATUS_GET_EC(x)		RERI_GET_FIELD(x, RERI_STATUS_EC_OFFSET, RERI_STATUS_EC_MASK)
 
-#define CHECK_AND_ASSIGN_U8(dst, val) \
-	do { \
-		if ((val) > UINT8_MAX) \
-			return -1; \
-		(dst) = (uint8_t)(val); \
-	} while (0)
+static int assign_u8(uint8_t *dst, uint64_t val)
+{
+	if (val > UINT8_MAX)
+		return -1;
+	*dst = val;
+	return 0;
+}
 
-#define CHECK_AND_ASSIGN_U16(dst, val) \
-	do { \
-		if ((val) > UINT16_MAX) \
-			return -1; \
-		(dst) = (uint16_t)(val); \
-	} while (0)
+static int assign_u16(uint16_t *dst, uint64_t val)
+{
+	if (val > UINT16_MAX)
+		return -1;
+	*dst = val;
+	return 0;
+}
 
-#define CHECK_AND_ASSIGN_U32(dst, val) \
-	do { \
-		if ((val) > UINT32_MAX) \
-			return -1; \
-		(dst) = (uint32_t)(val); \
-	} while (0)
+static int assign_u32(uint32_t *dst, uint64_t val)
+{
+	if (val > UINT32_MAX)
+		return -1;
+	*dst = val;
+	return 0;
+}
 
 #define GET_STR_FROM_ARRAY(idx, array, default_str) \
 	((idx) < sizeof(array) / sizeof((array)[0]) && (array)[idx] ? \
@@ -275,24 +279,28 @@ static int ras_reri_event_handler(struct trace_seq *s,
 
 	if (tep_get_field_val(s, event, "err_src_id", record, &val, 1) < 0)
 		return -1;
-	CHECK_AND_ASSIGN_U16(ev.err_src_id, val);
+	if (assign_u16(&ev.err_src_id, val))
+		return -1;
 	trace_seq_printf(s, " err_src_id: 0x%x", ev.err_src_id);
 
 	if (tep_get_field_val(s, event, "source_type", record, &val, 1) < 0)
 		return -1;
-	CHECK_AND_ASSIGN_U8(ev.source_type, val);
+	if (assign_u8(&ev.source_type, val))
+		return -1;
 	trace_seq_printf(s, " source: %s", get_source_type_str(ev.source_type));
 
 	if (ev.source_type == RERI_SOURCE_TYPE_CPU) {
 		if (tep_get_field_val(s, event, "hart_id", record, &val, 1) >= 0) {
-			CHECK_AND_ASSIGN_U32(ev.hart_id, val);
+			if (assign_u32(&ev.hart_id, val))
+				return -1;
 #ifdef HAVE_CPU_FAULT_ISOLATION
 			ev.hart_id_valid = true;
 #endif
 			trace_seq_printf(s, " hart_id: %u", ev.hart_id);
 		}
 		if (tep_get_field_val(s, event, "cluster_id", record, &val, 1) >= 0) {
-			CHECK_AND_ASSIGN_U32(ev.cluster_id, val);
+			if (assign_u32(&ev.cluster_id, val))
+				return -1;
 			trace_seq_printf(s, " cluster_id: %u", ev.cluster_id);
 		}
 	}
@@ -369,6 +377,7 @@ static int ras_reri_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 static const struct db_fields reri_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

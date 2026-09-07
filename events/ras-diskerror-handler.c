@@ -45,6 +45,7 @@ static const struct ras_event_entry ras_diskerror_event = {
 #endif
 	.record = db_diskerror_event,
 };
+
 REGISTER_RAS_EVENT(ras_diskerror_event);
 
 static const struct {
@@ -150,6 +151,7 @@ cleanup:
 		free(ev.dev);
 	return rc;
 }
+
 static const struct db_fields diskerror_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

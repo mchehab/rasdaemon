@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include "tests/trace-mock.h"
+#include "tests/trace-wrappers.h"
 
 #define MAX_MOCK_FIELDS 96
 
@@ -43,19 +44,6 @@ static FILE *mock_popen_stream;
 static bool mock_access;
 static unsigned int mock_access_calls;
 static char mock_access_path[PATH_MAX];
-
-int __real_tep_get_field_val(struct trace_seq *s, struct tep_event *event,
-			     const char *name, struct tep_record *record,
-			     unsigned long long *value, int err);
-void *__real_tep_get_field_raw(struct trace_seq *s, struct tep_event *event,
-			      const char *name, struct tep_record *record,
-			      int *length, int err);
-enum tep_errno __real_tep_filter_match(struct tep_event_filter *filter,
-				       struct tep_record *record);
-int __real_system(const char *command);
-FILE *__real_popen(const char *command, const char *type);
-int __real_pclose(FILE *stream);
-int __real_access(const char *pathname, int mode);
 
 void trace_mock_start(void)
 {
@@ -113,8 +101,8 @@ int __wrap_tep_get_field_val(struct trace_seq *s, struct tep_event *event,
 }
 
 void *__wrap_tep_get_field_raw(struct trace_seq *s, struct tep_event *event,
-			      const char *name, struct tep_record *record,
-			      int *length, int err)
+			       const char *name, struct tep_record *record,
+			       int *length, int err)
 {
 	if (!mock_active)
 		return __real_tep_get_field_raw(s, event, name, record, length, err);

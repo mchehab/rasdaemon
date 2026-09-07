@@ -162,6 +162,7 @@ struct ras_cxl_memory_module_event {
 	uint8_t entity_id[CXL_PLDM_ENTITY_ID_LEN];
 	uint8_t res_id[CXL_PLDM_RES_ID_LEN];
 };
+
 struct ras_cxl_memory_sparing_event {
 	struct ras_cxl_event_common_hdr hdr;
 	uint8_t flags;
@@ -180,5 +181,12 @@ struct ras_cxl_memory_sparing_event {
 	uint8_t entity_id[CXL_PLDM_ENTITY_ID_LEN];
 	uint8_t res_id[CXL_PLDM_RES_ID_LEN];
 };
+
+#ifdef HAVE_UNITTEST
+const char *ras_cxl_test_log_type(uint32_t log_type);
+void ras_cxl_test_convert_timestamp(unsigned long long timestamp,
+				    char *buf, uint16_t size);
+const char *ras_cxl_test_uuid(const char *uuid);
+#endif
 
 #endif

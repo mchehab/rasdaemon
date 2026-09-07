@@ -53,6 +53,7 @@ static const struct ras_event_entry ras_net_timeout_event = {
 	.prepare = ras_net_timeout_prepare,
 	.enabled = ras_net_timeout_enabled,
 };
+
 REGISTER_RAS_EVENT(ras_net_timeout_event);
 
 static const struct ras_event_entry ras_devlink_event = {
@@ -64,6 +65,7 @@ static const struct ras_event_entry ras_devlink_event = {
 #endif
 	.record = db_devlink_event,
 };
+
 REGISTER_RAS_EVENT(ras_devlink_event);
 
 static int ras_net_xmit_timeout_handler(struct trace_seq *s,
@@ -175,6 +177,7 @@ static int ras_devlink_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 static const struct db_fields devlink_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

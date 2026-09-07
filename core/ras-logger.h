@@ -28,13 +28,12 @@
 #define ALL	(SYSLOG | TERM)
 
 extern bool mock_output;
-extern char *mock_log_buf ;
+extern char *mock_log_buf;
 extern size_t mock_log_len;
 
 extern const char *reset_color;
 
 const char *log_color(int color);
-
 
 /* TODO: global logging limit mask */
 
@@ -46,8 +45,8 @@ const char *log_color(int color);
 		size_t new_len = mock_log_len + len;			\
 		mock_log_buf = realloc(mock_log_buf, new_len + 1);	\
 		assert(mock_log_buf);					\
-		strcpy(mock_log_buf + mock_log_len, tmp);		\
-                mock_log_len = new_len;					\
+		memcpy(mock_log_buf + mock_log_len, tmp, len + 1);	\
+		mock_log_len = new_len;					\
 	} else {							\
 		if ((where) & SYSLOG)					\
 			syslog(level, fmt, ##args);			\

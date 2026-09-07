@@ -34,10 +34,6 @@
 #include "tests/unittest.h"
 #include "tests/test-db-concurrency.h"
 
-extern struct module_list ras_modules;
-
-extern struct ras_events ras;
-
 struct mock_priv {
 	struct ras_stmt *stmt;
 };
@@ -64,7 +60,7 @@ struct db_values {
 	char			*string;
 };
 
-static char *datetime_to_iso(const char * cell)
+static char *datetime_to_iso(const char *cell)
 {
 	struct tm tm = {0};
 	char buffer[64];
@@ -81,10 +77,10 @@ static char *datetime_to_iso(const char * cell)
 }
 
 static int mysql_check_values(void **state,
-				  struct ras_db *__db,
-				  struct ras_stmt **__stmt,
-				  const struct db_table_descriptor *db_tab,
-				  const struct db_values *values, int len)
+			      struct ras_db *__db,
+			      struct ras_stmt **__stmt,
+			      const struct db_table_descriptor *db_tab,
+			      const struct db_values *values, int len)
 {
 	MYSQL *db = (void *)__db;
 	char query[1024];
@@ -95,14 +91,13 @@ static int mysql_check_values(void **state,
 	snprintf(query, sizeof(query), "SELECT * FROM %s", db_tab->name);
 
 	if (mysql_query(db, query)) {
-		fprintf(stderr, "mysql_check_values: query failed: %s\n",
-			mysql_error(db));
+		fprintf(stderr, "%s: query failed: %s\n", __func__, mysql_error(db));
 		return -1;
 	}
 
 	res = mysql_store_result(db);
 	if (!res) {
-		fprintf(stderr, "mysql_check_values: no result\n");
+		fprintf(stderr, "%s: no result\n", __func__);
 		return -1;
 	}
 
@@ -163,9 +158,8 @@ static void mysql_assert_index(const char *table, const char *field)
 	char query[1024];
 
 	snprintf(query, sizeof(query),
-		 "SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS "
-		 "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s' "
-		 "AND COLUMN_NAME = '%s'", table, field);
+		 "SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s' AND COLUMN_NAME = '%s'",
+		 table, field);
 	assert_int_equal(mysql_query(db, query), 0);
 	res = mysql_store_result(db);
 	assert_non_null(res);
@@ -211,7 +205,7 @@ static void test_db_create_table(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	rc = db_create_table(ras.db, &db_tab);
@@ -262,7 +256,7 @@ static void test_db_bind_types(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	static struct db_values vals[] = {
@@ -291,7 +285,7 @@ static void test_db_bind_types(void **state)
 	assert_int_equal(rc, 0);
 
 	rc = mysql_check_values(state, ras.db, &stmt, &db_tab,
-				   vals, ARRAY_SIZE(vals));
+				vals, ARRAY_SIZE(vals));
 	assert_int_equal(rc, 0);
 }
 
@@ -309,7 +303,7 @@ static void test_db_bind(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	static struct db_values vals[] = {
@@ -343,7 +337,7 @@ static void test_db_complex_table(void **state)
 	struct ras_stmt *stmt = NULL;
 	int rc, pos = 1;
 	char buf[] = "2026-01-01 21:34:05 +0000";
-	const char timestamp[] = "2026-01-02 03:04:05 +0530";
+	static const char timestamp[] = "2026-01-02 03:04:05 +0530";
 
 	static const struct db_fields fields[] = {
 		{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP, .create_index = true },
@@ -356,7 +350,7 @@ static void test_db_complex_table(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	struct db_values vals[] = {
@@ -416,7 +410,6 @@ static void test_ras_mc_ctl_record(void **state)
 
 static int test_ras_mc_ctl_teardown(void **state)
 {
-
 	/*
 	 * Assertions in test_ras_mc_ctl_record() can abort the test before
 	 * db_close() is reached. Always release the database
@@ -522,7 +515,7 @@ static int group_setup(void **state)
 	conn_parms.socket = env_or("RAS_MYSQL_SOCKET", conn_parms.socket);
 	conn_parms.use_ssl = env_or_bool("RAS_MYSQL_USE_SSL", conn_parms.use_ssl);
 	conn_parms.connect_timeout = env_or_int("RAS_MYSQL_CONNECT_TIMEOUT",
-						  conn_parms.connect_timeout);
+						conn_parms.connect_timeout);
 
 	port = getenv("RAS_MYSQL_PORT");
 	if (port)

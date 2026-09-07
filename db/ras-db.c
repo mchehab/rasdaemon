@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
@@ -261,7 +261,7 @@ static void db_get_rasdaemon_hostname(void)
 		return;
 
 	env_hostname = getenv("RASDAEMON_HOSTNAME");
-	if (env_hostname != NULL && env_hostname[0] != '\0') {
+	if (env_hostname && env_hostname[0] != '\0') {
 		rasdaemon_hostname = env_hostname;
 		return;
 	}
@@ -346,9 +346,8 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 
 	LIST_FOREACH(registered, &ras_db_backends, node) {
 		entry = registered->entry;
-		if (strcmp(backend_name, entry->name)) {
+		if (strcmp(backend_name, entry->name))
 			continue;
-		}
 
 		if (backend)
 			conn_parms = backend->conn_parms;
@@ -501,9 +500,8 @@ int db_bind(const struct db_table_descriptor *db_tab,
 	}
 
 	for (i = 0; i < db_tab->num_fields; i++) {
-		if (fields[i].type == DB_TYPE_SERIAL) {
+		if (fields[i].type == DB_TYPE_SERIAL)
 			continue;
-		}
 
 		if (field_pos == pos - 1)
 			break;

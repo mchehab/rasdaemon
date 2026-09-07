@@ -18,4 +18,9 @@ struct ras_mf_event {
 	const char *action_result;
 };
 
+#ifdef HAVE_UNITTEST
+const char *ras_memory_failure_test_page_type(int page_type);
+const char *ras_memory_failure_test_action_result(int result);
+#endif
+
 #endif

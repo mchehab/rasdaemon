@@ -94,10 +94,8 @@ static char *imh_punit_0[] = {
 	[0x0b] = "Power Management Unit microcontroller POReqValid error",
 	[0x0c] = "Power Management Unit microcontroller RAM address error",
 	[0x0d] = "Power Management Unit microcontroller RAM access error",
-	[0x10] = "If MCI_MISC.MODEL_SPECIFIC_INFORMATION is set to 1, "
-		 "indicates Pcode Watchdog Timer expired. "
-		 "If MCI_MISC.MODEL_SPECIFIC_INFORMATION is set to 3, "
-		 "indicates Power Management Unit TeleSRAM double-bit ECC error detected.",
+	[0x10] = "If MCI_MISC.MODEL_SPECIFIC_INFORMATION is set to 1, indicates Pcode Watchdog Timer expired. "
+		 "If MCI_MISC.MODEL_SPECIFIC_INFORMATION is set to 3, indicates Power Management Unit TeleSRAM double-bit ECC error detected.",
 	[0x20] = "Power Management Agent signaled Error",
 	[0x30] = "Power Management Unit Microcontroller Error",
 	[0xa0] = "Power Management Unit HPMSRAM double-bit ECC error detected",

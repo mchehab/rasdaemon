@@ -15,6 +15,7 @@ int test_modules(void);
 static void test_register_null_entry(void **state)
 {
 	int rc = module_register(NULL);
+
 	assert_int_not_equal(rc, 0);
 }
 
@@ -96,9 +97,8 @@ static void test_register_modules_in_order(void **state)
 		assert_int_equal(rc, 0);
 	}
 
-	for (int i = 0;  i < ARRAY_SIZE(mods); i++) {
+	for (int i = 0;  i < ARRAY_SIZE(mods); i++)
 		assert_true(module_is_registered(mods[i].name));
-	}
 
 	modules_unregister();
 	for (int i = 0; i < ARRAY_SIZE(mods); i++)
@@ -178,9 +178,8 @@ static void test_register_muptiple_levels(void **state)
 		assert_int_equal(rc, 0);
 	}
 
-	for (int i = 0;  i < ARRAY_SIZE(mods); i++) {
+	for (int i = 0;  i < ARRAY_SIZE(mods); i++)
 		assert_true(module_is_registered(mods[i].name));
-	}
 
 	modules_unregister();
 	for (int i = 0; i < ARRAY_SIZE(mods); i++)

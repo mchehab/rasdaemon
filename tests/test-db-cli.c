@@ -35,9 +35,7 @@ void test_ras_mc_ctl_count(const char *backend, const char *table,
 	snprintf(output, sizeof(output), "/tmp/rasdaemon-mc-ctl-%ld.out",
 		 (long)getpid());
 	snprintf(command, sizeof(command),
-		 "RASDAEMON_DB_BACKEND='%s' PYTHONPATH='%s/util:%s' "
-		 "python3 '%s/util/ras-mc-ctl.py' --config /dev/null "
-		 "database --count --table '%s' > '%s' 2>&1",
+		 "RASDAEMON_DB_BACKEND='%s' PYTHONPATH='%s/util:%s' '%s/util/ras-mc-ctl.py' --config /dev/null database --count --table '%s' > '%s' 2>&1",
 		 backend, RAS_SOURCE_DIR, RAS_BUILD_DIR, RAS_SOURCE_DIR, table,
 		 output);
 
@@ -47,7 +45,7 @@ void test_ras_mc_ctl_count(const char *backend, const char *table,
 
 	fp = fopen(output, "r");
 	assert_non_null(fp);
-	assert_true(fgets(line, sizeof(line), fp) != NULL);
+	assert_true(fgets(line, sizeof(line), fp));
 	assert_string_equal(line, expected_line);
 	assert_int_equal(fclose(fp), 0);
 	assert_int_equal(unlink(output), 0);
@@ -94,9 +92,7 @@ void test_ras_mc_ctl_types(const char *backend, struct ras_events *ras)
 	snprintf(output, sizeof(output), "/tmp/rasdaemon-mc-ctl-types-%ld.out",
 		 (long)getpid());
 	snprintf(command, sizeof(command),
-		 "RASDAEMON_DB_BACKEND='%s' PYTHONPATH='%s/util:%s' "
-		 "python3 '%s/util/ras-mc-ctl.py' --config /dev/null "
-		 "database --describe --table ras_mc_ctl_types > '%s' 2>&1",
+		 "RASDAEMON_DB_BACKEND='%s' PYTHONPATH='%s/util:%s' '%s/util/ras-mc-ctl.py' --config /dev/null database --describe --table ras_mc_ctl_types > '%s' 2>&1",
 		 backend, RAS_SOURCE_DIR, RAS_BUILD_DIR, RAS_SOURCE_DIR, output);
 	rc = system(command);
 	assert_int_equal(rc, 0);
@@ -116,9 +112,7 @@ void test_ras_mc_ctl_types(const char *backend, struct ras_events *ras)
 	assert_int_equal(unlink(output), 0);
 
 	snprintf(command, sizeof(command),
-		 "RASDAEMON_DB_BACKEND='%s' PYTHONPATH='%s/util:%s' "
-		 "python3 '%s/util/ras-mc-ctl.py' --config /dev/null "
-		 "database --errors --table ras_mc_ctl_types > '%s' 2>&1",
+		 "RASDAEMON_DB_BACKEND='%s' PYTHONPATH='%s/util:%s' '%s/util/ras-mc-ctl.py' --config /dev/null database --errors --table ras_mc_ctl_types > '%s' 2>&1",
 		 backend, RAS_SOURCE_DIR, RAS_BUILD_DIR, RAS_SOURCE_DIR, output);
 	rc = system(command);
 	assert_int_equal(rc, 0);

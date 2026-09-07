@@ -22,7 +22,7 @@
 #define AMPEREONE_MIDR_R0P0 0xc00fac30
 
 static void display_hex_dump(char **p, char *end, uint8_t size, const uint8_t *byte_array,
-							 const char *disp_reg_name);
+			     const char *disp_reg_name);
 
 static const char * const disp_ampereone_payload0_err_reg_name[] = {
 	"Error Type:",
@@ -362,7 +362,6 @@ static void display_hex_dump(char **p, char *end, uint8_t size,
 			     const uint8_t *byte_array, const char *disp_reg_name)
 {
 	for (uint8_t c = 0; c < size; c++) {
-
 		if (c == 0)
 			*p += snprintf(*p, end - *p, " %s\n", disp_reg_name);
 		if (c % HEX_WIDTH == 0) {
@@ -378,7 +377,7 @@ static void display_hex_dump(char **p, char *end, uint8_t size,
 
 /*get the error type name*/
 static const char *ampereone_type_name(const struct ampereone_ras_type_info *info,
-				uint8_t type_id)
+				       uint8_t type_id)
 {
 	const struct ampereone_ras_type_info *type = &info[0];
 
@@ -392,7 +391,7 @@ static const char *ampereone_type_name(const struct ampereone_ras_type_info *inf
 
 /*get the error subtype*/
 static const char *ampereone_subtype_name(const struct ampereone_ras_type_info *info,
-				    uint8_t type_id, uint8_t sub_type_id)
+					  uint8_t type_id, uint8_t sub_type_id)
 {
 	const struct ampereone_ras_type_info *type = &info[0];
 
@@ -401,7 +400,7 @@ static const char *ampereone_subtype_name(const struct ampereone_ras_type_info *
 
 		if (type->id != type_id)
 			continue;
-		if (type->sub == NULL)
+		if (!type->sub)
 			return type->name;
 		if (sub_type_id >= type->sub_num)
 			return "unknown";
@@ -596,21 +595,27 @@ static const struct db_table_descriptor ampereone_payload6_event_tab = {
 static struct db_desc_and_stmt ampereone_payload0_event_db = {
 	.desc = &ampereone_payload0_event_tab,
 };
+
 static struct db_desc_and_stmt ampereone_payload1_event_db = {
 	.desc = &ampereone_payload1_event_tab,
 };
+
 static struct db_desc_and_stmt ampereone_payload2_event_db = {
 	.desc = &ampereone_payload2_event_tab,
 };
+
 static struct db_desc_and_stmt ampereone_payload3_event_db = {
 	.desc = &ampereone_payload3_event_tab,
 };
+
 static struct db_desc_and_stmt ampereone_payload4_event_db = {
 	.desc = &ampereone_payload4_event_tab,
 };
+
 static struct db_desc_and_stmt ampereone_payload5_event_db = {
 	.desc = &ampereone_payload5_event_tab,
 };
+
 static struct db_desc_and_stmt ampereone_payload6_event_db = {
 	.desc = &ampereone_payload6_event_tab,
 };
@@ -629,37 +634,39 @@ static struct db_desc_and_stmt *ampereone_event_db;
 
 /*save all Ampere Specific Error Payload type 0 to sqlite3 database*/
 static void record_ampereone_payload0_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload0_type_sec *err)
+					  const char *type_str, const char *subtype_str,
+					  const struct ampereone_payload0_type_sec *err)
 {
 	if (ev_decoder) {
 		const struct db_table_descriptor *db = ampereone_event_db->desc;
 		struct ras_stmt *stmt = ampereone_event_db->stmt;
+
 		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_TYPE_ID, (uint64_t)type_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_SOCKET_NUM, AMPEREONE_SOCKET_NUM(err->header.instance), -1);
 
-		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxFR, err->err_fr, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxCTLR, err->err_ctlr, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxSTATUS, err->err_status, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxADDR, err->err_addr, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxMISC0, err->err_misc_0, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxMISC1, err->err_misc_1, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxMISC2, err->err_misc_2, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERRxMISC3, err->err_misc_3, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERR_FR, err->err_fr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERR_CTLR, err->err_ctlr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERR_STATUS, err->err_status, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERR_ADDR, err->err_addr, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERR_MISC0, err->err_misc_0, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERR_MISC1, err->err_misc_1, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERR_MISC2, err->err_misc_2, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD0_FIELD_ERR_MISC3, err->err_misc_3, -1);
 		db_eval_stmt(stmt, "ampereone_payload0_event_tab");
 	}
 }
 
 /*save all Ampere Specific Error Payload type 1 to sqlite3 database*/
 static void record_ampereone_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload1_type_sec *err)
+					  const char *type_str, const char *subtype_str,
+					  const struct ampereone_payload1_type_sec *err)
 {
 	if (ev_decoder) {
 		const struct db_table_descriptor *db = ampereone_event_db->desc;
 		struct ras_stmt *stmt = ampereone_event_db->stmt;
+
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_TYPE_ID, (uint64_t)type_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
@@ -674,34 +681,55 @@ static void record_ampereone_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SKP_OS_PARITY_ERROR_GEN3, err->skp_os_parity_error_gen3, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SYNC_HEADER_ERROR, err->sync_header_error, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RX_VALID_DEASSERTION, err->rx_valid_deassertion, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_CTL_SKP_OS_PARITY_ERROR_GEN4, err->ctl_skp_os_parity_error_gen4, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_FIRST_RETIMER_PARITY_ERROR_GEN4, err->first_retimer_parity_error_gen4, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SECOND_RETIMER_PARITY_ERROR_GEN4, err->second_retimer_parity_error_gen4, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_MARGIN_CRC_AND_PARTIY_ERROR_GEN4, err->margin_crc_and_parity_error_gen4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_CTL_SKP_OS_PARITY_ERROR_GEN4,
+			err->ctl_skp_os_parity_error_gen4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_FIRST_RETIMER_PARITY_ERROR_GEN4,
+			err->first_retimer_parity_error_gen4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SECOND_RETIMER_PARITY_ERROR_GEN4,
+			err->second_retimer_parity_error_gen4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_MARGIN_CRC_AND_PARTIY_ERROR_GEN4,
+			err->margin_crc_and_parity_error_gen4, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP1_COUNTERS, err->rasdes_group1_counters, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RSVD0, err->rsvd0, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP2_COUNTERS, err->rasdes_group2_counters, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_EBUF_SKP_ADD, err->ebuf_skp_add, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_EBUF_SKP_DEL, err->ebuf_skp_del, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP5_COUNTERS, err->rasdes_group5_counters, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP5_COUNTERS_CONTINUED, err->rasdes_group5_counters_continued, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RASDES_GROUP5_COUNTERS_CONTINUED,
+			err->rasdes_group5_counters_continued, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_RSVD1, err->rsvd1, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE0, err->dbg_l1_status_lane0, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE1, err->dbg_l1_status_lane1, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE2, err->dbg_l1_status_lane2, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE3, err->dbg_l1_status_lane3, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE4, err->dbg_l1_status_lane4, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE5, err->dbg_l1_status_lane5, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE6, err->dbg_l1_status_lane6, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE7, err->dbg_l1_status_lane7, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE8, err->dbg_l1_status_lane8, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE9, err->dbg_l1_status_lane9, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE10, err->dbg_l1_status_lane10, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE11, err->dbg_l1_status_lane11, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE12, err->dbg_l1_status_lane12, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE13, err->dbg_l1_status_lane13, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE14, err->dbg_l1_status_lane14, -1);
-		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE15, err->dbg_l1_status_lane15, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE0,
+			err->dbg_l1_status_lane0, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE1,
+			err->dbg_l1_status_lane1, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE2,
+			err->dbg_l1_status_lane2, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE3,
+			err->dbg_l1_status_lane3, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE4,
+			err->dbg_l1_status_lane4, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE5,
+			err->dbg_l1_status_lane5, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE6,
+			err->dbg_l1_status_lane6, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE7,
+			err->dbg_l1_status_lane7, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE8,
+			err->dbg_l1_status_lane8, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE9,
+			err->dbg_l1_status_lane9, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE10,
+			err->dbg_l1_status_lane10, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE11,
+			err->dbg_l1_status_lane11, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE12,
+			err->dbg_l1_status_lane12, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE13,
+			err->dbg_l1_status_lane13, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE14,
+			err->dbg_l1_status_lane14, -1);
+		db_bind(db, stmt, AMPEREONE_PAYLOAD1_FIELD_SI_DEBUG_LAYER1_STATUS_LANE15,
+			err->dbg_l1_status_lane15, -1);
 
 		db_eval_stmt(stmt, "ampereone_payload1_event_tab");
 	}
@@ -709,12 +737,13 @@ static void record_ampereone_payload1_err(struct ras_ns_ev_decoder *ev_decoder,
 
 /*save all Ampere Specific Error Payload type 2 to sqlite3 database*/
 static void record_ampereone_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload2_type_sec *err)
+					  const char *type_str, const char *subtype_str,
+					  const struct ampereone_payload2_type_sec *err)
 {
 	if (ev_decoder) {
 		const struct db_table_descriptor *db = ampereone_event_db->desc;
 		struct ras_stmt *stmt = ampereone_event_db->stmt;
+
 		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_TYPE_ID, (uint64_t)type_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD2_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
@@ -732,12 +761,13 @@ static void record_ampereone_payload2_err(struct ras_ns_ev_decoder *ev_decoder,
 
 /*save all Ampere Specific Error Payload type 3 to sqlite3 database*/
 static void record_ampereone_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload3_type_sec *err)
+					  const char *type_str, const char *subtype_str,
+					  const struct ampereone_payload3_type_sec *err)
 {
 	if (ev_decoder) {
 		const struct db_table_descriptor *db = ampereone_event_db->desc;
 		struct ras_stmt *stmt = ampereone_event_db->stmt;
+
 		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_TYPE_ID, (uint64_t)type_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD3_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
@@ -757,12 +787,13 @@ static void record_ampereone_payload3_err(struct ras_ns_ev_decoder *ev_decoder,
 
 /*save all Ampere Specific Error Payload type 4 to sqlite3 database*/
 static void record_ampereone_payload4_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload4_type_sec *err)
+					  const char *type_str, const char *subtype_str,
+					  const struct ampereone_payload4_type_sec *err)
 {
 	if (ev_decoder) {
 		const struct db_table_descriptor *db = ampereone_event_db->desc;
 		struct ras_stmt *stmt = ampereone_event_db->stmt;
+
 		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_TYPE_ID, (uint64_t)type_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD4_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
@@ -783,12 +814,13 @@ static void record_ampereone_payload4_err(struct ras_ns_ev_decoder *ev_decoder,
 
 /*save all Ampere Specific Error Payload type 5 to sqlite3 database*/
 static void record_ampereone_payload5_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload5_type_sec *err)
+					  const char *type_str, const char *subtype_str,
+					  const struct ampereone_payload5_type_sec *err)
 {
 	if (ev_decoder) {
 		const struct db_table_descriptor *db = ampereone_event_db->desc;
 		struct ras_stmt *stmt = ampereone_event_db->stmt;
+
 		db_bind(db, stmt, AMPEREONE_PAYLOAD5_FIELD_TYPE_ID, (uint64_t)type_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD5_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD5_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
@@ -800,13 +832,13 @@ static void record_ampereone_payload5_err(struct ras_ns_ev_decoder *ev_decoder,
 
 /*save all Ampere Specific Error Payload type 6 to sqlite3 database*/
 static void record_ampereone_payload6_err(struct ras_ns_ev_decoder *ev_decoder,
-				    const char *type_str, const char *subtype_str,
-				    const struct ampereone_payload6_type_sec *err)
+					  const char *type_str, const char *subtype_str,
+					  const struct ampereone_payload6_type_sec *err)
 {
-
 	if (ev_decoder) {
 		const struct db_table_descriptor *db = ampereone_event_db->desc;
 		struct ras_stmt *stmt = ampereone_event_db->stmt;
+
 		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_TYPE_ID, (uint64_t)type_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_SUB_TYPE_ID, (uint64_t)subtype_str, -1);
 		db_bind(db, stmt, AMPEREONE_PAYLOAD6_FIELD_INS, AMPEREONE_INSTANCE(err->header.instance), -1);
@@ -822,8 +854,8 @@ static void record_ampereone_payload6_err(struct ras_ns_ev_decoder *ev_decoder,
 }
 
 static void decode_ampereone_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload0_type_sec *err)
+					       struct trace_seq *s,
+					       const struct ampereone_payload0_type_sec *err)
 {
 	char buf[AMPEREONE_PAYLOAD0_BUF_LEN];
 	char *p = buf;
@@ -834,9 +866,8 @@ static void decode_ampereone_payload0_err_regs(struct ras_ns_ev_decoder *ev_deco
 	const char *type_str = ampereone_type_name(ampereone_payload_error_type,
 					    AMPEREONE_TYPE(err->header.type));
 
-
 	subtype_str  = ampereone_subtype_name(ampereone_payload_error_type,
-					    AMPEREONE_TYPE(err->header.type), err->header.subtype);
+					      AMPEREONE_TYPE(err->header.type), err->header.subtype);
 
 	trace_seq_printf(s, " Payload Type: 0\n");
 
@@ -911,8 +942,8 @@ static void decode_ampereone_payload0_err_regs(struct ras_ns_ev_decoder *ev_deco
 
 // Payload Type 1: PCIe AER Format
 static void decode_ampereone_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload1_type_sec *err)
+					       struct trace_seq *s,
+					       const struct ampereone_payload1_type_sec *err)
 {
 	char buf[AMPEREONE_PAYLOAD1_BUF_LEN];
 	char *p = buf;
@@ -923,9 +954,8 @@ static void decode_ampereone_payload1_err_regs(struct ras_ns_ev_decoder *ev_deco
 	const char *type_str = ampereone_type_name(ampereone_payload_error_type,
 					    AMPEREONE_TYPE(err->header.type));
 
-
 	subtype_str  = ampereone_subtype_name(ampereone_payload_error_type,
-					    AMPEREONE_TYPE(err->header.type), err->header.subtype);
+					      AMPEREONE_TYPE(err->header.type), err->header.subtype);
 
 	trace_seq_printf(s, " Payload Type: 1\n");
 
@@ -1141,13 +1171,12 @@ static void decode_ampereone_payload1_err_regs(struct ras_ns_ev_decoder *ev_deco
 	end = NULL;
 
 	record_ampereone_payload1_err(ev_decoder, type_str, subtype_str, err);
-
 }
 
 // Payload Type 2: PCIe RASDP
 static void decode_ampereone_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload2_type_sec *err)
+					       struct trace_seq *s,
+					       const struct ampereone_payload2_type_sec *err)
 {
 	char buf[AMPEREONE_PAYLOAD2_BUF_LEN];
 	char *p = buf;
@@ -1158,9 +1187,8 @@ static void decode_ampereone_payload2_err_regs(struct ras_ns_ev_decoder *ev_deco
 	const char *type_str = ampereone_type_name(ampereone_payload_error_type,
 					    AMPEREONE_TYPE(err->header.type));
 
-
 	subtype_str  = ampereone_subtype_name(ampereone_payload_error_type,
-					    AMPEREONE_TYPE(err->header.type), err->header.subtype);
+					      AMPEREONE_TYPE(err->header.type), err->header.subtype);
 
 	trace_seq_printf(s, " Payload Type: 2\n");
 
@@ -1223,8 +1251,8 @@ static void decode_ampereone_payload2_err_regs(struct ras_ns_ev_decoder *ev_deco
 }
 
 static void decode_ampereone_payload3_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload3_type_sec *err)
+					       struct trace_seq *s,
+					       const struct ampereone_payload3_type_sec *err)
 {
 	char buf[AMPEREONE_PAYLOAD3_BUF_LEN];
 	char *p = buf;
@@ -1235,9 +1263,8 @@ static void decode_ampereone_payload3_err_regs(struct ras_ns_ev_decoder *ev_deco
 	const char *type_str = ampereone_type_name(ampereone_payload_error_type,
 					    AMPEREONE_TYPE(err->header.type));
 
-
 	subtype_str  = ampereone_subtype_name(ampereone_payload_error_type,
-					    AMPEREONE_TYPE(err->header.type), err->header.subtype);
+					      AMPEREONE_TYPE(err->header.type), err->header.subtype);
 
 	trace_seq_printf(s, " Payload Type: 3\n");
 
@@ -1310,8 +1337,8 @@ static void decode_ampereone_payload3_err_regs(struct ras_ns_ev_decoder *ev_deco
 }
 
 static void decode_ampereone_payload4_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload4_type_sec *err)
+					       struct trace_seq *s,
+					       const struct ampereone_payload4_type_sec *err)
 {
 	char buf[AMPEREONE_PAYLOAD4_BUF_LEN];
 	char *p = buf;
@@ -1322,9 +1349,8 @@ static void decode_ampereone_payload4_err_regs(struct ras_ns_ev_decoder *ev_deco
 	const char *type_str = ampereone_type_name(ampereone_payload_error_type,
 					    AMPEREONE_TYPE(err->header.type));
 
-
 	subtype_str  = ampereone_subtype_name(ampereone_payload_error_type,
-					    AMPEREONE_TYPE(err->header.type), err->header.subtype);
+					      AMPEREONE_TYPE(err->header.type), err->header.subtype);
 
 	trace_seq_printf(s, " Payload Type: 4\n");
 
@@ -1397,8 +1423,8 @@ static void decode_ampereone_payload4_err_regs(struct ras_ns_ev_decoder *ev_deco
 }
 
 static void decode_ampereone_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload5_type_sec *err)
+					       struct trace_seq *s,
+					       const struct ampereone_payload5_type_sec *err)
 {
 	char buf[AMPEREONE_PAYLOAD5_BUF_LEN];
 	char *p = buf;
@@ -1409,9 +1435,8 @@ static void decode_ampereone_payload5_err_regs(struct ras_ns_ev_decoder *ev_deco
 	const char *type_str = ampereone_type_name(ampereone_payload_error_type,
 					    AMPEREONE_TYPE(err->header.type));
 
-
 	subtype_str  = ampereone_subtype_name(ampereone_payload_error_type,
-					    AMPEREONE_TYPE(err->header.type), err->header.subtype);
+					      AMPEREONE_TYPE(err->header.type), err->header.subtype);
 
 	trace_seq_printf(s, " Payload Type: 5\n");
 
@@ -1444,8 +1469,8 @@ static void decode_ampereone_payload5_err_regs(struct ras_ns_ev_decoder *ev_deco
 }
 
 static void decode_ampereone_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
-				struct trace_seq *s,
-				const struct ampereone_payload6_type_sec *err)
+					       struct trace_seq *s,
+					       const struct ampereone_payload6_type_sec *err)
 {
 	char buf[AMPEREONE_PAYLOAD6_BUF_LEN];
 	char *p = buf;
@@ -1456,9 +1481,8 @@ static void decode_ampereone_payload6_err_regs(struct ras_ns_ev_decoder *ev_deco
 	const char *type_str = ampereone_type_name(ampereone_payload_error_type,
 					    AMPEREONE_TYPE(err->header.type));
 
-
 	subtype_str  = ampereone_subtype_name(ampereone_payload_error_type,
-					    AMPEREONE_TYPE(err->header.type), err->header.subtype);
+					      AMPEREONE_TYPE(err->header.type), err->header.subtype);
 
 	trace_seq_printf(s, " Payload Type: 6\n");
 
@@ -1495,7 +1519,7 @@ static void decode_ampereone_payload6_err_regs(struct ras_ns_ev_decoder *ev_deco
 
 	// Display Error Msg in a hex representation.
 	display_hex_dump(&p, end, err->error_msg_size, err->error_msg,
-					 disp_ampereone_payload6_err_reg_name[i++]);
+			 disp_ampereone_payload6_err_reg_name[i++]);
 
 	if (p > buf && p < end) {
 		p--;
@@ -1624,7 +1648,7 @@ static struct ras_ns_ev_decoder ampereone_ns_oem_decoder[] = {
 };
 
 static void decode_ampereone_arm_vendor_data(struct trace_seq *s,
-					      const uint8_t *buf, uint32_t length)
+					     const uint8_t *buf, uint32_t length)
 {
 	const struct ampereone_payload0_type_sec *err;
 

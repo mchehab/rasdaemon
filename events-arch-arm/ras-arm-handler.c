@@ -34,6 +34,7 @@ static const struct ras_event_entry ras_arm_event_entry = {
 #endif
 	.record = db_arm_record,
 };
+
 REGISTER_RAS_EVENT(ras_arm_event_entry);
 #include "events-arch-arm/ras-non-standard-handler.h"
 
@@ -454,8 +455,8 @@ static int ras_decode_cpu_isolation(struct trace_seq *s,
 #endif
 
 static int ras_arm_event_handler(struct trace_seq *s,
-			  struct tep_record *record,
-			  struct tep_event *event, void *context)
+				 struct tep_record *record,
+				 struct tep_event *event, void *context)
 {
 	unsigned long long val;
 	struct ras_events *ras = context;
@@ -590,6 +591,7 @@ static int ras_arm_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 static const struct db_fields arm_event_fields[] = {
 		{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 		{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

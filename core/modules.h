@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
@@ -63,7 +63,6 @@ struct ras_module_ctx {
 	struct ras_events *ras;
 	void *priv;
 };
-
 
 /*
  * Register one module into the given priority list.

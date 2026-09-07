@@ -77,6 +77,7 @@ static void cxl_check_rp(struct pci_dev *dev, struct edpc_device *dpc)
 {
 	struct pci_dev *dev_p;
 	struct edpc_device *dpc_p;
+
 	for (dev_p = dev->parent; dev_p; dev_p = dev_p->parent) {
 		for (dpc_p = dpc->next; dpc_p; dpc_p = dpc_p->next) {
 			if (dev_p->domain == dpc_p->dev->domain &&
@@ -85,9 +86,9 @@ static void cxl_check_rp(struct pci_dev *dev, struct edpc_device *dpc)
 			    dev_p->func == dpc_p->dev->func) {
 				dpc_p->is_cxl_root_port = true;
 				log(TERM, LOG_INFO, "Device %x:%x:%x.%x is CXL RP, ignore EDPC config\n",
-					dpc_p->dev->domain, dpc_p->dev->bus,
-					dpc_p->dev->dev, dpc_p->dev->func);
-			    }
+				    dpc_p->dev->domain, dpc_p->dev->bus,
+				    dpc_p->dev->dev, dpc_p->dev->func);
+			}
 		}
 	}
 }

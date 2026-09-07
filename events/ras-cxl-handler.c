@@ -1417,6 +1417,7 @@ static int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 /*
  * Table and functions to handle cxl:cxl_poison
  */
@@ -1773,24 +1774,42 @@ static int db_cxl_general_media_event(struct ras_events *ras, void *priv)
 				cxl_general_media_event_db.stmt, &ev->hdr);
 	if (idx <= 0)
 		return -1;
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->dpa, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->dpa_flags, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->descriptor, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->type, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->transaction_type, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->channel, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->rank, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->device, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->hpa, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->region, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->region_uuid, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->sub_type, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->cme_threshold_ev_flags, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->cme_count, -1);
-	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt, idx++, ev->hpa_alias0, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->dpa, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->dpa_flags, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->descriptor, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->type, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->transaction_type, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->channel, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->rank, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->device, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->hpa, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, (uint64_t)ev->region, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, (uint64_t)ev->region_uuid, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->sub_type, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->cme_threshold_ev_flags, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->cme_count, -1);
+	db_bind(&cxl_general_media_event_tab, cxl_general_media_event_db.stmt,
+		idx++, ev->hpa_alias0, -1);
 
 	rc = db_eval_stmt(cxl_general_media_event_db.stmt, "cxl_general_media_event");
 	if (!rc)
@@ -1872,30 +1891,54 @@ static int db_cxl_dram_event(struct ras_events *ras, void *priv)
 	if (idx <= 0)
 		return -1;
 
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->dpa, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->dpa_flags, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->descriptor, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->type, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->transaction_type, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->channel, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->rank, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->nibble_mask, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->bank_group, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->bank, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->row, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->column, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->cor_mask, CXL_EVENT_DER_CORRECTION_MASK_SIZE);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->hpa, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->region, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->region_uuid, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->sub_type, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->sub_channel, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->cme_threshold_ev_flags, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->cvme_count, -1);
-	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++, ev->hpa_alias0, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->dpa, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->dpa_flags, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->descriptor, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->type, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->transaction_type, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->channel, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->rank, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->nibble_mask, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->bank_group, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->bank, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->row, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->column, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		(uint64_t)ev->cor_mask, CXL_EVENT_DER_CORRECTION_MASK_SIZE);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->hpa, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		(uint64_t)ev->region, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		(uint64_t)ev->region_uuid, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		(uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		(uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		(uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->sub_type, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->sub_channel, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->cme_threshold_ev_flags, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->cvme_count, -1);
+	db_bind(&cxl_dram_event_tab, cxl_dram_event_db.stmt, idx++,
+		ev->hpa_alias0, -1);
 
 	rc = db_eval_stmt(cxl_dram_event_db.stmt, "cxl_dram_event");
 	if (!rc)
@@ -1966,19 +2009,32 @@ static int db_cxl_memory_module_event(struct ras_events *ras, void *priv)
 	if (idx <= 0)
 		return -1;
 
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->event_type, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->health_status, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->media_status, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->life_used, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->dirty_shutdown_cnt, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->cor_vol_err_cnt, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->cor_per_err_cnt, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->device_temp, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->add_status, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, ev->event_sub_type, -1);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
-	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt, idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->event_type, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->health_status, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->media_status, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->life_used, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->dirty_shutdown_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->cor_vol_err_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->cor_per_err_cnt, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->device_temp, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->add_status, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, ev->event_sub_type, -1);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, (uint64_t)ev->comp_id, CXL_EVENT_GEN_MED_COMP_ID_SIZE);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, (uint64_t)ev->entity_id, CXL_PLDM_ENTITY_ID_LEN);
+	db_bind(&cxl_memory_module_event_tab, cxl_memory_module_event_db.stmt,
+		idx++, (uint64_t)ev->res_id, CXL_PLDM_RES_ID_LEN);
 
 	rc = db_eval_stmt(cxl_memory_module_event_db.stmt, "cxl_memory_module_event");
 	if (!rc)

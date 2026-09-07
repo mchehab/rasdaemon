@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
@@ -76,6 +76,7 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 {
 	struct db_sqlite3_conn_params *conn_parms = __conn_parms;
 	const char *database = SQLITE3_DATABASE;
+
 	sqlite3 **db = (void *)__db;
 	int flags, lock_timeout = DB_LOCK_TIMEOUT, rc;
 
@@ -149,7 +150,7 @@ static int db_sqlite3_open(struct ras_db **__db, void *__conn_parms,
 
 static int db_sqlite3_close(struct ras_db *__db, unsigned int cpu)
 {
-	sqlite3 *db = (void *) __db;
+	sqlite3 *db = (void *)__db;
 	int rc;
 
 	rc = sqlite3_close_v2((sqlite3 *)db);
@@ -173,8 +174,8 @@ static int db_sqlite3_close(struct ras_db *__db, unsigned int cpu)
 static const char *db_sqlite3_get_sql_type(enum db_field_type type, bool is_pk)
 {
 	/*
-	* On sqlite3, integers are 64 bits and there's no timestamp type
-	*/
+	 * On sqlite3, integers are 64 bits and there's no timestamp type
+	 */
 	switch (type) {
 	case DB_TYPE_SERIAL:
 	case DB_TYPE_INT64:
@@ -202,33 +203,33 @@ static int db_sqlite3_bind_type(struct ras_stmt *__stmt,
 	sqlite3_stmt *stmt = (void *)__stmt;
 
 	switch (type) {
-		case DB_TYPE_SERIAL:
-			/* Use NULL to let sqlite3 to autofill it */
+	case DB_TYPE_SERIAL:
+		/* Use NULL to let sqlite3 to autofill it */
+		return sqlite3_bind_null(stmt, pos);
+
+	case DB_TYPE_INT32:
+		return sqlite3_bind_int(stmt, pos, value);
+
+	case DB_TYPE_INT64:
+		return sqlite3_bind_int64(stmt, pos, value);
+
+	case DB_TYPE_BLOB:
+		if (!value)
+			return sqlite3_bind_null(stmt, pos);
+		if (len < 0)
+			len = strlen((const char *)value);
+
+		return sqlite3_bind_blob(stmt, pos, (const char *)value,
+					 len, SQLITE_TRANSIENT);
+
+	case DB_TYPE_TIMESTAMP:
+	case DB_TYPE_TEXT:
+	default:
+		if (!value)
 			return sqlite3_bind_null(stmt, pos);
 
-		case DB_TYPE_INT32:
-			return sqlite3_bind_int(stmt, pos, value);
-
-		case DB_TYPE_INT64:
-			return sqlite3_bind_int64(stmt, pos, value);
-
-		case DB_TYPE_BLOB:
-			if (!value)
-				return sqlite3_bind_null(stmt, pos);
-			if (len < 0)
-				len = strlen((const char *)value);
-
-			return sqlite3_bind_blob(stmt, pos, (const char *)value,
-						 len, SQLITE_TRANSIENT);
-
-		case DB_TYPE_TIMESTAMP:
-		case DB_TYPE_TEXT:
-		default:
-			if (!value)
-				return sqlite3_bind_null(stmt, pos);
-
-			return sqlite3_bind_text(stmt, pos, (const char *)value,
-						 len, SQLITE_TRANSIENT);
+		return sqlite3_bind_text(stmt, pos, (const char *)value,
+					 len, SQLITE_TRANSIENT);
 	}
 }
 
@@ -361,6 +362,7 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 
 		if (!found) {
 			int ret;
+
 			type = db_get_sql_type(field->type, field->is_pk);
 
 			/* add new field */
@@ -394,8 +396,8 @@ static int db_sqlite3_alter_table(struct ras_db *__db,
 }
 
 static int __db_prepare_insert_stmt(struct sqlite3 *db,
-			     sqlite3_stmt **stmt,
-			     const struct db_table_descriptor *db_tab)
+				    sqlite3_stmt **stmt,
+				    const struct db_table_descriptor *db_tab)
 
 {
 	int i, rc;

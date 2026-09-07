@@ -57,4 +57,8 @@ struct diskerror_event {
 	const char *cmd;
 };
 
+#ifdef HAVE_UNITTEST
+const char *ras_diskerror_test_error(int err);
+#endif
+
 #endif

@@ -31,4 +31,12 @@ struct ras_non_standard_event {
 	uint32_t length;
 };
 
+#ifdef HAVE_UNITTEST
+size_t ras_ns_test_decoder_count(void);
+const char *ras_ns_test_decoder_type(size_t index);
+int ras_ns_test_decode(const char *type, struct ras_events *ras,
+		       struct trace_seq *seq,
+		       struct ras_non_standard_event *event);
+#endif
+
 #endif

@@ -77,6 +77,7 @@ long user_hz;
  */
 struct ras_event_runtime {
 	const struct ras_event_entry *entry;
+
 	LIST_ENTRY(ras_event_runtime) node;
 };
 
@@ -151,7 +152,6 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 {
 	return get_mountdir_by_type("debugfs", tracing_dir, len);
 }
-
 
 /**
  * get_tracefs_dir - locate the tracefs mount
@@ -252,8 +252,7 @@ static int get_tracing_dir(struct ras_events *ras)
 	struct dirent	*entry;
 
 	rc = get_tracefs_dir(fname, sizeof(fname));
-	if (rc < 0)
-	{
+	if (rc < 0) {
 		/* check under deprecated debugfs location */
 		rc = get_debugfs_dir(debugfs, sizeof(debugfs));
 		if (rc < 0)

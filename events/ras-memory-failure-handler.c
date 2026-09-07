@@ -36,6 +36,7 @@ static const struct ras_event_entry ras_memory_failure_event = {
 #endif
 	.record = db_mf_event,
 };
+
 REGISTER_RAS_EVENT(ras_memory_failure_event);
 
 /* Memory failure - various types of pages */
@@ -249,6 +250,7 @@ static int ras_memory_failure_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 static const struct db_fields mf_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

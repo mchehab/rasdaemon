@@ -57,7 +57,7 @@ static const struct argp_option options[] = {
 	{ 0 }
 };
 
-static const char doc[] ="Run rasdaemon unit tests.";
+static const char doc[] = "Run rasdaemon unit tests.";
 
 static void list_groups(FILE *stream)
 {
@@ -69,26 +69,20 @@ static void list_groups(FILE *stream)
 	}
 }
 
-static uint32_t parse_output_format(
-	const char *value,
-	struct argp_state *state
-)
+static uint32_t parse_output_format(const char *value,
+				    struct argp_state *state)
 {
-	if (strcasecmp(value, "standard") == 0) {
+	if (strcasecmp(value, "standard") == 0)
 		return CM_OUTPUT_STDOUT;
-	}
 
-	if (strcasecmp(value, "tap") == 0) {
+	if (strcasecmp(value, "tap") == 0)
 		return CM_OUTPUT_TAP;
-	}
 
-	if (strcasecmp(value, "xml") == 0) {
+	if (strcasecmp(value, "xml") == 0)
 		return CM_OUTPUT_XML;
-	}
 
-	if (strcasecmp(value, "subunit") == 0) {
+	if (strcasecmp(value, "subunit") == 0)
 		return CM_OUTPUT_SUBUNIT;
-	}
 
 	argp_error(state,
 		   "unknown format: %s. Expected: standard, tap, xml, or subunit",
@@ -102,41 +96,40 @@ static error_t parse_option(int key, char *value, struct argp_state *state)
 	struct arguments *args = state->input;
 
 	switch (key) {
-		case 'o':
-			args->output_formats |=	parse_output_format(value,
-								    state);
-			args->output_was_set = true;
-			return 0;
+	case 'o':
+		args->output_formats |= parse_output_format(value, state);
+		args->output_was_set = true;
+		return 0;
 
-		case 'f':
+	case 'f':
 			args->test_filter = value;
 			return 0;
 
-		case 's':
+	case 's':
 			args->skip_filter = value;
 			return 0;
 
-		case 'g':
+	case 'g':
 			args->selected_group = value;
 			return 0;
 
-		case 'l':
+	case 'l':
 			args->list_groups = true;
 			return 0;
 
-		case 'n':
+	case 'n':
 			args->no_mock = true;
 			return 0;
 
-		case ARGP_KEY_ARG:
+	case ARGP_KEY_ARG:
 			argp_error(state,
 				   "unexpected positional value '%s'", value);
 			return 0;
 
-		case ARGP_KEY_END:
+	case ARGP_KEY_END:
 			return 0;
 
-		default:
+	default:
 			return ARGP_ERR_UNKNOWN;
 	}
 }
@@ -237,11 +230,10 @@ static void filter_output(const char *format, va_list args)
 	 */
 
 	if (running_line_open) {
-		if (is_test_result(message) && is_running_test(message)) {
+		if (is_test_result(message) && is_running_test(message))
 			fputs("\r\033[2K", stdout);
-		} else {
+		else
 			fputc('\n', stdout);
-		}
 		running_line_open = false;
 		running_test[0] = '\0';
 	}
@@ -312,9 +304,8 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 
-	if (arguments.output_was_set) {
+	if (arguments.output_was_set)
 		cmocka_set_message_output(arguments.output_formats);
-	}
 
 	if (arguments.test_filter)
 		cmocka_set_test_filter(arguments.test_filter);

@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+// SPDX-License-Identifier: GPL-2.0-only
 
 /*
  * Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
@@ -34,14 +34,14 @@ static void nvidia_format_timestamp(char *timestamp, size_t len)
 }
 
 static const char * const nvidia_reg_names[] = {
-	[NVIDIA_FIELD_SIGNATURE]     = "Signature:",
-	[NVIDIA_FIELD_ERROR_TYPE]    = "Error Type:",
-	[NVIDIA_FIELD_ERROR_INSTANCE]= "Error Instance:",
-	[NVIDIA_FIELD_SEVERITY]      = "Severity:",
-	[NVIDIA_FIELD_SOCKET]        = "Socket:",
-	[NVIDIA_FIELD_NUMBER_REGS]   = "Number of Registers:",
-	[NVIDIA_FIELD_INSTANCE_BASE] = "Instance Base:",
-	[NVIDIA_FIELD_REG_DATA]      = "Register Data:",
+	[NVIDIA_FIELD_SIGNATURE]      = "Signature:",
+	[NVIDIA_FIELD_ERROR_TYPE]     = "Error Type:",
+	[NVIDIA_FIELD_ERROR_INSTANCE] = "Error Instance:",
+	[NVIDIA_FIELD_SEVERITY]       = "Severity:",
+	[NVIDIA_FIELD_SOCKET]         = "Socket:",
+	[NVIDIA_FIELD_NUMBER_REGS]    = "Number of Registers:",
+	[NVIDIA_FIELD_INSTANCE_BASE]  = "Instance Base:",
+	[NVIDIA_FIELD_REG_DATA]       = "Register Data:",
 };
 
 static void decode_nvidia_cper_sec(struct ras_ns_ev_decoder *ev_decoder,

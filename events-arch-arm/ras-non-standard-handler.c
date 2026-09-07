@@ -28,6 +28,7 @@ static const struct ras_event_entry ras_non_standard_event_entry = {
 	.handler = ras_non_standard_event_handler, .id = NON_STANDARD_EVENT,
 	.record = db_non_standard_record,
 };
+
 REGISTER_RAS_EVENT(ras_non_standard_event_entry);
 
 static struct  ras_ns_ev_decoder *ras_ns_ev_dec_list;
@@ -140,8 +141,8 @@ int ras_ns_test_decode(const char *type, struct ras_events *ras,
 #endif
 
 static int ras_non_standard_event_handler(struct trace_seq *s,
-				   struct tep_record *record,
-				   struct tep_event *event, void *context)
+					  struct tep_record *record,
+					  struct tep_event *event, void *context)
 {
 	int len, raw_len, i, line_count, decoded = 0;
 	unsigned long long val;

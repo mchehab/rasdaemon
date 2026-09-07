@@ -18,8 +18,6 @@
 #include "db/ras-db.h"
 #include "tests/unittest.h"
 
-extern struct ras_events ras;
-
 static const char text[] = "database unit test";
 static const char timestamp[] = "2026-08-21 12:00:00 +00:00";
 static const unsigned char blob[] = { 0x52, 0x41, 0x53, 0xdb };
@@ -46,20 +44,20 @@ static void populate_table(const struct db_table_descriptor *table)
 			int length = -1;
 
 			switch (type) {
-				case DB_TYPE_SERIAL:
+			case DB_TYPE_SERIAL:
 					continue;
-				case DB_TYPE_INT32:
-				case DB_TYPE_INT64:
+			case DB_TYPE_INT32:
+			case DB_TYPE_INT64:
 					val = row + 1;
 					break;
-				case DB_TYPE_TIMESTAMP:
+			case DB_TYPE_TIMESTAMP:
 					val = (uint64_t)timestamp;
 					break;
-				default:
-				case DB_TYPE_TEXT:
+			default:
+			case DB_TYPE_TEXT:
 					val = (uint64_t)text;
 					break;
-				case DB_TYPE_BLOB:
+			case DB_TYPE_BLOB:
 					length = sizeof(blob);
 					val = (uint64_t)blob;
 					break;

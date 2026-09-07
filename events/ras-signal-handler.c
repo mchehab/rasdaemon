@@ -55,6 +55,7 @@ static const struct ras_event_entry ras_signal_event = {
 #endif
 	.record = db_signal_event,
 };
+
 REGISTER_RAS_EVENT(ras_signal_event);
 
 enum {
@@ -178,6 +179,7 @@ static int ras_signal_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 static const struct db_fields signal_event_fields[] = {
 	{ .name = "id",		.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",	.type = DB_TYPE_TIMESTAMP, .create_index = true },

@@ -57,7 +57,10 @@ struct error_info {
 	enum error_type err_type;
 };
 
+struct ras_arm_event;
+
 #ifdef HAVE_UNITTEST
+int ras_arm_test_count_errors(struct ras_arm_event *event, int severity);
 int ras_cpu_isolation_test_parse(const char *text, bool use_cycle_units,
 				 unsigned long *value);
 unsigned int ras_cpu_isolation_test_cpu_count(void);

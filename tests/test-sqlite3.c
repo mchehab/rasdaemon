@@ -43,10 +43,6 @@
 #define DISKERROR_TRACE_EVENT "block_rq_complete"
 #endif
 
-extern struct module_list ras_modules;
-
-extern struct ras_events ras;
-
 struct mock_priv {
 	struct ras_stmt *stmt;
 };
@@ -151,7 +147,8 @@ static int sqlite3_check_values(void **state,
 				struct ras_db *__db,
 				struct ras_stmt **__stmt,
 				const struct db_table_descriptor *db_tab,
-				const struct db_values *values, int len) {
+				const struct db_values *values, int len)
+{
 	sqlite3 *db = (void *)__db;
 	int i, rc, nrow = 0;
 	sqlite3_stmt **stmt = (void *)__stmt;
@@ -311,7 +308,7 @@ static void test_db_no_binding(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 	static struct db_values vals[] = {
 		{
@@ -363,7 +360,7 @@ static void test_db_bind_types(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	static struct db_values vals[] = {
@@ -421,7 +418,7 @@ static void test_db_bind(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 	static struct db_values vals[] = {
 		{
@@ -467,7 +464,7 @@ static void test_db_create_table(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 
 	/* Open a database connection first */
@@ -533,7 +530,7 @@ static void test_db_complex_table(void **state)
 	static const struct db_table_descriptor db_tab = {
 		.name = "test_tbl",
 		.fields = fields,
-		.num_fields = sizeof(fields) / sizeof(fields[0]),
+		.num_fields = ARRAY_SIZE(fields),
 	};
 	static struct db_values vals[] = {
 		{
@@ -585,6 +582,7 @@ static void test_db_complex_table(void **state)
 static int tests_setup(void **state)
 {
 	int rc = db_open(&backend, 0, &ras, sizeof(struct mock_priv));
+
 	assert_int_equal(rc, 0);
 	assert_non_null(ras.db);
 
@@ -982,7 +980,7 @@ static void check_database_contention(unsigned int hold_us, int expected)
 	close(fd);
 	assert_int_equal(sqlite3_open(filename, &connection), SQLITE_OK);
 	assert_int_equal(sqlite3_exec(connection, "CREATE TABLE reader (id INTEGER)",
-				     NULL, NULL, NULL), SQLITE_OK);
+				      NULL, NULL, NULL), SQLITE_OK);
 	assert_int_equal(sqlite3_close(connection), SQLITE_OK);
 	assert_int_equal(pipe(ready), 0);
 	child = fork();
@@ -1039,10 +1037,10 @@ static void test_insert_error_and_reuse(void **state)
 	assert_int_equal(db_open(&backend, 0, &ras, sizeof(struct mock_priv)), 0);
 	connection = (void *)ras.db;
 	assert_int_equal(sqlite3_exec(connection,
-		"CREATE TABLE duplicate_key (id INTEGER PRIMARY KEY);"
-		"INSERT INTO duplicate_key VALUES (1)", NULL, NULL, NULL), SQLITE_OK);
+				      "CREATE TABLE duplicate_key (id INTEGER PRIMARY KEY);INSERT INTO duplicate_key VALUES (1)",
+				      NULL, NULL, NULL), SQLITE_OK);
 	assert_int_equal(sqlite3_prepare_v2(connection,
-		"INSERT INTO duplicate_key VALUES (?)", -1, &stmt, NULL), SQLITE_OK);
+					    "INSERT INTO duplicate_key VALUES (?)", -1, &stmt, NULL), SQLITE_OK);
 	assert_int_equal(sqlite3_bind_int(stmt, 1, 1), SQLITE_OK);
 	assert_int_equal(db_eval_stmt((void *)stmt, "duplicate_key"), SQLITE_CONSTRAINT);
 	sqlite3_assert_row_count(connection, "duplicate_key", 1);

@@ -462,7 +462,7 @@ static void page_record_infos_free(struct ras_module_ctx *ctx)
 }
 
 static struct page_record *page_lookup_insert(unsigned long long addr,
-					       time_t now)
+					      time_t now)
 {
 	struct rb_node **entry = &page_records.rb_node;
 	struct rb_node *parent = NULL;
@@ -1082,6 +1082,7 @@ static void row_record_infos_free(struct ras_module_ctx *ctx)
 {
 	struct row_record *row_record = NULL, *tmp_row_record = NULL;
 	struct page_addr *page_addr = NULL, *tmp_page_addr = NULL;
+
 	ras_event_consumer_unregister(&row_isolation_consumer);
 	row_record = LIST_FIRST(&row_head);
 	while (row_record) {

@@ -46,6 +46,7 @@ static const struct ras_event_entry ras_extlog_event = {
 #endif
 	.record = db_extlog_mem_record,
 };
+
 REGISTER_RAS_EVENT(ras_extlog_event);
 
 static char *err_type(int etype)
@@ -261,8 +262,8 @@ static void report_extlog_mem_event(struct ras_events *ras,
 }
 
 static int ras_extlog_mem_event_handler(struct trace_seq *s,
-				 struct tep_record *record,
-				 struct tep_event *event, void *context)
+					struct tep_record *record,
+					struct tep_event *event, void *context)
 {
 	int len;
 	unsigned long long val;
@@ -321,6 +322,7 @@ static int ras_extlog_mem_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 static const struct db_fields extlog_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

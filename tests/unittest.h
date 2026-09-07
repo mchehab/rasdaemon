@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  */
@@ -14,6 +14,8 @@
 #include "core/types.h"
 
 struct ras_events;
+
+extern struct ras_events ras;
 
 #ifndef CMOCKA_VERSION_2
 #define assert_non_null_msg(x, y) assert_non_null(x)

@@ -61,4 +61,9 @@ struct ras_arm_event {
 	uint64_t phy_fault_addr;
 };
 
+#ifdef HAVE_UNITTEST
+int ras_arm_test_parse_processor(struct trace_seq *s,
+				 struct ras_arm_event *event);
+#endif
+
 #endif

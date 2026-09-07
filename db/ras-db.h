@@ -297,8 +297,8 @@ int db_alter_table(struct ras_db *db,
  * backend statement-preparation error.
  */
 int db_prepare_insert_stmt(struct ras_db *db,
-		    struct ras_stmt **stmt,
-		    const struct db_table_descriptor *db_tab);
+			   struct ras_stmt **stmt,
+			   const struct db_table_descriptor *db_tab);
 
 /**
  * db_exec_sql - Execute a SQL statement

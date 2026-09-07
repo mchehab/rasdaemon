@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
  *
@@ -45,7 +45,6 @@ static MYSQL *to_db(struct ras_db *__db)
 {
 	return (MYSQL *)__db;
 }
-
 
 struct mysql_stmt_priv {
 	MYSQL_STMT	*stmt;
@@ -97,8 +96,8 @@ static int db_mysql_open(struct ras_db **__db, void *__conn_parms,
 
 	if (!db) {
 		log(TERM, LOG_ERR,
-			"cpu %u: Failed to connect to MySQL: %s\n",
-			cpu, mysql_error(raw));
+		    "cpu %u: Failed to connect to MySQL: %s\n",
+		    cpu, mysql_error(raw));
 		mysql_close(raw);
 		return -1;
 	}
@@ -291,7 +290,7 @@ static int db_mysql_bind_type(struct ras_stmt *__stmt,
 			mb->buffer = malloc(len);
 			if (!mb->buffer) {
 				log(TERM, LOG_ERR,
-				"Failed to allocate memory for BLOB\n");
+				    "Failed to allocate memory for BLOB\n");
 				return -1;
 			}
 
@@ -300,7 +299,7 @@ static int db_mysql_bind_type(struct ras_stmt *__stmt,
 			mb->buffer = malloc(len + 1);
 			if (!mb->buffer) {
 				log(TERM, LOG_ERR,
-				"Failed to allocate memory for TEXT\n");
+				    "Failed to allocate memory for TEXT\n");
 				return -1;
 			}
 
@@ -324,7 +323,7 @@ static int db_mysql_exec_sql(struct ras_db *__db, const char *sql)
 	rc = mysql_query(db, sql);
 	if (rc) {
 		log(TERM, LOG_ERR,
-			"Failed to exec '%s': %s\n", sql, mysql_error(db));
+		    "Failed to exec '%s': %s\n", sql, mysql_error(db));
 		return -1;
 	}
 
@@ -368,8 +367,7 @@ static int db_mysql_create_table(struct ras_db *__db,
 	/* MySQL requires an explicit PRIMARY KEY clause if SERIAL was used */
 	for (i = 0; i < (int)db_tab->num_fields; i++) {
 		field = &db_tab->fields[i];
-		if (field->is_pk &&
-			field->type == DB_TYPE_SERIAL) {
+		if (field->is_pk && field->type == DB_TYPE_SERIAL) {
 			p += snprintf(p, end - p, ", PRIMARY KEY (%s)",
 				      field->name);
 			break;
@@ -395,8 +393,7 @@ static int db_mysql_alter_table(struct ras_db *__db,
 	int i, found, rc = 0;
 
 	snprintf(sql, sizeof(sql),
-		 "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS "
-		 "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s'",
+		 "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s'",
 		 db_tab->name);
 
 	res = mysql_query(db, sql) == 0 ? mysql_store_result(db) : NULL;
@@ -420,8 +417,7 @@ static int db_mysql_alter_table(struct ras_db *__db,
 		}
 
 		if (!found) {
-			const char *type = db_mysql_get_sql_type(
-				field->type, field->is_pk);
+			const char *type = db_mysql_get_sql_type(field->type, field->is_pk);
 
 			snprintf(sql, sizeof(sql),
 				 "ALTER TABLE %s ADD COLUMN `%s` %s",
@@ -429,9 +425,9 @@ static int db_mysql_alter_table(struct ras_db *__db,
 
 			if (mysql_query(db, sql)) {
 				log(TERM, LOG_ERR,
-					"ALTER TABLE %s ADD `%s`: %s\n",
-					db_tab->name, field->name,
-					mysql_error(db));
+				    "ALTER TABLE %s ADD `%s`: %s\n",
+				    db_tab->name, field->name,
+				    mysql_error(db));
 				rc = -1;
 			} else if (field->create_index) {
 				snprintf(sql, sizeof(sql),
@@ -598,7 +594,7 @@ static int db_mysql_eval_stmt(struct ras_stmt *__stmt, const char *tab_name)
 }
 
 static int db_mysql_finalize(unsigned int cpu,
-				 struct ras_stmt *__stmt, const char *name)
+			     struct ras_stmt *__stmt, const char *name)
 {
 	struct mysql_stmt_priv *priv = (struct mysql_stmt_priv *)__stmt;
 

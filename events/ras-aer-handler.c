@@ -39,6 +39,7 @@ static const struct ras_event_entry ras_aer_event = {
 #endif
 	.record = db_aer_event,
 };
+
 REGISTER_RAS_EVENT(ras_aer_event);
 
 /* bit field meaning for correctable error */
@@ -303,6 +304,7 @@ static int ras_aer_event_handler(struct trace_seq *s,
 
 	return 0;
 }
+
 static const struct db_fields aer_event_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },

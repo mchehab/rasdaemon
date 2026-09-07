@@ -48,31 +48,6 @@
 #include "tests/trace-mock.h"
 #include "tests/unittest.h"
 
-const char *ras_cxl_test_log_type(uint32_t log_type);
-void ras_cxl_test_convert_timestamp(unsigned long long timestamp,
-				    char *buf, uint16_t size);
-const char *ras_cxl_test_uuid(const char *uuid);
-const char *ras_diskerror_test_error(int err);
-const char *ras_extlog_test_error_type(int type);
-const char *ras_extlog_test_severity(int severity);
-unsigned long long ras_extlog_test_mask(int lsb);
-const char *ras_memory_failure_test_page_type(int page_type);
-const char *ras_memory_failure_test_action_result(int result);
-int ras_arm_test_parse_processor(struct trace_seq *s,
-				 struct ras_arm_event *event);
-#ifdef HAVE_CPU_FAULT_ISOLATION
-int ras_arm_test_count_errors(struct ras_arm_event *event, int severity);
-#endif
-size_t ras_ns_test_decoder_count(void);
-const char *ras_ns_test_decoder_type(size_t index);
-int ras_ns_test_decode(const char *type, struct ras_events *ras,
-		       struct trace_seq *seq,
-		       struct ras_non_standard_event *event);
-const char *ras_reri_test_error_code(uint8_t value);
-const char *ras_reri_test_transaction(uint8_t value);
-const char *ras_reri_test_address_type(uint8_t value);
-const char *ras_reri_test_category(uint8_t value);
-
 #define RUN_FEATURE_GROUP(group_name, test_array) \
 	_cmocka_run_group_tests(group_name, test_array, ARRAY_SIZE(test_array), \
 				NULL, NULL)
@@ -825,8 +800,8 @@ static void test_page_pfa_configuration_and_accounting(void **state)
 	assert_int_equal(ras_page_isolation_test_parse_value("-1", false,
 							     &value), -EINVAL);
 	assert_int_equal(value, 50);
-	assert_int_equal(ras_page_isolation_test_parse_value(
-			 "184467440737095516160", false, &value), -ERANGE);
+	assert_int_equal(ras_page_isolation_test_parse_value("184467440737095516160",
+							     false, &value), -ERANGE);
 	assert_int_equal(value, 50);
 	snprintf(overflow, sizeof(overflow), "%lud", ULONG_MAX / 24 + 1);
 	assert_int_equal(ras_page_isolation_test_parse_cycle(overflow, &value),
@@ -885,7 +860,7 @@ static void test_row_pfa_parser_and_accounting(void **state)
 	assert_int_equal(record.type, GHES);
 	assert_int_equal(record.location_fields[APEI_ROW], 6);
 	assert_int_not_equal(ras_page_isolation_test_parse_row("incomplete",
-								&record), 0);
+							       &record), 0);
 	setenv("ROW_CE_THRESHOLD", "2k", 1);
 	assert_int_equal(ras_page_isolation_test_parse_value("2k", true,
 							     &value), 0);
@@ -1140,13 +1115,13 @@ static void test_openbmc_sel_report(void **state)
 
 static const struct CMUnitTest openbmc_tests[] = {
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_disabled,
-				       bmc_sel_test_setup, bmc_sel_test_teardown),
+					bmc_sel_test_setup, bmc_sel_test_teardown),
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_no_device,
-				       bmc_sel_test_setup, bmc_sel_test_teardown),
+					bmc_sel_test_setup, bmc_sel_test_teardown),
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_invalid_probe,
-				       bmc_sel_test_setup, bmc_sel_test_teardown),
+					bmc_sel_test_setup, bmc_sel_test_teardown),
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_report,
-				       bmc_sel_test_setup, bmc_sel_test_teardown),
+					bmc_sel_test_setup, bmc_sel_test_teardown),
 };
 
 int test_openbmc_sel(void)
@@ -1195,8 +1170,7 @@ static void test_bmc_generic_sel_report(void **state)
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
 	command = system_mock_last_command();
 	assert_string_equal(command,
-		"ipmitool raw 0x0a 0x44 0x00 0x00 0x02 0x00 0x00 0x00 "
-		"0x00 0x01 0x00 0x04 0x13 0x00 0x6f 0xa7 0x02 0x19");
+			    "ipmitool raw 0x0a 0x44 0x00 0x00 0x02 0x00 0x00 0x00 0x00 0x01 0x00 0x04 0x13 0x00 0x6f 0xa7 0x02 0x19");
 
 	aer.severity = HW_EVENT_AER_UNCORRECTED_NON_FATAL;
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
@@ -1211,9 +1185,9 @@ static void test_bmc_generic_sel_report(void **state)
 
 static const struct CMUnitTest bmc_generic_tests[] = {
 	cmocka_unit_test_setup_teardown(test_bmc_generic_sel_disabled,
-				       bmc_sel_test_setup, bmc_sel_test_teardown),
+					bmc_sel_test_setup, bmc_sel_test_teardown),
 	cmocka_unit_test_setup_teardown(test_bmc_generic_sel_report,
-				       bmc_sel_test_setup, bmc_sel_test_teardown),
+					bmc_sel_test_setup, bmc_sel_test_teardown),
 };
 
 int test_bmc_generic(void)
@@ -1250,7 +1224,7 @@ static void test_pcie_edpc_disabled(void **state)
 
 static const struct CMUnitTest edpc_tests[] = {
 	cmocka_unit_test_setup_teardown(test_pcie_edpc_disabled,
-				       edpc_test_setup, edpc_test_teardown),
+					edpc_test_setup, edpc_test_teardown),
 };
 
 int test_pcie_edpc(void)
@@ -1474,9 +1448,8 @@ static void test_ampere_decoder_registration(void **state)
 
 	assert_true(decoder_is_registered("e8ed898d-df16-43cc-8ecc-54f060ef157f"));
 	trace_seq_init(&seq);
-	assert_int_equal(ras_ns_test_decode(
-		"e8ed898d-df16-43cc-8ecc-54f060ef157f",
-		&ras, &seq, &event), 0);
+	assert_int_equal(ras_ns_test_decode("e8ed898d-df16-43cc-8ecc-54f060ef157f",
+					    &ras, &seq, &event), 0);
 	trace_seq_destroy(&seq);
 	trace_seq_init(&seq);
 	assert_true(ras_arm_vendor_data_decode(0x410fd0c0, &seq,
@@ -1512,7 +1485,7 @@ static void test_ampereone_vendor_data_registration(void **state)
 
 	trace_seq_init(&seq);
 	assert_true(ras_arm_vendor_data_decode(0xc00fac30, &seq,
-				       (const uint8_t *)&payload, sizeof(payload)));
+					       (const uint8_t *)&payload, sizeof(payload)));
 	trace_seq_destroy(&seq);
 }
 
@@ -1604,8 +1577,7 @@ static void test_ampere_oem_sel_report(void **state)
 	assert_int_equal(system_mock_call_count(), 1);
 	command = system_mock_last_command();
 	assert_string_equal(command,
-		"ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 "
-		"0x00 0x3a 0xcd 0x00 0xc0 0xbf 0x00 0x00 0x02 0x19");
+			    "ipmitool raw 0x0a 0x44 0x00 0x00 0xc0 0x00 0x00 0x00 0x00 0x3a 0xcd 0x00 0xc0 0xbf 0x00 0x00 0x02 0x19");
 }
 #endif
 
@@ -1616,9 +1588,9 @@ static const struct CMUnitTest amp_ns_tests[] = {
 	cmocka_unit_test(test_ampereone_database_tables),
 #ifdef HAVE_AMPERE_OEM_SEL
 	cmocka_unit_test_setup_teardown(test_ampere_oem_sel_disabled,
-				       ampere_oem_test_setup, ampere_oem_test_teardown),
+					ampere_oem_test_setup, ampere_oem_test_teardown),
 	cmocka_unit_test_setup_teardown(test_ampere_oem_sel_report,
-				       ampere_oem_test_setup, ampere_oem_test_teardown),
+					ampere_oem_test_setup, ampere_oem_test_teardown),
 #endif
 };
 
