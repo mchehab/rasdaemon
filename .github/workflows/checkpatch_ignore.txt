@@ -1,7 +1,47 @@
-# .github/workflows/checkpatch_ignore.txt
-
-# Ignore a CONSTANT_COMPARISON that only appears in modules/ras-page-isolation.h
-^modules/ras-page-isolation\.h:.*CONSTANT_COMPARISON
-
-# Ignore a MACRO_ARG_PRECEDENCE that only appears in core/types.h
-^core/types\.h:.*MACRO_ARG_PRECEDENCE
+# Checkpatch ignore list. Don't add blank lines on this file.
+#
+# Ignore CONSTANT_COMPARISON that only appears in ras-page-isolation.h
+actions/ras-page-isolation\.h:.*CONSTANT_COMPARISON
+#
+# Ignore MACRO_ARG_PRECEDENCE that only appears in core/types.h
+core/types.h:.* CHECK:MACRO_ARG_PRECEDENCE
+#
+# cmocka backward-compat macros
+tests/unittest\.h:.*WARNING:MACRO_ARG_UNUSED
+#
+# Arrays that aren't be static by purpose
+db/db-postgresql\.c:.*WARNING:STATIC_CONST_CHAR_ARRAY
+tests/test-core\.c:.*WARNING:STATIC_CONST_CHAR_ARRAY
+tests/test-postgresql\.c:.*WARNING:STATIC_CONST_CHAR_ARRAY
+#
+# Ignore desired whitespace tail on a test
+tests/test-core\.c:.*WARNING:QUOTED_WHITESPACE_BEFORE_NEWLINE
+#
+# Ignore Postgres CamelCase
+Avoid CamelCase: <ConnStatusType>
+Avoid CamelCase: <PGconn>
+Avoid CamelCase: <PGresult>
+Avoid CamelCase: <PQclear>
+Avoid CamelCase: <PQconnectdbParams>
+Avoid CamelCase: <PQerrorMessage>
+Avoid CamelCase: <PQescapeByteaConn>
+Avoid CamelCase: <PQexec>
+Avoid CamelCase: <PQexecParams>
+Avoid CamelCase: <PQexecPrepared>
+Avoid CamelCase: <PQfinish>
+Avoid CamelCase: <PQfreemem>
+Avoid CamelCase: <PQgetisnull>
+Avoid CamelCase: <PQgetvalue>
+Avoid CamelCase: <PQhost>
+Avoid CamelCase: <PQnfields>
+Avoid CamelCase: <PQntuples>
+Avoid CamelCase: <PQprepare>
+Avoid CamelCase: <PQresStatus>
+Avoid CamelCase: <PQresultErrorMessage>
+Avoid CamelCase: <PQresultStatus>
+Avoid CamelCase: <PQunescapeBytea>
+Avoid CamelCase: <PQstatus>
+#
+# Ignore cmocka CamelCase
+Avoid CamelCase: <CMCallbacks>
+Avoid CamelCase: <CMUnitTest>
