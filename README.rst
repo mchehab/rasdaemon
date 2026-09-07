@@ -11,13 +11,13 @@ CI tests
 --------
 
 .. |unit-rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon/test-badges/rasdaemon-pass.svg
-   :target: https://github.com/mchehab/rasdaemon/actions/workflows/docs.yml?query=branch%3Amaster
+   :target: https://mchehab.github.io/rasdaemon/test-badges/rasdaemon.html
 .. |unit-rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon/test-badges/rasdaemon-fail.svg
-   :target: https://github.com/mchehab/rasdaemon/actions/workflows/docs.yml?query=branch%3Amaster
+   :target: https://mchehab.github.io/rasdaemon/test-badges/rasdaemon.html
 .. |unit-ras-mc-ctl-pass| image:: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl-pass.svg
-   :target: https://github.com/mchehab/rasdaemon/actions/workflows/docs.yml?query=branch%3Amaster
+   :target: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl.html
 .. |unit-ras-mc-ctl-fail| image:: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl-fail.svg
-   :target: https://github.com/mchehab/rasdaemon/actions/workflows/docs.yml?query=branch%3Amaster
+   :target: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl.html
 .. _Unit tests: https://mchehab.github.io/rasdaemon/test-badges/
 .. |func-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-pass.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
