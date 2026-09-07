@@ -6,6 +6,6 @@ body { background:var(--background); color:var(--foreground); font:16px system-u
 a { color:var(--link); } button,input { font:inherit; } button { cursor:pointer; padding:.35rem .65rem; }
 .theme-toggle { background:var(--panel); border:1px solid var(--border); border-radius:2rem; color:var(--foreground); position:fixed; right:1rem; top:1rem; z-index:10; }
 .toolbar { align-items:center; display:flex; flex-wrap:wrap; gap:.75rem; } .toolbar input { min-width:18rem; padding:.45rem; }
-table { border-collapse:collapse; margin:1rem 0; width:100%; } td,th { border:1px solid var(--border); padding:.55rem; text-align:left; vertical-align:top; } th { background:var(--panel); }
+table { border-collapse:collapse; margin:1rem 0; } td,th { border:1px solid var(--border); padding:.55rem; text-align:left; vertical-align:top; } th { background:var(--panel); }
 .PASS { background:var(--pass); } .FAIL,.ERROR { background:var(--fail); } .SKIP { background:var(--skip); } .NA { background:var(--na); }
 @media (max-width:50rem) { .toolbar input { min-width:14rem; } }
