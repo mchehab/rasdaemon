@@ -45,20 +45,26 @@ RAS Daemon has two types of CI tests, automated via Github Actions:
 
 1. `rasdaemon Actions <https://github.com/mchehab/rasdaemon/actions>`_, with
    tests several unit tests for both ``rasdaemon`` and `ras-mc-ctl` tools.
+
+2. `rasdaemon-ci functional tests <https://github.com/mchehab/rasdaemon-ci>`_,
+   which runs rasdaemon on a QEMU engine, using some mechanisms supported by
+   QEMU to trigger events on it. The functional tests are handled in separate.
+
    Such tests are executed on two separate QEMU VMs:
 
    +---------------------+----------------+------------------------+
    | VM health           | Architecture   | Status                 |
    +=====================+================+========================+
    | Functional tests    | x86_64         | |func-x86-vm|          |
-   +---------------------+----------------+------------------------+
-   | Functional tests    | aarch64        | |func-arm64-vm|        |
+   | (experimental)      +----------------+------------------------+
+   |                     | aarch64        | |func-arm64-vm|        |
    +---------------------+----------------+------------------------+
 
-
-2. `rasdaemon functional tests <https://github.com/mchehab/rasdaemon-ci>`_,
-   which runs rasdaemon on a QEMU engine, using some mechanisms supported by
-   QEMU to trigger events on it. The functional tests are handled in separate.
+   **NOTE**:
+      Currently, **functional tests** are experimental. They are still
+      under development. Don't rely on them yet, as we're still adjusting
+      the pipelines and ensuring that VMs have what's needed to test
+      RAS Daemon.
 
 The updated results are:
 
@@ -66,7 +72,7 @@ The updated results are:
 | Test type           | Scope          | PASS                   | FAIL                   |
 +=====================+================+========================+========================+
 | `Functional tests`_ | Features       | |func-feature-pass|    | |func-feature-fail|    |
-|                     +----------------+------------------------+------------------------+
+| (experimental)      +----------------+------------------------+------------------------+
 |                     | Kernel         | |func-kernel-pass|     | |func-kernel-fail|     |
 |                     +----------------+------------------------+------------------------+
 |                     | RAS Daemon     | |func-rasdaemon-pass|  | |func-rasdaemon-fail|  |
