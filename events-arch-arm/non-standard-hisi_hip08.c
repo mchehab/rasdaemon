@@ -614,7 +614,7 @@ static void decode_oem_type1_err_regs(struct ras_stmt *stmt,
 				      struct trace_seq *s,
 				      const struct hisi_oem_type1_err_sec *err)
 {
-	char buf[HISI_BUF_LEN];
+	char buf[HISI_BUF_LEN] = { 0 };
 	char *p = buf;
 	char *end = buf + HISI_BUF_LEN;
 
@@ -770,7 +770,7 @@ static void decode_oem_type2_err_regs(struct ras_stmt *stmt,
 				      struct trace_seq *s,
 				      const struct hisi_oem_type2_err_sec *err)
 {
-	char buf[HISI_BUF_LEN];
+	char buf[HISI_BUF_LEN] = { 0 };
 	char *p = buf;
 	char *end = buf + HISI_BUF_LEN;
 
@@ -952,7 +952,7 @@ static void
 decode_pcie_local_err_regs(struct ras_stmt *stmt, struct trace_seq *s,
 			   const struct hisi_pcie_local_err_sec *err)
 {
-	char buf[HISI_BUF_LEN];
+	char buf[HISI_BUF_LEN] = { 0 };
 	char *p = buf;
 	char *end = buf + HISI_BUF_LEN;
 	uint32_t i;
