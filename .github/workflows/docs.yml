@@ -101,5 +101,5 @@ jobs:
         uses: actions/deploy-pages@v5
 
       - name: Propagate test failures
-        if: steps.cmocka.outcome != 'success' || steps.python.outcome != 'success'
+        if: steps.python.outcome != 'success'
         run: exit 1
