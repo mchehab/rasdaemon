@@ -23,8 +23,6 @@
 #include "db/ras-db-backend.h"
 #include "db/ras-db.h"
 
-//#define DEBUG_SQL
-
 struct pg_stmt_priv {
 	PGconn	*conn;
 	char	*stmt_name;

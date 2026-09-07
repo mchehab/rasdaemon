@@ -21,8 +21,6 @@
 #include "db/ras-db-backend.h"
 #include "db/ras-db.h"
 
-//#define DEBUG_SQL
-
 static void *db_mysql_get_conn_parms(void)
 {
 	static struct db_mysql_conn_params cp;

@@ -7,6 +7,7 @@
 #define CONFIG_H
 
 /* Feature detection macros */
+#mesondefine DEBUG_SQL
 #mesondefine HAVE_MYSQL
 #mesondefine HAVE_POSTGRESQL
 #mesondefine HAVE_SQLITE3

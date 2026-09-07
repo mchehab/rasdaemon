@@ -14,8 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* #define DEBUG_SQL 1 */
-
 /* Opaque types used to keep the database interface backend independent. */
 struct ras_db;
 struct ras_stmt;

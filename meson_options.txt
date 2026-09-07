@@ -35,6 +35,8 @@ option('cpu-fault-isolation', type : 'feature',
         description: 'enable cpu online fault isolation')
 option('cxl', type : 'feature',
         description: 'enable CXL events')
+option('debug-sql', type : 'feature', value : 'disabled',
+        description: 'enable SQL statement debug logging')
 option('devlink', type : 'feature',
         description: 'enable devlink health events')
 option('diskerror', type : 'feature',

@@ -140,6 +140,7 @@ enable_arm_vendor_data = false
 enable_cpu_fault_isolation = false
 enable_cxl = false
 enable_db = false
+enable_debug_sql = false
 enable_devlink = false
 enable_diskerror = false
 enable_erst = false
@@ -366,7 +367,13 @@ if not get_option('disable-all')
         enable_reri = true
         lib_sources += 'events-arch-riscv/ras-reri-handler.c'
     endif
+endif
 
+#
+# SQL debug only makes sense if DB is selected
+#
+if get_option('debug-sql').enabled() and enable_db
+    enable_debug_sql = true
 endif
 
 #
@@ -799,6 +806,7 @@ install_data('completions/ras-mc-ctl.zsh',
 
 conf_header = configuration_data({
     # Keep in alphabetic order
+    'DEBUG_SQL' : enable_debug_sql,
     'HAVE_ABRT_REPORT' : enable_abrt_report,
     'HAVE_AER' : enable_aer,
     'HAVE_AMP_NS_DECODE' : enable_amp_ns_decode,
@@ -900,8 +908,9 @@ summary(
 
 summary(
     {
-        'SQLite3 database': get_option('sqlite3-database'),
+        # Keep in alphabetic order
         'Documentation build': enable_sphinx,
+        'SQLite3 database file': get_option('sqlite3-database'),
     },
     section : 'User defined options',
 )

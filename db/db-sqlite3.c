@@ -19,8 +19,6 @@
 #include "db/ras-db-backend.h"
 #include "db/ras-db.h"
 
-//#define DEBUG_SQL
-
 #define DB_LOCK_TIMEOUT 100 /* milliseconds */
 
 /* Store the DB name on a static var to be used later on logs */
