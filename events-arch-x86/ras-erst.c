@@ -46,7 +46,7 @@ struct mce {
 
 static int erst_delete;
 
-#define ERST_PATH "/sys/fs/pstore/erst"
+#define ERST_PATH "/sys/fs/pstore"
 #define MCE_ERST_PREFIX "mce-erst"
 #define ERST_EVENT_NAME "mce_erst_record"
 
@@ -135,7 +135,7 @@ static int handle_erst_mce_file(const char *path, struct mce_event *e)
 
 	if (erst_delete) {
 		if (!unlink(path))
-			log(ALL, LOG_INFO, "Error deleting file %s\n", path);
+			log(ALL, LOG_INFO, "Deleted file %s\n", path);
 		else
 			log(ALL, LOG_ERR, "Failed to delete file %s\n", path);
 	}
@@ -151,24 +151,14 @@ int ras_erst_test_read(const char *path, struct mce_event *event)
 }
 #endif
 
-static void handle_erst_mce(void)
+static int do_handle_erst_mce(struct ras_events *ras, const char *path)
 {
-	int rc;
-	struct ras_events ras = { 0 };
 	struct dirent *entry;
 	DIR *dir;
 
-	rc = init_mce_priv(&ras);
-	if (rc) {
-		log(ALL, LOG_INFO, "Can't register mce handler\n");
-		return;
-	}
-
-	dir = opendir(ERST_PATH);
-	if (!dir) {
-		log(ALL, LOG_INFO, "Failed to open %s directory\n", ERST_PATH);
-		goto free_mce;
-	}
+	dir = opendir(path);
+	if (!dir)
+		return -EINVAL;
 
 	while ((entry = readdir(dir)) != NULL) {
 		struct stat path_stat;
@@ -176,27 +166,57 @@ static void handle_erst_mce(void)
 		struct mce_event mce = { 0 };
 
 		mce.erst = 1;
-		if (strncmp(entry->d_name, MCE_ERST_PREFIX, strlen(MCE_ERST_PREFIX)))
+		if (strncmp(entry->d_name, MCE_ERST_PREFIX,
+			    strlen(MCE_ERST_PREFIX)))
 			continue;
 
-		snprintf(file_path, sizeof(file_path), "%s/%s", ERST_PATH, entry->d_name);
-		stat(file_path, &path_stat);
+		snprintf(file_path, sizeof(file_path), "%s/%s",
+			 path, entry->d_name);
+		if (stat(file_path, &path_stat) < 0) {
+			log(ALL, LOG_ERR, "Failed to stat file %s\n",
+			    file_path);
+			continue;
+		}
 
 		if (S_ISREG(path_stat.st_mode)) {
-			handle_erst_mce_file(file_path, &mce);
+			if (handle_erst_mce_file(file_path, &mce))
+				continue;
 		} else {
 			log(TERM, LOG_ERR, "Unexpected file type\n");
 			continue;
 		}
 
-		ras_erst_mce_handler(&ras, &mce);
+		ras_erst_mce_handler(ras, &mce);
 	}
 
 	closedir(dir);
-free_mce:
+
+	return 0;
+}
+
+static void handle_erst_mce(void)
+{
+	struct ras_events ras = { 0 };
+	int rc;
+
+	rc = init_mce_priv(&ras);
+	if (rc) {
+		log(ALL, LOG_INFO, "Can't register mce handler\n");
+		return;
+	}
+
+	/* try first the current location */
+	rc = do_handle_erst_mce(&ras, ERST_PATH);
+	if (rc)
+		rc = do_handle_erst_mce(&ras, ERST_PATH "/erst");
+
+	if (rc)
+		log(ALL, LOG_INFO, "mce doesn't support ERST\n");
+
 	free_mce_priv(&ras);
 }
 #endif
+
 /* ERST just support mce now */
 void handle_erst(void)
 {
