@@ -297,7 +297,7 @@ if not get_option('disable-all')
         lib_sources += 'events/ras-diskerror-handler.c'
     endif
 
-    if arch_x86 and not get_option('erst').disabled()
+    if arch_x86 and not get_option('erst').disabled() and not get_option('mce').disabled()
         enable_erst = true
         lib_sources += 'events-arch-x86/ras-erst.c'
     endif

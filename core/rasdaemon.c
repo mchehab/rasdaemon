@@ -16,7 +16,6 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "db/ras-db.h"
-#include "events-arch-x86/ras-erst.h"
 #include "events-arch-x86/ras-mce-handler.h"
 #include "events/ras-mc-handler.h"
 
@@ -290,16 +289,6 @@ int main(int argc, char *argv[])
 	if (!args.foreground)
 		if (daemon(0, 0))
 			exit(EXIT_FAILURE);
-
-#ifdef HAVE_ERST
-#ifdef HAVE_MCE
-	if (choices_disable && strlen(choices_disable) != 0 &&
-	    strstr(choices_disable, "ras:erst"))
-		log(ALL, LOG_INFO, "Disabled ras:erst from config\n");
-	else
-		handle_erst();
-#endif
-#endif
 
 	ras = calloc(1, sizeof(*ras));
 	if (!ras) {

@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "core/modules.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
@@ -50,7 +51,6 @@ static int erst_delete;
 #define MCE_ERST_PREFIX "mce-erst"
 #define ERST_EVENT_NAME "mce_erst_record"
 
-#ifdef HAVE_MCE
 static void ras_erst_mce_handler(struct ras_events *ras, struct mce_event *e)
 {
 	struct mce_priv *mce = ras->mce_priv;
@@ -151,14 +151,14 @@ int ras_erst_test_read(const char *path, struct mce_event *event)
 }
 #endif
 
-static int do_handle_erst_mce(struct ras_events *ras, const char *path)
+static void handle_erst_mce(struct ras_events *ras, const char *path)
 {
 	struct dirent *entry;
 	DIR *dir;
 
 	dir = opendir(path);
 	if (!dir)
-		return -EINVAL;
+		return;
 
 	while ((entry = readdir(dir)) != NULL) {
 		struct stat path_stat;
@@ -190,38 +190,58 @@ static int do_handle_erst_mce(struct ras_events *ras, const char *path)
 	}
 
 	closedir(dir);
+}
+
+static int check_mce_pstore(const char **path)
+{
+	/* Try first the old location as its path is longer */
+	if (access(ERST_PATH "/erst", R_OK | X_OK) == 0) {
+		*path = ERST_PATH "/erst";
+		return 0;
+	}
+
+	if (access(ERST_PATH, R_OK | X_OK) == 0) {
+		*path = ERST_PATH;
+		return 0;
+	}
+
+	return -ENOENT;
+}
+
+/* ERST just support mce now */
+static int ras_erst_init(struct ras_module_ctx *ctx)
+{
+	const char *path;
+	int rc;
+
+	if (choices_disable && *choices_disable &&
+	    strstr(choices_disable, "ras:erst")) {
+		log(ALL, LOG_INFO, "Disabled ras:erst from config\n");
+		return 0;
+	}
+
+	if (getenv(ERST_DELETE))
+		erst_delete = atoi(getenv(ERST_DELETE));
+
+	rc = check_mce_pstore(&path);
+	if (rc)
+		return rc;
+
+	rc = init_mce_priv(ctx->ras);
+	if (rc) {
+		log(ALL, LOG_INFO, "Can't register mce handler\n");
+		return rc;
+	}
+
+	handle_erst_mce(ctx->ras, path);
 
 	return 0;
 }
 
-static void handle_erst_mce(void)
-{
-	struct ras_events ras = { 0 };
-	int rc;
+static const struct ras_module_entry ras_erst_module = {
+	.name = "x86-mce-erst",
+	.level = SUB_EVENT_MODULE,
+	.init = ras_erst_init,
+};
 
-	rc = init_mce_priv(&ras);
-	if (rc) {
-		log(ALL, LOG_INFO, "Can't register mce handler\n");
-		return;
-	}
-
-	/* try first the current location */
-	rc = do_handle_erst_mce(&ras, ERST_PATH);
-	if (rc)
-		rc = do_handle_erst_mce(&ras, ERST_PATH "/erst");
-
-	if (rc)
-		log(ALL, LOG_INFO, "mce doesn't support ERST\n");
-
-	free_mce_priv(&ras);
-}
-#endif
-
-/* ERST just support mce now */
-void handle_erst(void)
-{
-	if (getenv(ERST_DELETE))
-		erst_delete = atoi(getenv(ERST_DELETE));
-
-	handle_erst_mce();
-}
+REGISTER_RAS_MODULE(ras_erst_module);
