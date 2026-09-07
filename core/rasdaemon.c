@@ -96,7 +96,6 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	return 0;
 }
 
-
 /**
  * main - rasdaemon process entry point
  * @argc: argument count
