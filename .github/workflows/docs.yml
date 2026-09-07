@@ -59,7 +59,7 @@ jobs:
           FLUSH PRIVILEGES;
           EOF
 
-      - name: Configure PostgreSQL test access
+      - name: Configure PostgreSQL
         run: |
           hba_file="$(sudo -u postgres psql --tuples-only --no-align --command='SHOW hba_file')"
           sudo sed -i '1i local all rasdaemon trust' "$hba_file"
@@ -68,29 +68,7 @@ jobs:
               -d rasdaemon_test --set ON_ERROR_STOP=1 \
               --command='CREATE SCHEMA rasdaemon AUTHORIZATION rasdaemon;'
 
-      - name: Run CMocka tests
-        id: cmocka
-        continue-on-error: true
-        env:
-          RAS_MYSQL_HOST: ''
-          RAS_MYSQL_PORT: '3306'
-          RAS_MYSQL_USER: rasdaemon
-          RAS_MYSQL_PASSWORD: mypass
-          RAS_MYSQL_DATABASE: rasdaemon_test
-          RAS_MYSQL_SOCKET: ''
-          RAS_MYSQL_USE_SSL: 'false'
-          RAS_MYSQL_CONNECT_TIMEOUT: '10'
-          RAS_PG_HOST: ''
-          RAS_PG_PORT: 5432
-          RAS_PG_USER: rasdaemon
-          RAS_PG_PASSWORD: mypass
-          RAS_PG_SCHEMA: rasdaemon
-          RAS_PG_DATABASE: rasdaemon_test
-        run: |
-          set -o pipefail
-          build/unittest -o tap 2>&1 | tee cmocka.tap
-
-      - name: Run Python tests
+      - name: Run tests ang produce html
         id: python
         continue-on-error: true
         env:
@@ -109,17 +87,10 @@ jobs:
           RAS_PG_SCHEMA: rasdaemon
           RAS_PG_DATABASE: rasdaemon_test
         run: |
-          set -o pipefail
-          tests/run.py -vvv 2>&1 | tee python-tests.log
-
-      - name: Create test-count badges
-        run: |
-          mkdir -p build/html/test-badges
-          scripts/generate-test-report.py cmocka.tap python-tests.log \
-              build/html/test-badges
+          scripts/generate-test-report.py build/html/test-badges
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

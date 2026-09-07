@@ -10,7 +10,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 
 from textwrap import dedent
 
@@ -134,7 +133,7 @@ def main():
     write_report(dest, "rasdaemon.html", "rasdaemon CMocka tests", rasdaemon)
     write_report(dest, "ras-mc-ctl.html", "ras-mc-ctl Python tests", ras_mc_ctl)
 
-    with open(os.path.join(dest, "index.html"), "w") as f:
+    with open(os.path.join(dest, "index.html"), "w", encoding="utf-8") as f:
         f.write(REPORT_HEADER.format(title="Test results", body=INDEX_CONTENT))
 
     for tool, results in (("rasdaemon", rasdaemon), ("ras-mc-ctl", ras_mc_ctl)):
