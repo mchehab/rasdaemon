@@ -813,9 +813,11 @@ static void test_mc_event_recording(void **state)
 			 "devlink_event");
 #endif
 #ifdef HAVE_DISKERROR
-	strscpy(disk.timestamp, mc.timestamp, sizeof(disk.timestamp));
-	RECORD_AND_CHECK(ras_event_publish(&ras, DISKERROR_EVENT, &disk),
-			 "disk_errors");
+	if (module_is_enabled("disk-error-event")) {
+		strscpy(disk.timestamp, mc.timestamp, sizeof(disk.timestamp));
+		RECORD_AND_CHECK(ras_event_publish(&ras, DISKERROR_EVENT, &disk),
+				 "disk_errors");
+	}
 #endif
 #ifdef HAVE_MEMORY_FAILURE
 	strscpy(memory_failure.timestamp, mc.timestamp,
