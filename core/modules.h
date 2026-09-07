@@ -6,10 +6,26 @@
 #ifndef RAS_MODULE_H
 #define RAS_MODULE_H
 
+#include <argp.h>
 #include <stdbool.h>
 
 struct ras_events;
 struct ras_module_ctx;
+
+/**
+ * struct ras_module_argp - optional module-owned command-line parser
+ * @parser: static argp parser descriptor
+ * @header: help-section title for the parser
+ * @group: argp help ordering group
+ * @dispatch: optional standalone action after parsing; return -1 if unused,
+ *            otherwise a process exit status
+ */
+struct ras_module_argp {
+	const struct argp *parser;
+	const char *header;
+	int group;
+	int (*dispatch)(void);
+};
 
 /**
  * enum init_level - module initialization and cleanup order
@@ -40,6 +56,7 @@ enum init_level {
  * @level: initialization level
  * @init: optional initialization callback
  * @cleanup: optional cleanup callback
+ * @argp: optional command-line parser and standalone action
  *
  * The descriptor must have static lifetime. On a successful @init, @cleanup
  * receives the same context and must release all module-owned resources.
@@ -50,6 +67,7 @@ struct ras_module_entry {
 
 	int (*init)(struct ras_module_ctx *ctx);
 	void (*cleanup)(struct ras_module_ctx *ctx);
+	const struct ras_module_argp *argp;
 };
 
 /**
@@ -78,6 +96,10 @@ int module_register(const struct ras_module_entry *entry);
 
 int module_init(struct ras_events *ras, const char *name);
 int module_cleanup(const char *name);
+
+int modules_argp_children(struct argp_child **children);
+void modules_argp_children_free(struct argp_child *children);
+int modules_argp_dispatch(void);
 
 int modules_init(struct ras_events *ras);
 void modules_cleanup_type(enum init_level level);

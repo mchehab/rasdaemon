@@ -20,7 +20,6 @@ extern char *choices_disable;
 extern long user_hz;
 
 struct mce_priv;
-struct ras_mc_offline_event;
 
 /**
  * enum ras_event_id - decoded event payload types
@@ -263,7 +262,6 @@ enum ghes_severity {
 
 /* Function prototypes */
 int toggle_ras_mc_event(int enable);
-int ras_offline_mce_event(struct ras_mc_offline_event *event);
 
 int ras_event_register(const struct ras_event_entry *entry);
 int ras_event_record(struct ras_events *ras, int event, void *data);

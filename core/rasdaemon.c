@@ -16,7 +16,6 @@
 #include "core/ras-logger.h"
 #include "core/types.h"
 #include "db/ras-db.h"
-#include "events-arch-x86/ras-mce-handler.h"
 #include "events/ras-mc-handler.h"
 
 /*
@@ -50,41 +49,14 @@ const char *argp_program_bug_address = "Mauro Carvalho Chehab <mchehab@kernel.or
  * @record_events: database recording request count
  * @enable_ras: positive to enable or negative to disable tracing
  * @foreground: nonzero to avoid daemonizing
- * @offline: nonzero to decode a supplied offline MCE
  * @cfg_file: explicit environment configuration path
  */
 struct arguments {
 	int record_events;
 	int enable_ras;
 	int foreground;
-	int offline;
 	char *cfg_file;
 };
-
-/**
- * enum OFFLINE_ARG_KEYS - argp keys for offline MCE fields
- * @SMCA: enable AMD SMCA decoding
- * @MODEL: CPU model
- * @FAMILY: CPU family
- * @BANK_NUM: machine-check bank
- * @IPID_REG: SMCA IPID register
- * @STATUS_REG: machine-check status register
- * @SYNDROME_REG: SMCA syndrome register
- */
-enum OFFLINE_ARG_KEYS {
-	SMCA = 0x100,
-	MODEL,
-	FAMILY,
-	BANK_NUM,
-	IPID_REG,
-	STATUS_REG,
-	SYNDROME_REG
-};
-
-/**
- * var event - command-line offline MCE payload
- */
-struct ras_mc_offline_event event;
 
 /**
  * parse_opt - parse top-level rasdaemon options
@@ -118,61 +90,12 @@ static error_t parse_opt(int k, char *arg, struct argp_state *state)
 	case 'f':
 		args->foreground++;
 		break;
-#ifdef HAVE_MCE
-	case 'p':
-		if (state->argc < 4)
-			argp_state_help(state, stdout, ARGP_HELP_LONG | ARGP_HELP_EXIT_ERR);
-		args->offline++;
-		break;
-#endif
 	default:
 		return ARGP_ERR_UNKNOWN;
 	}
 	return 0;
 }
 
-#ifdef HAVE_MCE
-/**
- * parse_opt_offline - parse offline MCE register options
- * @key: argp option key
- * @arg: register value text
- * @state: argp parser state (unused)
- *
- * Return:
- * * 0 - the option was handled
- * * @ARGP_ERR_UNKNOWN - @key is not an offline-MCE option
- */
-static error_t parse_opt_offline(int key, char *arg,
-				 struct argp_state *state)
-{
-	switch (key) {
-	case SMCA:
-		event.smca = true;
-		break;
-	case MODEL:
-		event.model = strtoul(arg, NULL, 0);
-		break;
-	case FAMILY:
-		event.family = strtoul(arg, NULL, 0);
-		break;
-	case BANK_NUM:
-		event.bank = atoi(arg);
-		break;
-	case IPID_REG:
-		event.ipid = strtoull(arg, NULL, 0);
-		break;
-	case STATUS_REG:
-		event.status = strtoull(arg, NULL, 0);
-		break;
-	case SYNDROME_REG:
-		event.synd = strtoull(arg, NULL, 0);
-		break;
-	default:
-		return ARGP_ERR_UNKNOWN;
-	}
-	return 0;
-}
-#endif
 
 /**
  * main - rasdaemon process entry point
@@ -192,35 +115,11 @@ int main(int argc, char *argv[])
 {
 	struct ras_events *ras;
 	struct arguments args;
+	struct argp_child *module_children;
 	int idx = -1;
 	int rc = EXIT_SUCCESS;
 
 	/* Handle arguments before anything else */
-
-#ifdef HAVE_MCE
-	const struct argp_option offline_options[] = {
-		{"smca", SMCA, 0, 0, "AMD SMCA Error Decoding"},
-		{"model", MODEL, "MODEL", 0, "CPU Model"},
-		{"family", FAMILY, "FAMILY", 0, "CPU Family"},
-		{"bank", BANK_NUM, "BANK_NUM", 0, "Bank Number"},
-		{"ipid", IPID_REG, "IPID_REG", 0, "IPID Register (for SMCA systems only)"},
-		{"status", STATUS_REG, "STATUS_REG", 0, "Status Register"},
-		{"synd", SYNDROME_REG, "SYNDROME_REG", 0, "Syndrome Register"},
-		{0, 0, 0, 0, 0, 0},
-	};
-
-	struct argp offline_argp = {
-		.options = offline_options,
-		.parser = parse_opt_offline,
-		.doc = TOOL_DESCRIPTION,
-		.args_doc = ARGS_DOC,
-	};
-
-	struct argp_child offline_parser[] = {
-		{&offline_argp, 0, "MCE Post-Processing Options:", 1},
-		{0, 0, 0, 0},
-	};
-#endif
 
 	const struct argp_option options[] = {
 		{"enable",     'e', 0,       0, "enable RAS events and exit", 0},
@@ -229,29 +128,28 @@ int main(int argc, char *argv[])
 		{"foreground", 'f', 0,       0, "run foreground, not daemonize", 0},
 
 		{"record",     'r', 0,       0, "record events at the SQL backend", 0},
-#ifdef HAVE_MCE
-		{"post-processing", 'p', 0, 0,
-		"Post-processing MCE's with raw register values", 2},
-#endif
 
 		{ 0, 0, 0, 0, 0, 0 }
 	};
+	if (modules_argp_children(&module_children))
+		return EXIT_FAILURE;
+
 	const struct argp argp = {
 		.options = options,
 		.parser = parse_opt,
 		.doc = TOOL_DESCRIPTION,
 		.args_doc = ARGS_DOC,
-#ifdef HAVE_MCE
-		.children = offline_parser,
-#endif
+		.children = module_children,
 	};
 
 	memset(&args, 0, sizeof(args));
 	argp_parse(&argp, argc, argv, 0,  &idx, &args);
 	if (idx < 0) {
 		argp_help(&argp, stderr, ARGP_HELP_STD_HELP, PROG_NAME);
+		modules_argp_children_free(module_children);
 		return -1;
 	}
+	modules_argp_children_free(module_children);
 
 	/* Now that arguments were parsed and it is not help, proceed */
 
@@ -278,12 +176,9 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-#ifdef HAVE_MCE
-	if (args.offline) {
-		ras_offline_mce_event(&event);
-		return 0;
-	}
-#endif
+	rc = modules_argp_dispatch();
+	if (rc >= 0)
+		return rc;
 
 	openlog(PROG_NAME, 0, LOG_DAEMON);
 	if (!args.foreground)

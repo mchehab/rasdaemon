@@ -25,6 +25,28 @@ static int ras_mce_event_handler(struct trace_seq *s,
 				 struct tep_event *event, void *context);
 static int db_mce_record(struct ras_events *ras, void *priv);
 
+enum offline_arg_keys {
+	SMCA = 0x100,
+	MODEL,
+	FAMILY,
+	BANK_NUM,
+	IPID_REG,
+	STATUS_REG,
+	SYNDROME_REG,
+};
+
+struct ras_mc_offline_event {
+	unsigned int family, model;
+	bool smca;
+	uint8_t bank;
+	uint64_t ipid;
+	uint64_t synd;
+	uint64_t status;
+};
+
+static struct ras_mc_offline_event offline_event;
+static bool offline_requested;
+
 #ifdef HAVE_UNITTEST
 int test_mce(void) __attribute__((weak));
 #endif
@@ -54,6 +76,63 @@ static const struct ras_event_entry ras_mce_event = {
 };
 
 REGISTER_RAS_EVENT(ras_mce_event);
+
+static error_t parse_mce_offline_opt(int key, char *arg,
+				     struct argp_state *state)
+{
+	switch (key) {
+	case 'p':
+		if (state->argc < 4)
+			argp_state_help(state, stdout,
+					ARGP_HELP_LONG | ARGP_HELP_EXIT_ERR);
+		offline_requested = true;
+		break;
+	case SMCA:
+		offline_event.smca = true;
+		break;
+	case MODEL:
+		offline_event.model = strtoul(arg, NULL, 0);
+		break;
+	case FAMILY:
+		offline_event.family = strtoul(arg, NULL, 0);
+		break;
+	case BANK_NUM:
+		offline_event.bank = atoi(arg);
+		break;
+	case IPID_REG:
+		offline_event.ipid = strtoull(arg, NULL, 0);
+		break;
+	case STATUS_REG:
+		offline_event.status = strtoull(arg, NULL, 0);
+		break;
+	case SYNDROME_REG:
+		offline_event.synd = strtoull(arg, NULL, 0);
+		break;
+	default:
+		return ARGP_ERR_UNKNOWN;
+	}
+
+	return 0;
+}
+
+static const struct argp_option mce_offline_options[] = {
+	{"post-processing", 'p', 0, 0,
+	 "Post-processing MCE's with raw register values", 0},
+	{"smca", SMCA, 0, 0, "AMD SMCA Error Decoding"},
+	{"model", MODEL, "MODEL", 0, "CPU Model"},
+	{"family", FAMILY, "FAMILY", 0, "CPU Family"},
+	{"bank", BANK_NUM, "BANK_NUM", 0, "Bank Number"},
+	{"ipid", IPID_REG, "IPID_REG", 0,
+	 "IPID Register (for SMCA systems only)"},
+	{"status", STATUS_REG, "STATUS_REG", 0, "Status Register"},
+	{"synd", SYNDROME_REG, "SYNDROME_REG", 0, "Syndrome Register"},
+	{ 0, 0, 0, 0, 0, 0 },
+};
+
+static const struct argp mce_offline_argp = {
+	.options = mce_offline_options,
+	.parser = parse_mce_offline_opt,
+};
 
 /*
  * The code below were adapted from Andi Kleen/Intel/SUSE mcelog code,
@@ -519,7 +598,7 @@ static int report_mce_offline(struct trace_seq *s,
 	return 0;
 }
 
-int ras_offline_mce_event(struct ras_mc_offline_event *event)
+static int ras_offline_mce_event(struct ras_mc_offline_event *event)
 {
 	int rc = 0;
 	struct trace_seq s;
@@ -581,6 +660,15 @@ free_mce:
 	free_mce_data(priv);
 	free(mce);
 	return rc;
+}
+
+static int mce_offline_dispatch(void)
+{
+	if (!offline_requested)
+		return -1;
+
+	return ras_offline_mce_event(&offline_event) ?
+		EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 static int ras_mce_event_handler(struct trace_seq *s,
@@ -788,11 +876,19 @@ static void ras_mce_cleanup(struct ras_module_ctx *ctx)
 	ras_db_table_unregister(ctx);
 }
 
+static const struct ras_module_argp ras_mce_module_argp = {
+	.parser = &mce_offline_argp,
+	.header = "MCE Post-Processing Options:",
+	.group = 1,
+	.dispatch = mce_offline_dispatch,
+};
+
 static const struct ras_module_entry ras_mce_module = {
 	.name = "x86-mce-event",
 	.level = BASE_EVENT_MODULE,
 	.init = ras_mce_init,
 	.cleanup = ras_mce_cleanup,
+	.argp = &ras_mce_module_argp,
 };
 
 REGISTER_RAS_MODULE(ras_mce_module);

@@ -89,15 +89,6 @@ struct mce_event {
 	int		erst;
 };
 
-struct ras_mc_offline_event {
-	unsigned int family, model;
-	bool smca;
-	uint8_t bank;
-	uint64_t ipid;
-	uint64_t synd;
-	uint64_t status;
-};
-
 struct mce_priv {
 	/* CPU Info */
 	char vendor[64];

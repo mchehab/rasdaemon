@@ -91,7 +91,7 @@ int module_register(const struct ras_module_entry *entry)
 	static bool cleanup_registered;
 	int cmp;
 
-	if (!entry || !entry->name) {
+	if (!entry || !entry->name || (entry->argp && !entry->argp->parser)) {
 		log(ALL, LOG_ERR, "module entry is missing!\n");
 		return -EINVAL;
 	}
@@ -137,6 +137,79 @@ int module_register(const struct ras_module_entry *entry)
 		LIST_INSERT_HEAD(&ras_modules, new, node);
 
 	return 0;
+}
+
+/**
+ * modules_argp_children - build argp children for registered module parsers
+ * @children: receives a caller-owned, NULL-terminated child array
+ *
+ * Return: 0 on success or a negative errno value.
+ */
+int modules_argp_children(struct argp_child **children)
+{
+	struct ras_module_entry_runtime *entry;
+	struct argp_child *new;
+	size_t count = 0, i = 0;
+
+	if (!children)
+		return -EINVAL;
+
+	LIST_FOREACH(entry, &ras_modules, node)
+		if (entry->ctx.entry->argp)
+			count++;
+
+	new = calloc(count + 1, sizeof(*new));
+	if (!new)
+		return -ENOMEM;
+
+	LIST_FOREACH(entry, &ras_modules, node) {
+		const struct ras_module_argp *argp = entry->ctx.entry->argp;
+
+		if (!argp)
+			continue;
+
+		new[i].argp = argp->parser;
+		new[i].header = argp->header;
+		new[i].group = argp->group;
+		i++;
+	}
+
+	*children = new;
+	return 0;
+}
+
+/**
+ * modules_argp_children_free - release a module argp child array
+ * @children: array previously returned by modules_argp_children(), or NULL
+ */
+void modules_argp_children_free(struct argp_child *children)
+{
+	free(children);
+}
+
+/**
+ * modules_argp_dispatch - run standalone actions requested by module parsers
+ *
+ * Return: -1 when no module requested an action, otherwise its process exit
+ * status.
+ */
+int modules_argp_dispatch(void)
+{
+	struct ras_module_entry_runtime *entry;
+
+	LIST_FOREACH(entry, &ras_modules, node) {
+		const struct ras_module_argp *argp = entry->ctx.entry->argp;
+		int rc;
+
+		if (!argp || !argp->dispatch)
+			continue;
+
+		rc = argp->dispatch();
+		if (rc >= 0)
+			return rc;
+	}
+
+	return -1;
 }
 
 /**
