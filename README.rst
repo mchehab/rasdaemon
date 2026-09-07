@@ -19,41 +19,45 @@ CI tests
 .. |unit-ras-mc-ctl-fail| image:: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl-fail.svg
    :target: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl.html
 .. _Unit tests: https://mchehab.github.io/rasdaemon/test-badges/
-.. |func-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-pass.svg
+.. |func-x86-vm-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-x86-vm-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-kernel-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-fail.svg
+.. |func-arm64-vm-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-arm64-vm-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-kernel-skip| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-skip.svg
+.. |func-feature-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-feature-pass.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-pass.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-fail.svg
-   :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-rasdaemon-skip| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-skip.svg
+.. |func-feature-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-feature-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
 .. _Functional tests: https://mchehab.github.io/rasdaemon-ci/daily/
 
 RAS Daemon has two types of CI tests, automated via Github Actions:
 
 1. `rasdaemon Actions <https://github.com/mchehab/rasdaemon/actions>`_, with
-   tests several unit tests for both ``rasdaemon`` and `ras-mc-ctl` tools;
+   tests several unit tests for both ``rasdaemon`` and `ras-mc-ctl` tools.
+
+   Failure status:
+
+      +----------------------+----------------------+
+      | x86 VM               | |func-x86-vm-fail|   |
+      +----------------------+----------------------+
+      | ARM64 VM             | |func-arm64-vm-fail| |
+      +----------------------+----------------------+
+
 2. `rasdaemon functional tests <https://github.com/mchehab/rasdaemon-ci>`_,
    which runs rasdaemon on a QEMU engine, using some mechanisms supported by
    QEMU to trigger events on it. The functional tests are handled in separate.
 
 The updated results are:
 
-+---------------------+----------------+------------------------+------------------------+------------------------+
-| Test type           | Scope          | PASS                   | FAIL                   | SKIP                   |
-+=====================+================+========================+========================+========================+
-| `Functional tests`_ | Kernel         | |func-kernel-pass|     | |func-kernel-fail|     | |func-kernel-skip|     |
-|                     +----------------+------------------------+------------------------+------------------------+
-|                     | RAS Daemon     | |func-rasdaemon-pass|  | |func-rasdaemon-fail|  | |func-rasdaemon-skip|  |
-+---------------------+----------------+------------------------+------------------------+------------------------+
-| `Unit tests`_       | rasdaemon      | |unit-rasdaemon-pass|  | |unit-rasdaemon-fail|  |                        |
-|                     +----------------+------------------------+------------------------+------------------------+
-|                     | ras-mc-ctl     | |unit-ras-mc-ctl-pass| | |unit-ras-mc-ctl-fail| |                        |
-+---------------------+----------------+------------------------+------------------------+------------------------+
+
++---------------------+----------------------+------------------------+------------------------+
+| Test type           | Scope                | PASS                   | FAIL                   |
++=====================+======================+========================+========================+
+| `Functional tests`_ | rasdaemon            | |func-feature-pass|    | |func-feature-fail|    |
++---------------------+----------------------+------------------------+------------------------+
+| `Unit tests`_       | rasdaemon            | |unit-rasdaemon-pass|  | |unit-rasdaemon-fail|  |
+|                     +----------------------+------------------------+------------------------+
+|                     | ras-mc-ctl           | |unit-ras-mc-ctl-pass| | |unit-ras-mc-ctl-fail| |
++---------------------+----------------------+------------------------+------------------------+
 
 Building
 --------
