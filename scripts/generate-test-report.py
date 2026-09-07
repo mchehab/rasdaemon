@@ -39,10 +39,12 @@ INDEX_CONTENT = dedent("""\
 """)
 
 BADGE = dedent("""\
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="20">
-    <rect width="28" height="20" fill="#{color}"/>
-    <text x="7" y="14" fill="#fff" font-family="Verdana" font-size="11">{value}</text>
-    </svg>
+     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">
+     <rect width="40" height="20" rx="3" fill="{color}"/>
+     <g fill="#fff" text-anchor="middle"
+        font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+        <text x="20" y="14">{value}</text></g>
+     </svg>
 """)
 
 TABLE_HEADER = dedent("""\
@@ -206,10 +208,10 @@ def main():
         failed = sum(status in {"FAIL", "ERROR"} for _, _, status in results)
 
         with open(os.path.join(dest, f"{tool}-pass.svg"), "w", encoding="utf-8") as f:
-            f.write(BADGE.format(value=passed, color="4c1"))
+            f.write(BADGE.format(value=passed, color="#2da44e"))
 
         with open(os.path.join(dest, f"{tool}-fail.svg"), "w", encoding="utf-8") as f:
-            f.write(BADGE.format(value=failed, color="4c1" if failed == 0 else "e05d44"))
+            f.write(BADGE.format(value=failed, color="#2da44e" if failed == 0 else "#d73a49"))
 
     shutil.copyfile(os.path.join(STATIC_DIR, "test-results.css"),
                     os.path.join(dest, "results.css"))
