@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	handle_ras_events(ras);
+	rc = handle_ras_events(ras);
 	if (args.record_events && db_close(0, ras)) {
 		log(TERM, LOG_ERR, "Failed to close SQL database\n");
 		rc = EXIT_FAILURE;
@@ -220,5 +220,8 @@ int main(int argc, char *argv[])
 	modules_unregister();
 	free(ras);
 
-	return rc;
+	if (rc)
+		return EXIT_FAILURE;
+
+	return EXIT_SUCCESS;
 }

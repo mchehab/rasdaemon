@@ -683,7 +683,7 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 	 * when the trace data is available in the ras per_cpu trace pipe_raw
 	 */
 	if (set_buffer_percent(pdata[0].ras, 0))
-		log(TERM, LOG_WARNING, "Set buffer_percent failed\n");
+		log(TERM, LOG_WARNING, "Failed to set trace buffer wake threshold\n");
 
 	for (i = 0; i < (n_cpus + 1); i++)
 		fds[i].fd = -1;
@@ -724,20 +724,29 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 		if (ready < 0) {
 			if (errno == EINTR)
 				continue;
-			log(TERM, LOG_WARNING, "poll\n");
+			log(TERM, LOG_WARNING, "poll: %s\n", strerror(errno));
 			goto cleanup;
 		}
 
 		/* check for the signal */
 		if (fds[n_cpus].revents & (POLLERR | POLLHUP | POLLNVAL)) {
-			log(TERM, LOG_WARNING, "signalfd poll\n");
+			log(TERM, LOG_WARNING,
+			    "Invalid event when polling: %d\n",
+			    fds[n_cpus].revents);
 			goto cleanup;
 		}
 		if (fds[n_cpus].revents & POLLIN) {
 			size = read(fds[n_cpus].fd, &fdsiginfo,
 				    sizeof(fdsiginfo));
 			if (size != sizeof(fdsiginfo)) {
-				log(TERM, LOG_WARNING, "signalfd read\n");
+				if (size < 0)
+					log(TERM, LOG_WARNING,
+					    "event read: %s\n",
+					    strerror(errno));
+				else
+					log(TERM, LOG_WARNING,
+					    "short read: %zd instead of %zu\n",
+					    size, sizeof(fdsiginfo));
 				goto cleanup;
 			}
 
@@ -745,13 +754,14 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			    fdsiginfo.ssi_signo == SIGTERM ||
 			    fdsiginfo.ssi_signo == SIGHUP ||
 			    fdsiginfo.ssi_signo == SIGQUIT) {
-				log(TERM, LOG_INFO, "Received signal %s. Stopping rasdaemon.\n",
+				log(TERM, LOG_INFO,
+				    "Received signal %s. Stopping rasdaemon.\n",
 				    strsignal(fdsiginfo.ssi_signo));
 				rc = 0;
 				goto  cleanup;
 			} else {
 				log(TERM, LOG_INFO,
-				    "Received unexpected signal=%d\n",
+				    "Received unexpected signal=%d. Ignoring.\n",
 				    fdsiginfo.ssi_signo);
 			}
 		}
@@ -771,7 +781,9 @@ static int read_ras_event_all_cpus(struct pthread_data *pdata,
 			}
 			size = read(fds[i].fd, page, pdata[i].ras->page_size);
 			if (size < 0) {
-				log(TERM, LOG_WARNING, "read\n");
+				if (errno == EINTR)
+					continue;
+				log(TERM, LOG_WARNING, "read: %s\n", strerror(errno));
 				goto cleanup;
 			} else if (size > 0) {
 				kbuffer_load_subbuffer(kbuf, page);
@@ -834,7 +846,7 @@ error:
  * Cancellation is disabled while the shared database lock is held.
  *
  * Return:
- * -EINVAL on read failure; otherwise the loop does not return.
+ * a negative value in errors; otherwise the loop does not return.
  */
 static int read_ras_event(int fd,
 			  struct pthread_data *pdata,
@@ -853,8 +865,10 @@ static int read_ras_event(int fd,
 	do {
 		size = read(fd, page, pdata->ras->page_size);
 		if (size < 0) {
-			log(TERM, LOG_WARNING, "read\n");
-			return -EINVAL;
+			if (errno == EINTR)
+				continue;
+			log(TERM, LOG_WARNING, "read: %s\n", strerror(errno));
+			return errno;
 		} else if (size > 0) {
 			kbuffer_load_subbuffer(kbuf, page);
 
@@ -1535,31 +1549,31 @@ void ras_events_cleanup(struct ras_events *ras)
  * * 0 - polling stopped due to an expected shutdown signal
  * * -EINVAL - @ras is invalid, no events were enabled, or polling failed
  * * -ENOMEM - per-CPU reader state could not be allocated
- * * @LEGACY_KERNEL - all fallback reader threads exited without setup failure
- * * otherwise - a negated pthread initialization or creation error
  */
 int handle_ras_events(struct ras_events *ras)
 {
-	int rc, i;
-	int num_events;
-	unsigned int cpus;
 	struct pthread_data *data = NULL;
+	int rc = EXIT_SUCCESS, i;
+	unsigned int cpus;
+	int num_events;
 
-	if (!ras || !ras->pevent)
+	if (!ras || !ras->pevent) {
+		log(ALL, LOG_INFO, "RAS structure is missing. Aborting.\n");
 		return -EINVAL;
+	}
 
 	num_events = ras->num_events;
 	cpus = get_num_cpus(ras);
 
 	if (!num_events) {
-		log(ALL, LOG_INFO,
-		    "Failed to trace any supported RAS events. Aborting.\n");
+		log(ALL, LOG_INFO, "No events to monitor were selected\n");
 		rc = -EINVAL;
 		goto err;
 	}
 
 	data = calloc(cpus, sizeof(*data));
 	if (!data) {
+		log(ALL, LOG_INFO, "Can't allocate per-cpu data.\n");
 		rc = -ENOMEM;
 		goto err;
 	}
@@ -1568,9 +1582,12 @@ int handle_ras_events(struct ras_events *ras)
 		data[i].ras = ras;
 		data[i].cpu = i;
 	}
-	rc = read_ras_event_all_cpus(data, cpus);
 
-	/* Poll doesn't work on this kernel. Fallback to pthread way */
+	/*
+	 * Start monitoring trace events using modern kernel approach.
+	 * If not supported by the Kernel, use the old pthread approach
+	 */
+	rc = read_ras_event_all_cpus(data, cpus);
 	if (rc == LEGACY_KERNEL) {
 		rc = pthread_mutex_init(&ras->db_lock, NULL);
 		if (rc) {
@@ -1588,7 +1605,7 @@ int handle_ras_events(struct ras_events *ras)
 			if (rc) {
 				log(SYSLOG, LOG_INFO,
 				    "Failed to create thread for cpu %d. Aborting.\n",
-				i);
+				    i);
 				int started = i;
 
 				while (i-- > 0)
@@ -1604,11 +1621,12 @@ int handle_ras_events(struct ras_events *ras)
 		/* Wait for all threads to complete */
 		for (i = 0; i < cpus; i++)
 			pthread_join(data[i].thread, NULL);
+
 		pthread_mutex_destroy(&ras->db_lock);
 	}
 
 	if (rc)
-		log(SYSLOG, LOG_INFO, "Huh! something went wrong. Aborting.\n");
+		log(SYSLOG, LOG_INFO, "Something went wrong. Aborting.\n");
 
 err:
 	free(data);
