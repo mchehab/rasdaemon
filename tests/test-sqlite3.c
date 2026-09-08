@@ -52,6 +52,16 @@ struct db_backend backend = {
 	.conn_parms = &conn_parms,
 };
 
+static int sqlite3_test_lock_timeout(void)
+{
+	return env_or_int("RAS_SQLITE3_LOCK_TIMEOUT", 100);
+}
+
+static void sqlite3_refresh_test_lock_timeout(void)
+{
+	conn_parms.lock_timeout = sqlite3_test_lock_timeout();
+}
+
 /*
  * Ancillary function to access sqlite3 database directly
  */
@@ -575,6 +585,7 @@ static void test_db_complex_table(void **state)
 
 static int tests_setup(void **state)
 {
+	sqlite3_refresh_test_lock_timeout();
 	int rc = db_open(&backend, 0, &ras, sizeof(struct mock_priv));
 
 	assert_int_equal(rc, 0);
@@ -906,6 +917,7 @@ static void test_db_open_registered_tables(void **state)
 	struct ras_stmt *select_stmt;
 	int rc;
 
+	sqlite3_refresh_test_lock_timeout();
 	for (size_t i = 0; i < ARRAY_SIZE(tables); i++)
 		assert_int_equal(ras_db_table_register(&ctx, &tables[i]), 0);
 	assert_int_equal(db_open(&backend, 0, &test_ras, sizeof(struct mock_priv)), 0);
@@ -963,13 +975,15 @@ static void check_database_contention(unsigned int hold_us, int expected)
 	char filename[] = "/tmp/rasdaemon-contention-XXXXXX";
 	struct db_sqlite3_conn_params params = {
 		.database = filename,
-		.lock_timeout = 100,
+		.lock_timeout = 0,
 	};
 	struct db_backend file_backend = { .name = "sqlite3", .conn_parms = &params };
 	sqlite3 *connection;
 	int ready[2], status, fd, rc;
 	char marker;
 	pid_t child;
+
+	params.lock_timeout = sqlite3_test_lock_timeout();
 
 	fd = mkstemp(filename);
 	assert_true(fd >= 0);
@@ -1022,7 +1036,10 @@ static void test_database_contention_released(void **state)
 
 static void test_database_contention_timeout(void **state)
 {
-	check_database_contention(6000000, SQLITE_BUSY);
+	unsigned int hold_us = 6000000;
+	int expected = sqlite3_test_lock_timeout() > hold_us / 1000 ? 0 : SQLITE_BUSY;
+
+	check_database_contention(hold_us, expected);
 }
 
 static void test_insert_error_and_reuse(void **state)
@@ -1030,6 +1047,7 @@ static void test_insert_error_and_reuse(void **state)
 	sqlite3 *connection;
 	sqlite3_stmt *stmt;
 
+	sqlite3_refresh_test_lock_timeout();
 	assert_int_equal(db_open(&backend, 0, &ras, sizeof(struct mock_priv)), 0);
 	connection = (void *)ras.db;
 	assert_int_equal(sqlite3_exec(connection,
