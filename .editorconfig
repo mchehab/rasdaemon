@@ -8,18 +8,26 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*/contrib]
+[contrib/**]
 indent_style = tab
 indent_size = 8
 
-[{*.{c,h,pl,sh},Makefile.am}]
+[{*.{c,h,pl,sh,bash,zsh},Makefile*,ras-mc-ctl}]
 indent_style = tab
 indent_size = 8
 
-[*.yml,labels/*,configure.ac]
+[*.yml]
 indent_style = space
 indent_size = 2
 
-[*.py,ras-mc-ctl.in]
+[labels/*]
+indent_style = space
+indent_size = 2
+
+[{*.py,*.py.in,meson.build,meson_options.txt}]
+indent_style = space
+indent_size = 4
+
+[contrib/fill-test-databases]
 indent_style = space
 indent_size = 4
