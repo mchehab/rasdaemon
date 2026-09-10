@@ -4,8 +4,9 @@
 
 # Extra rasdaemon-specific targets
 
+VERSION = @PACKAGE_VERSION@
 RPM_TOPDIR  ?= $(shell rpm --eval '%{_topdir}')
-DIST_TARBALL = build/meson-dist/@PACKAGE@-@PACKAGE_VERSION@.tar.xz
+DIST_TARBALL = build/meson-dist/@PACKAGE@-${VERSION}.tar.xz
 SPEC_FILE   = build/rasdaemon.spec
 
 test: all
@@ -16,7 +17,7 @@ test: all
 	fi
 
 dist:
-	meson dist -C build --no-tests
+	meson dist -C build --no-tests $(if $(DRY_RUN),--allow-dirty)
 
 dist-rpm: dist
 	if [ ! -d "$(RPM_TOPDIR)/SOURCES/" ]; then \
@@ -24,8 +25,8 @@ dist-rpm: dist
 	fi
 	cp "${DIST_TARBALL}" "${RPM_TOPDIR}/SOURCES/"
 	rpmbuild -ba  $(SPEC_FILE)
-	cp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm .
-	cp $(RPM_TOPDIR)/RPMS/*/@PACKAGE@-@PACKAGE_VERSION@*.rpm .
+	cp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-${VERSION}*.src.rpm .
+	cp $(RPM_TOPDIR)/RPMS/*/@PACKAGE@-${VERSION}*.rpm .
 
 srpm: dist
 	if [ ! -d "$(RPM_TOPDIR)/SOURCES/" ]; then \
@@ -33,14 +34,14 @@ srpm: dist
 	fi
 	cp $(DIST_TARBALL) "$(RPM_TOPDIR)/SOURCES/"
 	rpmbuild -bs $(SPEC_FILE)
-	cp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm .
+	cp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-${VERSION}*.src.rpm .
 
 mock: srpm
-	mock --resultdir="./SRPMS" "$(RPM_TOPDIR)/SRPMS/"@PACKAGE@-@PACKAGE_VERSION@*.src.rpm
+	mock --resultdir="./SRPMS" "$(RPM_TOPDIR)/SRPMS/"@PACKAGE@-${VERSION}*.src.rpm
 
 rpmlint: dist-rpm
-	rpmlint $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm
-	rpmlint $(RPM_TOPDIR)/RPMS/*/@PACKAGE@-@PACKAGE_VERSION@*.rpm
+	rpmlint $(RPM_TOPDIR)/SRPMS/@PACKAGE@-${VERSION}*.src.rpm
+	rpmlint $(RPM_TOPDIR)/RPMS/*/@PACKAGE@-${VERSION}*.rpm
 
 local-install:
 	ninja -C build install DESTDIR=$(DESTDIR) --prefix=$(PREFIX)
@@ -49,10 +50,10 @@ local-uninstall:
 	ninja -C build uninstall DESTDIR=$(DESTDIR) --prefix=$(PREFIX)
 
 distclean: clean
-	rm -rf @PACKAGE@-@PACKAGE_VERSION@*.src.rpm \
-	       @PACKAGE@-@PACKAGE_VERSION@*.rpm \
-	       SRPMS/ @PACKAGE@-@PACKAGE_VERSION@*.tar.xz \
+	rm -rf @PACKAGE@-${VERSION}*.src.rpm \
+	       @PACKAGE@-${VERSION}*.rpm \
+	       SRPMS/ @PACKAGE@-${VERSION}*.tar.xz \
 	       build/
 
 upload: srpm dist
-	scp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-@PACKAGE_VERSION@*.src.rpm $(DIST_TARBALL) misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon
+	scp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-${VERSION}*.src.rpm $(DIST_TARBALL) misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon

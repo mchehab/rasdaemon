@@ -1,4 +1,11 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+
+# Helper script to allow running ras-mc-ctl directly from the build
+# directory. It assumes that ninja was setup to use "build/" as its build
+# dirctory.
 
 script_dir=$(dirname "$(readlink -f "$0")")
 ras_mc_ctl="$script_dir/build/ras-mc-ctl"
