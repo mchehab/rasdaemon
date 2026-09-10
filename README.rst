@@ -1,11 +1,28 @@
 RAS Daemon
 ==========
 
-rasdaemon monitors Linux kernel trace events for Reliability, Availability and
-Serviceability (RAS) errors. It reports decoded events through syslog or
-journald and can record them in SQLite, MySQL/MariaDB, or PostgreSQL.
+RAS Daemon (rasdaemon) monitors Linux kernel trace events related to
+Reliability, Availability, and Serviceability (RAS) errors.
 
-The primary source repository and issue tracker is https://github.com/mchehab/rasdaemon/.
+Although it is a general-purpose tool, its primary goal is to improve
+the availability of systems used in data centers, including - but not limited
+to - high-performance computing (HPC), server farms, and cloud service
+environments.
+
+It reports decoded events through syslog or journald, makes them
+available to consumer applications and supports recording them in SQL
+databases and reporting them through ABRT.
+
+Its database support is provided through a modular framework that currently
+supports SQLite, MySQL, MariaDB, and PostgreSQL.
+
+The primary source repository and issue tracker is currently at
+https://github.com/mchehab/rasdaemon/.
+
+Its source code is mirrored at:
+
+- https://gitlab.com/mchehab_kernel/rasdaemon
+- http://git.infradead.org/users/mchehab/rasdaemon.git
 
 CI tests
 --------
@@ -44,13 +61,15 @@ CI tests
 RAS Daemon has two types of CI tests, automated via Github Actions:
 
 1. `rasdaemon Actions <https://github.com/mchehab/rasdaemon/actions>`_, with
-   tests several unit tests for both ``rasdaemon`` and `ras-mc-ctl` tools.
+   tests several unit tests for both ``rasdaemon`` and ``ras-mc-ctl`` tools.
 
 2. `rasdaemon-ci functional tests <https://github.com/mchehab/rasdaemon-ci>`_,
    which runs rasdaemon on a QEMU engine, using some mechanisms supported by
    QEMU to trigger events on it. The functional tests are handled in separate.
+   CI tests usually runs on source code changes and are daily updated.
 
-   Such tests are executed on two separate QEMU VMs:
+   Such tests are executed on two separate QEMU VMs. The status indicators
+   below shows green if both VMs executed fine at the latest run:
 
    +---------------------+----------------+------------------------+
    | VM health           | Architecture   | Status                 |
@@ -61,12 +80,17 @@ RAS Daemon has two types of CI tests, automated via Github Actions:
    +---------------------+----------------+------------------------+
 
    **NOTE**:
-      Currently, **functional tests** are experimental. They are still
-      under development. Don't rely on them yet, as we're still adjusting
-      the pipelines and ensuring that VMs have what's needed to test
-      RAS Daemon.
+      Please note that **functional tests** create virtual machines configured
+      to receive non-fatal errors and report them to rasdaemon. These tests use
+      the latest stable versions of the Linux kernel and QEMU.
 
-The updated results are:
+      By their nature, failures in these tests may be false positives, which
+      are far more common than regressions in QEMU, the Linux kernel, or
+      rasdaemon. Before reporting a regression, check the rasdaemon-ci logs.
+      If the problem is in the toolset, open an issue against the affected
+      tool rather than rasdaemon.
+
+The results from its latest run are automatically updated in this panel:
 
 +---------------------+----------------+------------------------+------------------------+
 | Test type           | Scope          | PASS                   | FAIL                   |
