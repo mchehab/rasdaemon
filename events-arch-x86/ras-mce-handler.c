@@ -783,16 +783,23 @@ static const struct db_fields mce_record_fields[] = {
 	{ .name = "id",			.type = DB_TYPE_SERIAL, .is_pk = true },
 	{ .name = "timestamp",		.type = DB_TYPE_TIMESTAMP, .create_index = true },
 
-	/* MCE registers */
-	{ .name = "mcgcap",		.type = DB_TYPE_INT32 },
-	{ .name = "mcgstatus",		.type = DB_TYPE_INT32 },
+	/*
+	 * MCE registers.
+	 *
+	 * The MSR-backed fields are uint64_t at struct mce_event. Binding
+	 * them as DB_TYPE_INT32 truncates the value to 32 bits, which is
+	 * unrecoverable once stored. DB_TYPE_INT64 keeps all 64 bits and
+	 * maps to the same SQL column type on sqlite3 (INTEGER).
+	 */
+	{ .name = "mcgcap",		.type = DB_TYPE_INT64 },
+	{ .name = "mcgstatus",		.type = DB_TYPE_INT64 },
 	{ .name = "status",		.type = DB_TYPE_INT64 },
 	{ .name = "addr",		.type = DB_TYPE_INT64 }, // 5
 	{ .name = "misc",		.type = DB_TYPE_INT64 },
 	{ .name = "ip",			.type = DB_TYPE_INT64 },
 	{ .name = "tsc",		.type = DB_TYPE_INT64 },
 	{ .name = "walltime",		.type = DB_TYPE_INT64 },
-	{ .name = "ppin",		.type = DB_TYPE_INT32 }, // 10
+	{ .name = "ppin",		.type = DB_TYPE_INT64 }, // 10
 	{ .name = "cpu",		.type = DB_TYPE_INT32 },
 	{ .name = "cpuid",		.type = DB_TYPE_INT32 },
 	{ .name = "apicid",		.type = DB_TYPE_INT32 },
