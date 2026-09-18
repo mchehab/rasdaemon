@@ -204,6 +204,22 @@ static void sqlite3_assert_row_count(sqlite3 *db, const char *table,
 	assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
 }
 
+#ifdef HAVE_MCE
+static void sqlite3_assert_u64_column(sqlite3 *db, const char *table,
+				      const char *column, uint64_t expected)
+{
+	sqlite3_stmt *stmt = NULL;
+	char sql[256];
+
+	snprintf(sql, sizeof(sql), "SELECT %s FROM %s", column, table);
+	assert_int_equal(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL),
+			 SQLITE_OK);
+	assert_int_equal(sqlite3_step(stmt), SQLITE_ROW);
+	assert_int_equal((uint64_t)sqlite3_column_int64(stmt, 0), expected);
+	assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
+}
+#endif
+
 static int sqlite3_get_busy_timeout(sqlite3 *db)
 {
 	sqlite3_stmt *stmt = NULL;
@@ -690,7 +706,10 @@ static void test_mc_event_recording(void **state)
 		.dev_name = "0000:01:00.0", .msg = "Receiver Error" };
 #endif
 #ifdef HAVE_MCE
-	struct mce_event mce = { .status = MCI_STATUS_VAL, .cpu = 1 };
+	struct mce_event mce = { .status = MCI_STATUS_VAL, .cpu = 1,
+		.mcgcap = 0x0000000000000c0aULL,
+		.mcgstatus = 0x0000000000000005ULL,
+		.ppin = 0x123456789abcdef0ULL };
 #endif
 #ifdef HAVE_EXTLOG
 	static const unsigned char fru_id[16] = { 1 };
@@ -800,6 +819,14 @@ static void test_mc_event_recording(void **state)
 #ifdef HAVE_MCE
 	strscpy(mce.timestamp, mc.timestamp, sizeof(mce.timestamp));
 	RECORD_AND_CHECK(ras_event_publish(&ras, MCE_EVENT, &mce), "mce_record");
+	/*
+	 * MSR-backed registers are uint64_t and must survive a round trip.
+	 * A 32-bit column type would truncate ppin and sign-extend it back.
+	 */
+	sqlite3_assert_u64_column(db, "mce_record", "mcgcap", mce.mcgcap);
+	sqlite3_assert_u64_column(db, "mce_record", "mcgstatus", mce.mcgstatus);
+	sqlite3_assert_u64_column(db, "mce_record", "status", mce.status);
+	sqlite3_assert_u64_column(db, "mce_record", "ppin", mce.ppin);
 #endif
 #ifdef HAVE_EXTLOG
 	strscpy(extlog.timestamp, mc.timestamp, sizeof(extlog.timestamp));
