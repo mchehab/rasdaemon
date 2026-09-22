@@ -170,7 +170,8 @@ if not get_option('disable-all')
     #
     # Features that require dependencies
     #
-    mysql_dep = dependency('mysqlclient', 'mariadb', 'libmariadb', required: false)
+    mysql_dep = dependency('mysqlclient', 'mariadb', 'libmariadb',
+                           required: get_option('mysql'))
 
     if mysql_dep.found() and not get_option('mysql').disabled()
         if cc.has_header('mysql/mysql.h')
@@ -188,7 +189,7 @@ if not get_option('disable-all')
         message('MySQL client devel not found: disabling MySQL support')
     endif
 
-    pq_dep = dependency('libpq', required: false)
+    pq_dep = dependency('libpq', required: get_option('postgresql'))
     if pq_dep.found() and not get_option('postgresql').disabled()
         enable_db = true
         enable_postgresql = true
@@ -199,7 +200,7 @@ if not get_option('disable-all')
         message('libpq devel not found: disabling PostgreSQL support')
     endif
 
-    sqlite3_dep = dependency('sqlite3', required: false)
+    sqlite3_dep = dependency('sqlite3', required: get_option('sqlite3'))
     if sqlite3_dep.found() and not get_option('sqlite3').disabled()
         enable_db = true
         enable_sqlite3 = true
@@ -210,7 +211,7 @@ if not get_option('disable-all')
         message('SQLite3 devel not found: disabling SQLite3 support')
     endif
 
-    libpci_dep = dependency('libpci', required: not get_option('aer').disabled())
+    libpci_dep = dependency('libpci', required: get_option('aer'))
     if not get_option('aer').disabled()
         if libpci_dep.found()
             enable_aer = true
@@ -254,7 +255,7 @@ if not get_option('disable-all')
 
     if enable_aer and not get_option('pcie-edpc').disabled()
         pcie_edpc_libpci_dep = dependency('libpci', version: '>=3.10.0',
-                                          required: false)
+                                          required: get_option('pcie-edpc'))
         if pcie_edpc_libpci_dep.found()
             enable_pcie_edpc = true
             lib_sources += 'actions/ras-pcie-edpc.c'
@@ -870,6 +871,7 @@ summary(
         'PCIe eDPC' : enable_pcie_edpc,
         'Signal' : enable_signal,
     },
+    bool_yn: true,
     section : 'General options',
 )
 
@@ -880,6 +882,7 @@ summary(
         'PostgreSQL' : enable_postgresql,
         'Sqlite3' : enable_sqlite3,
     },
+    bool_yn: true,
     section : 'Database backends',
 )
 
@@ -890,6 +893,7 @@ summary(
         'MCE' : enable_mce,
         'RERI' : enable_reri,
     },
+    bool_yn: true,
     section : 'Arch-specific options',
 )
 
@@ -902,6 +906,7 @@ summary(
         'JAGUAR RAS errors' : enable_jaguar_ns_decode,
         'NVIDIA RAS errors' : enable_nvidia_ns_decode,
     },
+    bool_yn: true,
     section : 'Non-standard CPER records',
 )
 
@@ -911,5 +916,6 @@ summary(
         'Documentation build': enable_sphinx,
         'SQLite3 database file': get_option('sqlite3-database'),
     },
+    bool_yn: true,
     section : 'User defined options',
 )
