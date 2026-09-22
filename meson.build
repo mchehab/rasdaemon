@@ -913,7 +913,15 @@ summary(
 summary(
     {
         # Keep in alphabetic order
-        'Documentation build': enable_sphinx,
+        'Build API docs': enable_sphinx,
+    },
+    bool_yn: true,
+    section : 'Documentation',
+)
+
+summary(
+    {
+        # Keep in alphabetic order
         'SQLite3 database file': get_option('sqlite3-database'),
     },
     bool_yn: true,
