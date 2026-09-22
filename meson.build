@@ -842,7 +842,6 @@ conf_header = configuration_data({
 conf_header.set_quoted('RASDAEMON_ENV', rasdaemon_env)
 
 configure_file(
-    input : 'config.h.in',
     output : 'config.h',
     configuration : conf_header,
 )
