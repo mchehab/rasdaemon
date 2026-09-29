@@ -1,3 +1,21 @@
+2026-09-29      Mauro Carvalho Chehab <mchehab@kernel.org>
+	- Version 1.0.0
+
+        * Minor fixes since version 0.9.92.
+          Changes since 0.8.5 are listed below.
+        * Build and packaging: Move to Meson, with automatic dependency and
+          architecture detection and updated package support
+        * Database: Add a modular database layer with SQLite, MySQL/MariaDB,
+          and PostgreSQL backends
+        * ras-mc-ctl: Replace the Perl tool with Python 3 and add database
+          query, DIMM status, label, and memory-layout commands
+        * Architecture and events: Expand CXL, ARM, and non-standard CPER
+          support, including memory-sparing events and additional vendors
+        * Architecture: Introduce self-registering modules and event
+          consumers, with clearer ownership and lifecycle handling
+        * Reliability and documentation: Improve resource cleanup, error
+          handling, test coverage, and user and developer documentation
+
 2026-09-07      Mauro Carvalho Chehab <mchehab@kernel.org>
 	- Version 0.9.92 (development)
 

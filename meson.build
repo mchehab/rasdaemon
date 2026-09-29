@@ -3,7 +3,7 @@
 # Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
 project('rasdaemon', 'c',
-        version: '0.9.92',
+        version: '1.0.0',
         license: 'GPL-2.0-only',
         meson_version: '>= 0.60')
 
