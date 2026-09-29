@@ -10,8 +10,8 @@ DIST_TARBALL = build/meson-dist/@PACKAGE@-${VERSION}.tar.xz
 SPEC_FILE   = build/rasdaemon.spec
 
 test: all
-	@if test -x build/unittest; then \
-		build/unittest; \
+	@if test -x build/tests/unittest; then \
+		build/tests/unittest; \
 	else \
 		echo "C unit tests not built (cmocka unavailable or tests disabled)"; \
 	fi

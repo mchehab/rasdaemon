@@ -20,15 +20,27 @@ c_flags = [
     '-DVERSION="' + meson.project_version() + '"',
 ]
 
-unittest_sources = [
-    'tests/main.c',
-    'tests/trace-mock.c',
-    'tests/test-db-cli.c',
-    'tests/test-core.c',
-    'tests/test-events.c',
-    'tests/test-modules.c',
-    'tests/test-db-concurrency.c',
-]
+#
+# As we need to setup cmocka version at config.h, check cmocka
+# deps at the main file, keeping the remaining test-related
+# build logic under tests.
+#
+unittest_sources = []
+
+have_unittest = false
+cmocka_version_2 = false
+if not get_option('disable-all')
+    cmocka_dep = dependency('cmocka', version: '>= 2.0', required: false)
+    if cmocka_dep.found()
+        cmocka_version_2 = true
+    else
+        cmocka_dep = dependency('cmocka', required: false)
+    endif
+    if cmocka_dep.found()
+        have_unittest = true
+        c_flags += '-DHAVE_UNITTEST'
+    endif
+endif
 
 #
 # Extra prefix directories
@@ -37,6 +49,8 @@ unittest_sources = [
 prefix  = get_option('prefix')
 libdir  = get_option('libdir')
 datadir = get_option('datadir')
+
+rasdaemon_env = prefix / get_option('sysconfdir') / 'sysconfig' / 'rasdaemon'
 
 py = import('python').find_installation('python3')
 
@@ -89,9 +103,9 @@ dependencies = [
 ]
 
 #
-# Library sources
+# Core sources - They're also used when generating Sphinx docs
 #
-lib_sources = [
+core_api_files = [
     'core/bitfield.c',
     'core/event-consumer.c',
     'core/modules.c',
@@ -102,6 +116,23 @@ lib_sources = [
     'core/trigger.c',
     'core/types.c',
 ]
+
+core_queue = ['core/queue.c']
+core_rbtree = ['core/rbtree.c']
+
+db_files = ['db/ras-db.c']
+
+db_sqlite3 = ['db/db-sqlite3.c']
+db_mysql = ['db/db-mysql.c']
+db_postgresql = ['db/db-postgresql.c']
+
+lib_sources = core_api_files
+
+# C files that are documented on Sphinx
+core_api_files += core_queue + core_rbtree
+core_api_files +=  db_files + db_sqlite3 + db_mysql + db_postgresql
+
+rasdaemon_sources = ['core/rasdaemon.c']
 
 #
 # MCE-specific sources
@@ -178,8 +209,8 @@ if not get_option('disable-all')
             enable_db = true
             enable_mysql = true
             dependencies += mysql_dep
-            lib_sources += 'db/db-mysql.c'
-            unittest_sources += 'tests/test-mysql.c'
+            lib_sources += db_mysql
+            unittest_sources += files('tests/test-mysql.c')
         else
             name = mysql_dep.name()
             ver = mysql_dep.version()
@@ -193,8 +224,8 @@ if not get_option('disable-all')
     if pq_dep.found() and not get_option('postgresql').disabled()
         enable_db = true
         enable_postgresql = true
-        lib_sources += ['db/db-postgresql.c']
-        unittest_sources += 'tests/test-postgresql.c'
+        lib_sources += db_postgresql
+        unittest_sources += files('tests/test-postgresql.c')
         dependencies += pq_dep
     else
         message('libpq devel not found: disabling PostgreSQL support')
@@ -204,8 +235,8 @@ if not get_option('disable-all')
     if sqlite3_dep.found() and not get_option('sqlite3').disabled()
         enable_db = true
         enable_sqlite3 = true
-        lib_sources += ['db/db-sqlite3.c']
-        unittest_sources += 'tests/test-sqlite3.c'
+        lib_sources += db_sqlite3
+        unittest_sources += files('tests/test-sqlite3.c')
         dependencies += sqlite3_dep
     else
         message('SQLite3 devel not found: disabling SQLite3 support')
@@ -278,10 +309,7 @@ if not get_option('disable-all')
 
     if not get_option('cpu-fault-isolation').disabled()
         enable_cpu_fault_isolation = true
-        lib_sources += [
-            'actions/ras-cpu-isolation.c',
-            'core/queue.c'
-        ]
+        lib_sources += ['actions/ras-cpu-isolation.c'] + core_queue
     endif
 
     if not get_option('cxl').disabled()
@@ -399,10 +427,7 @@ endif
 #
 
 if enable_page_isolation
-    lib_sources += [
-        'core/rbtree.c',
-        'actions/ras-page-isolation.c',
-    ]
+    lib_sources += core_rbtree + ['actions/ras-page-isolation.c']
 endif
 
 if enable_poison_page_stat
@@ -418,33 +443,8 @@ if enable_ipmi_bmc
 endif
 
 if enable_db
-    lib_sources += [
-        'actions/db-store.c',
-        'db/ras-db.c',
-    ]
-    unittest_sources += 'tests/test-databases.c'
-endif
-
-#
-# Main program sources
-#
-
-rasdaemon_sources = ['core/rasdaemon.c']
-
-# The production descriptors remain private.  Test-only accessors are built
-# into the static library only when the C unit-test runner is available.
-have_unittest = false
-if not get_option('disable-all')
-    cmocka_dep = dependency('cmocka', version: '>= 2.0', required: false)
-    if cmocka_dep.found()
-        c_flags += '-DCMOCKA_VERSION_2'
-    else
-        cmocka_dep = dependency('cmocka', required: false)
-    endif
-    if cmocka_dep.found()
-        have_unittest = true
-        c_flags += '-DHAVE_UNITTEST'
-    endif
+    lib_sources += ['actions/db-store.c'] + db_files
+    unittest_sources += files('tests/test-databases.c')
 endif
 
 #
@@ -457,6 +457,8 @@ librasdaemon = static_library(
     dependencies: dependencies,
     c_args: c_flags,
 )
+
+subdir('tests')
 
 #
 # Main executable
@@ -472,189 +474,15 @@ rasdaemon_exe = executable(
     install_dir: get_option('sbindir'),
 )
 
-#
-# Unit tests
-#
-
-if have_unittest
-    unittest_exe = executable(
-        'unittest', unittest_sources,
-        dependencies: dependencies + cmocka_dep,
-        link_whole: [librasdaemon],
-        link_args: [
-            '-Wl,--wrap=tep_get_field_raw',
-            '-Wl,--wrap=tep_get_field_val',
-            '-Wl,--wrap=tep_filter_match',
-            '-Wl,--wrap=system',
-            '-Wl,--wrap=popen',
-            '-Wl,--wrap=pclose',
-            '-Wl,--wrap=access',
-        ],
-        c_args: ['-g',
-                 '-DRAS_SOURCE_DIR="' + meson.current_source_dir() + '"',
-                 '-DRAS_BUILD_DIR="' + meson.current_build_dir() + '"'] + c_flags,
-    )
-
-    # Keep the default Meson test set hermetic. The MySQL and PostgreSQL
-    # groups remain real-server integration tests and are run explicitly by
-    # the CI jobs which provision those servers.
-    hermetic_test_groups = ['core', 'events', 'modules']
-    if enable_mce
-        hermetic_test_groups += 'x86-events'
-    endif
-    if enable_arm or enable_amp_ns_decode or enable_hisi_ns_decode or enable_jaguar_ns_decode or enable_nvidia_ns_decode or enable_yitian_ns_decode
-        hermetic_test_groups += 'arm-events'
-    endif
-    if enable_reri
-        hermetic_test_groups += 'riscv-events'
-    endif
-    if enable_abrt_report or enable_cpu_fault_isolation or \
-       enable_memory_ce_pfa or enable_memory_row_ce_pfa or enable_ipmi_bmc or \
-       enable_pcie_edpc
-        hermetic_test_groups += 'actions'
-    endif
-    if enable_sqlite3
-        hermetic_test_groups += 'sqlite3'
-    endif
-
-    if enable_db
-        hermetic_test_groups += 'database'
-    endif
-
-    foreach test_group : hermetic_test_groups
-        test(test_group, unittest_exe, args: ['--group', test_group])
-    endforeach
-
-endif
-
-#
-# Documentation
-#
-sphinx = find_program('sphinx-build', required: false)
-
-if not sphinx.found()
-    message('Sphinx not found. Skipping documentation build')
-    enable_sphinx = false
-else
-    enable_sphinx = true
-
-    docsdir =  meson.project_source_root() / 'docs'
-    htmldir =  meson.project_build_root() / 'html'
-
-    custom_target(
-        'sphinx',
-        input : [
-            'docs/conf.py',
-            'docs/static/alabaster/custom.css',
-            'docs/static/furo/custom.css',
-
-            'docs/api.rst',
-            'docs/architecture.rst',
-            'docs/assessment.rst',
-            'docs/configuration.rst',
-            'docs/context.rst',
-            'docs/contributing.rst',
-            'docs/databases.rst',
-            'docs/developer-guide.rst',
-            'docs/development-principles.rst',
-            'docs/development.rst',
-            'docs/index.rst',
-            'docs/installation.rst',
-            'docs/origin.rst',
-            'docs/overview.rst',
-            'docs/purpose.rst',
-            'docs/ras-mc-ctl.rst',
-            'docs/ras-mc-ctl-perl.rst',
-            'docs/ras-mc-ctl-python.rst',
-            'docs/requirements.rst',
-            'docs/roadmap.rst',
-            'docs/running.rst',
-            'docs/security.rst',
-            'docs/testing.rst',
-            'docs/verification.rst',
-
-            'core/bitfield.c',
-            'core/bitfield.h',
-            'core/event-consumer.c',
-            'core/modules.c',
-            'core/modules.h',
-            'core/queue.c',
-            'core/queue.h',
-            'core/ras-env.c',
-            'core/ras-env.h',
-            'core/ras-events.c',
-            'core/ras-events.h',
-            'core/ras-logger.c',
-            'core/ras-logger.h',
-            'core/rbtree.c',
-            'core/rbtree.h',
-            'core/rasdaemon.c',
-            'core/trigger.c',
-            'core/trigger.h',
-            'core/types.c',
-            'core/types.h',
-            'db/db-mysql.h',
-            'db/db-postgresql.h',
-            'db/ras-db.c',
-            'db/ras-db.h',
-        ],
-        output : 'html',
-        command : [
-            sphinx, '-q', '-W',
-            '-D', 'version=' + meson.project_version(),
-            '-D', 'release=' + meson.project_version(),
-            '-b', 'html', docsdir, htmldir,
-        ],
-        build_by_default: true,
-        install : false,
-    )
-endif
+sphinx_sources = files(core_api_files) + files(rasdaemon_sources)
 
 #
 # Install files that don't require configuration
 #
 
-py.install_sources([
-    'util/__init__.py',
-    'util/display_table.py',
-    'util/mem_layout.py',
-    'util/ras_db.py',
-    'util/ras_db_decode.py',
-    'util/ras_filter.py',
-    'util/ras_dimm.py',
-    'util/ras_env.py',
-])
-
-ras_mc_ctl_conf = configuration_data()
-ras_mc_ctl_conf.set('PYTHON_DIR', pydir)
-
-ras_mc_ctl = configure_file(
-    input: 'util/ras-mc-ctl.py',
-    output: 'ras-mc-ctl',
-    configuration: ras_mc_ctl_conf,
-    install: true,
-    install_dir: get_option('sbindir'),
-    install_mode: 'rwxr-xr-x',
-)
-
-rasdaemon_env = prefix / get_option('sysconfdir') / 'sysconfig' / 'rasdaemon'
-install_data('misc/rasdaemon.env',
-    install_dir: get_option('sysconfdir') / 'sysconfig',
-    rename: 'rasdaemon',
-)
-
-install_data('contrib/mc_event_trigger',
-    install_dir: get_option('sysconfdir') / 'ras/triggers',
-    install_mode: 'rwxr-xr-x',
-)
-
-install_data('contrib/mem_fail_trigger',
-    install_dir: get_option('sysconfdir') / 'ras/triggers',
-    install_mode: 'rwxr-xr-x',
-)
 
 #
-# Extra install files
+# Configuration data
 #
 
 conf_data = {
@@ -687,105 +515,32 @@ conf_data = {
     'RASDAEMON_ENV': rasdaemon_env,
 }
 
-# Files requiring variable substitution and their install destinations.
-# Value '' means: generate in build tree only (source-only, not installed).
+#
+# Use separate meson files for some of the directories
+#
 
-install_map = {
-    # Source-only
-    'Makefile.inc.in' : '',
-    'misc/rasdaemon.spec.in' : '',
+subdir('docs')
+subdir('man')
+subdir('util')
+subdir('misc')
+subdir('labels')
+subdir('contrib')
 
-    # Man pages
-    'man/rasdaemon.8.in' : get_option('mandir') / 'man8',
-
-    # Systemd service files
-    'misc/rasdaemon.service.in' : systemd_unitdir,
-    'misc/ras-mc-ctl.service.in' : systemd_unitdir,
-
-    # Python config file
-    'util/ras_config.py.in': pydir,
-
-    # Other files
-    'misc/rasdaemon.syslog-ng.in' : get_option('sysconfdir') / 'syslog-ng/conf.d',
-    'misc/rasdaemon.rsyslog.in' : get_option('sysconfdir') / 'rsyslog.d',
-    'misc/rasdaemon.logrotate.in' : get_option('sysconfdir') / 'logrotate.d',
-}
-
-# File renaming install rules
-
-rename_map = {
-    'rasdaemon.syslog-ng' : 'rasdaemon.conf',
-    'rasdaemon.rsyslog' : 'rasdaemon.conf',
-    'rasdaemon.logrotate' : 'rasdaemon',
-}
-
-foreach in_file, install_dir : install_map
-    base = fs.name(in_file)
-    out_file = base.strip('.in')
-
-    # Determine install rename (if any)
-    install_rename = out_file
-    if rename_map.has_key(out_file)
-        install_rename = rename_map[out_file]
-    endif
-
-    configured = configure_file(
-        input: in_file,
-        output: out_file,
-        configuration: conf_data,
-    )
-
-    if install_dir != ''
-        install_data(configured,
-            install_dir: install_dir,
-            rename: install_rename,
-        )
-    endif
-endforeach
-
-custom_target(
-    'ras-mc-ctl-man',
-    input: [
-        ras_mc_ctl,
-        'util/ras_db.py',
-        'util/ras_db_decode.py',
-        'util/ras_filter.py',
-        'util/ras_dimm.py',
-    ],
-    output: 'ras-mc-ctl.8',
-    command: [
-        py, files('util/help2man.py'),
-        '--program', '@INPUT0@',
-        '--output', '@OUTPUT@',
-        '--python-dir', meson.current_build_dir(),
-        '--source-dir', meson.current_source_dir() / 'util',
-        '--sysconf-dir', prefix / get_option('sysconfdir'),
-    ],
-    build_by_default: true,
-    install: true,
-    install_dir: get_option('mandir') / 'man8',
+# Keep the root-level source-only Makefile fragment in the root build dir.
+configure_file(
+    input: 'Makefile.inc.in',
+    output: 'Makefile.inc',
+    configuration: conf_data,
 )
 
-# DIMM labels
-
-labels_files = run_command(
-    'find', 'labels', '-maxdepth', '1', '-type', 'f', check: true
-).stdout().strip().split('\n')
-
-labels_list = []
-
-foreach f : labels_files
-    if f != ''
-        labels_list += f
-    endif
-endforeach
-
-if labels_list.length() > 0
-    install_data(labels_list,
-        install_dir: get_option('sysconfdir') / 'ras/dimm_labels.d',
-        install_mode: 'rw-r--r--',
-    )
-endif
+# Core Python configuration is generated at the build root for helper tools
+# that add the build directory itself to PYTHONPATH.
+ras_config = configure_file(
+    input: 'util/ras_config.py.in',
+    output: 'ras_config.py',
+    configuration: conf_data,
+)
+install_data(ras_config, install_dir: pydir)
 
 # Shell completions
 
@@ -908,15 +663,6 @@ summary(
     },
     bool_yn: true,
     section : 'Non-standard CPER records',
-)
-
-summary(
-    {
-        # Keep in alphabetic order
-        'Build API docs': enable_sphinx,
-    },
-    bool_yn: true,
-    section : 'Documentation',
 )
 
 summary(
