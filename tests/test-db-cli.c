@@ -22,6 +22,15 @@
 #define RAS_BUILD_DIR "."
 #endif
 
+static void read_cli_output(FILE *fp, char *buffer, size_t size)
+{
+	size_t length = fread(buffer, 1, size - 1, fp);
+
+	assert_false(ferror(fp));
+	buffer[length] = '\0';
+	assert_int_equal(fgetc(fp), EOF);
+}
+
 void test_ras_mc_ctl_count(const char *backend, const char *table,
 			   int expected)
 {
@@ -101,9 +110,7 @@ void test_ras_mc_ctl_types(const char *backend, struct ras_events *ras)
 	assert_int_equal(rc, 0);
 	fp = fopen(output, "r");
 	assert_non_null(fp);
-	line[0] = '\0';
-	while (fgets(command, sizeof(command), fp))
-		strncat(line, command, sizeof(line) - strlen(line) - 1);
+	read_cli_output(fp, line, sizeof(line));
 	assert_non_null(strstr(line, "ras_mc_ctl_types:"));
 	assert_non_null(strstr(line, "timestamp"));
 	assert_non_null(strstr(line, "id"));
@@ -121,9 +128,7 @@ void test_ras_mc_ctl_types(const char *backend, struct ras_events *ras)
 	assert_int_equal(rc, 0);
 	fp = fopen(output, "r");
 	assert_non_null(fp);
-	line[0] = '\0';
-	while (fgets(command, sizeof(command), fp))
-		strncat(line, command, sizeof(line) - strlen(line) - 1);
+	read_cli_output(fp, line, sizeof(line));
 	assert_non_null(strstr(line, "id=1"));
 	assert_non_null(strstr(line, "blob_value=b'blob-value'"));
 	assert_non_null(strstr(line, "text_value=text-value"));
