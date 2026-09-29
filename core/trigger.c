@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -35,7 +36,13 @@ void run_trigger(const char *trigger, char *argv[], char **env, const char *repo
 		execve(trigger, argv, env);
 		_exit(127);
 	} else {
-		waitpid(child, &status, 0);
+		while (waitpid(child, &status, 0) < 0) {
+			if (errno == EINTR)
+				continue;
+			log(SYSLOG, LOG_ERR, "Cannot wait for trigger %s: %s",
+			    trigger, strerror(errno));
+			return;
+		}
 		if (WIFEXITED(status) && WEXITSTATUS(status)) {
 			log(SYSLOG, LOG_INFO, "Trigger %s exited with status %d",
 			    trigger, WEXITSTATUS(status));
