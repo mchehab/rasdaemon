@@ -79,6 +79,9 @@ void test_ras_mc_ctl_types(const char *backend, struct ras_events *ras)
 	rc = db_prepare_insert_stmt(ras->db, &stmt, &table);
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
+	assert_int_equal(db_bind(&table, stmt, 0, 0, -1), -1);
+	assert_int_equal(db_bind(&table, stmt, 6, 0, -1), -1);
+	assert_int_equal(db_bind(&table, stmt, 7, 0, -1), -1);
 	db_bind(&table, stmt, pos++, (uint64_t)"2026-08-27 09:01:50 +0000", -1);
 	db_bind(&table, stmt, pos++, (uint64_t)blob, sizeof(blob) - 1);
 	db_bind(&table, stmt, pos++, (uint64_t)"text-value", -1);

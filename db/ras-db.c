@@ -508,7 +508,7 @@ int db_bind(const struct db_table_descriptor *db_tab,
 
 		field_pos++;
 	}
-	if (field_pos != pos - 1) {
+	if (i == db_tab->num_fields) {
 		log(TERM, LOG_INFO, "table %s: invalid placeholder: %d\n",
 		    db_tab->name, pos);
 		return -1;
