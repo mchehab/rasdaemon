@@ -17,7 +17,7 @@ test: all
 	fi
 
 dist:
-	meson dist -C build --no-tests $(if $(DRY_RUN),--allow-dirty)
+	meson dist -C build --no-tests $(if $(filter 1,$(DRY_RUN)),--allow-dirty)
 
 dist-rpm: dist
 	if [ ! -d "$(RPM_TOPDIR)/SOURCES/" ]; then \
