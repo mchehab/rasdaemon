@@ -212,6 +212,8 @@ static int db_mysql_bind_type(struct ras_stmt *__stmt,
 	}
 	mb = &priv->binds[idx];
 
+	free(mb->buffer);
+	free(mb->is_null);
 	memset(mb, 0, sizeof(*mb));
 
 	switch (type) {

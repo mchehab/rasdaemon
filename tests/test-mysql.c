@@ -271,6 +271,9 @@ static void test_db_bind_types(void **state)
 	assert_int_equal(rc, 0);
 	assert_non_null(stmt);
 
+	/* Replace both an allocated scalar and an allocated NULL flag. */
+	assert_int_equal(db_bind(&db_tab, stmt, 1, 42, -1), 0);
+	assert_int_equal(db_bind(&db_tab, stmt, 2, 0, -1), 0);
 	assert_int_equal(db_bind(&db_tab, stmt, pos++,
 				 (uint64_t)vals[0].value, -1), 0);
 	assert_int_equal(db_bind(&db_tab, stmt, pos++,
