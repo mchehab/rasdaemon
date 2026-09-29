@@ -67,7 +67,7 @@ static int db_mysql_open(struct ras_db **__db, void *__conn_parms,
 		return -ENOMEM;
 	}
 
-	if (cp->use_ssl) {
+	if (cp && cp->use_ssl) {
 #ifdef MARIADB_BASE_VERSION
 		my_bool enforce_tls = 1;
 
