@@ -283,7 +283,7 @@ static int db_non_standard_record(struct ras_events *ras, void *priv)
 	log(TERM, LOG_INFO, "non_standard_event store: %p\n", non_standard_event_db.stmt);
 
 	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->timestamp, -1);
-	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->sec_type, -1);
+	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->sec_type, 16);
 	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->fru_id,  16);
 	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->fru_text, -1);
 	db_bind(&non_standard_event_tab, non_standard_event_db.stmt, pos++, (uint64_t)ev->severity, -1);

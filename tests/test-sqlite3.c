@@ -812,6 +812,18 @@ static void test_mc_event_recording(void **state)
 	RECORD_AND_CHECK(ras_event_publish(&ras, NON_STANDARD_EVENT,
 					   &non_standard),
 			 "non_standard_event");
+	{
+		sqlite3_stmt *stmt = NULL;
+
+		assert_int_equal(sqlite3_prepare_v2((void *)ras.db,
+						    "SELECT sec_type FROM non_standard_event", -1,
+						    &stmt, NULL), SQLITE_OK);
+		assert_int_equal(sqlite3_step(stmt), SQLITE_ROW);
+		assert_int_equal(sqlite3_column_bytes(stmt, 0), sizeof(section));
+		assert_memory_equal(sqlite3_column_blob(stmt, 0), section,
+				    sizeof(section));
+		assert_int_equal(sqlite3_finalize(stmt), SQLITE_OK);
+	}
 #endif
 #ifdef HAVE_ARM
 	strscpy(arm.timestamp, mc.timestamp, sizeof(arm.timestamp));
