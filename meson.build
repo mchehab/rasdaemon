@@ -100,6 +100,7 @@ zsh_compdir = prefix / datadir  / 'zsh' / 'site-functions'
 
 dependencies = [
     libtraceevent_dep,
+    dependency('threads'),
 ]
 
 #
