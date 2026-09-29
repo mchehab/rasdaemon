@@ -7,7 +7,7 @@
 VERSION = @PACKAGE_VERSION@
 RPM_TOPDIR  ?= $(shell rpm --eval '%{_topdir}')
 DIST_TARBALL = build/meson-dist/@PACKAGE@-${VERSION}.tar.xz
-SPEC_FILE   = build/rasdaemon.spec
+SPEC_FILE   = build/misc/rasdaemon.spec
 
 test: all
 	@if test -x build/tests/unittest; then \
@@ -56,4 +56,4 @@ distclean: clean
 	       build/
 
 upload: srpm dist
-	scp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-${VERSION}*.src.rpm $(DIST_TARBALL) misc/rasdaemon.spec www.infradead.org:public_html/rasdaemon
+	scp $(RPM_TOPDIR)/SRPMS/@PACKAGE@-${VERSION}*.src.rpm $(DIST_TARBALL) $(SPEC_FILE) www.infradead.org:public_html/rasdaemon
