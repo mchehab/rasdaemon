@@ -85,7 +85,7 @@ static char *err_severity(int severity)
 
 static unsigned long long err_mask(int lsb)
 {
-	if (lsb == 0xff)
+	if (lsb < 0 || lsb >= 64)
 		return ~0ull;
 	return ~((1ull << lsb) - 1);
 }

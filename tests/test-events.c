@@ -702,6 +702,8 @@ static void test_extlog_mappings(void **state)
 	assert_int_equal(ras_extlog_test_mask(0), ~0ULL);
 	assert_int_equal(ras_extlog_test_mask(12), ~((1ULL << 12) - 1));
 	assert_int_equal(ras_extlog_test_mask(0xff), ~0ULL);
+	assert_int_equal(ras_extlog_test_mask((int8_t)0xff), ~0ULL);
+	assert_int_equal(ras_extlog_test_mask(64), ~0ULL);
 	assert_string_equal(ras_uuid_str((const char *)uuid, RAS_UUID_LE),
 			    "00112233-4455-6677-8899-aabbccddeeff");
 }
