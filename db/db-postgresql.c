@@ -260,8 +260,7 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 		return 0;
 
 	case DB_TYPE_INT32:
-		asprintf(&buf, "%d", (int32_t)value);
-		if (!buf) {
+		if (asprintf(&buf, "%d", (int32_t)value) < 0) {
 			log(TERM, LOG_ERR, "Failed to allocate memory for INT32\n");
 			return -1;
 		}
@@ -271,8 +270,7 @@ static int db_pg_bind_type(struct ras_stmt *__stmt,
 		return 0;
 
 	case DB_TYPE_INT64:
-		asprintf(&buf, "%lld", (long long)value);
-		if (!buf) {
+		if (asprintf(&buf, "%lld", (long long)value) < 0) {
 			log(TERM, LOG_ERR, "Failed to allocate memory for INT64\n");
 			return -1;
 		}
