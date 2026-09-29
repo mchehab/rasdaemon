@@ -47,7 +47,8 @@ void ras_logger_clean(void)
  */
 void ras_logger_flush(void)
 {
-	fputs(mock_log_buf, stderr);
+	if (mock_log_buf)
+		fputs(mock_log_buf, stderr);
 	ras_logger_clean();
 }
 

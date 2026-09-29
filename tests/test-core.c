@@ -218,6 +218,14 @@ static void test_trigger_validation(void **state)
 	assert_null(trigger_check(path));
 }
 
+static void test_logger_flush_empty(void **state)
+{
+	ras_logger_clean();
+	ras_logger_flush();
+	assert_null(mock_log_buf);
+	assert_int_equal(mock_log_len, 0);
+}
+
 static void test_mock_logger(void **state)
 {
 	ras_logger_clean();
@@ -394,6 +402,7 @@ static const struct CMUnitTest tests[] = {
 #endif
 	cmocka_unit_test(test_environment_file),
 	cmocka_unit_test(test_trigger_validation),
+	cmocka_unit_test(test_logger_flush_empty),
 	cmocka_unit_test(test_mock_logger),
 	cmocka_unit_test(test_warn_once),
 	cmocka_unit_test(test_disabled_event_selection),
