@@ -4,10 +4,25 @@
 # Copyright (C) 2013-s2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
 DRY_RUN=0
-for arg in "$@"; do
-    case "$arg" in
-        --dry-run|-n) DRY_RUN=1 ;;
-    esac
+NO_TAGS=0
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+		--dry-run|-n)
+			DRY_RUN=1
+			;;
+		--no-tags)
+			NO_TAGS=1
+			;;
+		--help|-h)
+			echo "Usage: $0 [--dry-run|-n] [--no-tags]"
+			exit 0
+			;;
+		*)
+			echo "Usage: $0 [--dry-run|-n] [--no-tags]" >&2
+			exit 1
+			;;
+	esac
+	shift
 done
 
 catch() {
@@ -16,10 +31,6 @@ catch() {
 }
 trap 'catch $LINENO "$BASH_COMMAND"' ERR
 
-make distclean
-make build/build.ninja
-make
-
 VER=$(perl -ne 'print "$1\n" if /\bversion:\s*\x27(\d[\d\.]+)\x27/' meson.build)
 if [ "x$VER" == "x" ]; then
 	echo "Can't parse rasdaemon version"
@@ -27,21 +38,35 @@ if [ "x$VER" == "x" ]; then
 fi
 TAG="v$VER"
 
-if [ "$DRY_RUN" -ne 1 ]; then
+if [ "$DRY_RUN" -ne 1 ] && [ "$NO_TAGS" -ne 1 ]; then
 	echo
 	echo "************************************************************************"
 	echo "Creating a new release tag"
 	echo "************************************************************************"
 
 	if git show-ref --verify --quiet "refs/tags/$TAG"; then
-	echo "Error: tag ${TAG} already exists. If you tant to test, you can use:"
-	echo "   \$ $0 --dry-run"
-	exit 1
+		TAG_COMMIT=$(git rev-parse --verify "${TAG}^{commit}")
+		HEAD_COMMIT=$(git rev-parse --verify HEAD)
+		if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+			echo "Error: tag ${TAG} already exists and points to a different commit. If you want to test, you can use:"
+			echo "   \$ $0 --dry-run"
+			echo "or:"
+			echo "   \$ $0 --no-tags"
+			exit 1
+		fi
+		echo "Tag ${TAG} already exists and points to HEAD; leaving it unchanged."
+	else
+		git tag "$TAG"
 	fi
-
-	git tag $TAG -f
 fi
 
+if [ "$NO_TAGS" -eq 1 ]; then
+	echo "Skipping release tag creation (--no-tags)."
+fi
+
+make distclean
+make build/build.ninja
+make
 
 echo
 echo "************************************************************************"
