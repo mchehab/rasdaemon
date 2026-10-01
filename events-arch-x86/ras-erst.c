@@ -238,10 +238,20 @@ static int ras_erst_init(struct ras_module_ctx *ctx)
 	return 0;
 }
 
+/*
+ * x86-mce-event's cleanup does not run if that module failed to init, so
+ * free mce_priv here too. free_mce_priv() clears the pointer.
+ */
+static void ras_erst_cleanup(struct ras_module_ctx *ctx)
+{
+	free_mce_priv(ctx->ras);
+}
+
 static const struct ras_module_entry ras_erst_module = {
 	.name = "x86-mce-erst",
 	.level = SUB_EVENT_MODULE,
 	.init = ras_erst_init,
+	.cleanup = ras_erst_cleanup,
 };
 
 REGISTER_RAS_MODULE(ras_erst_module);
