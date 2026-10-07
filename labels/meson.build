@@ -6,7 +6,7 @@ labels_files = run_command(
 labels_list = []
 
 foreach f : labels_files
-    if f != '' and f != 'meson.build'
+    if f != '' and 'meson.build' not in f
         labels_list += f
     endif
 endforeach
