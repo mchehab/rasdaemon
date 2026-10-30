@@ -113,7 +113,7 @@ jobs:
           RAS_PG_SCHEMA: rasdaemon
           RAS_PG_DATABASE: rasdaemon_test
         run: |
-          build/unittest -o tap
+          build/tests/unittest -o tap
       - name: Run Python unit tests
         env:
           RAS_MYSQL_HOST: ''
@@ -179,7 +179,7 @@ jobs:
           RAS_MYSQL_USE_SSL: 'false'
           RAS_MYSQL_CONNECT_TIMEOUT: '10'
         run: |-
-          build/unittest -o tap -g mysql
+          build/tests/unittest -o tap -g mysql
       - name: Run Python unittests
         env:
           RAS_MYSQL_HOST: ''
