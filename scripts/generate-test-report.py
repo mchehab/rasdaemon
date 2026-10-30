@@ -145,7 +145,7 @@ def parse_tap(build_dir):
     pattern = re.compile(r"^(not )?ok \d+ - (.*?)(?:\s+#.*)?$")
     group_pattern = re.compile(r"^# (?:not )?ok - (.*)$")
 
-    out = run_cmd([f"{build_dir}/unittest", "-o", "tap"])
+    out = run_cmd([f"{build_dir}/tests/unittest", "-o", "tap"])
 
     for line in out.splitlines():
         match = pattern.match(line)
