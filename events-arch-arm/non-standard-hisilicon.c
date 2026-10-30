@@ -310,6 +310,12 @@ static int decode_hisi_common_section(struct ras_events *ras,
 	    (struct hisi_common_error_section *)event->error;
 	struct ras_stmt *stmt = hisi_common_section_db.stmt;
 	struct hisi_event hevent;
+	uint32_t avail;
+
+	if (!event->error || event->length < sizeof(*err)) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return -1;
+	}
 
 	if (ras->record_events)
 		WARN_ONCE(!stmt, ALL, LOG_WARNING,
@@ -321,12 +327,24 @@ static int decode_hisi_common_section(struct ras_events *ras,
 	decode_hisi_common_section_hdr(stmt, err, &hevent);
 	trace_seq_printf(s, "%s\n", hevent.error_msg);
 
+	/*
+	 * reg_array_size is firmware-supplied; only trust it as far as the
+	 * bytes that were actually delivered.
+	 */
+	avail = (event->length - sizeof(*err)) / sizeof(err->reg_array[0]);
+
 	if (err->val_bits & BIT(HISI_COMMON_VALID_REG_ARRAY_SIZE) &&
 	    err->reg_array_size > 0) {
+		unsigned int n = err->reg_array_size / sizeof(uint32_t);
 		unsigned int i;
 
+		if (n > avail) {
+			trace_seq_printf(s, "(truncated reg array)\n");
+			n = avail;
+		}
+
 		trace_seq_printf(s, "Register Dump:\n");
-		for (i = 0; i < err->reg_array_size / sizeof(uint32_t); i++) {
+		for (i = 0; i < n; i++) {
 			trace_seq_printf(s, "reg%02u=0x%08x\n", i,
 					 err->reg_array[i]);
 			HISI_SNPRINTF(hevent.reg_msg, "reg%02u=0x%08x", i,
