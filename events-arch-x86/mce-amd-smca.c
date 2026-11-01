@@ -918,7 +918,8 @@ static inline void fixup_hwid(struct mce_priv *m, uint32_t *hwid_mcatype)
 /* Decode extended errors according to Scalable MCA specification */
 void decode_smca_error(struct mce_event *e, struct mce_priv *m)
 {
-	enum smca_bank_types bank_type;
+	/* stays unknown if the IPID matches no entry and is not a non-CPU node */
+	enum smca_bank_types bank_type = N_SMCA_BANK_TYPES;
 	const char *ip_name;
 	uint32_t mcatype_hwid = 0;
 	unsigned short xec = (e->status >> 16) & 0x3f;
