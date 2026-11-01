@@ -1,0 +1,48 @@
+name: Run coverity scan
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: '3 8 * * *' # Daily at 08:03 UTC
+
+jobs:
+  Coverity:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Install packages
+      run: |
+        sudo apt-get update
+        sudo apt-get update
+        sudo apt-get install -y build-essential meson ninja-build pkg-config \
+                                git libsqlite3-dev sqlite3 \
+                                libtraceevent-dev libtraceevent1 libpci-dev
+    - name: Download Coverity Build Tool
+      env:
+        TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+      run: |
+        wget -q https://scan.coverity.com/download/cxx/linux64 \
+             --post-data "token=$TOKEN&project=rasdaemon" \
+             -O cov-analysis-linux64.tar.gz
+        mkdir cov-analysis-linux64
+        tar xzf cov-analysis-linux64.tar.gz --strip 1 -C cov-analysis-linux64
+    - name: Fixed world writable dirs
+      run: |
+        chmod go-w $HOME
+        sudo chmod -R go-w /usr/share
+    - name: Prepare Coverity
+      run: |
+        meson setup builddir
+        export PATH=${PWD}/cov-analysis-linux64/bin:$PATH
+        cov-build --dir cov-int meson compile -C builddir
+    - name: Submit the result to Coverity Scan
+      env:
+        TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+      run: |
+        tar czvf rasdaemon.tgz cov-int
+        curl --form token=$TOKEN \
+             --form email=mchehab@kernel.org \
+             --form file=@rasdaemon.tgz \
+             --form version=trunk \
+             --form description="rasdaemon-git-$(git log -1 --pretty='%h')" \
+             https://scan.coverity.com/builds?project=rasdaemon
