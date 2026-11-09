@@ -166,14 +166,14 @@ static inline size_t strscpy(char *dst, const char *src, size_t dsize)
  */
 static inline size_t strscat(char *dst, const char *src, size_t dsize)
 {
-	int i, rc;
+	size_t i, rc;
 
 	for (i = 0; dsize > 0; dsize--, dst++, i++)
 		if (!*dst)
 			break;
 
 	rc = strscpy(dst, src, dsize);
-	if (rc < 0)
+	if (rc < (size_t)-E2BIG)
 		return rc;
 
 	return rc + i;
