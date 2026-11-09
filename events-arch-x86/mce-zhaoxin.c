@@ -41,10 +41,11 @@ static void decode_mci(struct mce_event *e)
 			case 0:
 				mce_snprintf(e->error_msg, "Uncorrected No Action Required Error");
 				break;
-			case MCI_STATUS_S:
-				mce_snprintf(e->error_msg, "Uncorrected Software Recoverable Action Optional Error");
 			case MCI_STATUS_S | MCI_STATUS_AR:
 				mce_snprintf(e->error_msg, "Uncorrected Software Recoverable Action Required Error");
+				break;
+			case MCI_STATUS_S:
+				mce_snprintf(e->error_msg, "Uncorrected Software Recoverable Action Optional Error");
 				break;
 			default:
 				break;
