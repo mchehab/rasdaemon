@@ -80,5 +80,8 @@ const char *trigger_check(const char *s)
 	if (!rc)
 		return(s);
 
+	if (trigger_dir)
+		free(name);
+
 	return NULL;
 }
