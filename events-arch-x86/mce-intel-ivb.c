@@ -78,7 +78,8 @@ void ivb_decode_model(struct ras_events *ras, struct mce_event *e)
 	struct mce_priv *mce = ras->mce_priv;
 	uint64_t status = e->status;
 	uint32_t mca    = status & 0xffff;
-	unsigned int rank0 = -1, rank1 = -1, chan;
+	int rank0 = -1, rank1 = -1;
+	unsigned int chan;
 
 	switch (e->bank) {
 	case 4:
