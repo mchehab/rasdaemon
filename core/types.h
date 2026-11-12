@@ -173,7 +173,7 @@ static inline size_t strscat(char *dst, const char *src, size_t dsize)
 			break;
 
 	rc = strscpy(dst, src, dsize);
-	if (rc < (size_t)-E2BIG)
+	if (rc == (size_t)-E2BIG)
 		return rc;
 
 	return rc + i;
