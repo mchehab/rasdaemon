@@ -935,8 +935,15 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 				     struct ras_non_standard_event *event)
 {
 	struct db_desc_and_stmt *db;
-	int payload_type = PAYLOAD_TYPE(event->error[0]);
+	int payload_type;
 	int id = 0;
+
+	if (!event->error || !event->length) {
+		trace_seq_printf(s, "%s: empty payload\n", __func__);
+		return -1;
+	}
+
+	payload_type = PAYLOAD_TYPE(event->error[0]);
 
 	switch (payload_type) {
 	case PAYLOAD_TYPE_0:
@@ -977,24 +984,44 @@ static int decode_amp_oem_type_error(struct ras_events *ras,
 	case PAYLOAD_TYPE_0: {
 		const struct amp_payload0_type_sec *err =
 		    (struct amp_payload0_type_sec *)event->error;
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
 		decode_amp_payload0_err_regs(ev_decoder, s, err);
 		break;
 	}
 	case PAYLOAD_TYPE_1: {
 		const struct amp_payload1_type_sec *err =
 			(struct amp_payload1_type_sec *)event->error;
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
 		decode_amp_payload1_err_regs(ev_decoder, s, err);
 		break;
 	}
 	case PAYLOAD_TYPE_2: {
 		const struct amp_payload2_type_sec *err =
 			(struct amp_payload2_type_sec *)event->error;
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
 		decode_amp_payload2_err_regs(ev_decoder, s, err);
 		break;
 	}
 	case PAYLOAD_TYPE_3: {
 		const struct amp_payload3_type_sec *err =
 			(struct amp_payload3_type_sec *)event->error;
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
 		decode_amp_payload3_err_regs(ev_decoder, s, err);
 		break;
 	}
@@ -1013,6 +1040,11 @@ static struct ras_ns_ev_decoder amp_ns_oem_decoder[] = {
 static void decode_amp_arm_vendor_data(struct trace_seq *s,
 				       const uint8_t *buf, uint32_t length)
 {
+	if (length < sizeof(struct amp_payload0_type_sec)) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return;
+	}
+
 	decode_amp_payload0_err_regs(NULL, s,
 				     (const struct amp_payload0_type_sec *)buf);
 }
