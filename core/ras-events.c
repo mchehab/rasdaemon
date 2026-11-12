@@ -1467,8 +1467,7 @@ int ras_events_prepare(struct ras_events *ras, int record_events)
 
 	if (is_confidentiality_lockdown()) {
 		log(TERM, LOG_ERR,
-		    "Kernel confidentiality lockdown disables tracing; "
-		    "rasdaemon cannot monitor RAS events\n");
+		    "Kernel confidentiality lockdown disables tracing; rasdaemon cannot monitor RAS events\n");
 		return -EPERM;
 	}
 
