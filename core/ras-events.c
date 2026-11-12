@@ -153,6 +153,24 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 	return get_mountdir_by_type("debugfs", tracing_dir, len);
 }
 
+static int is_confidentiality_lockdown(void)
+{
+	FILE *fp;
+	char mode[128];
+
+	fp = fopen("/sys/kernel/security/lockdown", "r");
+	if (!fp)
+		return 0;
+
+	if (!fgets(mode, sizeof(mode), fp)) {
+		fclose(fp);
+		return 0;
+	}
+	fclose(fp);
+
+	return strstr(mode, "[confidentiality]") != NULL;
+}
+
 /**
  * get_tracefs_dir - locate the tracefs mount
  * @tracing_dir: destination path
@@ -1446,6 +1464,13 @@ int ras_events_prepare(struct ras_events *ras, int record_events)
 
 	if (!ras)
 		return -EINVAL;
+
+	if (is_confidentiality_lockdown()) {
+		log(TERM, LOG_ERR,
+		    "Kernel confidentiality lockdown disables tracing; "
+		    "rasdaemon cannot monitor RAS events\n");
+		return -EPERM;
+	}
 
 	rc = get_tracing_dir(ras);
 	if (rc < 0) {
