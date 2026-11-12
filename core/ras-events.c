@@ -153,22 +153,22 @@ static int get_debugfs_dir(char *tracing_dir, size_t len)
 	return get_mountdir_by_type("debugfs", tracing_dir, len);
 }
 
-static int is_confidentiality_lockdown(void)
+static bool is_confidentiality_lockdown(void)
 {
 	FILE *fp;
 	char mode[128];
 
 	fp = fopen("/sys/kernel/security/lockdown", "r");
 	if (!fp)
-		return 0;
+		return false;
 
 	if (!fgets(mode, sizeof(mode), fp)) {
 		fclose(fp);
-		return 0;
+		return false;
 	}
 	fclose(fp);
 
-	return strstr(mode, "[confidentiality]") != NULL;
+	return strstr(mode, "[confidentiality]");
 }
 
 /**
