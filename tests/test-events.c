@@ -751,8 +751,51 @@ static void test_memory_failure_record(void **state)
 	modules_cleanup_type(ACTIONS_MODULE);
 }
 
+static void test_memory_failure_page_type_from_format(void **state)
+{
+	struct tep_print_flag_sym sym[] = {
+		{ .next = &sym[1], .value = (char *)"4",
+		  .str = (char *)"free huge page" },
+		{ .next = NULL, .value = (char *)"5",
+		  .str = (char *)"get hwpoison page" },
+	};
+	struct tep_print_arg field = {
+		.type = TEP_PRINT_FIELD, .field.name = (char *)"type",
+	};
+	struct tep_print_arg arg = {
+		.type = TEP_PRINT_SYMBOL,
+		.symbol.field = &field, .symbol.symbols = sym,
+	};
+	struct tep_event event = { .print_fmt.args = &arg };
+	struct trace_seq seq;
+	struct tep_record record;
+	struct ras_events ras;
+	const char *output;
+
+	assert_string_equal(ras_memory_failure_test_page_type_fmt(&event, 4),
+			    "free huge page");
+	assert_string_equal(ras_memory_failure_test_page_type_fmt(&event, 5),
+			    "get hwpoison page");
+	assert_string_equal(ras_memory_failure_test_page_type_fmt(&event, 2),
+			    "unknown page");
+
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "poison-page-stat"), 0);
+	init_trace(&seq, &record, &ras);
+	trace_mock_add_value("pfn", 0x123);
+	trace_mock_add_value("type", 5);
+	trace_mock_add_value("result", 0);
+	assert_int_equal(RUN_EVENT("ras", "memory_failure_event", &seq,
+				   &record, &event, &ras), 0);
+	output = finish_trace(&seq);
+	assert_non_null(strstr(output, "page_type=get hwpoison page"));
+	trace_seq_destroy(&seq);
+	modules_cleanup_type(ACTIONS_MODULE);
+}
+
 static const struct CMUnitTest memory_failure_tests[] = {
 	cmocka_unit_test(test_memory_failure_record),
+	cmocka_unit_test(test_memory_failure_page_type_from_format),
 };
 
 int test_memory_failure(void)

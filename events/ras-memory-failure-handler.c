@@ -5,6 +5,7 @@
  */
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -162,9 +163,49 @@ free:
 		free(env[i]);
 }
 
-static const char *get_page_type(int page_type)
+/*
+ * The kernel enum has been reordered more than once, so the values in the
+ * table above may not match the running kernel. The tracepoint format has
+ * the kernel's own value/name pairs (__print_symbolic), so use those first.
+ *
+ * Return true if the format has a symbol table for @field. *str is NULL if
+ * @val is not in it.
+ */
+static bool get_symbol_from_format(struct tep_event *event, const char *field,
+				   unsigned long long val, const char **str)
 {
+	struct tep_print_flag_sym *sym;
+	struct tep_print_arg *arg;
+
+	if (!event)
+		return false;
+
+	for (arg = event->print_fmt.args; arg; arg = arg->next) {
+		if (arg->type != TEP_PRINT_SYMBOL || !arg->symbol.field ||
+		    arg->symbol.field->type != TEP_PRINT_FIELD ||
+		    strcmp(arg->symbol.field->field.name, field))
+			continue;
+
+		*str = NULL;
+		for (sym = arg->symbol.symbols; sym; sym = sym->next) {
+			if (strtoull(sym->value, NULL, 0) == val) {
+				*str = sym->str;
+				break;
+			}
+		}
+		return true;
+	}
+
+	return false;
+}
+
+static const char *get_page_type(struct tep_event *event, int page_type)
+{
+	const char *str;
 	unsigned int i;
+
+	if (get_symbol_from_format(event, "type", page_type, &str))
+		return str ? str : "unknown page";
 
 	for (i = 0; i < ARRAY_SIZE(mf_page_type); i++)
 		if (mf_page_type[i].type == page_type)
@@ -187,7 +228,13 @@ static const char *get_action_result(int result)
 #ifdef HAVE_UNITTEST
 const char *ras_memory_failure_test_page_type(int page_type)
 {
-	return get_page_type(page_type);
+	return get_page_type(NULL, page_type);
+}
+
+const char *ras_memory_failure_test_page_type_fmt(struct tep_event *event,
+						  int page_type)
+{
+	return get_page_type(event, page_type);
 }
 
 const char *ras_memory_failure_test_action_result(int result)
@@ -237,7 +284,7 @@ static int ras_memory_failure_event_handler(struct trace_seq *s,
 
 	if (tep_get_field_val(s, event, "type", record, &val, 1) < 0)
 		return -1;
-	ev.page_type = get_page_type(val);
+	ev.page_type = get_page_type(event, val);
 	trace_seq_printf(s, "page_type=%s ", ev.page_type);
 
 	if (tep_get_field_val(s, event, "result", record, &val, 1) < 0)
