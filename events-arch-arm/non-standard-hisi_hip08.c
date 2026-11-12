@@ -676,6 +676,11 @@ static int decode_hip08_oem_type1_error(struct ras_events *ras,
 	    (struct hisi_oem_type1_err_sec *)event->error;
 	struct ras_stmt *stmt = hip08_oem_type1_event_db.stmt;
 
+	if (!event->error || event->length < sizeof(*err)) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return -1;
+	}
+
 	if (ras->record_events)
 		WARN_ONCE(!stmt, ALL, LOG_WARNING,
 			  "Can't insert into table %s: no statement\n",
@@ -842,6 +847,11 @@ static int decode_hip08_oem_type2_error(struct ras_events *ras,
 	    (struct hisi_oem_type2_err_sec *)event->error;
 	struct ras_stmt *stmt = hip08_oem_type2_event_db.stmt;
 
+	if (!event->error || event->length < sizeof(*err)) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return -1;
+	}
+
 	if (ras->record_events)
 		WARN_ONCE(!stmt, ALL, LOG_WARNING,
 			  "Can't insert into table %s: no statement\n",
@@ -986,6 +996,11 @@ static int decode_hip08_pcie_local_error(struct ras_events *ras,
 	const struct hisi_pcie_local_err_sec *err =
 	    (struct hisi_pcie_local_err_sec *)event->error;
 	struct ras_stmt *stmt = hip08_pcie_local_event_db.stmt;
+
+	if (!event->error || event->length < sizeof(*err)) {
+		trace_seq_printf(s, "%s: truncated payload\n", __func__);
+		return -1;
+	}
 
 	if (ras->record_events)
 		WARN_ONCE(!stmt, ALL, LOG_WARNING,
