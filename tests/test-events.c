@@ -553,6 +553,248 @@ static void test_cxl_poison_record(void **state)
 	trace_seq_destroy(&seq);
 }
 
+static unsigned int mmer_published;
+static struct {
+	unsigned int event_sub_type;
+	unsigned int validity_flags;
+	unsigned int health_status;
+	unsigned int cor_per_err_cnt;
+	int device_temp;
+	uint64_t serial;
+	bool component;
+	char memdev[16];
+	char host[16];
+} mmer_record;
+
+static int capture_mmer(struct ras_events *ras, int event, void *data)
+{
+	const struct ras_cxl_memory_module_event *ev = data;
+
+	mmer_record.event_sub_type = ev->event_sub_type;
+	mmer_record.validity_flags = ev->validity_flags;
+	mmer_record.health_status = ev->health_status;
+	mmer_record.cor_per_err_cnt = ev->cor_per_err_cnt;
+	mmer_record.device_temp = ev->device_temp;
+	mmer_record.serial = ev->hdr.serial;
+	mmer_record.component = !!ev->comp_id;
+	snprintf(mmer_record.memdev, sizeof(mmer_record.memdev), "%s", ev->hdr.memdev);
+	snprintf(mmer_record.host, sizeof(mmer_record.host), "%s", ev->hdr.host);
+	mmer_published++;
+	return 0;
+}
+
+static void test_cxl_memory_module_extensions(void **state)
+{
+	/* Bit 0 selects event_sub_type; bit 1 selects validity_flags. */
+	static const struct {
+		unsigned int present;
+		unsigned int readable;
+		bool health;
+		bool component;
+		int result;
+		unsigned int validity;
+	} cases[] = {
+		{ 0, 0, true, false, 0 },
+		{ 1, 1, true, false, 0 },
+		{ 2, 2, true, true, 0, 1 },
+		{ 3, 3, true, true, 0, 1 },
+		{ 1, 0, true, false, -1 },
+		{ 2, 0, true, false, -1 },
+		{ 0, 0, false, false, -1 },
+		{ 2, 2, true, false, -1, 1 },
+		{ 2, 2, true, false, 0, 0 },
+		{ 3, 3, true, false, 0, 0 },
+		{ 0, 0, true, true, 0, 0 },
+		{ 3, 3, false, true, -1, 1 },
+		{ 2, 2, true, false, 0, 2 },
+	};
+	static const struct ras_event_consumer consumer = {
+		.name = "test-cxl-memory-module",
+		.priority = PRI_NORMAL,
+		.events = BIT_ULL(CXL_MEMORY_MODULE_EVENT),
+		.consume = capture_mmer,
+	};
+	static const unsigned char uuid[16] = { 1 };
+	static const unsigned char component[16] = { 0xa5 };
+
+	for (size_t i = 0; i < ARRAY_SIZE(cases); i++) {
+		struct tep_format_field subtype = { .name = "event_sub_type" };
+		struct tep_format_field validity = { .name = "validity_flags" };
+		struct tep_event event = { 0 };
+		struct trace_seq seq;
+		struct tep_record record;
+		struct ras_events ras;
+		const char *output;
+		int ret;
+
+		assert_int_equal(ras_event_consumer_register(&consumer), 0);
+		if (cases[i].present & 2)
+			event.format.fields = &validity;
+		if (cases[i].present & 1) {
+			subtype.next = event.format.fields;
+			event.format.fields = &subtype;
+		}
+		init_trace(&seq, &record, &ras);
+		trace_mock_add_raw("memdev", "mem0", 5);
+		trace_mock_add_raw("host", "host0", 6);
+		trace_mock_add_raw("hdr_uuid", uuid, sizeof(uuid));
+		trace_mock_add_value("serial", 0x1234);
+		trace_mock_add_value("log", 0);
+		trace_mock_add_value("hdr_flags", 0);
+		trace_mock_add_value("hdr_handle", 1);
+		trace_mock_add_value("hdr_related_handle", 0);
+		trace_mock_add_value("hdr_timestamp", 0);
+		trace_mock_add_value("hdr_length", 128);
+		trace_mock_add_value("hdr_maint_op_class", 0);
+		trace_mock_add_value("event_type", 3);
+		if (cases[i].health)
+			trace_mock_add_value("health_status", 1);
+		trace_mock_add_value("media_status", 0);
+		trace_mock_add_value("add_status", 0);
+		trace_mock_add_value("life_used", 10);
+		trace_mock_add_value("device_temp", 30);
+		trace_mock_add_value("dirty_shutdown_cnt", 2);
+		trace_mock_add_value("cor_vol_err_cnt", 3);
+		trace_mock_add_value("cor_per_err_cnt", 4);
+		if (cases[i].readable & 1)
+			trace_mock_add_value("event_sub_type", 2);
+		if (cases[i].readable & 2)
+			trace_mock_add_value("validity_flags", cases[i].validity);
+		if (cases[i].component)
+			trace_mock_add_raw("comp_id", component, sizeof(component));
+		mmer_published = 0;
+		ret = RUN_EVENT("cxl", "cxl_memory_module", &seq,
+				&record, &event, &ras);
+		output = finish_trace(&seq);
+		assert_int_equal(ras_event_consumer_unregister(&consumer), 0);
+		assert_int_equal(ret, cases[i].result);
+		assert_int_equal(mmer_published, !cases[i].result);
+		if (!cases[i].result) {
+			assert_int_equal(mmer_record.health_status, 1);
+			assert_int_equal(mmer_record.device_temp, 30);
+			assert_int_equal(mmer_record.cor_per_err_cnt, 4);
+			assert_int_equal(mmer_record.event_sub_type,
+					 (cases[i].present & 1) * 2);
+			assert_int_equal(mmer_record.validity_flags,
+					 cases[i].validity);
+			assert_int_equal(mmer_record.component, !!(cases[i].validity & 1));
+			if (cases[i].present & 1)
+				assert_non_null(strstr(output, "event_sub_type:Unsupported Config Data"));
+			else
+				assert_null(strstr(output, "event_sub_type:"));
+		}
+		trace_seq_destroy(&seq);
+	}
+}
+
+static void test_cxl_memory_module_legacy_record(void **state)
+{
+	/* Linux v6.6 field layout; the event ID and payload are synthetic. */
+	static const char format[] =
+		"name: cxl_memory_module\n"
+		"ID: 100\n"
+		"format:\n"
+		"\tfield:unsigned short common_type; offset:0; size:2; signed:0;\n"
+		"\tfield:unsigned char common_flags; offset:2; size:1; signed:0;\n"
+		"\tfield:unsigned char common_preempt_count; offset:3; size:1; signed:0;\n"
+		"\tfield:int common_pid; offset:4; size:4; signed:1;\n"
+		"\n"
+		"\tfield:__data_loc char[] memdev; offset:8; size:4; signed:0;\n"
+		"\tfield:__data_loc char[] host; offset:12; size:4; signed:0;\n"
+		"\tfield:int log; offset:16; size:4; signed:1;\n"
+		"\tfield:uuid_t hdr_uuid; offset:20; size:16; signed:0;\n"
+		"\tfield:u64 serial; offset:40; size:8; signed:0;\n"
+		"\tfield:u32 hdr_flags; offset:48; size:4; signed:0;\n"
+		"\tfield:u16 hdr_handle; offset:52; size:2; signed:0;\n"
+		"\tfield:u16 hdr_related_handle; offset:54; size:2; signed:0;\n"
+		"\tfield:u64 hdr_timestamp; offset:56; size:8; signed:0;\n"
+		"\tfield:u8 hdr_length; offset:64; size:1; signed:0;\n"
+		"\tfield:u8 hdr_maint_op_class; offset:65; size:1; signed:0;\n"
+		"\tfield:u8 event_type; offset:66; size:1; signed:0;\n"
+		"\tfield:u8 health_status; offset:67; size:1; signed:0;\n"
+		"\tfield:u8 media_status; offset:68; size:1; signed:0;\n"
+		"\tfield:u8 life_used; offset:69; size:1; signed:0;\n"
+		"\tfield:u32 dirty_shutdown_cnt; offset:72; size:4; signed:0;\n"
+		"\tfield:u32 cor_vol_err_cnt; offset:76; size:4; signed:0;\n"
+		"\tfield:u32 cor_per_err_cnt; offset:80; size:4; signed:0;\n"
+		"\tfield:s16 device_temp; offset:84; size:2; signed:1;\n"
+		"\tfield:u8 add_status; offset:86; size:1; signed:0;\n"
+		"\n"
+		"print fmt: \"synthetic CXL record\"\n";
+	static const struct {
+		const char *name;
+		unsigned long long value;
+	} values[] = {
+		{ "common_type", 100 },
+		{ "memdev", (5U << 16) | 96 },
+		{ "host", (6U << 16) | 101 },
+		{ "serial", 0x1234 },
+		{ "hdr_handle", 1 },
+		{ "hdr_length", 128 },
+		{ "event_type", 3 },
+		{ "health_status", 1 },
+		{ "life_used", 10 },
+		{ "device_temp", 30 },
+		{ "dirty_shutdown_cnt", 2 },
+		{ "cor_vol_err_cnt", 3 },
+		{ "cor_per_err_cnt", 4 },
+	};
+	static const struct ras_event_consumer consumer = {
+		.name = "test-cxl-memory-module-legacy",
+		.priority = PRI_NORMAL,
+		.events = BIT_ULL(CXL_MEMORY_MODULE_EVENT),
+		.consume = capture_mmer,
+	};
+	unsigned char data[128] = { 0 };
+	struct tep_handle *tep;
+	struct tep_event *event;
+	struct trace_seq seq;
+	struct tep_record record;
+	struct ras_events ras;
+	const char *output;
+	int ret;
+
+	tep = tep_alloc();
+	assert_non_null(tep);
+	tep_set_file_bigendian(tep, TEP_LITTLE_ENDIAN);
+	assert_int_equal(tep_parse_event(tep, format, sizeof(format) - 1, "cxl"), 0);
+	event = tep_find_event_by_name(tep, "cxl", "cxl_memory_module");
+	assert_non_null(event);
+	for (size_t i = 0; i < ARRAY_SIZE(values); i++) {
+		struct tep_format_field *field = tep_find_any_field(event, values[i].name);
+
+		assert_non_null(field);
+		for (int j = 0; j < field->size; j++)
+			data[field->offset + j] = values[i].value >> (j * 8);
+	}
+	memcpy(data + 96, "mem0", 5);
+	memcpy(data + 101, "host0", 6);
+	init_trace(&seq, &record, &ras);
+	trace_mock_stop();
+	record.data = data;
+	record.size = sizeof(data);
+	assert_int_equal(ras_event_consumer_register(&consumer), 0);
+	mmer_published = 0;
+	ret = RUN_EVENT("cxl", "cxl_memory_module", &seq, &record, event, &ras);
+	output = finish_trace(&seq);
+	assert_int_equal(ras_event_consumer_unregister(&consumer), 0);
+	assert_int_equal(ret, 0);
+	assert_int_equal(mmer_published, 1);
+	assert_string_equal(mmer_record.memdev, "mem0");
+	assert_string_equal(mmer_record.host, "host0");
+	assert_int_equal(mmer_record.serial, 0x1234);
+	assert_int_equal(mmer_record.health_status, 1);
+	assert_int_equal(mmer_record.device_temp, 30);
+	assert_int_equal(mmer_record.cor_per_err_cnt, 4);
+	assert_int_equal(mmer_record.event_sub_type, 0);
+	assert_int_equal(mmer_record.validity_flags, 0);
+	assert_false(mmer_record.component);
+	assert_null(strstr(output, "event_sub_type:"));
+	assert_non_null(strstr(output, "cor_per_err_cnt:4"));
+	trace_seq_destroy(&seq);
+	tep_free(tep);
+}
+
 static void test_all_cxl_handlers_reject_empty_record(void **state)
 {
 	static const char * const events[] = {
@@ -584,6 +826,8 @@ static void test_all_cxl_handlers_reject_empty_record(void **state)
 static const struct CMUnitTest cxl_tests[] = {
 	cmocka_unit_test(test_cxl_common_decoders),
 	cmocka_unit_test(test_cxl_poison_record),
+	cmocka_unit_test(test_cxl_memory_module_extensions),
+	cmocka_unit_test(test_cxl_memory_module_legacy_record),
 	cmocka_unit_test(test_all_cxl_handlers_reject_empty_record),
 };
 

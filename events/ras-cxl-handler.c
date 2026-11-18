@@ -1305,14 +1305,16 @@ static int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 					      ev.event_type)) <= 0)
 		return -1;
 
-	if (tep_get_field_val(s, event, "event_sub_type", record, &val, 1) < 0)
-		return -1;
-	ev.event_sub_type = val;
-	if (trace_seq_printf(s, "event_sub_type:%s ",
-			     get_cxl_type_str(cxl_dev_evt_sub_type,
-					      ARRAY_SIZE(cxl_dev_evt_sub_type),
-					      ev.event_sub_type)) <= 0)
-		return -1;
+	if (tep_find_field(event, "event_sub_type")) {
+		if (tep_get_field_val(s, event, "event_sub_type", record, &val, 1) < 0)
+			return -1;
+		ev.event_sub_type = val;
+		if (trace_seq_printf(s, "event_sub_type:%s ",
+				     get_cxl_type_str(cxl_dev_evt_sub_type,
+						      ARRAY_SIZE(cxl_dev_evt_sub_type),
+						      ev.event_sub_type)) <= 0)
+			return -1;
+	}
 
 	if (tep_get_field_val(s, event, "health_status", record, &val, 1) < 0)
 		return -1;
@@ -1386,9 +1388,11 @@ static int ras_cxl_memory_module_event_handler(struct trace_seq *s,
 	if (trace_seq_printf(s, "cor_per_err_cnt:%u ", ev.cor_per_err_cnt) <= 0)
 		return -1;
 
-	if (tep_get_field_val(s,  event, "validity_flags", record, &val, 1) < 0)
-		return -1;
-	ev.validity_flags = val;
+	if (tep_find_field(event, "validity_flags")) {
+		if (tep_get_field_val(s, event, "validity_flags", record, &val, 1) < 0)
+			return -1;
+		ev.validity_flags = val;
+	}
 
 	if (ev.validity_flags & CXL_MMER_VALID_COMPONENT_ID) {
 		ev.comp_id = tep_get_field_raw(s, event, "comp_id", record, &len, 1);
