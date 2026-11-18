@@ -296,7 +296,7 @@ if not get_option('disable-all')
         endif
     endif
 
-    if arch_arm and not get_option('openbmc-unified-sel').disabled()
+    if not get_option('openbmc-unified-sel').disabled()
         enable_openbmc_unified_sel = true
         enable_ipmi_bmc = true
         lib_sources += 'actions/openbmc-unified-sel.c'
