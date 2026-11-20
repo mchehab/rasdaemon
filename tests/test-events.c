@@ -1355,6 +1355,46 @@ static void test_openbmc_sel_report(void **state)
 	assert_int_equal(system_mock_call_count(), 1);
 }
 
+static void test_openbmc_sel_ipmitool_option(void **state)
+{
+	struct ras_aer_event event = {
+		.severity = HW_EVENT_AER_CORRECTED,
+		.status = BIT_ULL(0),
+		.dev_name = "0000:02:03.1",
+	};
+	struct ras_events ras = { 0 };
+	struct argp_child *children;
+	char arg0[] = "rasdaemon", arg1[] = "-i";
+	char *argv[3] = { arg0, arg1, NULL };
+	struct argp argp = { 0 };
+	int idx = -1;
+
+	assert_int_equal(modules_argp_children(&children), 0);
+	argp.children = children;
+	assert_int_equal(argp_parse(&argp, 2, argv, ARGP_NO_EXIT, &idx, NULL), 0);
+	modules_argp_children_free(children);
+	assert_int_equal(idx, 2);
+
+	/* -i takes precedence over a configuration file that says no */
+	assert_int_equal(setenv(OPENBMC_UNIFIED_SEL_ENABLE_ENV, "no", 1), 0);
+	access_mock_start("/dev/ipmi0");
+	popen_mock_start("SEL Information\nVersion : 1.5\n", 0);
+	system_mock_start(0);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(popen_mock_call_count(), 1);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
+	assert_int_equal(system_mock_call_count(), 1);
+
+	/* Cleanup clears the option, so later tests start without it */
+	modules_cleanup_type(ACTIONS_SUB_MODULE);
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
+	assert_int_equal(system_mock_call_count(), 1);
+}
+
 static const struct CMUnitTest openbmc_tests[] = {
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_disabled,
 					bmc_sel_test_setup, bmc_sel_test_teardown),
@@ -1363,6 +1403,8 @@ static const struct CMUnitTest openbmc_tests[] = {
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_invalid_probe,
 					bmc_sel_test_setup, bmc_sel_test_teardown),
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_report,
+					bmc_sel_test_setup, bmc_sel_test_teardown),
+	cmocka_unit_test_setup_teardown(test_openbmc_sel_ipmitool_option,
 					bmc_sel_test_setup, bmc_sel_test_teardown),
 };
 

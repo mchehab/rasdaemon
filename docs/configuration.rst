@@ -58,7 +58,10 @@ consumer, to avoid duplicate records.
 ``OPENBMC_UNIFIED_SEL_ENABLE=yes`` enables the Facebook/Meta Unified SEL
 consumer. It writes non-timestamped OEM record type ``0xfb`` entries. Enable
 it only on BMC firmware that includes ``fb-ipmi-oem`` Unified SEL support;
-OpenBMC branding alone is not sufficient.
+OpenBMC branding alone is not sufficient. The deprecated ``-i``
+(``--ipmitool``) command-line option, which enabled this consumer up to
+0.9.91, still enables it and takes precedence over the setting; it logs a
+warning asking to set ``OPENBMC_UNIFIED_SEL_ENABLE=yes`` instead.
 
 ``AMPERE_OEM_SEL_ENABLE=yes`` enables Ampere's OEM AER SEL consumer. It
 writes timestamped OEM record type ``0xc0`` entries, with Ampere's IANA
