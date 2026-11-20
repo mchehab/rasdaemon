@@ -3,6 +3,7 @@
  * Copyright (c) 2023, Meta Platforms Inc.
  */
 
+#include <argp.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -141,11 +142,55 @@ static const struct ras_event_consumer openbmc_unified_sel_consumer = {
 	.consume = openbmc_unified_sel_consume,
 };
 
+/*
+ * -i/--ipmitool enabled this consumer up to 0.9.91. It was removed in
+ * 0.9.92 in favor of OPENBMC_UNIFIED_SEL_ENABLE, which made rasdaemon
+ * refuse to start with an "invalid option" error on hosts that still
+ * pass it. Accept it as a deprecated alias, so those hosts keep
+ * reporting while they move to the environment variable.
+ */
+static bool ipmitool_option;
+
+static error_t openbmc_unified_sel_parse_opt(int key, char *arg,
+					     struct argp_state *state)
+{
+	switch (key) {
+	case 'i':
+		ipmitool_option = true;
+		break;
+	default:
+		return ARGP_ERR_UNKNOWN;
+	}
+
+	return 0;
+}
+
+static const struct argp_option openbmc_unified_sel_options[] = {
+	{"ipmitool", 'i', 0, 0,
+	 "deprecated: same as OPENBMC_UNIFIED_SEL_ENABLE=yes", 0},
+	{ 0, 0, 0, 0, 0, 0 },
+};
+
+static const struct argp openbmc_unified_sel_argp = {
+	.options = openbmc_unified_sel_options,
+	.parser = openbmc_unified_sel_parse_opt,
+};
+
+static const struct ras_module_argp openbmc_unified_sel_module_argp = {
+	.parser = &openbmc_unified_sel_argp,
+	.header = "Facebook/Meta Unified SEL Options:",
+	.group = 2,
+};
+
 static int openbmc_unified_sel_init(struct ras_module_ctx *ctx)
 {
 	int rc;
 
-	if (!ipmi_bmc_config_enabled(OPENBMC_UNIFIED_SEL_ENABLE_ENV))
+	if (ipmitool_option)
+		log(ALL, LOG_WARNING,
+		    "-i/--ipmitool is deprecated; set %s=yes instead\n",
+		    OPENBMC_UNIFIED_SEL_ENABLE_ENV);
+	else if (!ipmi_bmc_config_enabled(OPENBMC_UNIFIED_SEL_ENABLE_ENV))
 		return 0;
 
 	if (!module_is_enabled("ipmi_bmc"))
@@ -161,6 +206,7 @@ static void openbmc_unified_sel_cleanup(struct ras_module_ctx *ctx)
 {
 	if (ctx->priv)
 		ras_event_consumer_unregister(&openbmc_unified_sel_consumer);
+	ipmitool_option = false;
 }
 
 static const struct ras_module_entry openbmc_unified_sel_module = {
@@ -168,6 +214,7 @@ static const struct ras_module_entry openbmc_unified_sel_module = {
 	.level = ACTIONS_SUB_MODULE,
 	.init = openbmc_unified_sel_init,
 	.cleanup = openbmc_unified_sel_cleanup,
+	.argp = &openbmc_unified_sel_module_argp,
 };
 
 REGISTER_RAS_MODULE(openbmc_unified_sel_module);
