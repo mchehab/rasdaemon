@@ -14,6 +14,7 @@
 #define IPMI_BMC_SEL_RECORD_SIZE 16
 
 bool ipmi_bmc_config_enabled(const char *name);
+bool ipmi_bmc_available(void);
 int ipmi_bmc_add_sel_entry(const uint8_t *record, size_t size);
 
 #endif

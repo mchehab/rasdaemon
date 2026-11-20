@@ -93,7 +93,7 @@ static int bmc_generic_init(struct ras_module_ctx *ctx)
 	int rc;
 
 	if (!ipmi_bmc_config_enabled(BMC_GENERIC_ENABLE_ENV) ||
-	    !module_is_enabled("ipmi_bmc"))
+	    !module_is_enabled("ipmi_bmc") || !ipmi_bmc_available())
 		return 0;
 
 	rc = ras_event_consumer_register(&bmc_generic_aer_consumer);

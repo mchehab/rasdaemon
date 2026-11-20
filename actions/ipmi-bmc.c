@@ -50,13 +50,22 @@ static int ipmi_bmc_probe_sel(void)
 		if (!access(ipmi_devices[i], F_OK))
 			break;
 
-	if (i == nr_devices)
+	if (i == nr_devices) {
+		log(ALL, LOG_WARNING,
+		    "No IPMI device (/dev/ipmi0, /dev/ipmi/0 or /dev/ipmidev/0); BMC SEL reports stay off\n");
 		return -ENODEV;
+	}
 
 	/* Capture stderr too, avoiding shell diagnostics during the probe. */
 	fp = popen("ipmitool sel 2>&1", "r");
-	if (!fp)
-		return -errno;
+	if (!fp) {
+		int rc = -errno;
+
+		log(ALL, LOG_WARNING,
+		    "Can't run ipmitool: %s; BMC SEL reports stay off\n",
+		    strerror(-rc));
+		return rc;
+	}
 
 	while (fgets(output, sizeof(output), fp)) {
 		char *p = output;
@@ -70,8 +79,11 @@ static int ipmi_bmc_probe_sel(void)
 	status = pclose(fp);
 	if (status < 0)
 		return -errno;
-	if (!WIFEXITED(status) || WEXITSTATUS(status) || !found_version)
+	if (!WIFEXITED(status) || WEXITSTATUS(status) || !found_version) {
+		log(ALL, LOG_WARNING,
+		    "ipmitool sel failed or reported no SEL version; BMC SEL reports stay off\n");
 		return -ENODEV;
+	}
 
 	return 0;
 }
@@ -96,15 +108,33 @@ int ipmi_bmc_add_sel_entry(const uint8_t *record, size_t size)
 	return system(command) ? -EIO : 0;
 }
 
-static int ipmi_bmc_init(struct ras_module_ctx *ctx)
+/*
+ * Probe the BMC only when a consumer that needs it is enabled, and only
+ * once while the ipmi_bmc module is enabled: probing at module init ran
+ * ipmitool on every host with an IPMI device and logged an init failure
+ * on every host without one, even with all BMC consumers switched off.
+ * Consumers call this after checking that ipmi_bmc is enabled, so its
+ * cleanup always resets the result.
+ */
+static int ipmi_bmc_state; /* 0: not probed, 1: available, -1: not */
+
+bool ipmi_bmc_available(void)
 {
-	return ipmi_bmc_probe_sel();
+	if (!ipmi_bmc_state)
+		ipmi_bmc_state = ipmi_bmc_probe_sel() ? -1 : 1;
+
+	return ipmi_bmc_state > 0;
+}
+
+static void ipmi_bmc_cleanup(struct ras_module_ctx *ctx)
+{
+	ipmi_bmc_state = 0;
 }
 
 static const struct ras_module_entry ipmi_bmc_module = {
 	.name = "ipmi_bmc",
 	.level = ACTIONS_MODULE,
-	.init = ipmi_bmc_init,
+	.cleanup = ipmi_bmc_cleanup,
 };
 
 REGISTER_RAS_MODULE(ipmi_bmc_module);
