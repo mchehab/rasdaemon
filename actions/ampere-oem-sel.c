@@ -67,7 +67,7 @@ static int ampere_oem_sel_init(struct ras_module_ctx *ctx)
 	if (!ipmi_bmc_config_enabled(AMPERE_OEM_SEL_ENABLE_ENV))
 		return 0;
 
-	if (!module_is_enabled("ipmi_bmc"))
+	if (!module_is_enabled("ipmi_bmc") || !ipmi_bmc_available())
 		return 0;
 
 	rc = ras_event_consumer_register(&ampere_oem_sel_consumer);

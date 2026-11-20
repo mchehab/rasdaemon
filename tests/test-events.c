@@ -1032,6 +1032,8 @@ static void test_openbmc_sel_disabled(void **state)
 	access_mock_start(NULL);
 	popen_mock_start("Version : 1.5\n", 0);
 	system_mock_start(0);
+	/* With every BMC consumer off, nothing probes for a BMC */
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
 	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(popen_mock_call_count(), 0);
@@ -1052,7 +1054,7 @@ static void test_openbmc_sel_no_device(void **state)
 	access_mock_start(NULL);
 	popen_mock_start("Version : 1.5\n", 0);
 	system_mock_start(0);
-	assert_int_equal(module_init(&ras, "ipmi_bmc"), -ENODEV);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
 	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
 	assert_int_equal(access_mock_call_count(), 3);
 	assert_int_equal(popen_mock_call_count(), 0);
@@ -1073,12 +1075,39 @@ static void test_openbmc_sel_invalid_probe(void **state)
 	access_mock_start("/dev/ipmi0");
 	popen_mock_start("SEL Information\nEntries: 1\n", 0);
 	system_mock_start(0);
-	assert_int_equal(module_init(&ras, "ipmi_bmc"), -ENODEV);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
 	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
 	assert_int_equal(access_mock_call_count(), 1);
 	assert_int_equal(popen_mock_call_count(), 1);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &event), 0);
 	assert_int_equal(system_mock_call_count(), 0);
+}
+
+static void test_openbmc_sel_probe_once(void **state)
+{
+	struct ras_events ras = { 0 };
+
+	assert_int_equal(setenv(OPENBMC_UNIFIED_SEL_ENABLE_ENV, "yes", 1), 0);
+#ifdef HAVE_BMC_GENERIC
+	assert_int_equal(setenv(BMC_GENERIC_ENABLE_ENV, "yes", 1), 0);
+#endif
+	access_mock_start("/dev/ipmi0");
+	popen_mock_start("SEL Information\nVersion : 1.5\n", 0);
+	system_mock_start(0);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+#ifdef HAVE_BMC_GENERIC
+	/* A second enabled consumer reuses the first probe */
+	assert_int_equal(module_init(&ras, "bmc-generic"), 0);
+#endif
+	assert_int_equal(popen_mock_call_count(), 1);
+
+	/* Cleaning up ipmi_bmc forgets the result, so the next init probes */
+	modules_cleanup_type(ACTIONS_SUB_MODULE);
+	modules_cleanup_type(ACTIONS_MODULE);
+	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
+	assert_int_equal(module_init(&ras, "openbmc-unified-sel"), 0);
+	assert_int_equal(popen_mock_call_count(), 2);
 }
 
 static void test_openbmc_sel_report(void **state)
@@ -1118,6 +1147,8 @@ static const struct CMUnitTest openbmc_tests[] = {
 					bmc_sel_test_setup, bmc_sel_test_teardown),
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_invalid_probe,
 					bmc_sel_test_setup, bmc_sel_test_teardown),
+	cmocka_unit_test_setup_teardown(test_openbmc_sel_probe_once,
+					bmc_sel_test_setup, bmc_sel_test_teardown),
 	cmocka_unit_test_setup_teardown(test_openbmc_sel_report,
 					bmc_sel_test_setup, bmc_sel_test_teardown),
 };
@@ -1144,8 +1175,8 @@ static void test_bmc_generic_sel_disabled(void **state)
 	assert_int_equal(module_init(&ras, "ipmi_bmc"), 0);
 	assert_int_equal(module_init(&ras, "bmc-generic"), 0);
 	assert_int_equal(ras_event_publish(&ras, AER_EVENT, &aer), 0);
-	assert_int_equal(access_mock_call_count(), 1);
-	assert_int_equal(popen_mock_call_count(), 1);
+	assert_int_equal(access_mock_call_count(), 0);
+	assert_int_equal(popen_mock_call_count(), 0);
 	assert_int_equal(system_mock_call_count(), 0);
 }
 

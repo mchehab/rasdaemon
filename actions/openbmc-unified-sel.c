@@ -148,7 +148,7 @@ static int openbmc_unified_sel_init(struct ras_module_ctx *ctx)
 	if (!ipmi_bmc_config_enabled(OPENBMC_UNIFIED_SEL_ENABLE_ENV))
 		return 0;
 
-	if (!module_is_enabled("ipmi_bmc"))
+	if (!module_is_enabled("ipmi_bmc") || !ipmi_bmc_available())
 		return 0;
 
 	rc = ras_event_consumer_register(&openbmc_unified_sel_consumer);

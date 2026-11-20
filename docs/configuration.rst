@@ -40,6 +40,9 @@ consumers, respectively.
 SEL consumers require a local IPMI device (``/dev/ipmi0``, ``/dev/ipmi/0``,
 or ``/dev/ipmidev/0``) and a successful ``ipmitool sel`` command with a
 ``Version`` field. They remain disabled unless individually selected.
+rasdaemon checks for the device and runs ``ipmitool sel`` only when one of
+these consumers is enabled, once per start, and logs a warning saying which
+part of the check failed.
 
 ``BMC_GENERIC_ENABLE=yes`` enables the generic BMC consumer. It writes
 standard IPMI system-event SEL records using the Critical Interrupt sensor:
