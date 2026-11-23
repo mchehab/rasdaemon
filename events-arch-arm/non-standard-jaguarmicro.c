@@ -562,15 +562,31 @@ static void decode_jm_common_sec_head(struct ras_ns_ev_decoder *ev_decoder,
 
 static void decode_jm_common_sec_tail(struct ras_ns_ev_decoder *ev_decoder,
 				      const struct jm_common_sec_tail *err,
-				      struct jm_event *event, uint32_t val_bits)
+				      struct jm_event *event, uint32_t val_bits,
+				      uint32_t tail_len)
 {
+	uint32_t avail;
+
+	if (tail_len < sizeof(*err))
+		return;
+
+	/*
+	 * reg_array_size comes from the firmware payload; only trust it as
+	 * far as the bytes that were actually delivered.
+	 */
+	avail = (tail_len - sizeof(*err)) / sizeof(err->reg_array[0]);
+
 	if (val_bits & BIT(JM_COMMON_VALID_REG_ARRAY_SIZE) &&
 	    err->reg_array_size > 0) {
-		int i;
+		uint32_t n = err->reg_array_size < avail ? err->reg_array_size : avail;
+		uint32_t i;
+
+		if (n < err->reg_array_size)
+			JM_SNPRINTF(event->reg_msg, "(truncated reg array)");
 
 		JM_SNPRINTF(event->reg_msg, "Extended Register Dump:");
 		JM_SNPRINTF(event->reg_msg, "[");
-		for (i = 0; i < err->reg_array_size; i++) {
+		for (i = 0; i < n; i++) {
 			JM_SNPRINTF(event->reg_msg, "reg%02d=0x%08x", i,
 				    err->reg_array[i]);
 		}
@@ -622,7 +638,8 @@ static void record_jm_payload_err(const char *reg_str)
  */
 static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
-				const struct jm_payload0_type_sec *err)
+				const struct jm_payload0_type_sec *err,
+					uint32_t length)
 {
 	int i = 0;
 
@@ -699,7 +716,10 @@ static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	JM_SNPRINTF(jmevent.reg_msg, "]");
 
 	trace_seq_printf(s, "Register Dump:");
-	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
+	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent,
+				  common_head->val_bits,
+				  length - (uint32_t)((const char *)common_tail -
+						      (const char *)err));
 
 	record_jm_payload_err(jmevent.reg_msg);
 
@@ -709,7 +729,8 @@ static void decode_jm_payload0_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 /* decode JaguarMicro specific error payload type 1 and save to database */
 static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
-					const struct jm_payload1_type_sec *err)
+					const struct jm_payload1_type_sec *err,
+					uint32_t length)
 {
 	int i = 0;
 
@@ -746,7 +767,10 @@ static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	JM_SNPRINTF(jmevent.reg_msg, "]");
 
 	trace_seq_printf(s, "Register Dump:");
-	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
+	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent,
+				  common_head->val_bits,
+				  length - (uint32_t)((const char *)common_tail -
+						      (const char *)err));
 
 	record_jm_payload_err(jmevent.reg_msg);
 
@@ -756,7 +780,8 @@ static void decode_jm_payload1_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 /* decode JaguarMicro specific error payload type 2 and save to database */
 static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
-					const struct jm_payload2_type_sec *err)
+					const struct jm_payload2_type_sec *err,
+					uint32_t length)
 {
 	int i = 0;
 
@@ -789,7 +814,10 @@ static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	JM_SNPRINTF(jmevent.reg_msg, "]");
 
 	trace_seq_printf(s, "Register Dump:");
-	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
+	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent,
+				  common_head->val_bits,
+				  length - (uint32_t)((const char *)common_tail -
+						      (const char *)err));
 
 	record_jm_payload_err(jmevent.reg_msg);
 
@@ -799,7 +827,8 @@ static void decode_jm_payload2_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 /* decode JaguarMicro specific error payload type 5 and save to database */
 static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
-					const struct jm_payload5_type_sec *err)
+					const struct jm_payload5_type_sec *err,
+					uint32_t length)
 {
 	int i = 0;
 
@@ -872,7 +901,10 @@ static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 	JM_SNPRINTF(jmevent.reg_msg, "]");
 
 	trace_seq_printf(s, "Register Dump:");
-	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent, common_head->val_bits);
+	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent,
+				  common_head->val_bits,
+				  length - (uint32_t)((const char *)common_tail -
+						      (const char *)err));
 
 	record_jm_payload_err(jmevent.reg_msg);
 
@@ -882,7 +914,8 @@ static void decode_jm_payload5_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 /* decode JaguarMicro specific error payload type 6 and save to database */
 static void decode_jm_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 					struct trace_seq *s,
-					const struct jm_payload6_type_sec *err)
+					const struct jm_payload6_type_sec *err,
+					uint32_t length)
 {
 	int i = 0;
 
@@ -934,7 +967,9 @@ static void decode_jm_payload6_err_regs(struct ras_ns_ev_decoder *ev_decoder,
 
 	trace_seq_printf(s, "Register Dump:");
 	decode_jm_common_sec_tail(ev_decoder, common_tail, &jmevent,
-				  common_head->val_bits);
+				  common_head->val_bits,
+				  length - (uint32_t)((const char *)common_tail -
+						      (const char *)err));
 
 	record_jm_payload_err(jmevent.reg_msg);
 	trace_seq_printf(s, "%s", jmevent.reg_msg);
@@ -950,6 +985,11 @@ static int decode_jm_oem_type_error(struct ras_events *ras,
 	int id = JM_PAYLOAD_FIELD_TIMESTAMP;
 	struct ras_stmt *stmt = jm_payload0_event_db.stmt;
 
+	if (!event->error || !event->length) {
+		trace_seq_printf(s, "%s: empty payload\n", __func__);
+		return -1;
+	}
+
 	WARN_ONCE(ras->record_events && !stmt, ALL, LOG_WARNING,
 		  "Can't insert into table %s: no statement\n",
 		  jm_payload0_event_db.desc->name);
@@ -959,23 +999,48 @@ static int decode_jm_oem_type_error(struct ras_events *ras,
 	if (payload_type == PAYLOAD_TYPE_0) {
 		const struct jm_payload0_type_sec *err =
 			(struct jm_payload0_type_sec *)event->error;
-		decode_jm_payload0_err_regs(ev_decoder, s, err);
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
+		decode_jm_payload0_err_regs(ev_decoder, s, err, event->length);
 	} else if (payload_type == PAYLOAD_TYPE_1) {
 		const struct jm_payload1_type_sec *err =
 			(struct jm_payload1_type_sec *)event->error;
-		decode_jm_payload1_err_regs(ev_decoder, s, err);
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
+		decode_jm_payload1_err_regs(ev_decoder, s, err, event->length);
 	} else if (payload_type == PAYLOAD_TYPE_2) {
 		const struct jm_payload2_type_sec *err =
 			(struct jm_payload2_type_sec *)event->error;
-		decode_jm_payload2_err_regs(ev_decoder, s, err);
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
+		decode_jm_payload2_err_regs(ev_decoder, s, err, event->length);
 	} else if (payload_type == PAYLOAD_TYPE_5) {
 		const struct jm_payload5_type_sec *err =
 			(struct jm_payload5_type_sec *)event->error;
-		decode_jm_payload5_err_regs(ev_decoder, s, err);
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
+		decode_jm_payload5_err_regs(ev_decoder, s, err, event->length);
 	} else if (payload_type == PAYLOAD_TYPE_6) {
 		const struct jm_payload6_type_sec *err =
 			(struct jm_payload6_type_sec *)event->error;
-		decode_jm_payload6_err_regs(ev_decoder, s, err);
+
+		if (event->length < sizeof(*err)) {
+			trace_seq_printf(s, "%s: truncated payload\n", __func__);
+			return -1;
+		}
+		decode_jm_payload6_err_regs(ev_decoder, s, err, event->length);
 	} else {
 		trace_seq_printf(s, "%s : wrong payload type\n", __func__);
 		log(TERM, LOG_ERR, "%s : wrong payload type\n", __func__);
