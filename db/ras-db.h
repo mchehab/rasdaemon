@@ -170,7 +170,8 @@ const char *db_list_available_backends(void);
  * @ctx: Owning module context
  * @entry: Descriptor and statement pair that remains valid until unregistered
  *
- * Registration does not open the table. The owner must keep @entry and its
+ * Registration opens the table immediately when the database is active;
+ * otherwise db_open() opens it later. The owner must keep @entry and its
  * descriptor alive until ras_db_table_unregister().
  *
  * Return:
@@ -186,7 +187,8 @@ int ras_db_table_register(struct ras_module_ctx *ctx,
  * ras_db_table_unregister - Remove every table pair owned by a module
  * @ctx: Owning module context
  *
- * The owner must finalize its statements before calling this function.
+ * Statements are finalized before the registry entries are removed. The
+ * database connection must remain open until this function returns.
  */
 void ras_db_table_unregister(struct ras_module_ctx *ctx);
 

@@ -14,12 +14,13 @@ Module descriptors have static lifetime and register with
 
 The registry initializes modules in dependency order:
 
-#. ``DB_MODULE`` selects and initializes database backends.
+#. ``DB_MODULE`` registers database backends.
+#. ``DB_CORE_MODULE`` selects a backend and opens the database session.
 #. ``BASE_EVENT_MODULE`` owns base trace-event decoders and their tables.
 #. ``SUB_EVENT_MODULE`` contains decoders which depend on base events.
 #. ``ACTIONS_MODULE`` consumes decoded events to apply policy or report them.
 
-Cleanup visits those levels in reverse order. A successful module initializer
+Cleanup visits all levels in reverse order. A successful module initializer
 must leave all owned state reachable from its ``ras_module_ctx`` and its
 cleanup callback must release that state. Modules must not call optional
 modules directly; registration and published events provide the boundary.
@@ -48,9 +49,11 @@ process. Event modules which persist data own a static ``db_desc_and_stmt``
 pair. They register it with ``ras_db_table_register`` during initialization
 and unregister it during cleanup. The descriptor and statement pair must
 remain valid while registered.
-The database session opens registered tables and finalizes their prepared
-statements; module cleanup must unregister only after its statements are no
-longer in use.
+The DB core opens the connection before base-event probes initialize. Tables
+registered before opening are created as part of ``db_open``; later event
+modules create and prepare their tables as they register them. Statements are
+finalized when their owning module unregisters them, before the DB core closes
+the connection.
 
 Code which can build without database support should include ``db/ras-db.h``
 and use its no-database inline implementations. Avoid spreading ``HAVE_DB``

@@ -321,6 +321,39 @@ static void test_failed_init_isolation(void **state)
 	assert_string_equal(ras.cleanup_name[2], "preserved");
 }
 
+static void test_db_core_module_order(void **state)
+{
+	struct ras_events ras = { 0 };
+	const char *names[3] = { 0 };
+	const struct ras_module_entry entries[] = {
+		{
+			.name = "db-backend",
+			.init = test_module_init,
+			.level = DB_MODULE,
+		}, {
+			.name = "db-core",
+			.init = test_module_init,
+			.level = DB_CORE_MODULE,
+		}, {
+			.name = "base-event",
+			.init = test_module_init,
+			.level = BASE_EVENT_MODULE,
+		},
+	};
+	int i;
+
+	ras.name = names;
+	for (i = 0; i < ARRAY_SIZE(entries); i++)
+		assert_int_equal(module_register(&entries[i]), 0);
+
+	assert_int_equal(modules_init(&ras), 0);
+	assert_int_equal(ras.count, ARRAY_SIZE(entries));
+	assert_string_equal(ras.name[0], "db-backend");
+	assert_string_equal(ras.name[1], "db-core");
+	assert_string_equal(ras.name[2], "base-event");
+	modules_unregister();
+}
+
 static void test_sql_backend_state(void **state)
 {
 	struct ras_events ras = { 0 };
@@ -387,10 +420,10 @@ static void test_init_cleanup(void **state)
 {
 	struct ras_events ras = { 0 };
 	static const char * const init_order[] = {
-		"delta", "echo", "beta", "alpha", "charlie", "foxtrot"
+		"delta", "epsilon", "echo", "beta", "alpha", "charlie", "foxtrot"
 	};
 	static const char * const cleanup_order[] = {
-		"alpha", "charlie", "foxtrot", "beta", "echo", "delta"
+		"alpha", "charlie", "foxtrot", "beta", "echo", "epsilon", "delta"
 	};
 	const char *cleanup_names[ARRAY_SIZE(init_order)] = { 0 };
 	int rc = 0;
@@ -416,6 +449,11 @@ static void test_init_cleanup(void **state)
 			.init   = test_module_init,
 			.cleanup = test_module_cleanup,
 			.level  = DB_MODULE,
+		}, {
+			.name   = "epsilon",
+			.init   = test_module_init,
+			.cleanup = test_module_cleanup,
+			.level  = DB_CORE_MODULE,
 		}, {
 			.name   = "foxtrot",
 			.init   = test_module_init,
@@ -469,6 +507,7 @@ static const struct CMUnitTest tests[] = {
 	cmocka_unit_test(test_register_muptiple_levels),
 	cmocka_unit_test(test_named_module_lifecycle),
 	cmocka_unit_test(test_failed_init_isolation),
+	cmocka_unit_test(test_db_core_module_order),
 	cmocka_unit_test(test_sql_backend_state),
 	cmocka_unit_test(test_context_helpers),
 	cmocka_unit_test(test_test_registry),

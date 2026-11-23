@@ -946,20 +946,24 @@ static void test_db_open_registered_tables(void **state)
 		{ .name = "registered_one", .fields = fields, .num_fields = 2 },
 		{ .name = "registered_two", .fields = fields, .num_fields = 2 },
 		{ .name = "registered_three", .fields = fields, .num_fields = 2 },
+		{ .name = "registered_late", .fields = fields, .num_fields = 2 },
 	};
 	struct db_desc_and_stmt tables[] = {
-		{ .desc = &desc[0] }, { .desc = &desc[1] }, { .desc = &desc[2] },
+		{ .desc = &desc[0] }, { .desc = &desc[1] },
+		{ .desc = &desc[2] }, { .desc = &desc[3] },
 	};
 	struct ras_events test_ras = { 0 };
-	struct ras_module_ctx ctx = { 0 };
+	struct ras_module_ctx ctx = { .ras = &test_ras };
 	struct db_values values[2];
 	struct ras_stmt *select_stmt;
 	int rc;
 
 	sqlite3_refresh_test_lock_timeout();
-	for (size_t i = 0; i < ARRAY_SIZE(tables); i++)
+	for (size_t i = 0; i < ARRAY_SIZE(tables) - 1; i++)
 		assert_int_equal(ras_db_table_register(&ctx, &tables[i]), 0);
 	assert_int_equal(db_open(&backend, 0, &test_ras, sizeof(struct mock_priv)), 0);
+	assert_int_equal(ras_db_table_register(&ctx, &tables[3]), 0);
+	assert_non_null(tables[3].stmt);
 	for (size_t i = 0; i < ARRAY_SIZE(tables); i++) {
 		values[0] = (struct db_values) { .type = DB_TYPE_SERIAL, .value = 1 };
 		values[1] = (struct db_values) { .type = DB_TYPE_INT32, .value = i + 1 };
@@ -970,8 +974,10 @@ static void test_db_open_registered_tables(void **state)
 					  &desc[i], values, ARRAY_SIZE(values));
 		assert_int_equal(rc, 0);
 	}
-	assert_int_equal(db_close(0, &test_ras), 0);
 	ras_db_table_unregister(&ctx);
+	for (size_t i = 0; i < ARRAY_SIZE(tables); i++)
+		assert_null(tables[i].stmt);
+	assert_int_equal(db_close(0, &test_ras), 0);
 }
 
 static void test_db_reference_count(void **state)

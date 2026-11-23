@@ -43,19 +43,28 @@ int db_store_tables_close(unsigned int cpu)
 	return rc;
 }
 
+static int db_store_table_open(struct ras_events *ras,
+			       struct db_desc_and_stmt *entry)
+{
+	int rc;
+
+	rc = db_create_table(ras->db, entry->desc);
+	if (!rc)
+		rc = db_prepare_insert_stmt(ras->db, &entry->stmt, entry->desc);
+	if (rc)
+		log(TERM, LOG_ERR, "Failed to open table %s: %d\n",
+		    entry->desc->name, rc);
+
+	return rc;
+}
+
 int db_store_tables_open(struct ras_events *ras, unsigned int cpu)
 {
 	struct ras_db_table_runtime *table;
 	int rc;
 
 	LIST_FOREACH(table, &ras_db_tables, node) {
-		rc = db_create_table(ras->db, table->entry->desc);
-		if (!rc)
-			rc = db_prepare_insert_stmt(ras->db, &table->entry->stmt,
-						    table->entry->desc);
-		if (rc)
-			log(TERM, LOG_ERR, "Failed to open table %s: %d\n",
-			    table->entry->desc->name, rc);
+		rc = db_store_table_open(ras, table->entry);
 		if (rc) {
 			db_store_tables_close(cpu);
 			return rc;
@@ -87,6 +96,19 @@ int ras_db_table_register(struct ras_module_ctx *ctx,
 
 	new->ctx = ctx;
 	new->entry = entry;
+	if (ctx->ras && ctx->ras->db_ref_count) {
+		int rc = db_store_table_open(ctx->ras, entry);
+
+		if (rc) {
+			if (entry->stmt) {
+				db_cpu_finalize(0, entry->stmt, entry->desc->name);
+				entry->stmt = NULL;
+			}
+			free(new);
+			return rc;
+		}
+	}
+
 	if (prev)
 		LIST_INSERT_AFTER(prev, new, node);
 	else
@@ -125,6 +147,14 @@ void ras_db_table_unregister(struct ras_module_ctx *ctx)
 	while (registered) {
 		next = LIST_NEXT(registered, node);
 		if (registered->ctx == ctx) {
+			if (registered->entry->stmt) {
+				if (db_cpu_finalize(0, registered->entry->stmt,
+						    registered->entry->desc->name))
+					log(TERM, LOG_ERR,
+					    "Failed to finalize table %s\n",
+					    registered->entry->desc->name);
+				registered->entry->stmt = NULL;
+			}
 			LIST_REMOVE(registered, node);
 			free(registered);
 		}

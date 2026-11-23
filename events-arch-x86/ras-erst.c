@@ -81,6 +81,7 @@ static void ras_erst_mce_handler(struct ras_events *ras, struct mce_event *e)
 			 "<...>", 0, -1, "....", 0.0f, ERST_EVENT_NAME);
 
 	report_mce_event(ras, NULL, &s, e);
+	ras_event_publish(ras, MCE_EVENT, e);
 	trace_seq_terminate(&s);
 	trace_seq_do_printf(&s);
 	printf("\n");

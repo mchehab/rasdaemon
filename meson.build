@@ -121,7 +121,7 @@ core_api_files = [
 core_queue = ['core/queue.c']
 core_rbtree = ['core/rbtree.c']
 
-db_files = ['db/ras-db.c']
+db_files = ['db/ras-db.c', 'db/db-core.c']
 
 db_sqlite3 = ['db/db-sqlite3.c']
 db_mysql = ['db/db-mysql.c']

@@ -30,17 +30,19 @@ struct ras_module_argp {
 /**
  * enum init_level - module initialization and cleanup order
  * @DB_MODULE: database backends
+ * @DB_CORE_MODULE: database core and active connection
  * @BASE_EVENT_MODULE: base event decoders and table owners
  * @SUB_EVENT_MODULE: decoders which depend on base event modules
  * @ACTIONS_MODULE: consumers of decoded events
  * @ACTIONS_SUB_MODULE: consumer modules that depend on a base consumer
  * @MAX_LEVELS: number of initialization levels
  *
- * Initialization proceeds from @DB_MODULE to @ACTIONS_MODULE. Process-wide
- * cleanup visits the levels in reverse order.
+ * Initialization proceeds in enum order. Process-wide cleanup visits the
+ * levels in reverse order.
  */
 enum init_level {
 	DB_MODULE,
+	DB_CORE_MODULE,
 	BASE_EVENT_MODULE,
 	SUB_EVENT_MODULE,
 	ACTIONS_MODULE,

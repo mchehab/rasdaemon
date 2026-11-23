@@ -10,17 +10,15 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "core/modules.h"
 #include "core/ras-env.h"
 #include "core/ras-events.h"
 #include "core/ras-logger.h"
 #include "core/types.h"
-#include "db/ras-db.h"
+#include "db/db-core.h"
 #include "events/ras-mc-handler.h"
 
-/*
- * Arguments(argp) handling logic and main
- */
 
 #define PROG_NAME "rasdaemon"
 #define TOOL_DESCRIPTION "RAS daemon to log the RAS events."
@@ -190,13 +188,18 @@ int main(int argc, char *argv[])
 		return -errno;
 	}
 
+	ras->record_events = args.record_events;
 	if (modules_init(ras)) {
 		modules_unregister();
 		free(ras);
 		return EXIT_FAILURE;
 	}
 
-	db_backend_enable(NULL);
+	if (args.record_events && !module_is_enabled("db-core")) {
+		modules_unregister();
+		free(ras);
+		return EXIT_FAILURE;
+	}
 
 	if (ras_events_prepare(ras, args.record_events)) {
 		modules_unregister();
@@ -204,20 +207,10 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	if (args.record_events && db_open(NULL, 0, ras, 0)) {
-		log(TERM, LOG_ERR, "Failed to open SQL database\n");
-		ras_events_cleanup(ras);
-		modules_unregister();
-		free(ras);
-		return EXIT_FAILURE;
-	}
-
 	rc = handle_ras_events(ras);
-	if (args.record_events && db_close(0, ras)) {
-		log(TERM, LOG_ERR, "Failed to close SQL database\n");
-		rc = EXIT_FAILURE;
-	}
 	modules_unregister();
+	if (db_core_status())
+		rc = EXIT_FAILURE;
 	free(ras);
 
 	if (rc)
