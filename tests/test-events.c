@@ -23,6 +23,7 @@
 #include "db/ras-db.h"
 #include "events-arch-arm/non-standard-ampere.h"
 #include "events-arch-arm/non-standard-ampereone.h"
+#include "events-arch-arm/non-standard-jaguarmicro.h"
 #include "events-arch-arm/non-standard-nvidia.h"
 #include "events-arch-arm/non-standard-yitian.h"
 #include "events-arch-arm/ras-arm-handler.h"
@@ -1941,8 +1942,68 @@ static void test_jaguarmicro_decoder_registration(void **state)
 	assert_true(decoder_is_registered("746f06fe-405e-451f-8d09-02e802ed984a"));
 }
 
+static void test_jaguarmicro_payload_lengths(void **state)
+{
+	static const char * const types[] = {
+		"82d78ba3-fa14-407a-ba0e-f3ba8170013c",
+		"f9723053-2558-49b1-b58a-1c1a82492a62",
+		"2d31de54-3037-4f24-a283-f69ca1ec0b9a",
+		"dac80d69-0a72-4eba-8114-148ee344af06",
+		"746f06fe-405e-451f-8d09-02e802ed984a",
+	};
+	uint8_t short_payload[] = { 0 };
+	struct ras_events ras = { 0 };
+	struct ras_non_standard_event event = {
+		.timestamp = "2026-08-25 00:00:00 +0000",
+		.error = short_payload,
+		.length = sizeof(short_payload),
+	};
+	struct trace_seq seq;
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(types); i++) {
+		trace_seq_init(&seq);
+		assert_int_equal(ras_ns_test_decode(types[i], &ras, &seq,
+						   &event), -1);
+		trace_seq_terminate(&seq);
+		assert_non_null(strstr(seq.buffer, "truncated payload"));
+		trace_seq_destroy(&seq);
+	}
+}
+
+static void test_jaguarmicro_minimum_type5_type6_payloads(void **state)
+{
+	struct jm_payload5_type_sec payload5 = { 0 };
+	struct jm_payload6_type_sec payload6 = { 0 };
+	struct ras_events ras = { 0 };
+	struct ras_non_standard_event event = {
+		.timestamp = "2026-08-25 00:00:00 +0000",
+	};
+	struct trace_seq seq;
+
+	payload5.common_head.val_bits = BIT(JM_COMMON_VALID_REG_ARRAY_SIZE);
+	event.error = (const uint8_t *)&payload5;
+	event.length = offsetof(struct jm_payload5_type_sec, common_tail) +
+		       sizeof(struct jm_common_sec_tail);
+	trace_seq_init(&seq);
+	assert_int_equal(ras_ns_test_decode("dac80d69-0a72-4eba-8114-148ee344af06",
+					    &ras, &seq, &event), 0);
+	trace_seq_destroy(&seq);
+
+	payload6.common_head.val_bits = BIT(JM_COMMON_VALID_REG_ARRAY_SIZE);
+	event.error = (const uint8_t *)&payload6;
+	event.length = offsetof(struct jm_payload6_type_sec, common_tail) +
+		       sizeof(struct jm_common_sec_tail);
+	trace_seq_init(&seq);
+	assert_int_equal(ras_ns_test_decode("746f06fe-405e-451f-8d09-02e802ed984a",
+					    &ras, &seq, &event), 0);
+	trace_seq_destroy(&seq);
+}
+
 static const struct CMUnitTest jaguar_ns_tests[] = {
 	cmocka_unit_test(test_jaguarmicro_decoder_registration),
+	cmocka_unit_test(test_jaguarmicro_payload_lengths),
+	cmocka_unit_test(test_jaguarmicro_minimum_type5_type6_payloads),
 };
 
 int test_jaguar_ns(void)

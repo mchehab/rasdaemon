@@ -5,6 +5,7 @@
  */
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1027,7 +1028,9 @@ static int decode_jm_oem_type_error(struct ras_events *ras,
 		const struct jm_payload5_type_sec *err =
 			(struct jm_payload5_type_sec *)event->error;
 
-		if (event->length < sizeof(*err)) {
+		if (event->length < offsetof(struct jm_payload5_type_sec,
+					     common_tail) +
+		    sizeof(struct jm_common_sec_tail)) {
 			trace_seq_printf(s, "%s: truncated payload\n", __func__);
 			return -1;
 		}
@@ -1036,7 +1039,9 @@ static int decode_jm_oem_type_error(struct ras_events *ras,
 		const struct jm_payload6_type_sec *err =
 			(struct jm_payload6_type_sec *)event->error;
 
-		if (event->length < sizeof(*err)) {
+		if (event->length < offsetof(struct jm_payload6_type_sec,
+					     common_tail) +
+		    sizeof(struct jm_common_sec_tail)) {
 			trace_seq_printf(s, "%s: truncated payload\n", __func__);
 			return -1;
 		}
