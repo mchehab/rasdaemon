@@ -13,6 +13,7 @@
 #include "actions/ipmi-bmc.h"
 #include "core/modules.h"
 #include "core/ras-logger.h"
+#include "core/types.h"
 
 bool ipmi_bmc_config_enabled(const char *name)
 {
@@ -44,7 +45,7 @@ static int ipmi_bmc_probe_sel(void)
 	FILE *fp;
 	int status;
 	size_t i;
-	size_t nr_devices = sizeof(ipmi_devices) / sizeof(*ipmi_devices);
+	size_t nr_devices = ARRAY_SIZE(ipmi_devices);
 
 	for (i = 0; i < nr_devices; i++)
 		if (!access(ipmi_devices[i], F_OK))
