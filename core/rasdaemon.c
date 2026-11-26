@@ -19,7 +19,6 @@
 #include "db/db-core.h"
 #include "events/ras-mc-handler.h"
 
-
 #define PROG_NAME "rasdaemon"
 #define TOOL_DESCRIPTION "RAS daemon to log the RAS events."
 #define ARGS_DOC "<options>"
