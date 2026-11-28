@@ -77,14 +77,16 @@ pydir = py.get_install_dir(pure: true)
 
 libtraceevent_dep = dependency('libtraceevent', required: true)
 
+# systemd reads system units from <prefix>/lib/systemd/system, whatever the
+# libdir is (lib64 on many distributions).
 systemd_dep = dependency('systemd', required: false)
 if systemd_dep.found()
   systemd_unitdir = systemd_dep.get_variable(
     pkgconfig: 'systemdsystemunitdir',
-    default_value: join_paths(libdir, 'systemd', 'system')
+    default_value: join_paths('lib', 'systemd', 'system')
   )
 else
-  systemd_unitdir = join_paths(libdir, 'systemd', 'system')
+  systemd_unitdir = join_paths('lib', 'systemd', 'system')
 endif
 
 if prefix != '/usr'
