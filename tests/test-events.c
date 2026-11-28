@@ -1667,10 +1667,61 @@ static void test_amd_uncorrected_classification(void **state)
 	}
 }
 
+static void test_amd_smca_bank_types(void **state)
+{
+	static const struct {
+		unsigned int hwid, mcatype;
+		const char *name;
+		bool has_xec_desc;
+	} cases[] = {
+		{ 0xb0, 0x0, "Load Store Unit", true },
+		{ 0x2e, 0x2, "Coherent Slave", true },
+		{ 0x164, 0x0, "DACC Back-end Unit" },
+		{ 0x157, 0x0, "DACC Front-end Unit" },
+		{ 0x1e0, 0x0, "eDDR5 CMN Unit" },
+		{ 0xff, 0x2, "MPART Unit" },
+		{ 0xfd, 0x0, "MPASP Unit" },
+		{ 0xfd, 0x1, "MPASP Unit" },
+		{ 0xbe, 0x0, "MPDACC Unit" },
+		{ 0xf9, 0x0, "MPM Unit" },
+		{ 0x12, 0x0, "MPRAS Unit" },
+		{ 0x1e1, 0x0, "PCIe Link Unit" },
+		{ 0x5c, 0x0, "Die to Die Interconnect Unit" },
+	};
+	struct mce_priv priv = {
+		.cputype = CPU_AMD_SMCA, .family = 0x1a, .model = 0x51,
+	};
+	struct mce_event event;
+	char expected[sizeof(event.bank_name)];
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(cases); i++) {
+		memset(&event, 0, sizeof(event));
+		event.bank = 7;
+		event.ipid = (uint64_t)(cases[i].mcatype << 16 |
+					cases[i].hwid) << 32;
+		decode_smca_error(&event, &priv);
+		snprintf(expected, sizeof(expected), "%s (bank=7)",
+			 cases[i].name);
+		assert_string_equal(event.bank_name, expected);
+		/* Only the banks with a description table decode the XEC. */
+		assert_int_equal(event.mcastatus_msg[0] != '\0',
+				 cases[i].has_xec_desc);
+	}
+
+	memset(&event, 0, sizeof(event));
+	event.ipid = (uint64_t)0x123 << 32;
+	decode_smca_error(&event, &priv);
+	assert_string_equal(event.bank_name, "");
+	assert_string_equal(event.mcastatus_msg,
+			    "Don't know how to decode this bank");
+}
+
 static const struct CMUnitTest mce_tests[] = {
 	cmocka_unit_test(test_mce_priv_cleanup),
 	cmocka_unit_test(test_mce_vendor_decoders),
 	cmocka_unit_test(test_amd_uncorrected_classification),
+	cmocka_unit_test(test_amd_smca_bank_types),
 };
 
 int test_mce(void)
