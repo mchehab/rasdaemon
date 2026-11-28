@@ -315,6 +315,31 @@ class RasMemoryDimmTest(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 self.dimm.run(None, args)
 
+    def test_register_labels_without_board_entry_succeeds(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            labels = root / "labels.db"
+            labels.write_text(
+                "Vendor: Acme\n"
+                "  Model: Board 1\n"
+                "    A1: 0.0.0;\n",
+                encoding="utf-8",
+            )
+            self.dimm.label_db = os.fspath(labels)
+            self.dimm.label_dir = None
+            self.dimm.DMI_DIR = os.fspath(root / "dmi")
+            self.dimm.SYSFS_DIR = os.fspath(root / "edac")
+
+            args = self.parser.parse_args([
+                "dimm", "--register-labels",
+                "--vendor", "Other", "--model", "Board 2",
+            ])
+            errors = io.StringIO()
+            with contextlib.redirect_stderr(errors):
+                self.assertEqual(self.dimm.run(None, args), 0)
+            self.assertIn("No dimm labels for Other model Board 2",
+                          errors.getvalue())
+
     def test_failed_status_sets_command_exit_status(self):
         args = self.parser.parse_args(["dimm", "--status"])
         with mock.patch.object(self.dimm, "print_status", return_value=False):

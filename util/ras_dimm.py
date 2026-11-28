@@ -486,7 +486,10 @@ class RasMemoryDimm:
                 f"{self.prog}: No dimm labels for {self.mainboard_vendor} "
                 f"model {self.mainboard_model}\n"
             )
-            return False
+            # Most boards have no entry in the label database, and
+            # ras-mc-ctl.service runs this at every boot: there is nothing
+            # to register, which is not a failure.
+            return True
         nodes = self._parse_dimm_nodes()
         time.sleep(self.delay)
         layers = entry["layers"]
