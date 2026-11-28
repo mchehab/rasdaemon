@@ -12,6 +12,9 @@ option('enable-arch', type : 'combo', choices : ['auto', 'all', 'x86', 'arm', 'r
        value : 'all',
        description : 'select the architecture-specific event family (or all for testing)')
 
+option('tests', type : 'boolean', value : true,
+       description : 'build the unit tests and their hooks when cmocka is found')
+
 #
 # Main options
 #
