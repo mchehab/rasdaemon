@@ -35,28 +35,43 @@ CI tests
    :target: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl.html
 .. |unit-ras-mc-ctl-fail| image:: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl-fail.svg
    :target: https://mchehab.github.io/rasdaemon/test-badges/ras-mc-ctl.html
-.. _Unit tests: https://mchehab.github.io/rasdaemon/test-badges/
-.. |func-feature-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-feature-pass.svg
+
+.. |qemu-ghes-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-qemu-ghes-pass.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-feature-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-feature-fail.svg
+.. |qemu-ghes-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-qemu-ghes-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-pass.svg
+.. |kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-pass.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-kernel-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-fail.svg
+.. |kernel-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-kernel-skip| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-kernel-skip.svg
+.. |weekly-kernel-pass| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-kernel-pass.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
+.. |weekly-kernel-fail| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-kernel-fail.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
+.. |feature-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-feature-pass.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-pass.svg
+.. |feature-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-feature-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-fail.svg
+.. |rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-pass.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. |func-rasdaemon-skip| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-skip.svg
+.. |rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-rasdaemon-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |weekly-rasdaemon-pass| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-rasdaemon-pass.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
+.. |weekly-rasdaemon-fail| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-rasdaemon-fail.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
+
 .. |func-x86-vm| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-x86-vm-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
 .. |func-arm64-vm| image:: https://mchehab.github.io/rasdaemon-ci/daily/badge-arm64-vm-fail.svg
    :target: https://mchehab.github.io/rasdaemon-ci/daily/
-.. _Functional tests: https://mchehab.github.io/rasdaemon-ci/daily/
+.. |weekly-x86-vm| image:: https://mchehab.github.io/rasdaemon-ci/weekly/badge-x86-vm-fail.svg
+   :target: https://mchehab.github.io/rasdaemon-ci/weekly/
+
+.. _Functional: https://mchehab.github.io/rasdaemon-ci/daily/
+.. _Features: https://mchehab.github.io/rasdaemon-ci/daily/
+.. _Unit tests: https://mchehab.github.io/rasdaemon/test-badges/
+.. _Fuzzy: https://mchehab.github.io/rasdaemon-ci/weekly/
 
 RAS Daemon has two types of CI tests, automated via Github Actions:
 
@@ -71,13 +86,15 @@ RAS Daemon has two types of CI tests, automated via Github Actions:
    Such tests are executed on two separate QEMU VMs. The status indicators
    below shows green if both VMs executed fine at the latest run:
 
-   +---------------------+----------------+------------------------+
-   | VM health           | Architecture   | Status                 |
-   +=====================+================+========================+
-   | Functional tests    | x86_64         | |func-x86-vm|          |
-   | (experimental)      +----------------+------------------------+
-   |                     | aarch64        | |func-arm64-vm|        |
-   +---------------------+----------------+------------------------+
+   +-----------------------------+-----------------+
+   | VM health                   | Status          |
+   +=============================+=================+
+   | Functional tests on x86_64  | |func-x86-vm|   |
+   +-----------------------------+-----------------+
+   | Functional tests on aarch64 | |func-arm64-vm| |
+   +-----------------------------+-----------------+
+   | Fuzzy tests on x86_64       | |weekly-x86-vm| |
+   +-----------------------------+-----------------+
 
    **NOTE**:
       Please note that **functional tests** create virtual machines configured
@@ -90,21 +107,27 @@ RAS Daemon has two types of CI tests, automated via Github Actions:
       If the problem is in the toolset, open an issue against the affected
       tool rather than rasdaemon.
 
-The results from its latest run are automatically updated in this panel:
+It follows the latest test results from both unit tests and end-to-end CI tests:
 
-+---------------------+----------------+------------------------+------------------------+
-| Test type           | Scope          | PASS                   | FAIL                   |
-+=====================+================+========================+========================+
-| `Functional tests`_ | Features       | |func-feature-pass|    | |func-feature-fail|    |
-| (experimental)      +----------------+------------------------+------------------------+
-|                     | Kernel         | |func-kernel-pass|     | |func-kernel-fail|     |
-|                     +----------------+------------------------+------------------------+
-|                     | RAS Daemon     | |func-rasdaemon-pass|  | |func-rasdaemon-fail|  |
-+---------------------+----------------+------------------------+------------------------+
-| `Unit tests`_       | rasdaemon      | |unit-rasdaemon-pass|  | |unit-rasdaemon-fail|  |
-|                     +----------------+------------------------+------------------------+
-|                     | ras-mc-ctl     | |unit-ras-mc-ctl-pass| | |unit-ras-mc-ctl-fail| |
-+---------------------+----------------+------------------------+------------------------+
++------------+---------------+-------------------------+-------------------------+
+| Component  | Test          | PASS                    | FAIL                    |
++============+===============+=========================+=========================+
+| QEMU       | `Functional`_ | |qemu-ghes-pass|        | |qemu-ghes-fail|        |
++------------+---------------+-------------------------+-------------------------+
+| Linux      | `Functional`_ | |kernel-pass|           | |kernel-fail|           |
+| Kernel     +---------------+-------------------------+-------------------------+
+|            | `Fuzzy`_      | |weekly-kernel-pass|    | |weekly-kernel-fail|    |
++------------+---------------+-------------------------+-------------------------+
+| rasdaemon  | `Features`_   | |feature-pass|          | |feature-fail|          |
+|            +---------------+-------------------------+-------------------------+
+|            | `Functional`_ | |rasdaemon-pass|        | |rasdaemon-fail|        |
+|            +---------------+-------------------------+-------------------------+
+|            | `Fuzzy`_      | |weekly-rasdaemon-pass| | |weekly-rasdaemon-fail| |
+|            +---------------+-------------------------+-------------------------+
+|            | `Unit tests`_ | |unit-rasdaemon-pass|   | |unit-rasdaemon-fail|   |
++------------+---------------+-------------------------+-------------------------+
+| ras-mc-ctl | `Unit tests`_ | |unit-ras-mc-ctl-pass|  | |unit-ras-mc-ctl-fail|  |
++------------+---------------+-------------------------+-------------------------+
 
 Building
 --------
