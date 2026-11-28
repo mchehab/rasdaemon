@@ -2007,7 +2007,7 @@ static void test_jaguarmicro_payload_lengths(void **state)
 	for (i = 0; i < ARRAY_SIZE(types); i++) {
 		trace_seq_init(&seq);
 		assert_int_equal(ras_ns_test_decode(types[i], &ras, &seq,
-						   &event), -1);
+						    &event), -1);
 		trace_seq_terminate(&seq);
 		assert_non_null(strstr(seq.buffer, "truncated payload"));
 		trace_seq_destroy(&seq);
