@@ -672,6 +672,7 @@ summary(
     {
         # Keep in alphabetic order
         'SQLite3 database file': get_option('sqlite3-database'),
+        'unit tests': have_unittest,
     },
     bool_yn: true,
     section : 'User defined options',
