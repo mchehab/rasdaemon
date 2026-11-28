@@ -39,6 +39,7 @@
 #include "events/ras-extlog-handler.h"
 #include "events/ras-mc-handler.h"
 #include "events/ras-memory-failure-handler.h"
+#include "events/ras-pcie-link-handler.h"
 #include "events/ras-signal-handler.h"
 #include "actions/ras-cpu-isolation.h"
 #include "actions/ras-page-isolation.h"
@@ -1174,6 +1175,212 @@ static const struct CMUnitTest memory_row_ce_pfa_tests[] = {
 int test_memory_row_ce_pfa(void)
 {
 	return RUN_FEATURE_GROUP("memory row CE PFA", memory_row_ce_pfa_tests);
+}
+#endif
+
+#ifdef HAVE_PCIE_LINK
+static struct ras_pci_hp_event captured_pci_hp;
+static struct ras_pcie_link_event captured_pcie_link;
+static unsigned int captured_pcie_events;
+
+static int capture_pcie_link(struct ras_events *ras, int event, void *data)
+{
+	if (event == PCI_HP_EVENT)
+		captured_pci_hp = *(struct ras_pci_hp_event *)data;
+	else
+		captured_pcie_link = *(struct ras_pcie_link_event *)data;
+	captured_pcie_events++;
+	return 0;
+}
+
+static const struct ras_event_consumer pcie_link_consumer = {
+	.name = "test-pcie-link",
+	.priority = PRI_NORMAL,
+	.events = BIT_ULL(PCI_HP_EVENT) | BIT_ULL(PCIE_LINK_EVENT),
+	.consume = capture_pcie_link,
+};
+
+static int run_pci_hp(const char *port, int port_len, const char *slot,
+		      int slot_len, int hp_event, const char **output,
+		      struct trace_seq *seq)
+{
+	struct tep_record record;
+	struct tep_event event = { 0 };
+	struct ras_events ras;
+	int rc;
+
+	init_trace(seq, &record, &ras);
+	trace_mock_add_raw("port_name", port, port_len);
+	trace_mock_add_raw("slot", slot, slot_len);
+	if (hp_event != INT_MIN)
+		trace_mock_add_value("event", (unsigned int)hp_event);
+	rc = RUN_EVENT("pci", "pci_hp_event", seq, &record, &event, &ras);
+	*output = finish_trace(seq);
+	return rc;
+}
+
+static void test_pci_hp_record(void **state)
+{
+	char long_slot[PCIE_LINK_NAME_LEN + 16];
+	char expected[PCIE_LINK_NAME_LEN + 16];
+	struct trace_seq seq;
+	const char *output;
+
+	assert_int_equal(ras_event_consumer_register(&pcie_link_consumer), 0);
+	captured_pcie_events = 0;
+
+	assert_int_equal(run_pci_hp("0000:00:1c.0", 13, "4", 2, 2, &output,
+				    &seq), 0);
+	assert_non_null(strstr(output, "[NOTICE]"));
+	assert_non_null(strstr(output,
+			       "port 0000:00:1c.0, slot 4: CARD_PRESENT"));
+	assert_int_equal(captured_pcie_events, 1);
+	assert_string_equal(captured_pci_hp.port_name, "0000:00:1c.0");
+	assert_string_equal(captured_pci_hp.slot, "4");
+	assert_string_equal(captured_pci_hp.event, "CARD_PRESENT");
+	trace_seq_destroy(&seq);
+
+	/* Unknown and negative values are kept, not mapped to a known name. */
+	assert_int_equal(run_pci_hp("0000:00:1c.0", 13, "4", 2, 4, &output,
+				    &seq), 0);
+	assert_string_equal(captured_pci_hp.event, "unknown (4)");
+	trace_seq_destroy(&seq);
+	assert_int_equal(run_pci_hp("0000:00:1c.0", 13, "4", 2, -1, &output,
+				    &seq), 0);
+	assert_string_equal(captured_pci_hp.event, "unknown (-1)");
+	trace_seq_destroy(&seq);
+
+	/* A string without its NUL stops at the field length. */
+	assert_int_equal(run_pci_hp("0000:00:1c.0XYZ", 12, "4", 2, 1, &output,
+				    &seq), 0);
+	assert_string_equal(captured_pci_hp.port_name, "0000:00:1c.0");
+	assert_string_equal(captured_pci_hp.event, "LINK_DOWN");
+	trace_seq_destroy(&seq);
+
+	/* A longer slot name is truncated to the payload buffer. */
+	memset(long_slot, 's', sizeof(long_slot) - 1);
+	long_slot[sizeof(long_slot) - 1] = '\0';
+	assert_int_equal(run_pci_hp("0000:00:1c.0", 13, long_slot,
+				    sizeof(long_slot), 0, &output, &seq), 0);
+	assert_int_equal(strlen(captured_pci_hp.slot), PCIE_LINK_NAME_LEN - 1);
+	snprintf(expected, sizeof(expected), "slot %s: LINK_UP",
+		 captured_pci_hp.slot);
+	assert_non_null(strstr(output, expected));
+	trace_seq_destroy(&seq);
+
+	/* A missing field rejects the record without publishing it. */
+	captured_pcie_events = 0;
+	assert_int_equal(run_pci_hp("0000:00:1c.0", 13, "4", 2, INT_MIN,
+				    &output, &seq), -1);
+	trace_seq_destroy(&seq);
+	assert_int_equal(run_pci_hp(NULL, 0, "4", 2, 0, &output, &seq), -1);
+	trace_seq_destroy(&seq);
+	assert_int_equal(captured_pcie_events, 0);
+
+	assert_int_equal(ras_event_consumer_unregister(&pcie_link_consumer), 0);
+}
+
+static int run_pcie_link(unsigned int type, unsigned int reason,
+			 unsigned int cur, unsigned int max,
+			 unsigned int status, bool with_status,
+			 const char **output, struct trace_seq *seq)
+{
+	struct tep_record record;
+	struct tep_event event = { 0 };
+	struct ras_events ras;
+	int rc;
+
+	init_trace(seq, &record, &ras);
+	trace_mock_add_raw("port_name", "0000:00:02.0", 13);
+	trace_mock_add_value("type", type);
+	trace_mock_add_value("reason", reason);
+	trace_mock_add_value("cur_bus_speed", cur);
+	trace_mock_add_value("max_bus_speed", max);
+	trace_mock_add_value("width", 4);
+	trace_mock_add_value("flit_mode", 0);
+	if (with_status)
+		trace_mock_add_value("link_status", status);
+	rc = RUN_EVENT("pci", "pcie_link_event", seq, &record, &event, &ras);
+	*output = finish_trace(seq);
+	return rc;
+}
+
+static void test_pcie_link_record(void **state)
+{
+	struct trace_seq seq;
+	const char *output;
+
+	assert_int_equal(ras_event_consumer_register(&pcie_link_consumer), 0);
+	captured_pcie_events = 0;
+
+	/* Root Port, hotplug, 2.5 GT/s on a 32 GT/s bus, DLLLA */
+	assert_int_equal(run_pcie_link(4, 4, 0x14, 0x18, 0x2000, true,
+				       &output, &seq), 0);
+	assert_non_null(strstr(output, "[NOTICE]"));
+	assert_non_null(strstr(output,
+			       "port 0000:00:02.0 (Root Port): Hotplug event,"));
+	assert_non_null(strstr(output,
+			       " speed 2.5 GT/s (bus max 32.0 GT/s), width x4,"));
+	assert_non_null(strstr(output, " flit mode 0, status DLLLA"));
+	assert_int_equal(captured_pcie_events, 1);
+	assert_string_equal(captured_pcie_link.port_name, "0000:00:02.0");
+	assert_string_equal(captured_pcie_link.port_type, "Root Port");
+	assert_string_equal(captured_pcie_link.reason, "Hotplug event");
+	assert_string_equal(captured_pcie_link.cur_speed, "2.5 GT/s");
+	assert_string_equal(captured_pcie_link.max_speed, "32.0 GT/s");
+	assert_int_equal(captured_pcie_link.width, 4);
+	assert_int_equal(captured_pcie_link.flit_mode, 0);
+	assert_string_equal(captured_pcie_link.link_status, "DLLLA");
+	trace_seq_destroy(&seq);
+
+	/* Bandwidth notification on a Downstream Port, 64 GT/s, all flags */
+	assert_int_equal(run_pcie_link(6, 3, 0x19, 0x19, 0xa800 | 0x4000, true,
+				       &output, &seq), 0);
+	assert_string_equal(captured_pcie_link.port_type, "Downstream Port");
+	assert_string_equal(captured_pcie_link.reason,
+			    "Bandwidth notification IRQ");
+	assert_string_equal(captured_pcie_link.cur_speed, "64.0 GT/s");
+	assert_string_equal(captured_pcie_link.link_status,
+			    "LT|DLLLA|LBMS|LABS");
+	trace_seq_destroy(&seq);
+
+	/* Values without a name: reserved type, new reason, odd speeds */
+	assert_int_equal(run_pcie_link(3, 5, 0xff, 0x1a, 0, true, &output,
+				       &seq), 0);
+	assert_string_equal(captured_pcie_link.port_type, "unknown (3)");
+	assert_string_equal(captured_pcie_link.reason, "unknown (5)");
+	assert_string_equal(captured_pcie_link.cur_speed, "unknown");
+	assert_string_equal(captured_pcie_link.max_speed, "unknown (26)");
+	assert_string_equal(captured_pcie_link.link_status, "");
+	assert_non_null(strstr(output, "status none"));
+	trace_seq_destroy(&seq);
+	assert_int_equal(run_pcie_link(0xb, 0, 0x13, 0x14, 0, true, &output,
+				       &seq), 0);
+	assert_string_equal(captured_pcie_link.port_type, "unknown (11)");
+	assert_string_equal(captured_pcie_link.reason, "Link retrain");
+	assert_string_equal(captured_pcie_link.cur_speed, "unknown (19)");
+	assert_string_equal(captured_pcie_link.max_speed, "2.5 GT/s");
+	trace_seq_destroy(&seq);
+
+	/* A missing field rejects the record without publishing it. */
+	captured_pcie_events = 0;
+	assert_int_equal(run_pcie_link(4, 4, 0x14, 0x18, 0, false, &output,
+				       &seq), -1);
+	trace_seq_destroy(&seq);
+	assert_int_equal(captured_pcie_events, 0);
+
+	assert_int_equal(ras_event_consumer_unregister(&pcie_link_consumer), 0);
+}
+
+static const struct CMUnitTest pcie_link_tests[] = {
+	cmocka_unit_test(test_pci_hp_record),
+	cmocka_unit_test(test_pcie_link_record),
+};
+
+int test_pcie_link(void)
+{
+	return RUN_FEATURE_GROUP("PCI hotplug and PCIe link events",
+				 pcie_link_tests);
 }
 #endif
 

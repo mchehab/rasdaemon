@@ -195,6 +195,7 @@ enable_nvidia_ns_decode = false
 enable_openbmc_unified_sel = false
 enable_page_isolation = false
 enable_pcie_edpc = false
+enable_pcie_link = false
 enable_poison_page_stat = false
 enable_postgresql = false
 enable_reri = false
@@ -384,6 +385,11 @@ if not get_option('disable-all')
         enable_nvidia_ns_decode = true
         enable_non_standard = true
         lib_sources += 'events-arch-arm/non-standard-nvidia.c'
+    endif
+
+    if not get_option('pcie-link').disabled()
+        enable_pcie_link = true
+        lib_sources += 'events/ras-pcie-link-handler.c'
     endif
 
     if not get_option('signal').disabled()
@@ -593,6 +599,7 @@ conf_header = configuration_data({
     'HAVE_NVIDIA_NS_DECODE' : enable_nvidia_ns_decode,
     'HAVE_OPENBMC_UNIFIED_SEL' : enable_openbmc_unified_sel,
     'HAVE_PCIE_EDPC' : enable_pcie_edpc,
+    'HAVE_PCIE_LINK' : enable_pcie_link,
     'HAVE_POSTGRESQL' : enable_postgresql,
     'HAVE_RERI' : enable_reri,
     'HAVE_SIGNAL' : enable_signal,
@@ -629,6 +636,7 @@ summary(
         'Memory Failure' : enable_memory_failure,
         'Memory ROW CE PFA' : enable_memory_row_ce_pfa,
         'PCIe eDPC' : enable_pcie_edpc,
+        'PCIe link events' : enable_pcie_link,
         'Signal' : enable_signal,
     },
     bool_yn: true,

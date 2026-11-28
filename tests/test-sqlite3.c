@@ -33,6 +33,7 @@
 #include "events/ras-extlog-handler.h"
 #include "events/ras-mc-handler.h"
 #include "events/ras-memory-failure-handler.h"
+#include "events/ras-pcie-link-handler.h"
 #include "events/ras-signal-handler.h"
 #include "tests/unittest.h"
 #include "tests/test-db-concurrency.h"
@@ -787,6 +788,14 @@ static void test_mc_event_recording(void **state)
 		.source_type = RERI_SOURCE_TYPE_IOMMU,
 		.severity = RERI_SEV_CORRECTED, .status = 1 };
 #endif
+#ifdef HAVE_PCIE_LINK
+	struct ras_pci_hp_event pci_hp = { .port_name = "0000:00:1c.0",
+		.slot = "4", .event = "CARD_PRESENT" };
+	struct ras_pcie_link_event pcie_link = { .port_name = "0000:00:02.0",
+		.port_type = "Root Port", .reason = "Hotplug event",
+		.cur_speed = "2.5 GT/s", .max_speed = "32.0 GT/s", .width = 4,
+		.link_status = "DLLLA" };
+#endif
 
 	current = getenv("RAS_SQLITE3_DATABASE");
 	if (current)
@@ -917,6 +926,14 @@ static void test_mc_event_recording(void **state)
 	strscpy(reri.timestamp, mc.timestamp, sizeof(reri.timestamp));
 	RECORD_AND_CHECK(ras_event_publish(&ras, RERI_EVENT, &reri),
 			 "reri_event");
+#endif
+#ifdef HAVE_PCIE_LINK
+	strscpy(pci_hp.timestamp, mc.timestamp, sizeof(pci_hp.timestamp));
+	RECORD_AND_CHECK(ras_event_publish(&ras, PCI_HP_EVENT, &pci_hp),
+			 "pci_hp_event");
+	strscpy(pcie_link.timestamp, mc.timestamp, sizeof(pcie_link.timestamp));
+	RECORD_AND_CHECK(ras_event_publish(&ras, PCIE_LINK_EVENT, &pcie_link),
+			 "pcie_link_event");
 #endif
 
 #undef RECORD_AND_CHECK

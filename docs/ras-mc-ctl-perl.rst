@@ -268,6 +268,10 @@ follows:
      - Action result
    * - ``mce_record``
      - Error message
+   * - ``pci_hp_event``
+     - Port and hotplug event
+   * - ``pcie_link_event``
+     - Port, current link speed and width
    * - ``signal_event``
      - Signal code
    * - KunPeng OEM and common tables

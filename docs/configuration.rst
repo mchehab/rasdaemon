@@ -92,6 +92,18 @@ CXL traffic can be disrupted when containment brings a link down. Do not
 enable eDPC on CXL.cache or CXL.mem paths unless the platform vendor explicitly
 supports it.
 
+PCIe hotplug and link events
+----------------------------
+
+The optional ``pcie-link`` Meson feature records the ``pci:pci_hp_event`` and
+``pci:pcie_link_event`` trace events, when the running kernel provides them.
+The first reports hotplug link up and down, and card insertion and removal.
+The second reports each PCIe link speed update, with the reason, the current
+and maximum speed, and the link width. A link that comes back at a lower speed
+or width than before, or that goes down without a removal request, can point to
+a failing device, connector or cable. On kernels without these events, they
+are skipped at startup.
+
 Corrected-error actions
 -----------------------
 
