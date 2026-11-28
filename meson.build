@@ -29,7 +29,7 @@ unittest_sources = []
 
 have_unittest = false
 cmocka_version_2 = false
-if not get_option('disable-all')
+if not get_option('disable-all') and get_option('tests')
     cmocka_dep = dependency('cmocka', version: '>= 2.0', required: false)
     if cmocka_dep.found()
         cmocka_version_2 = true
