@@ -4,7 +4,7 @@
 Description=RAS daemon to log the RAS events
 # only needed when not running in foreground (--foreground | -f)
 #After=syslog.target
-RequiresMountsFor=/sys/kernel/debug
+RequiresMountsFor=/sys/kernel/debug /sys/kernel/tracing
 
 [Service]
 EnvironmentFile=@SYSCONFDEFDIR@/rasdaemon
