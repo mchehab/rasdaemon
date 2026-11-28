@@ -59,7 +59,6 @@ Database API
 .. kernel-doc:: db/ras-db.c
    :identifiers: selected_backend ras_db_ops ras_db_backend_runtime \
                  ras_db_backends rasdaemon_hostname rasdaemon_hostname_buf \
-                 add_hostname \
                  db_backend_register db_backend_unregister \
                  db_backend_is_registered db_get_rasdaemon_hostname \
                  db_bind_type
