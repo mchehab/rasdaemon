@@ -2,10 +2,15 @@
 #
 # Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
-sphinx = find_program('sphinx-build', required: false)
+enable_sphinx = false
+if get_option('docs')
+    sphinx = find_program('sphinx-build', required: false)
+    enable_sphinx = sphinx.found()
+endif
 
-enable_sphinx = sphinx.found()
-if not enable_sphinx
+if not get_option('docs')
+    message('Documentation build disabled')
+elif not enable_sphinx
     message('Sphinx not found. Skipping documentation build')
 else
     sphinx_sources += [
