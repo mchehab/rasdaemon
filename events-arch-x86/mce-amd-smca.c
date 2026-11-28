@@ -76,6 +76,17 @@ enum smca_bank_types {
 	SMCA_XGMI_PHY,	/* xGMI PHY Unit */
 	SMCA_WAFL_PHY,	/* WAFL PHY Unit */
 	SMCA_GMI_PHY,	/* GMI PHY Unit */
+	SMCA_DACC_BE,	/* Data Acceleration Back-end */
+	SMCA_DACC_FE,	/* Data Acceleration Front-end */
+	SMCA_EDDR5CMN,	/* eDDR5 CMN */
+	SMCA_MPART,	/* AMD Root of Trust Microprocessor */
+	SMCA_MPASP,	/* AMD Secure Processor */
+	SMCA_MPASP_V2,
+	SMCA_MPDACC,	/* MP for Data Acceleration */
+	SMCA_MPM,	/* Microprocessor Manageability Core */
+	SMCA_MPRAS,	/* MP for RAS */
+	SMCA_PCIE_PL,	/* PCIe Link */
+	SMCA_SSBDCI,	/* Die to Die Interconnect */
 	N_SMCA_BANK_TYPES
 };
 
@@ -680,7 +691,11 @@ struct smca_mce_desc {
 	unsigned int num_descs;
 };
 
-static struct smca_mce_desc smca_mce_descs[] = {
+/*
+ * Bank types without public Extended Error Code descriptions have no entry:
+ * their errors are reported with the bank name only.
+ */
+static struct smca_mce_desc smca_mce_descs[N_SMCA_BANK_TYPES] = {
 	[SMCA_LS]       = { smca_ls_mce_desc,   ARRAY_SIZE(smca_ls_mce_desc)  },
 	[SMCA_LS_V2]	= { smca_ls2_mce_desc,	ARRAY_SIZE(smca_ls2_mce_desc) },
 	[SMCA_IF]       = { smca_if_mce_desc,   ARRAY_SIZE(smca_if_mce_desc)  },
@@ -801,6 +816,22 @@ static struct smca_hwid smca_hwid_mcatypes[] = {
 	{ SMCA_WAFL_PHY,	 HWID_MCATYPE(0x267, 0x0) },
 
 	{ SMCA_GMI_PHY,	 HWID_MCATYPE(0x269, 0x0) },
+
+	/*
+	 * Bank types from Linux commit b90d398138ab ("x86/mce, EDAC/mce_amd:
+	 * Add new SMCA bank types").
+	 */
+	{ SMCA_DACC_BE,	 HWID_MCATYPE(0x164, 0x0) },
+	{ SMCA_DACC_FE,	 HWID_MCATYPE(0x157, 0x0) },
+	{ SMCA_EDDR5CMN, HWID_MCATYPE(0x1E0, 0x0) },
+	{ SMCA_MPART,	 HWID_MCATYPE(0xFF, 0x2) },
+	{ SMCA_MPASP,	 HWID_MCATYPE(0xFD, 0x0) },
+	{ SMCA_MPASP_V2, HWID_MCATYPE(0xFD, 0x1) },
+	{ SMCA_MPDACC,	 HWID_MCATYPE(0xBE, 0x0) },
+	{ SMCA_MPM,	 HWID_MCATYPE(0xF9, 0x0) },
+	{ SMCA_MPRAS,	 HWID_MCATYPE(0x12, 0x0) },
+	{ SMCA_PCIE_PL,	 HWID_MCATYPE(0x1E1, 0x0) },
+	{ SMCA_SSBDCI,	 HWID_MCATYPE(0x5C, 0x0) },
 };
 
 struct smca_bank_name {
@@ -839,6 +870,16 @@ static struct smca_bank_name smca_names[] = {
 	[SMCA_XGMI_PHY]			= { "Ext Global Memory Interconnect PHY Unit" },
 	[SMCA_WAFL_PHY]			= { "WAFL PHY Unit" },
 	[SMCA_GMI_PHY]			= { "Global Memory Interconnect PHY Unit" },
+	[SMCA_DACC_BE]			= { "DACC Back-end Unit" },
+	[SMCA_DACC_FE]			= { "DACC Front-end Unit" },
+	[SMCA_EDDR5CMN]			= { "eDDR5 CMN Unit" },
+	[SMCA_MPART]			= { "MPART Unit" },
+	[SMCA_MPASP ... SMCA_MPASP_V2]	= { "MPASP Unit" },
+	[SMCA_MPDACC]			= { "MPDACC Unit" },
+	[SMCA_MPM]			= { "MPM Unit" },
+	[SMCA_MPRAS]			= { "MPRAS Unit" },
+	[SMCA_PCIE_PL]			= { "PCIe Link Unit" },
+	[SMCA_SSBDCI]			= { "Die to Die Interconnect Unit" },
 };
 
 void amd_decode_errcode(struct mce_event *e)
