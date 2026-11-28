@@ -108,7 +108,7 @@ static int get_mountdir_by_type(char *mount_type, char *tracing_dir, size_t len)
 
 	fp = fopen("/proc/mounts", "r");
 	if (!fp) {
-		log(ALL, LOG_INFO, "Can't open /proc/mounts");
+		log(ALL, LOG_INFO, "Can't open /proc/mounts\n");
 		return -errno;
 	}
 
@@ -440,7 +440,7 @@ int toggle_ras_mc_event(int enable)
 
 	rc = get_tracing_dir(ras);
 	if (rc < 0) {
-		log(TERM, LOG_ERR, "Can't locate a mounted debugfs\n");
+		log(TERM, LOG_ERR, "Can't locate a mounted tracefs or debugfs\n");
 		goto free_ras;
 	}
 
@@ -1473,7 +1473,7 @@ int ras_events_prepare(struct ras_events *ras, int record_events)
 
 	rc = get_tracing_dir(ras);
 	if (rc < 0) {
-		log(TERM, LOG_ERR, "Can't locate a mounted debugfs\n");
+		log(TERM, LOG_ERR, "Can't locate a mounted tracefs or debugfs\n");
 		return rc;
 	}
 
