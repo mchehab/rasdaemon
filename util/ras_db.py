@@ -42,6 +42,8 @@ SUMMARY_FIELDS = {
     "disk_errors": ("dev",),
     "memory_failure_event": ("action_result",),
     "mce_record": ("error_msg",),
+    "pci_hp_event": ("port_name", "event"),
+    "pcie_link_event": ("port_name", "cur_speed", "width"),
     "signal_event": ("code",),
     "hip08_oem_type1_event_v2": ("err_severity", "module_id"),
     "hip08_oem_type2_event_v2": ("err_severity", "module_id"),

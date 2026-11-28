@@ -43,6 +43,8 @@ struct mce_priv;
  * @CXL_MEMORY_MODULE_EVENT: CXL memory-module event
  * @CXL_MEMORY_SPARING_EVENT: CXL memory-sparing event
  * @RERI_EVENT: RISC-V RERI event
+ * @PCI_HP_EVENT: PCI hotplug link or presence change
+ * @PCIE_LINK_EVENT: PCIe link speed change
  * @NR_EVENTS: number of event identifiers
  */
 enum ras_event_id {
@@ -66,6 +68,8 @@ enum ras_event_id {
 	CXL_MEMORY_MODULE_EVENT,
 	CXL_MEMORY_SPARING_EVENT,
 	RERI_EVENT,
+	PCI_HP_EVENT,
+	PCIE_LINK_EVENT,
 	NR_EVENTS
 };
 

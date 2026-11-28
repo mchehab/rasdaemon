@@ -63,6 +63,8 @@ option('openbmc-unified-sel', type : 'feature',
         description: 'enable Facebook Unified SEL (0xfb) BMC reports')
 option('pcie-edpc', type : 'feature',
         description: 'enable PCIe eDPC fatal-error configuration action')
+option('pcie-link', type : 'feature',
+        description: 'enable PCI hotplug and PCIe link speed change events')
 option('signal', type : 'feature',
         description: 'enable signal event(currently experimental)')
 
