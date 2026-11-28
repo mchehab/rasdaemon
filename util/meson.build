@@ -2,7 +2,7 @@
 #
 # Copyright (C) 2026 Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
-py.install_sources([
+install_data([
     '__init__.py',
     'display_table.py',
     'mem_layout.py',
@@ -11,7 +11,7 @@ py.install_sources([
     'ras_filter.py',
     'ras_dimm.py',
     'ras_env.py',
-])
+], install_dir: pydir)
 
 ras_mc_ctl_conf = configuration_data()
 ras_mc_ctl_conf.set('PYTHON_DIR', pydir)
