@@ -67,13 +67,13 @@ an utility for reporting current error counts from the EDAC sysfs files.
 
 %install
 %meson_install
+%py_byte_compile %{python3} %{buildroot}%{_datadir}/%{name}
 
 %files
 %doc AUTHORS ChangeLog COPYING README.rst SECURITY.rst TODO
 %{_sbindir}/%{name}
 %{_sbindir}/ras-mc-ctl
-%{python3_sitelib}/*.py
-%{python3_sitelib}/__pycache__/*
+%{_datadir}/%{name}/
 %{_mandir}/*/*
 %{_unitdir}/*.service
 %{_sysconfdir}/ras/*/*

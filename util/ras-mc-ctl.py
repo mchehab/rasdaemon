@@ -13,10 +13,8 @@ import logging
 import os
 import sys
 
-# Debian's Python does not include /usr/local/lib/python3/dist-packages in
-# sys.path, although that is where its sysconfig scheme (and therefore Meson)
-# installs prefix-independent modules.  Add the configured installation path
-# explicitly so the default /usr/local prefix and custom prefixes both work.
+# The helper modules are installed in a private directory, outside sys.path.
+# RAS_PYTHON_DIR overrides it, for instance to run from the build tree.
 python_dir = os.environ.get('RAS_PYTHON_DIR', '@PYTHON_DIR@')
 if python_dir not in sys.path:
     sys.path.insert(0, python_dir)

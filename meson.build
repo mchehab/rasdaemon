@@ -69,7 +69,9 @@ arch_x86 = arch == 'all' or arch == 'x86'
 arch_arm = arch == 'all' or arch == 'arm'
 arch_riscv = arch == 'all' or arch == 'riscv'
 
-pydir = py.get_install_dir(pure: true)
+# ras-mc-ctl adds this directory to sys.path: its helpers are not a public
+# Python package, so they stay out of site-packages.
+pydir = prefix / datadir / meson.project_name()
 
 #
 # Global dependencies and install directory paths
