@@ -1,3 +1,34 @@
+2026-11-28      Mauro Carvalho Chehab <mchehab@kernel.org>
+	- Version 1.0.1
+
+        * rasdaemon: read page types from the memory failure trace format
+        * rasdaemon: detect lockdown mode disabling tracing
+        * rasdaemon: ensure the database is opened before handing events
+        * rasdaemon: fix EBIG handling in event processing
+        * rasdaemon: avoid using an uninitialized AMD SMCA bank type
+        * rasdaemon: add a missing break statement in Zhaoxin MCE handling
+        * rasdaemon: check rank0 and rank1 values in Intel server MCE handling
+        * rasdaemon: fix potential overflow in string handling
+        * rasdaemon: free allocated trigger names on failure
+        * rasdaemon: free MCE private data during ERST cleanup
+        * rasdaemon: require the tracefs mount in the systemd service
+        * rasdaemon: install systemd units under lib/ when systemd.pc is absent
+        * rasdaemon: install ras-mc-ctl helpers outside site-packages
+        * rasdaemon: add missing time.h include and fix implicit function
+          declaration
+        * rasdaemon: fix event handling when the trace buffer is too large
+        * rasdaemon: use a boolean lockdown predicate and consolidate its
+          diagnostic
+        * ras-cxl: accept memory module events without newer optional fields
+        * non-standard CPER: validate vendor payload lengths before decoding
+        * non-standard CPER: add JaguarMicro payload-length tests
+        * openbmc-unified-sel: accept -i/--ipmitool as a deprecated alias
+        * ipmi-bmc: probe the BMC only when a SEL consumer needs it
+        * meson: build openbmc-unified-sel on every architecture
+        * meson: add options for unit tests and documentation
+        * meson: fix inclusion of the DIMM labels build file
+        * CI: fix unit-test paths and update test report generation
+
 2026-09-29      Mauro Carvalho Chehab <mchehab@kernel.org>
 	- Version 1.0.0
 
