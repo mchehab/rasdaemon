@@ -54,11 +54,6 @@ const char *rasdaemon_hostname = "";
 static char rasdaemon_hostname_buf[256];
 
 /**
- * var add_hostname - whether the active backend needs a hostname column
- */
-static bool add_hostname = false;
-
-/**
  * db_backend_register - register a static database backend descriptor
  * @entry: complete descriptor which remains valid until unregistered
  *
@@ -356,12 +351,8 @@ int db_open(struct db_backend *backend, unsigned int cpu,
 		else
 			conn_parms = NULL;
 
-		if (entry->allow_remote) {
-			add_hostname = true;
+		if (entry->allow_remote)
 			db_get_rasdaemon_hostname();
-		} else {
-			add_hostname = false;
-		}
 
 		rc = entry->ops->open(&ras->db, conn_parms, cpu);
 		if (!rc) {
