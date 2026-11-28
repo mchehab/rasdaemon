@@ -259,6 +259,7 @@ static void test_concurrent_writers(void **state)
 	assert_int_equal(rc, 0);
 }
 
+#ifdef HAVE_CXL
 static void init_cxl_header(struct ras_cxl_event_common_hdr *header)
 {
 	memset(header, 0, sizeof(*header));
@@ -272,6 +273,7 @@ static void init_cxl_header(struct ras_cxl_event_common_hdr *header)
 	strscpy(header->hdr_timestamp, "2026-08-25 12:00:00 +0000",
 		sizeof(header->hdr_timestamp));
 }
+#endif
 
 /*
  * Tests
